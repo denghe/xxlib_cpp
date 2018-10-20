@@ -9,5 +9,12 @@
     <Import_RootNamespace>pkg</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)helpers.h" />
+    <None Include="$(MSBuildThisFileDirectory)PKG_class.h" />
+    <None Include="$(MSBuildThisFileDirectory)PKG_class.lua" />
+    <None Include="$(MSBuildThisFileDirectory)PKG_sqlite.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)PKG_TypeIdMappings.cs" />
   </ItemGroup>
 </Project>
