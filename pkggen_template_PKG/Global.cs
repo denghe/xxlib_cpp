@@ -12,3 +12,12 @@ class Error
     int id;
     string txt;
 }
+
+[Desc("并非一般的数据包. 仅用于声明各式 List<T>")]
+class Collections
+{
+    List<int> ints;
+    List<long> longs;
+    List<string> strings;
+    List<object> objects;
+}

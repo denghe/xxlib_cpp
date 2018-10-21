@@ -42,6 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Lobby.cs" />
+    <Compile Include="Lobby_Client.cs" />
+    <Compile Include="Client_Lobby.cs" />
     <Compile Include="PKG_TypeIdMappings.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Global.cs" />
