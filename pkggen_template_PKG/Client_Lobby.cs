@@ -22,4 +22,19 @@ namespace Client_Lobby
         int id;
     }
 
+    [Desc("进入 Game1 某个 Level, 位于 Game1 时可发送, 返回 Game1_Level. 失败立即被 T")]
+    class Enter_Game1_Level_Desk
+    {
+        [Desc("指定 Desk id")]
+        int id;
+
+        [Desc("指定座次")]
+        int seatIndex;
+    }
+
+    [Desc("退回上一层. 失败立即被 T")]
+    class Back
+    {
+    }
+
 }

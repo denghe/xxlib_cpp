@@ -19,10 +19,10 @@ namespace Lobby
         Place place;
 
         [Desc("位于 players 数组中的下标( 便于交换删除 )")]
-        int itemIndex;
+        int indexAtContainer;
 
         [Desc("特化: 当位于 Game1_Level_Desk.players 之中时的座次附加信息")]
-        int Game1_Level_Desk_SeatIndex;
+        int game1_Level_Desk_SeatIndex;
 
         // ... more special
     }

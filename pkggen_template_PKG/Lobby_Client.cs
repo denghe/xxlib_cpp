@@ -7,7 +7,7 @@ namespace Lobby_Client
     // 考虑到安全性, 数据流量, 无法直发 Lobby 命名空间下面的类数据. 下列类全是精简安全版.
 
     [Desc("玩家自己的数据")]
-    class Player
+    class Self
     {
         [Desc("玩家id")]
         int id;
@@ -17,13 +17,16 @@ namespace Lobby_Client
     }
 
     [Desc("其他玩家的数据")]
-    class OtherPlayer
+    class Player
     {
         [Desc("玩家id")]
         int id;
 
         [Desc("名字")]
         string username;
+
+        [Desc("特化: 当位于 Game1_Level_Desk.players 之中时的座次附加信息")]
+        int game1_Level_Desk_SeatIndex;
     }
 
     [Desc("大厅根部")]
@@ -33,7 +36,7 @@ namespace Lobby_Client
         List<int> gameIds;
 
         [Desc("玩家自己的数据")]
-        Player self;
+        Self self;
     }
 
     [Desc("Game 特化: Game1 具体配置信息")]
@@ -73,6 +76,6 @@ namespace Lobby_Client
         int id;
 
         [Desc("玩家列表")]
-        List<OtherPlayer> players;
+        List<Player> players;
     }
 }
