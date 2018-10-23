@@ -40,6 +40,11 @@ void InitListener()
 
 		// 启用连接超时管理( 在收到合法包时再次延时 )
 		peer->DelayRelease();
+		peer->OnTimeout = [peer]() noexcept 
+		{
+			Cout(peer->Ip(), " has been timeout kicked from server.");
+			peer->Release();
+		};
 
 		peer->OnReceiveRequest = [peer](uint32_t serial, xx::BBuffer& bb)
 		{

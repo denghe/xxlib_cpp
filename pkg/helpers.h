@@ -24,6 +24,10 @@ void Kick(xx::UvTcpPeer_w const& peer, int delaySec = 0)
 	{
 		// 清掉所有回调, 延迟几秒 release
 		peer->DelayRelease(delaySec, true);
+		peer->OnDispose = [peer] 
+		{
+			Cout(peer->Ip(), " has been delay kicked from server.");
+		};
 	}
 }
 
