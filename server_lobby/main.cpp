@@ -16,28 +16,28 @@ xx::MemPool mp;
 xx::UvLoop uv(&mp);
 
 // 面向 server 互联
-xx::UvTcpListener_w listenerServer;
+xx::UvTcpListener_w serverListener;
 
 // 登陆服务连上来之后 peer 存在这里
 xx::UvTcpPeer_w loginPeer;
 
 // 应对 client 连入
-xx::UvTcpListener_w listenerClient;
+xx::UvTcpListener_w clientListener;
 
 // 包含一些常用函数( Cout, Kick, ToObject, SendError )
 #include "pkg\helpers.h"
 
 
 // 初始化监听器 for server 互连
-void InitListenerServer()
+void InitServerListener()
 {
 	// 创建, 设置参数, 开始监听
-	rc = listenerServer = uv.CreateTcpListener();
-	rc = listenerServer->Bind("0.0.0.0", 11111);
-	rc = listenerServer->Listen();
+	rc = serverListener = uv.CreateTcpListener();
+	rc = serverListener->Bind("0.0.0.0", 11111);
+	rc = serverListener->Listen();
 
 	// 接受连接时继续 bind
-	listenerServer->OnAccept = [](xx::UvTcpPeer_w peer)
+	serverListener->OnAccept = [](xx::UvTcpPeer_w peer)
 	{
 		Cout(peer->Ip(), " connected.");
 
@@ -107,13 +107,13 @@ void InitListenerServer()
 }
 
 // 初始化监听器 for client 连入
-void InitListenerClient()
+void InitClientListener()
 {
-	rc = listenerServer = uv.CreateTcpListener();
-	rc = listenerServer->Bind("0.0.0.0", 11111);
-	rc = listenerServer->Listen();
+	rc = clientListener = uv.CreateTcpListener();
+	rc = clientListener->Bind("0.0.0.0", 11111);
+	rc = clientListener->Listen();
 
-	listenerServer->OnAccept = [](xx::UvTcpPeer_w peer)
+	clientListener->OnAccept = [](xx::UvTcpPeer_w peer)
 	{
 		Cout(peer->Ip(), " connected.");
 
@@ -153,8 +153,8 @@ int main(int argc, char* argv[])
 	uv.InitPeerTimeoutManager();
 
 	InitPkgDefaultInstances();
-	InitListenerServer();
-	InitListenerClient();
+	InitServerListener();
+	InitClientListener();
 
 	// 进入 uv 主循环
 	return uv.Run();
