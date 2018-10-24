@@ -59,7 +59,7 @@ void InitServerListener()
 				// 前置检查: 必须是首包( 可使用 userNumber 来做标记 )
 				if (peer->userNumber)
 				{
-					SendError(peer, serial, "lobby: is not first package. pkg:", o);
+					SendError(peer, serial, -1, "lobby: is not first package. pkg:", o);
 					return;
 				}
 				// 标记为已收到过包
@@ -74,7 +74,7 @@ void InitServerListener()
 					if (loginPeer)
 					{
 						// 推送告知
-						SendError(loginPeer, 0, "lobby: u has been replaced by other same type server.");
+						SendError(loginPeer, 0, -2, "lobby: u has been replaced by other same type server.");
 
 						// 延迟 5 秒 kick 以确保对方已收到
 						Kick(loginPeer, 5);
@@ -89,7 +89,7 @@ void InitServerListener()
 				}
 				// ...
 				default:
-					SendError(peer, serial, "lobby: unknown server type. pkg:", o);
+					SendError(peer, serial, -3, "lobby: unknown server type. pkg:", o);
 					Kick(loginPeer, 5);
 					return;
 				}
@@ -97,7 +97,7 @@ void InitServerListener()
 			// ...
 			default:
 			{
-				SendError(peer, serial, "lobby: recv unhandled pkg: ", o);
+				SendError(peer, serial, -4, "lobby: recv unhandled pkg: ", o);
 				Kick(loginPeer, 5);
 				return;
 			}

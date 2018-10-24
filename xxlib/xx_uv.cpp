@@ -856,6 +856,10 @@ void xx::UvTcpBase::OnReadCBImpl(void* stream, ptrdiff_t nread, void const* buf_
 int xx::UvTcpBase::SendBytes(char const* const& inBuf, int const& len) noexcept
 {
 	assert(addrPtr && inBuf && len);
+
+	lastSendData.first = inBuf;
+	lastSendData.second = len;
+
 	if (!ptr) return -1;
 
 	struct write_req_t

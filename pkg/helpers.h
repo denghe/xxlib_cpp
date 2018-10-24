@@ -48,13 +48,16 @@ xx::Object_p ToObject(xx::UvTcpPeer_w const& peer, xx::BBuffer& bb)
 
 // 快捷构造错误包数据并发送回应/推送( serial == 0 则为推送 )
 template<typename...Args>
-void SendError(xx::UvTcpPeer_w const& peer, uint32_t const& serial, Args const&...args)
+void SendError(xx::UvTcpPeer_w const& peer, uint32_t const& serial, int const& id, Args const&...args)
 {
 	if (!peer) return;
 	auto& pkg = PKG::Error::defaultInstance;
-	pkg->id = -1;
+	pkg->id = id;
 	pkg->txt->Clear();
-	pkg->txt->Append(args...);
+	if constexpr (sizeof...(args) > 0)
+	{
+		pkg->txt->Append(args...);
+	}
 	if (serial)
 	{
 		peer->SendResponse(serial, pkg);
