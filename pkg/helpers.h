@@ -38,10 +38,10 @@ xx::Object_p ToObject(xx::UvTcpPeer_w const& peer, xx::BBuffer& bb)
 	xx::Object_p o;
 	if (bb.ReadRoot(o) || !o)
 	{
-		Cout("recv: ", o);
+		Cout(peer->Ip(), " recv: ", o);
 		Kick(peer);
 	}
-	Cout("recv: ", o);
+	Cout(peer->Ip(), " recv: ", o);
 	return o;
 }
 

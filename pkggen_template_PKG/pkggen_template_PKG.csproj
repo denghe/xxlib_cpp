@@ -42,6 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DB_Login.cs" />
+    <Compile Include="DB.cs" />
+    <Compile Include="Login_DB.cs" />
     <Compile Include="LuaGenFilter.cs" />
     <Compile Include="Lobby.cs" />
     <Compile Include="Lobby_Client.cs" />

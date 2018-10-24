@@ -76,4 +76,8 @@ interface ITypeIdMappings
 
     Lobby.Game1_Level_Desk _38 { get; }
 
+    Login_DB.GetAccount _39 { get; }
+
+    DB.Account _40 { get; }
+
 }

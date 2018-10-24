@@ -5,7 +5,7 @@ namespace PKG
 {
 	struct PkgGenMd5
 	{
-		static constexpr char const* value = "9676cd18e914b5807ac91d4fd65a2876";
+		static constexpr char const* value = "b3a4eeaf69586aa565e1b9d5415e07b1";
     };
 
     // 操作成功( 默认 response 结果 )
@@ -148,6 +148,21 @@ namespace Lobby
     using Game1_Level_Desk_r = xx::Ref<Game1_Level_Desk>;
 
 }
+namespace Login_DB
+{
+    // 根据用户名获取用户信息. 找到就返回 DB.Account. 找不到就返回 Error
+    class GetAccount;
+    using GetAccount_p = xx::Ptr<GetAccount>;
+    using GetAccount_r = xx::Ref<GetAccount>;
+
+}
+namespace DB
+{
+    class Account;
+    using Account_p = xx::Ptr<Account>;
+    using Account_r = xx::Ref<Account>;
+
+}
 namespace Server
 {
     enum class Types : int32_t
@@ -233,6 +248,56 @@ namespace Lobby
     };
 namespace Lobby
 {
+    // Game1 级别 下的 桌子 的详细数据
+    class Game1_Level_Desk : public PKG::Lobby::Place
+    {
+    public:
+        // 桌子编号
+        int32_t id = 0;
+
+        typedef Game1_Level_Desk ThisType;
+        typedef PKG::Lobby::Place BaseType;
+	    Game1_Level_Desk(xx::MemPool* const& mempool) noexcept;
+	    Game1_Level_Desk(xx::BBuffer* const& bb);
+		Game1_Level_Desk(Game1_Level_Desk const&) = delete;
+		Game1_Level_Desk& operator=(Game1_Level_Desk const&) = delete;
+        void ToString(xx::String& s) const noexcept override;
+        void ToStringCore(xx::String& s) const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int FromBBufferCore(xx::BBuffer& bb) noexcept;
+        void CopyTo(Game1_Level_Desk* const& o) const noexcept;
+        Game1_Level_Desk* MakeCopy() const noexcept;
+        Game1_Level_Desk_p MakePtrCopy() const noexcept;
+        inline static xx::Ptr<ThisType> defaultInstance;
+    };
+    // Game1 级别的详细数据
+    class Game1_Level : public PKG::Lobby::Place
+    {
+    public:
+        // 级别编号
+        int32_t id = 0;
+        // 准入门槛
+        double minMoney = 0;
+        // 该级别下所有桌子列表
+        xx::List_p<PKG::Lobby::Game1_Level_Desk_p> desks;
+
+        typedef Game1_Level ThisType;
+        typedef PKG::Lobby::Place BaseType;
+	    Game1_Level(xx::MemPool* const& mempool) noexcept;
+	    Game1_Level(xx::BBuffer* const& bb);
+		Game1_Level(Game1_Level const&) = delete;
+		Game1_Level& operator=(Game1_Level const&) = delete;
+        void ToString(xx::String& s) const noexcept override;
+        void ToStringCore(xx::String& s) const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int FromBBufferCore(xx::BBuffer& bb) noexcept;
+        void CopyTo(Game1_Level* const& o) const noexcept;
+        Game1_Level* MakeCopy() const noexcept;
+        Game1_Level_p MakePtrCopy() const noexcept;
+        inline static xx::Ptr<ThisType> defaultInstance;
+    };
     // Game 特化: Game1 具体配置信息
     class Game1 : public PKG::Lobby::Game
     {
@@ -415,6 +480,34 @@ namespace Lobby_Client
         Game1_p MakePtrCopy() const noexcept;
         inline static xx::Ptr<ThisType> defaultInstance;
     };
+}
+namespace Login_DB
+{
+    // 根据用户名获取用户信息. 找到就返回 DB.Account. 找不到就返回 Error
+    class GetAccount : public xx::Object
+    {
+    public:
+        xx::String_p username;
+
+        typedef GetAccount ThisType;
+        typedef xx::Object BaseType;
+	    GetAccount(xx::MemPool* const& mempool) noexcept;
+	    GetAccount(xx::BBuffer* const& bb);
+		GetAccount(GetAccount const&) = delete;
+		GetAccount& operator=(GetAccount const&) = delete;
+        void ToString(xx::String& s) const noexcept override;
+        void ToStringCore(xx::String& s) const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int FromBBufferCore(xx::BBuffer& bb) noexcept;
+        void CopyTo(GetAccount* const& o) const noexcept;
+        GetAccount* MakeCopy() const noexcept;
+        GetAccount_p MakePtrCopy() const noexcept;
+        inline static xx::Ptr<ThisType> defaultInstance;
+    };
+}
+namespace Lobby_Client
+{
     // 大厅根部
     class Root : public xx::Object
     {
@@ -440,64 +533,29 @@ namespace Lobby_Client
         Root_p MakePtrCopy() const noexcept;
         inline static xx::Ptr<ThisType> defaultInstance;
     };
-}
-namespace Lobby
-{
-    // Game1 级别的详细数据
-    class Game1_Level : public PKG::Lobby::Place
-    {
-    public:
-        // 级别编号
-        int32_t id = 0;
-        // 准入门槛
-        double minMoney = 0;
-        // 该级别下所有桌子列表
-        xx::List_p<PKG::Lobby::Game1_Level_Desk_p> desks;
-
-        typedef Game1_Level ThisType;
-        typedef PKG::Lobby::Place BaseType;
-	    Game1_Level(xx::MemPool* const& mempool) noexcept;
-	    Game1_Level(xx::BBuffer* const& bb);
-		Game1_Level(Game1_Level const&) = delete;
-		Game1_Level& operator=(Game1_Level const&) = delete;
-        void ToString(xx::String& s) const noexcept override;
-        void ToStringCore(xx::String& s) const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int FromBBufferCore(xx::BBuffer& bb) noexcept;
-        void CopyTo(Game1_Level* const& o) const noexcept;
-        Game1_Level* MakeCopy() const noexcept;
-        Game1_Level_p MakePtrCopy() const noexcept;
-        inline static xx::Ptr<ThisType> defaultInstance;
-    };
-}
-namespace Lobby_Client
-{
-    // 其他玩家的数据
-    class Player : public xx::Object
+    // 玩家自己的数据
+    class Self : public xx::Object
     {
     public:
         // 玩家id
         int32_t id = 0;
-        // 名字
-        xx::String_p username;
-        // 特化: 当位于 Game1_Level_Desk.players 之中时的座次附加信息
-        int32_t game1_Level_Desk_SeatIndex = 0;
+        // 有多少钱
+        double money = 0;
 
-        typedef Player ThisType;
+        typedef Self ThisType;
         typedef xx::Object BaseType;
-	    Player(xx::MemPool* const& mempool) noexcept;
-	    Player(xx::BBuffer* const& bb);
-		Player(Player const&) = delete;
-		Player& operator=(Player const&) = delete;
+	    Self(xx::MemPool* const& mempool) noexcept;
+	    Self(xx::BBuffer* const& bb);
+		Self(Self const&) = delete;
+		Self& operator=(Self const&) = delete;
         void ToString(xx::String& s) const noexcept override;
         void ToStringCore(xx::String& s) const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int FromBBufferCore(xx::BBuffer& bb) noexcept;
-        void CopyTo(Player* const& o) const noexcept;
-        Player* MakeCopy() const noexcept;
-        Player_p MakePtrCopy() const noexcept;
+        void CopyTo(Self* const& o) const noexcept;
+        Self* MakeCopy() const noexcept;
+        Self_p MakePtrCopy() const noexcept;
         inline static xx::Ptr<ThisType> defaultInstance;
     };
 }
@@ -750,55 +808,57 @@ namespace Client_Login
     };
 namespace Lobby_Client
 {
-    // 玩家自己的数据
-    class Self : public xx::Object
+    // 其他玩家的数据
+    class Player : public xx::Object
     {
     public:
         // 玩家id
         int32_t id = 0;
-        // 有多少钱
-        double money = 0;
+        // 名字
+        xx::String_p username;
+        // 特化: 当位于 Game1_Level_Desk.players 之中时的座次附加信息
+        int32_t game1_Level_Desk_SeatIndex = 0;
 
-        typedef Self ThisType;
+        typedef Player ThisType;
         typedef xx::Object BaseType;
-	    Self(xx::MemPool* const& mempool) noexcept;
-	    Self(xx::BBuffer* const& bb);
-		Self(Self const&) = delete;
-		Self& operator=(Self const&) = delete;
+	    Player(xx::MemPool* const& mempool) noexcept;
+	    Player(xx::BBuffer* const& bb);
+		Player(Player const&) = delete;
+		Player& operator=(Player const&) = delete;
         void ToString(xx::String& s) const noexcept override;
         void ToStringCore(xx::String& s) const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int FromBBufferCore(xx::BBuffer& bb) noexcept;
-        void CopyTo(Self* const& o) const noexcept;
-        Self* MakeCopy() const noexcept;
-        Self_p MakePtrCopy() const noexcept;
+        void CopyTo(Player* const& o) const noexcept;
+        Player* MakeCopy() const noexcept;
+        Player_p MakePtrCopy() const noexcept;
         inline static xx::Ptr<ThisType> defaultInstance;
     };
 }
-namespace Lobby
+namespace DB
 {
-    // Game1 级别 下的 桌子 的详细数据
-    class Game1_Level_Desk : public PKG::Lobby::Place
+    class Account : public xx::Object
     {
     public:
-        // 桌子编号
         int32_t id = 0;
+        xx::String_p username;
+        xx::String_p password;
 
-        typedef Game1_Level_Desk ThisType;
-        typedef PKG::Lobby::Place BaseType;
-	    Game1_Level_Desk(xx::MemPool* const& mempool) noexcept;
-	    Game1_Level_Desk(xx::BBuffer* const& bb);
-		Game1_Level_Desk(Game1_Level_Desk const&) = delete;
-		Game1_Level_Desk& operator=(Game1_Level_Desk const&) = delete;
+        typedef Account ThisType;
+        typedef xx::Object BaseType;
+	    Account(xx::MemPool* const& mempool) noexcept;
+	    Account(xx::BBuffer* const& bb);
+		Account(Account const&) = delete;
+		Account& operator=(Account const&) = delete;
         void ToString(xx::String& s) const noexcept override;
         void ToStringCore(xx::String& s) const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int FromBBufferCore(xx::BBuffer& bb) noexcept;
-        void CopyTo(Game1_Level_Desk* const& o) const noexcept;
-        Game1_Level_Desk* MakeCopy() const noexcept;
-        Game1_Level_Desk_p MakePtrCopy() const noexcept;
+        void CopyTo(Account* const& o) const noexcept;
+        Account* MakeCopy() const noexcept;
+        Account_p MakePtrCopy() const noexcept;
         inline static xx::Ptr<ThisType> defaultInstance;
     };
 }
@@ -841,6 +901,8 @@ namespace xx
 	template<> struct TypeId<PKG::Lobby::Game1_Level> { static const uint16_t value = 36; };
 	template<> struct TypeId<xx::List<PKG::Lobby::Game1_Level_Desk_p>> { static const uint16_t value = 37; };
 	template<> struct TypeId<PKG::Lobby::Game1_Level_Desk> { static const uint16_t value = 38; };
+	template<> struct TypeId<PKG::Login_DB::GetAccount> { static const uint16_t value = 39; };
+	template<> struct TypeId<PKG::DB::Account> { static const uint16_t value = 40; };
 }
 namespace PKG
 {
@@ -2446,6 +2508,142 @@ namespace Lobby
     }
 
 }
+namespace Login_DB
+{
+	inline GetAccount::GetAccount(xx::MemPool* const& mempool) noexcept
+        : xx::Object(mempool)
+	{
+	}
+	inline GetAccount::GetAccount(xx::BBuffer* const& bb)
+        : xx::Object(bb)
+	{
+        if (int r = FromBBufferCore(*bb)) throw r;
+	}
+    inline void GetAccount::ToBBuffer(xx::BBuffer& bb) const noexcept
+    {
+        bb.Write(this->username);
+    }
+    inline int GetAccount::FromBBuffer(xx::BBuffer& bb) noexcept
+    {
+        return this->FromBBufferCore(bb);
+    }
+    inline int GetAccount::FromBBufferCore(xx::BBuffer& bb) noexcept
+    {
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->username)) return r;
+        return 0;
+    }
+
+    inline void GetAccount::ToString(xx::String& s) const noexcept
+    {
+        if (this->memHeader().flags)
+        {
+        	s.Append("[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->memHeader().flags = 1;
+
+        s.Append("{ \"pkgTypeName\":\"Login_DB.GetAccount\", \"pkgTypeId\":", xx::TypeId_v<ThisType>);
+        ToStringCore(s);
+        s.Append(" }");
+        
+        this->memHeader().flags = 0;
+    }
+    inline void GetAccount::ToStringCore(xx::String& s) const noexcept
+    {
+        this->BaseType::ToStringCore(s);
+        if (this->username) s.Append(", \"username\":\"", this->username, "\"");
+        else s.Append(", \"username\":nil");
+    }
+    inline void GetAccount::CopyTo(GetAccount* const& o) const noexcept
+    {
+        o->username = this->username;
+    }
+    inline GetAccount* GetAccount::MakeCopy() const noexcept
+    {
+        auto o = mempool->MPCreate<GetAccount>();
+        this->CopyTo(o);
+        return o;
+    }
+    inline GetAccount_p GetAccount::MakePtrCopy() const noexcept
+    {
+        return GetAccount_p(this->MakeCopy());
+    }
+
+}
+namespace DB
+{
+	inline Account::Account(xx::MemPool* const& mempool) noexcept
+        : xx::Object(mempool)
+	{
+	}
+	inline Account::Account(xx::BBuffer* const& bb)
+        : xx::Object(bb)
+	{
+        if (int r = FromBBufferCore(*bb)) throw r;
+	}
+    inline void Account::ToBBuffer(xx::BBuffer& bb) const noexcept
+    {
+        bb.Write(this->id);
+        bb.Write(this->username);
+        bb.Write(this->password);
+    }
+    inline int Account::FromBBuffer(xx::BBuffer& bb) noexcept
+    {
+        return this->FromBBufferCore(bb);
+    }
+    inline int Account::FromBBufferCore(xx::BBuffer& bb) noexcept
+    {
+        if (int r = bb.Read(this->id)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->username)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->password)) return r;
+        return 0;
+    }
+
+    inline void Account::ToString(xx::String& s) const noexcept
+    {
+        if (this->memHeader().flags)
+        {
+        	s.Append("[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->memHeader().flags = 1;
+
+        s.Append("{ \"pkgTypeName\":\"DB.Account\", \"pkgTypeId\":", xx::TypeId_v<ThisType>);
+        ToStringCore(s);
+        s.Append(" }");
+        
+        this->memHeader().flags = 0;
+    }
+    inline void Account::ToStringCore(xx::String& s) const noexcept
+    {
+        this->BaseType::ToStringCore(s);
+        s.Append(", \"id\":", this->id);
+        if (this->username) s.Append(", \"username\":\"", this->username, "\"");
+        else s.Append(", \"username\":nil");
+        if (this->password) s.Append(", \"password\":\"", this->password, "\"");
+        else s.Append(", \"password\":nil");
+    }
+    inline void Account::CopyTo(Account* const& o) const noexcept
+    {
+        o->id = this->id;
+        o->username = this->username;
+        o->password = this->password;
+    }
+    inline Account* Account::MakeCopy() const noexcept
+    {
+        auto o = mempool->MPCreate<Account>();
+        this->CopyTo(o);
+        return o;
+    }
+    inline Account_p Account::MakePtrCopy() const noexcept
+    {
+        return Account_p(this->MakeCopy());
+    }
+
+}
 }
 namespace PKG
 {
@@ -2488,5 +2686,7 @@ namespace PKG
 	    xx::MemPool::Register<PKG::Lobby::Game1_Level, PKG::Lobby::Place>();
 	    xx::MemPool::Register<xx::List<PKG::Lobby::Game1_Level_Desk_p>, xx::Object>();
 	    xx::MemPool::Register<PKG::Lobby::Game1_Level_Desk, PKG::Lobby::Place>();
+	    xx::MemPool::Register<PKG::Login_DB::GetAccount, xx::Object>();
+	    xx::MemPool::Register<PKG::DB::Account, xx::Object>();
 	}
 }

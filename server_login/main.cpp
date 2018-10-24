@@ -24,6 +24,9 @@ xx::UvTcpClient_w dbClient;
 // 应对 client 连入
 xx::UvTcpListener_w listener;
 
+// 缓存用户名, 密码的多主键字典. key1: int(id), key2: string(username)
+xx::DictEx<PKG::DB::Account_p, int, xx::String_p> players(&mp);
+
 // 包含一些常用函数( Cout, Kick, ToObject, SendError )
 #include "pkg\helpers.h"
 
@@ -60,6 +63,11 @@ void InitXxxxClients()
 		});
 	};
 
+	dbClient->OnReceivePackage = [](xx::BBuffer& bb) 
+	{
+		// todo: 密码变更通知
+	};
+
 	// 创建一个 timer. 每 0.2 秒检测一次. 如果网络断开就重连
 	uv.CreateTimer(0, 200, []
 	{
@@ -75,7 +83,7 @@ void InitXxxxClients()
 	});
 }
 
-// 处理登陆亲求( 实现代码在下面 )
+// 处理登陆请求( 实现代码在下面 )
 void HandleAuth(xx::UvTcpPeer_w const& peer, uint32_t const& serial, PKG::Client_Login::Auth_p &req);
 
 // 初始化监听器 for client 连入
@@ -122,7 +130,7 @@ void InitListener()
 			}
 			default:
 			{
-				Cout(peer->Ip(), " receive unhandled request: ", o);
+				Cout(peer->Ip(), " receive unhandled request.");
 				break;
 			}
 			}
@@ -130,32 +138,71 @@ void InitListener()
 	};
 }
 
-// 处理登陆亲求
+// 处理登陆请求
 void HandleAuth(xx::UvTcpPeer_w const& peer, uint32_t const& serial, PKG::Client_Login::Auth_p &req)
 {
-	Cout(peer->Ip(), " receive Auth request: ", req);
+	// 登录计数
+	++peer->userNumber;
+
+	// todo: 
 
 	// peer 续命以等待 db 的回应
 	peer->TimeoutReset();
 
-	// 检查协议号
+	// 检查协议号: 对不上就 T
 	if (!req->pkgMD5 || !req->pkgMD5->Equals(PKG::PkgGenMd5::value))
 	{
 		peer->Release();
 		return;
 	}
 
-	// 检查数据库连没连上
-	if (!dbClient->Alive())
+	// 粗略检查用户名合法性: 不可空或0长. 否则就 T
+	if (!req->username || !req->username->dataLen)
 	{
-		SendError(peer, serial, -1, "dbClient disconnected.");
+		peer->Release();
 		return;
 	}
 
+	// 粗略检查密码合法性: 不可空. 可0长. 否则就 T
+	if (!req->password)
+	{
+		peer->Release();
+		return;
+	}
+
+	SendError(peer, serial, -1, "not impl");
+
+	//// 试着在缓存中定位
+	//int idx = players.Find<1>(req->username);
+
+	//// 如果找到, 直接校验密码
+	//if (idx != -1)
+	//{
+	//	// 密码不对
+	//	if (!players.ValueAt(idx)->password->Equals(req->password))
+	//	{
+	//		
+	//	}
+	//}
+
+	//// 检查数据库连没连上
+	//if (!dbClient->Alive())
+	//{
+	//	SendError(peer, serial, -1, "dbClient disconnected.");
+	//	return;
+	//}
+
+	//// 构造请求包
+	//decltype(auto) pkg = mp.MPCreatePtr<PKG::Login_DB::GetAccount>();
+	
 	// todo: 向 dbClient 发 Auth 请求?
+
+
+	// 登录成功
+	// peer->userNumber = 0;   // 重置登录请求计数
 }
 
-// 初始化一些包默认实例备用
+// 初始化一些内容不变化的包默认实例备用
 void InitPkgDefaultInstances()
 {
 	PKG::Success::defaultInstance.MPCreate(&mp);

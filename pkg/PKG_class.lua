@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '9676cd18e914b5807ac91d4fd65a2876'
+PKG_PkgGenMd5_Value = 'b3a4eeaf69586aa565e1b9d5415e07b1'
 
 PKG_Server_Types = {
     Unknown = 0,
@@ -284,6 +284,199 @@ List_Object_ = {
     end
 }
 BBuffer.Register( List_Object_ )
+--[[
+校验身份, 成功返回 ConnInfo, 内含下一步需要连接的服务的明细. 失败立即被 T
+]]
+PKG_Client_Login_Auth = {
+    typeName = "PKG_Client_Login_Auth",
+    typeId = 12,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_Login_Auth
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        包版本校验
+        ]]
+        o.pkgMD5 = null -- String
+        --[[
+        用户名
+        ]]
+        o.username = null -- String
+        --[[
+        密码
+        ]]
+        o.password = null -- String
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadObject = bb.ReadObject
+        o.pkgMD5 = ReadObject( bb )
+        o.username = ReadObject( bb )
+        o.password = ReadObject( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteObject = bb.WriteObject
+        WriteObject( bb, o.pkgMD5 )
+        WriteObject( bb, o.username )
+        WriteObject( bb, o.password )
+    end
+}
+BBuffer.Register( PKG_Client_Login_Auth )
+--[[
+首包. 进入大厅. 成功返回 Self( 含 Root 以及个人信息 ). 如果已经位于具体游戏中, 返回 ConnInfo. 失败立即被 T
+]]
+PKG_Client_Lobby_Enter = {
+    typeName = "PKG_Client_Lobby_Enter",
+    typeId = 13,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_Lobby_Enter
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        o.token = null -- String
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.token = bb:ReadObject()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteObject( o.token )
+    end
+}
+BBuffer.Register( PKG_Client_Lobby_Enter )
+--[[
+进入 Game1, 位于 Root 时可发送, 返回 Game1. 失败立即被 T
+]]
+PKG_Client_Lobby_Enter_Game1 = {
+    typeName = "PKG_Client_Lobby_Enter_Game1",
+    typeId = 14,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_Lobby_Enter_Game1
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+    end,
+    ToBBuffer = function( bb, o )
+    end
+}
+BBuffer.Register( PKG_Client_Lobby_Enter_Game1 )
+--[[
+进入 Game1 某个 Level, 位于 Game1 时可发送, 返回 Game1_Level. 失败立即被 T
+]]
+PKG_Client_Lobby_Enter_Game1_Level = {
+    typeName = "PKG_Client_Lobby_Enter_Game1_Level",
+    typeId = 15,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_Lobby_Enter_Game1_Level
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        指定 Level id
+        ]]
+        o.id = 0 -- Int32
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.id = bb:ReadInt32()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteInt32( o.id )
+    end
+}
+BBuffer.Register( PKG_Client_Lobby_Enter_Game1_Level )
+--[[
+进入 Game1 某个 Level, 位于 Game1 时可发送, 返回 Game1_Level. 失败立即被 T
+]]
+PKG_Client_Lobby_Enter_Game1_Level_Desk = {
+    typeName = "PKG_Client_Lobby_Enter_Game1_Level_Desk",
+    typeId = 16,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_Lobby_Enter_Game1_Level_Desk
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        指定 Desk id
+        ]]
+        o.id = 0 -- Int32
+        --[[
+        指定座次
+        ]]
+        o.seatIndex = 0 -- Int32
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadInt32 = bb.ReadInt32
+        o.id = ReadInt32( bb )
+        o.seatIndex = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.id )
+        WriteInt32( bb, o.seatIndex )
+    end
+}
+BBuffer.Register( PKG_Client_Lobby_Enter_Game1_Level_Desk )
+--[[
+退回上一层. 失败立即被 T
+]]
+PKG_Client_Lobby_Back = {
+    typeName = "PKG_Client_Lobby_Back",
+    typeId = 17,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_Lobby_Back
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+    end,
+    ToBBuffer = function( bb, o )
+    end
+}
+BBuffer.Register( PKG_Client_Lobby_Back )
 --[[
 玩家自己的数据
 ]]
