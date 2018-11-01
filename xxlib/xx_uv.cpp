@@ -44,31 +44,6 @@ static void AllocCB(uv_handle_t* h, size_t suggested_size, uv_buf_t* buf) noexce
 }
 
 // 地址转为 IP
-static int AddressToIP(sockaddr_in* addr, char* buf, size_t bufLen, bool includePort = true) noexcept
-{
-	int r = 0;
-	if (addr->sin_family == AF_INET6)
-	{
-		if ((r = uv_ip6_name((sockaddr_in6*)addr, buf, (int)bufLen))) return r;
-		if (includePort)
-		{
-			auto dataLen = strlen(buf);
-			sprintf(buf + dataLen, ":%d", ntohs(((sockaddr_in6*)addr)->sin6_port));
-		}
-	}
-	else
-	{
-		if ((r = uv_ip4_name(addr, buf, (int)bufLen))) return r;
-		if (includePort)
-		{
-			auto dataLen = strlen(buf);
-			sprintf(buf + dataLen, ":%d", ntohs(addr->sin_port));
-		}
-	}
-	return 0;
-}
-
-
 static int FillIP(sockaddr_in6& saddr, char* buf, size_t bufLen, bool includePort = true) noexcept
 {
 	int r = 0;
@@ -198,6 +173,93 @@ bool xx::UvLoop::Alive() const noexcept
 	return uv_loop_alive((uv_loop_t*)ptr) != 0;
 }
 
+bool xx::UvLoop::CreateTcpClientEx(char const* const& domainName, int const& port, std::function<void(xx::UvTcpClient_w)>&& cb, int const& timeoutMS) noexcept
+{
+	if (!cb) return false;
+
+	struct Ctx : xx::Object
+	{
+		int n;
+		bool called;
+		std::function<void(xx::UvTcpClient_w)> cb;
+		Ctx(xx::MemPool* const& mp, int const& n, std::function<void(xx::UvTcpClient_w)>&& cb)
+			: xx::Object(mp)
+			, n(n)
+			, called(false)
+			, cb(std::move(cb))
+		{
+		}
+	};
+	auto ctx = mempool->MPCreatePtr<Ctx>(0, std::move(cb));
+
+	return GetIPList(domainName, [this, port, ctx, timeoutMS](xx::List<xx::String_p>* ips)
+	{
+		if (!ips || !ips->dataLen)
+		{
+			ctx->cb(xx::UvTcpClient_w());
+			return;
+		}
+		ctx->n = ips->dataLen;
+		for (decltype(auto) ip : *ips)
+		{
+			decltype(auto) conn = CreateTcpClient();
+			int r = 0;
+			if (ip->Find(':') != size_t(-1))
+			{
+				r = conn->SetAddress6(ip->c_str(), port);
+			}
+			else
+			{
+				r = conn->SetAddress(ip->c_str(), port);
+			}
+			if (r)
+			{
+				--ctx->n;
+				if (!ctx->n)
+				{
+					ctx->cb(xx::UvTcpClient_w());
+				}
+				conn->Release();
+				continue;
+			}
+			conn->OnConnect = [=] (int status)
+			{
+				--ctx->n;				// 减计数
+				if (ctx->called)		// 如果已经选出连接, 就直接自杀
+				{
+					conn->Release();
+					return;
+				}
+				if (status && !ctx->n)	// 如果没连上且这是最后一个连接, 就发起空回调后自杀
+				{
+					ctx->cb(xx::UvTcpClient_w());
+					conn->Release();
+					return;
+				}
+				ctx->called = true;		// 打选中标记
+				// 安全的清 OnConnect 并执行回调
+				auto ctx_ = ctx;
+				auto conn_ = conn;
+				conn_->OnConnect = nullptr;
+				ctx_->cb(conn_);
+				return;
+			};
+			r = conn->Connect(timeoutMS);
+			if (r)
+			{
+				conn->Release();
+				--ctx->n;
+				if (!ctx->n)
+				{
+					ctx->cb(xx::UvTcpClient_w());
+				}
+				continue;
+			}
+		}
+	}, timeoutMS);
+}
+
+
 xx::UvTcpListener_w xx::UvLoop::CreateTcpListener() noexcept
 {
 	return mempool->Create<UvTcpListener>(*this);
@@ -245,7 +307,7 @@ int xx::UvLoop::DelayExecute(std::function<void()>&& func, int const& timeoutMS)
 
 
 
-bool xx::UvLoop::GetIPList(char const* const& domainName, std::function<void(List<String>*)>&& cb, int timeoutMS)
+bool xx::UvLoop::GetIPList(char const* const& domainName, std::function<void(List<String_p>*)>&& cb, int timeoutMS)
 {
 	auto s = mempool->Str(domainName);
 	if (dnsVisitors.Find(s) != -1) return false;
@@ -263,13 +325,14 @@ bool xx::UvLoop::GetIPList(char const* const& domainName, std::function<void(Lis
 
 
 
-xx::UvDnsVisitor::UvDnsVisitor(UvLoop* const& loop, String_p& domainName, std::function<void(List<String>*)>&& cb, int timeoutMS)
+xx::UvDnsVisitor::UvDnsVisitor(UvLoop* const& loop, String_p& domainName, std::function<void(List<String_p>*)>&& cb, int timeoutMS)
 	: xx::Object(loop->mempool)
 	, loop(*loop)
 	, domainName(domainName)
 	, cb(std::move(cb))
 	, results(loop->mempool)
 {
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	hints = Alloc(sizeof(addrinfo));
 	if (!hints) throw - 1;
 	xx::ScopeGuard sg_hints([&]() noexcept { Free(hints); hints = nullptr; });
@@ -277,7 +340,6 @@ xx::UvDnsVisitor::UvDnsVisitor(UvLoop* const& loop, String_p& domainName, std::f
 	((addrinfo*)hints)->ai_family = PF_UNSPEC;
 	((addrinfo*)hints)->ai_socktype = SOCK_STREAM;
 	((addrinfo*)hints)->ai_protocol = 0;// IPPROTO_TCP;
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	((addrinfo*)hints)->ai_flags = AI_DEFAULT;
 #endif
 
@@ -303,7 +365,9 @@ xx::UvDnsVisitor::UvDnsVisitor(UvLoop* const& loop, String_p& domainName, std::f
 
 	sg_resolver2.Cancel();
 	sg_resolver.Cancel();
+#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	sg_hints.Cancel();
+#endif
 }
 
 xx::UvDnsVisitor::~UvDnsVisitor()
@@ -339,48 +403,33 @@ void xx::UvDnsVisitor::OnResolvedCBImpl(void *resolver, int status, void *res)
 	{
 		auto ai = (addrinfo*)res;
 
-		// 已知苹果下面会返回前后两条重复的 ip 地址
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-		xx::String s1(self->mempool);
+		// 已知 ios & android 下面会返回重复的 ip 地址. 保险起见去重一下
+		auto mp = self->mempool;
+		mp->strs->Clear();
 		do
 		{
-			xx::String s2(self->mempool);
-			s2.Resize(32);
+			auto s = mp->Str();
+			s->Resize(64);
 			if (ai->ai_addr->sa_family == AF_INET6)
 			{
-				uv_ip6_name((sockaddr_in6*)ai->ai_addr, s2.buf, s2.bufLen);
+				uv_ip6_name((sockaddr_in6*)ai->ai_addr, s->buf, s->bufLen);
 			}
 			else
 			{
-				uv_ip4_name((sockaddr_in*)ai->ai_addr, s2.buf, s2.bufLen);
-}
-			s2.dataLen = strlen(s2.buf);
-			if (!s1.Equals(s2))
-			{
-				s1.Assign(s2);
-				self->results.Add(std::move(s2));
+				uv_ip4_name((sockaddr_in*)ai->ai_addr, s->buf, s->bufLen);
 			}
+			s->dataLen = strlen(s->buf);
+			mp->strs->Add(s);
 			ai = ai->ai_next;
-#else
-		do
-		{
-			auto& s = self->results.Emplace(self->mempool);
-			s.Resize(32);
-			if (ai->ai_addr->sa_family == AF_INET6)
-			{
-				uv_ip6_name((sockaddr_in6*)ai->ai_addr, s.buf, s.bufLen);
-			}
-			else
-			{
-				uv_ip4_name((sockaddr_in*)ai->ai_addr, s.buf, s.bufLen);
-			}
-			s.dataLen = strlen(s.buf);
-			ai = ai->ai_next;
-#endif
 		} while (ai);
-
 		uv_freeaddrinfo((addrinfo*)res);
+
+		for (decltype(auto) s : *mp->strs)
+		{
+			self->results.Add(s);
 		}
+		mp->strs->Clear();
+	}
 
 	if (self->cb)
 	{

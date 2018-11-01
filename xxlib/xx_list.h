@@ -81,4 +81,10 @@ namespace xx
 
 	template<typename T>
 	using List_r = Ref<List<T>>;
+
+	template<typename T>
+	using List_u = Unique<List<T>>;
+
+	template<typename T>
+	using List_w = Weak<List<T>>;
 }
