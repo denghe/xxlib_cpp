@@ -22,6 +22,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_lobby", "server_lobb
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_login", "server_login\server_login.vcxproj", "{B93032E8-E86B-4A20-88F8-40F4F4B033F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pkggen_template_TMX", "pkggen_template_TMX\pkggen_template_TMX.csproj", "{7250558D-B97E-439F-9018-1DB0445323A1}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		pkg\pkg.projitems*{e961ea99-c8ea-4aed-8c44-6ac111b782ee}*SharedItemsImports = 13
@@ -55,6 +57,10 @@ Global
 		{B93032E8-E86B-4A20-88F8-40F4F4B033F5}.Debug|x64.Build.0 = Debug|x64
 		{B93032E8-E86B-4A20-88F8-40F4F4B033F5}.Release|x64.ActiveCfg = Release|x64
 		{B93032E8-E86B-4A20-88F8-40F4F4B033F5}.Release|x64.Build.0 = Release|x64
+		{7250558D-B97E-439F-9018-1DB0445323A1}.Debug|x64.ActiveCfg = Debug|x64
+		{7250558D-B97E-439F-9018-1DB0445323A1}.Debug|x64.Build.0 = Debug|x64
+		{7250558D-B97E-439F-9018-1DB0445323A1}.Release|x64.ActiveCfg = Release|x64
+		{7250558D-B97E-439F-9018-1DB0445323A1}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
