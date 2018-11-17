@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("pkggen_template_TMX")]
+[assembly: AssemblyTitle("tmx2bin")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("pkggen_template_TMX")]
+[assembly: AssemblyProduct("tmx2bin")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("7250558D-B97E-439F-9018-1DB0445323A1")]
+[assembly: Guid("12F83012-BA2E-47E5-AA2B-8EC19CA70AFF")]
 
 // Version information for an assembly consists of the following four values:
 //

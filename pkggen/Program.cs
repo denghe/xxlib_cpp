@@ -45,7 +45,7 @@ public static class Program
                 continue;
             }
             GenCPP_Class.Gen(asm, path, tn, md5);
-            //GenCS_Class.Gen(asm, path, tn, md5);
+            GenCS_Class.Gen(asm, path, tn, md5);
             GenLUA_Class.Gen(asm, path, tn, md5);
             //GenCS_MySql.Gen(asm, path, tn);
             GenCPP_SQLite.Gen(asm, path, tn);

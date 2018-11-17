@@ -20,6 +20,22 @@ public enum RenderOrderTypes
     LeftUp
 }
 
+public enum DrawOrderTypes
+{
+    Unknown = -1,
+    TopDown,
+    Index
+}
+
+public enum ObjectTypes
+{
+    Basic,
+    Tile,
+    Ellipse,
+    Polygon,
+    Polyline
+}
+
 struct Color4B
 {
     byte r, g, b, a;
@@ -33,10 +49,11 @@ class Map
     RenderOrderTypes renderorder;
     int width, height;
     int tilewidth, tileheight;
-    int infinite;
-    int nextlayerid;
-    int nextobjectid;
-    // backgroundcolor?
+    int? hexsidelength;
+    int? infinite;
+    int? nextlayerid;
+    int? nextobjectid;
+    Color4B backgroundcolor;
     List<TileSet> tilesets;
     List<Layer> layers;
     List<ObjectGroup> objectgroups;
@@ -54,8 +71,9 @@ class TileSet   // 简化版
     int firstgid;
     string name;
     int tilewidth, tileheight;
-    int spacing, margin;
-    // int tilecount, columns;
+    int? spacing, margin;
+    int? tilecount, columns;
+    int? tileoffsetx, tileoffsety;
 
     // Image 内容展开
     string source;          // 图片文件名
@@ -64,34 +82,50 @@ class TileSet   // 简化版
 
     // terraintypes, tiles 省略
 }
+// TilesetTile 省略
 
-// todo: TilesetTile
 
 class Layer
 {
-    int id;
+    int? id;
     string name;
     int width, height;
-    // opacity, visible, offsetx, offsety
+    double opacity;
+    bool visible;
+    double offsetx, offsety;
+    List<Tile> data;
 }
 
 class Tile
 {
     int gid;
-    // x, y, HorizontalFlip, VerticalFlip, DiagonalFlip
+    // x, y, flipx, flipy, DiagonalFlip
 }
 
 class ObjectGroup
 {
-    int id;
+    int? id;
     string name;
-    List<Object> data;
+    Color4B color;
+    double? opacity;
+    bool? visible;
+    double? offsetx, offsety;
+    DrawOrderTypes draworder;
+    List<Object> objects;
+    List<Property> properties;
 }
 
 class Object
 {
     int id;
-    int gid;
-    float x, y;
-    int width, height;
+    int? gid;
+    double x, y;
+    double width, height;
+    string name;
+    string type;
+    string text;
+    bool visible;
+    double rotation;
+    List<Property> properties;
+    //ObjectTypes objtype;
 }

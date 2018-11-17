@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="Map.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TMX_TypeIdMappings.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\gen_library\gen_library.csproj">
