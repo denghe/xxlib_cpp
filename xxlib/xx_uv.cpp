@@ -177,29 +177,31 @@ bool xx::UvLoop::CreateTcpClientEx(char const* const& domainName, int const& por
 {
 	if (!cb) return false;
 
+	// 使用一个上下文来存所有连接对象. 连接对象的 userNumber 用来存位于 conns 的下标 以便交换删除
 	struct Ctx : xx::Object
 	{
-		int n;
-		bool called;
 		std::function<void(xx::UvTcpClient_w)> cb;
-		Ctx(xx::MemPool* const& mp, int const& n, std::function<void(xx::UvTcpClient_w)>&& cb)
+		xx::List<xx::UvTcpClient_w> conns;
+		Ctx(xx::MemPool* const& mp, std::function<void(xx::UvTcpClient_w)>&& cb)
 			: xx::Object(mp)
-			, n(n)
-			, called(false)
+			, conns(mp)
 			, cb(std::move(cb))
 		{
 		}
+		Ctx(Ctx const&) = delete;
 	};
-	auto ctx = mempool->MPCreatePtr<Ctx>(0, std::move(cb));
+	auto ctx = mempool->MPCreatePtr<Ctx>(std::move(cb));
 
 	return GetIPList(domainName, [this, port, ctx, timeoutMS](xx::List<xx::String_p>* ips)
 	{
+		// 如果域名转 ip 失败, 直接短路返回
 		if (!ips || !ips->dataLen)
 		{
 			ctx->cb(xx::UvTcpClient_w());
 			return;
 		}
-		ctx->n = ips->dataLen;
+
+		// 过滤出能合法创建出 conn 的 ip, 添加到 ctx conns
 		for (decltype(auto) ip : *ips)
 		{
 			decltype(auto) conn = CreateTcpClient();
@@ -214,47 +216,73 @@ bool xx::UvLoop::CreateTcpClientEx(char const* const& domainName, int const& por
 			}
 			if (r)
 			{
-				--ctx->n;
-				if (!ctx->n)
-				{
-					ctx->cb(xx::UvTcpClient_w());
-				}
 				conn->Release();
 				continue;
 			}
-			conn->OnConnect = [=] (int status)
+
+			conn->userNumber = ctx->conns.dataLen;
+			ctx->conns.Add(conn);
+		}
+
+		// 如果一个连接都没有, 直接短路返回
+		if (!ctx->conns.dataLen)
+		{
+			ctx->cb(xx::UvTcpClient_w());
+			return;
+		}
+
+		// 令所有连接开始尝试连接目标地址 & 端口
+		for (decltype(auto) conn : ctx->conns)
+		{
+			conn->OnConnect = [conn_ = conn, ctx_ = ctx](int status)
 			{
-				--ctx->n;				// 减计数
-				if (ctx->called)		// 如果已经选出连接, 就直接自杀
+				// 将捕获列表成员复制到栈, 以便 Release 或清除 OnConnect 回调 不至于变野
+				auto conn = conn_;
+				auto ctx = ctx_;
+
+				// 将自己从 conns 移除
+				ctx->conns[ctx->conns.dataLen - 1]->userNumber = conn->userNumber;
+				ctx->conns.SwapRemoveAt(conn->userNumber);
+
+				// 如果连上了, 就干掉其他连接, 产生回调( 同时清掉使用痕迹 )
+				if (!status)
 				{
-					conn->Release();
+					for (decltype(auto) c : ctx->conns)
+					{
+						c->Release();
+					}
+					conn->OnConnect = nullptr;
+					conn->userNumber = 0;
+					ctx->cb(conn);
+					ctx->cb = nullptr;
 					return;
 				}
-				if (status && !ctx->n)	// 如果没连上且这是最后一个连接, 就发起空回调后自杀
+				else
+				{
+					conn->Release();
+				}
+
+				// 如果 conns 空了, 当前连接是最后一个, 就发起回调
+				if (!ctx->conns.dataLen)
 				{
 					ctx->cb(xx::UvTcpClient_w());
-					conn->Release();
+					ctx->cb = nullptr;
 					return;
 				}
-				ctx->called = true;		// 打选中标记
-				// 安全的清 OnConnect 并执行回调
-				auto ctx_ = ctx;
-				auto conn_ = conn;
-				conn_->OnConnect = nullptr;
-				ctx_->cb(conn_);
 				return;
 			};
-			r = conn->Connect(timeoutMS);
+
+			// 开始连接. 如果立刻出错, 就从队列移除. 如果移除光了, 就发起回调. 
+			auto r = conn->Connect(timeoutMS);
 			if (r)
 			{
 				conn->Release();
-				--ctx->n;
-				if (!ctx->n)
+				if (!ctx->conns.dataLen && ctx->cb)
 				{
 					ctx->cb(xx::UvTcpClient_w());
 				}
-				continue;
 			}
+			if (!ctx->cb) return;	// 万一 Connect 立即连上破坏循环, 这样检测是否已经发起过回调
 		}
 	}, timeoutMS);
 }
@@ -849,7 +877,7 @@ void xx::UvTcpUdpBase::RpcTraceCallback() noexcept
 		{
 			loop.rpcMgr->Callback(serial, nullptr);
 		}
-		assert(rpcSerials->Empty());
+		assert(!memHeader().versionNumber || rpcSerials->Empty());
 	}
 }
 
