@@ -5,7 +5,7 @@ namespace PKG
 {
 	struct PkgGenMd5
 	{
-		static constexpr char const* value = "b3a4eeaf69586aa565e1b9d5415e07b1";
+		static constexpr char const* value = "4859722ae0bbf6c7888c94291c313f3d";
     };
 
     // 操作成功( 默认 response 结果 )
