@@ -67,10 +67,6 @@
       <Project>{82112fe9-6a59-4f6d-a295-d4c7c039a977}</Project>
       <Name>pkggen_template_PKG</Name>
     </ProjectReference>
-    <ProjectReference Include="..\pkggen_template_TMX\pkggen_template_TMX.csproj">
-      <Project>{7250558d-b97e-439f-9018-1db0445323a1}</Project>
-      <Name>pkggen_template_TMX</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
