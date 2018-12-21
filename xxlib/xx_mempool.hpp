@@ -426,6 +426,7 @@ namespace xx
 	Ptr<T>& Ptr<T>::operator=(O* const& o) noexcept
 	{
 		static_assert(std::is_base_of_v<T, O>);
+		if (pointer == o) return *this;
 		Reset();
 		if (o)
 		{
@@ -457,6 +458,7 @@ namespace xx
 	Ptr<T>& Ptr<T>::operator=(Ptr<O>&& o) noexcept
 	{
 		static_assert(std::is_base_of_v<T, O>);
+		if (pointer == o) return *this;
 		Reset();
 		pointer = (T*)o.pointer;
 		o.pointer = nullptr;
@@ -519,6 +521,7 @@ namespace xx
 	void Ptr<T>::Reset(O* const& o) noexcept
 	{
 		static_assert(std::is_base_of_v<T, O>);
+		if (pointer == o) return;
 		Reset();
 		if (o)
 		{
@@ -661,6 +664,28 @@ namespace xx
 		Reset(mp->MPCreate<O>(std::forward<Args>(args)...));
 		return *this;
 	}
+
+	template<typename T>
+	template<typename O>
+	Ptr<T>& Ptr<T>::Copy(Ptr<O> const& o) noexcept
+	{
+		if (pointer == o.pointer) return *this;
+		if (!o.pointer) Reset();
+		else MPCreate(o.pointer->mempool, *o);
+		return *this;
+	}
+
+	template<typename T>
+	template<typename O>
+	Ptr<T>& Ptr<T>::Copy(O const* const& o) noexcept
+	{
+		if (pointer == o) return *this;
+		if (!o) Reset();
+		else MPCreate(o->mempool, *o);
+		return *this;
+	}
+
+
 
 
 
@@ -910,6 +935,7 @@ namespace xx
 	Unique<T>& Unique<T>::operator=(O* const& o) noexcept
 	{
 		static_assert(std::is_base_of_v<T, O>);
+		if (pointer == o) return *this;
 		Reset();
 		if (o)
 		{
@@ -924,6 +950,7 @@ namespace xx
 	Unique<T>& Unique<T>::operator=(Unique<O>&& o) noexcept
 	{
 		static_assert(std::is_base_of_v<T, O>);
+		if (pointer == o.pointer) return *this;
 		Reset();
 		pointer = (T*)o.pointer;
 		o.pointer = nullptr;
@@ -980,6 +1007,7 @@ namespace xx
 	void Unique<T>::Reset(O* const& o) noexcept
 	{
 		static_assert(std::is_base_of_v<T, O>);
+		if (pointer == o) return *this;
 		Reset();
 		if (o)
 		{
