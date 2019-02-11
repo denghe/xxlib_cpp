@@ -941,9 +941,9 @@ int xx::UvTcpBase::SendBytes(char const* const& inBuf, int const& len) noexcept
 
 	struct write_req_t
 	{
-		xx::MemPool* mp;
 		uv_write_t req;
 		uv_buf_t buf;
+		xx::MemPool* mp;
 	};
 	auto mp = (xx::MemPool*)((uv_stream_t*)ptr)->loop->data;
 	auto req = (write_req_t*)mp->Alloc(sizeof(write_req_t));
