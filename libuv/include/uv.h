@@ -234,6 +234,7 @@ typedef struct uv_cpu_info_s uv_cpu_info_t;
 typedef struct uv_interface_address_s uv_interface_address_t;
 typedef struct uv_dirent_s uv_dirent_t;
 typedef struct uv_passwd_s uv_passwd_t;
+typedef struct uv_utsname_s uv_utsname_t;
 
 typedef enum {
   UV_LOOP_BLOCK_SIGNAL
@@ -963,11 +964,22 @@ enum uv_process_flags {
    */
   UV_PROCESS_DETACHED = (1 << 3),
   /*
+   * Hide the subprocess window that would normally be created. This option is
+   * only meaningful on Windows systems. On Unix it is silently ignored.
+   */
+  UV_PROCESS_WINDOWS_HIDE = (1 << 4),
+  /*
    * Hide the subprocess console window that would normally be created. This
    * option is only meaningful on Windows systems. On Unix it is silently
    * ignored.
    */
-  UV_PROCESS_WINDOWS_HIDE = (1 << 4)
+  UV_PROCESS_WINDOWS_HIDE_CONSOLE = (1 << 5),
+  /*
+   * Hide the subprocess GUI window that would normally be created. This
+   * option is only meaningful on Windows systems. On Unix it is silently
+   * ignored.
+   */
+  UV_PROCESS_WINDOWS_HIDE_GUI = (1 << 6)
 };
 
 /*
@@ -1043,6 +1055,16 @@ struct uv_passwd_s {
   char* homedir;
 };
 
+struct uv_utsname_s {
+  char sysname[256];
+  char release[256];
+  char version[256];
+  char machine[256];
+  /* This struct does not contain the nodename and domainname fields present in
+     the utsname type. domainname is a GNU extension. Both fields are referred
+     to as meaningless in the docs. */
+};
+
 typedef enum {
   UV_DIRENT_UNKNOWN,
   UV_DIRENT_FILE,
@@ -1100,6 +1122,16 @@ UV_EXTERN void uv_os_free_passwd(uv_passwd_t* pwd);
 UV_EXTERN uv_pid_t uv_os_getpid(void);
 UV_EXTERN uv_pid_t uv_os_getppid(void);
 
+#define UV_PRIORITY_LOW 19
+#define UV_PRIORITY_BELOW_NORMAL 10
+#define UV_PRIORITY_NORMAL 0
+#define UV_PRIORITY_ABOVE_NORMAL -7
+#define UV_PRIORITY_HIGH -14
+#define UV_PRIORITY_HIGHEST -20
+
+UV_EXTERN int uv_os_getpriority(uv_pid_t pid, int* priority);
+UV_EXTERN int uv_os_setpriority(uv_pid_t pid, int priority);
+
 UV_EXTERN int uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count);
 UV_EXTERN void uv_free_cpu_info(uv_cpu_info_t* cpu_infos, int count);
 
@@ -1112,7 +1144,20 @@ UV_EXTERN int uv_os_getenv(const char* name, char* buffer, size_t* size);
 UV_EXTERN int uv_os_setenv(const char* name, const char* value);
 UV_EXTERN int uv_os_unsetenv(const char* name);
 
+#ifdef MAXHOSTNAMELEN
+# define UV_MAXHOSTNAMESIZE (MAXHOSTNAMELEN + 1)
+#else
+  /*
+    Fallback for the maximum hostname size, including the null terminator. The
+    Windows gethostname() documentation states that 256 bytes will always be
+    large enough to hold the null-terminated hostname.
+  */
+# define UV_MAXHOSTNAMESIZE 256
+#endif
+
 UV_EXTERN int uv_os_gethostname(char* buffer, size_t* size);
+
+UV_EXTERN int uv_os_uname(uv_utsname_t* buffer);
 
 
 typedef enum {
@@ -1540,6 +1585,24 @@ UV_EXTERN void uv_key_set(uv_key_t* key, void* value);
 typedef void (*uv_thread_cb)(void* arg);
 
 UV_EXTERN int uv_thread_create(uv_thread_t* tid, uv_thread_cb entry, void* arg);
+
+typedef enum {
+  UV_THREAD_NO_FLAGS = 0x00,
+  UV_THREAD_HAS_STACK_SIZE = 0x01
+} uv_thread_create_flags;
+
+struct uv_thread_options_s {
+  unsigned int flags;
+  size_t stack_size;
+  /* More fields may be added at any time. */
+};
+
+typedef struct uv_thread_options_s uv_thread_options_t;
+
+UV_EXTERN int uv_thread_create_ex(uv_thread_t* tid,
+                                  const uv_thread_options_t* params,
+                                  uv_thread_cb entry,
+                                  void* arg);
 UV_EXTERN uv_thread_t uv_thread_self(void);
 UV_EXTERN int uv_thread_join(uv_thread_t *tid);
 UV_EXTERN int uv_thread_equal(const uv_thread_t* t1, const uv_thread_t* t2);

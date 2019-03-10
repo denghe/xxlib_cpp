@@ -1,115 +1,549 @@
-﻿#pragma once
-namespace xx
-{
-	// 关于 String 跨语言的序列化注意事项: c# server 将会对 string 类型做合并, 导致发出的包如果遇到相同串内容, 就会指向同一个指针, 
-	// 于是 c++ 在收到包之后, 解出来也就只有一个实例了. 此时如果对任意引用到该串的指针做内容修改操作, 后果不堪设想.
-	// 对于这个问题, 的确可以在 c++ 解包处针对 string 特化 read 流程, 创建出多个副本. 但如果该内容被再次发送时, string 就没有合并效果了. 比较纠结
-	// 通常性的建议是, 包纯用于数据收发时, 尽量使用内容复制的方式来读取解开后的数据, 除非非常有把握.
-	// 用于数据建模时, 如果有修改字串的需求, 可以用 MPCreate 直接新建, 以免牵连修改. 新建构造复制也不会慢多少.
+#pragma once
+#include "xx_list.h"
+#include "xx_random.h"
 
-	class BBuffer : public List<char>
-	{
-	public:
-		typedef List<char> BaseType;
-		size_t										offset = 0;				// 读指针偏移量
-		size_t										offsetRoot = 0;			// offset值写入修正
-		size_t										readLengthLimit = 0;	// 主用于传递给容器类进行长度合法校验
+namespace xx {
 
-		BBuffer(BBuffer const& o) = delete;
-		BBuffer& operator=(BBuffer const& o) = delete;
+	struct Buffer : List<uint8_t> {
+		using BaseType = List<uint8_t>;
+		using BaseType::BaseType;
 
-		explicit BBuffer(MemPool* const& mempool, size_t const& capacity = 0) noexcept;
-		BBuffer(MemPool* const& mempool, std::pair<char const*, size_t> const& buff) noexcept;
+		Buffer(uint8_t const* const& buf, size_t const& len, size_t const& prefix = 0) {
+			assert(buf && len);
+			this->buf = (uint8_t*)malloc(len + prefix);
+			this->len = len + prefix;
+			this->cap = cap + prefix;
+			memcpy(this->buf + prefix, buf, len);
+		}
+		Buffer(Buffer&& o)
+			: BaseType(std::move(o)) {
+		}
 
+		Buffer& operator=(Buffer&& o) {
+			this->BaseType::operator=(std::move(o));
+			return *this;
+		}
+
+		Buffer(Buffer const&) = delete;
+		Buffer& operator=(Buffer const&) = delete;
+
+		inline void RemoveFront(size_t const& len) {
+			assert(len <= this->len);
+			if (!len) return;
+			this->len -= len;
+			if (this->len) {
+				memmove(buf, buf + len, this->len);
+			}
+		}
+	};
+
+	// ���� Buffer
+	template<>
+	struct IsTrivial<Buffer, void> {
+		static const bool value = true;
+	};
+
+	struct BBuffer;
+	using BBuffer_s = std::shared_ptr<BBuffer>;
+	using BBuffer_w = std::weak_ptr<BBuffer>;
+
+	struct BBuffer : Buffer {
+		size_t offset = 0;													// ��ָ��ƫ����
+		size_t offsetRoot = 0;												// offsetֵд������
+		size_t readLengthLimit = 0;											// �����ڴ��ݸ���������г��ȺϷ�У��
+
+		// todo: ��Щ������Ϊָ��, XxxxxRoot �����м�Ⲣ����
+		std::unordered_map<void*, size_t> ptrs;
+		std::unordered_map<size_t, std::shared_ptr<Object>> objIdxs;
+		std::unordered_map<size_t, std::shared_ptr<std::string>> strIdxs;
+
+		using Buffer::Buffer;
+		BBuffer(BBuffer&& o)
+			: Buffer(std::move(o))
+			, offset(o.offset) {
+			o.offset = 0;
+		}
+		inline BBuffer& operator=(BBuffer&& o) {
+			this->Buffer::operator=(std::move(o));
+			std::swap(offset, o.offset);
+			// ptrs, objIdxs, strIdxs ��Ϊ����ʱ����, ����Ҫ����
+			return *this;
+		}
+		BBuffer(BBuffer const&) = delete;
+		BBuffer& operator=(BBuffer const&) = delete;
+
+		// unsafe: direct change field value( for Read )
+		inline void Reset(uint8_t* const& buf = nullptr, size_t const& len = 0, size_t const& cap = 0, size_t const& offset = 0) {
+			this->buf = buf;
+			this->len = len;
+			this->cap = cap;
+			this->offset = offset;
+		}
+
+		typedef std::shared_ptr<Object>(*Creator)();
+		inline static std::array<Creator, 1 << (sizeof(uint16_t) * 8)> creators;
+
+		template<typename T, typename ENABLED = std::enable_if_t<std::is_base_of_v<Object, T>>>
+		inline static void Register(uint16_t const& typeId) noexcept {
+			creators[typeId] = []()->std::shared_ptr<Object> { return xx::TryMake<T>(); };
+		}
+
+		inline static std::shared_ptr<Object> CreateByTypeId(uint16_t typeId) {
+			return creators[typeId] ? creators[typeId]() : std::shared_ptr<Object>();
+		}
+
+		template<typename T, typename ENABLED = std::enable_if_t<std::is_pod_v<T>>>
+		void WriteFixed(T const& v) {
+			Reserve(len + sizeof(T));
+			memcpy(buf + len, &v, sizeof(T));
+			len += sizeof(T);
+		}
+
+		template<typename T, typename ENABLED = std::enable_if_t<std::is_pod_v<T>>>
+		int ReadFixed(T& v) {
+			if (offset + sizeof(T) > len) return -1;
+			memcpy(&v, buf + offset, sizeof(T));
+			offset += sizeof(T);
+			return 0;
+		}
 
 		template<typename ...TS>
 		void Write(TS const& ...vs) noexcept;
 
-		template<typename ...TS>
-		int Read(TS&...vs) noexcept;
-
 		template<typename T, typename ...TS>
 		int ReadCore(T& v, TS&...vs) noexcept;
+
 		template<typename T>
 		int ReadCore(T& v) noexcept;
 
-
-		/*************************************************************************/
-		//  Object 对象读写系列
-		/*************************************************************************/
-
-
-		void BeginWrite() noexcept;
-		void BeginRead() noexcept;
-
-		template<typename T>
-		void WriteRoot(T const& v) noexcept;
-
-		template<typename T>
-		int ReadRoot(T& v) noexcept;
-
-		template<typename T>
-		void WritePtr(T* const& v) noexcept;
-
-		template<typename T>
-		int ReadPtr(T*& v) noexcept;
-
-
-		/*************************************************************************/
-		//  其他工具函数
-		/*************************************************************************/
-
-		void Clear() noexcept;
-
-		// 根据数据类型往当前位置写入默认值
-		template<typename T>
-		void WriteDefaultValue() noexcept;
-
-		// 自定义 Write 函数
-		std::function<void(BBuffer& bb, void* owner, size_t fieldOffset)> CustomWrite;
-
-
-		// 读指定位置的数据( 不影响 offset )
 		template<typename ...TS>
-		int ReadAt(size_t const& pos, TS&...vs) noexcept;
+		int Read(TS&...vs) noexcept;
 
-		// 从当前位置读数据但事后 offset 偏移指定长度
-		template<typename ...TS>
-		int ReadJump(size_t const& len, TS&...vs) noexcept;
+		template<typename T>
+		void WriteRoot(std::shared_ptr<T> const& v) noexcept {
+			offsetRoot = len;
+			assert(ptrs.empty());
+			Write(v);
+			ptrs.clear();
+		}
 
-		// 直接追加写入一段 buf ( 并不记录长度 )
-		void WriteBuf(char const* const& buf, size_t const& len) noexcept;
-		void WriteBuf(BBuffer const& bb) noexcept;
-		void WriteBuf(BBuffer const* const& bb) noexcept;
+		template<typename T>
+		int ReadRoot(std::shared_ptr<T>& v) noexcept {
+			offsetRoot = offset;
+			assert(objIdxs.empty());
+			assert(strIdxs.empty());
+			int r = Read(v);
+			objIdxs.clear();
+			strIdxs.clear();
+			return r;
+		}
 
-		// 追加一个指定长度的空间, 返回当前 dataLen
-		size_t WriteSpace(size_t const& len) noexcept;
+		template<typename T>
+		void WritePtr(std::shared_ptr<T> const& v) noexcept {
+			static_assert(std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>, "not support type??");
+			uint16_t typeId = 0;
+			if (!v) {
+				Write(typeId);
+				return;
+			}
+			if constexpr (std::is_base_of_v<Object, T>) {
+				typeId = v->GetTypeId();
+				assert(typeId);					// forget Register TypeId ? 
+			}
+			else typeId = 1;					// std::string
 
-		// 在 pos 位置写入一段 buf ( 并不记录长度 ). dataLen 可能撑大.
-		void WriteBufAt(size_t const& pos, char const* const& buf, size_t const& len) noexcept;
+			Write(typeId);
 
-		// 在 pos 位置做 Write 操作. dataLen 可能撑大.
-		template<typename ...TS>
-		void WriteAt(size_t const& pos, TS const&...vs) noexcept;
+			auto iter = ptrs.find((void*)&*v);
+			size_t offs;
+			if (iter == ptrs.end()) {
+				offs = len - offsetRoot;
+				ptrs[(void*)&*v] = offs;
+			}
+			else {
+				offs = iter->second;
+			}
+			Write(offs);
+			if (iter == ptrs.end()) {
+				if constexpr (std::is_same_v<std::string, T>) {
+					Write(*v);
+				}
+				else {
+					v->ToBBuffer(*this);
+				}
+			}
+		}
+
+		template<typename T>
+		int ReadPtr(std::shared_ptr<T>& v) noexcept {
+			static_assert(std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>, "not support type??");
+			v.reset();
+			uint16_t typeId;
+			if (auto r = Read(typeId)) return r;
+			if (typeId == 0) return 0;
+			if constexpr (std::is_same_v<std::string, T>) {
+				if (typeId != 1) return -1;
+			}
+			else if constexpr (std::is_base_of_v<Object, T>) {
+				if (typeId < 2) return -2;
+			}
+			if (typeId > 2 && !creators[typeId]) return -3;		// forget Register?
+
+			auto offs = offset - offsetRoot;
+			size_t ptrOffset;
+			if (auto r = Read(ptrOffset)) return r;
+			if (ptrOffset == offs) {
+				if constexpr (std::is_same_v<std::string, T>) {
+					v = xx::TryMake<std::string>();
+					strIdxs[ptrOffset] = v;
+					if (auto r = Read(*v)) return r;
+				}
+				else {
+					std::shared_ptr<Object> o;
+					if (typeId == 2) {
+						o = xx::TryMake<BBuffer>();
+					}
+					else {
+						o = CreateByTypeId(typeId);
+						if (!o) return -3;
+					}
+					v = std::dynamic_pointer_cast<T>(o);
+					if (!v) return -4;
+					objIdxs[ptrOffset] = o;
+					if (auto r = o->FromBBuffer(*this)) return r;
+				}
+			}
+			else {
+				if constexpr (std::is_same_v<std::string, T>) {
+					auto iter = strIdxs.find(ptrOffset);
+					if (iter == strIdxs.end()) return -5;
+					v = iter->second;
+				}
+				else {
+					auto iter = objIdxs.find(ptrOffset);
+					if (iter == objIdxs.end()) return -6;
+					if (iter->second->GetTypeId() != typeId) return -7;
+					v = std::dynamic_pointer_cast<T>(iter->second);
+					if (!v) return -8;
+				}
+			}
+			return 0;
+		}
 
 
+		template<typename SIn, typename UOut = std::make_unsigned_t<SIn>>
+		inline static UOut ZigZagEncode(SIn const& in) noexcept {
+			return (in << 1) ^ (in >> (sizeof(SIn) * 8 - 1));
+		}
 
-		// Object 接口实现
+		template<typename UIn, typename SOut = std::make_signed_t<UIn>>
+		inline static SOut ZigZagDecode(UIn const& in) noexcept {
+			return (SOut)(in >> 1) ^ (-(SOut)(in & 1));
+		}
 
-		BBuffer(BBuffer* const& bb);
-		void ToBBuffer(BBuffer& bb) const noexcept override;
-		int FromBBuffer(BBuffer& bb) noexcept override;
+		template<typename T>
+		inline void WriteVarIntger(T const& v) {
+			auto u = std::make_unsigned_t<T>(v);
+			if constexpr (std::is_signed_v<T>) {
+				u = ZigZagEncode(v);
+			}
+			Reserve(len + sizeof(T) + 1);
+			while (u >= 1 << 7) {
+				buf[len++] = uint8_t(u & 0x7fu | 0x80u);
+				u >>= 7;
+			};
+			buf[len++] = uint8_t(u);
+		}
 
-		void ToString(String& s) const noexcept override;
+		template<typename T>
+		inline int ReadVarInteger(T& v) {
+			std::make_unsigned_t<T> u(0);
+			for (int shift = 0; shift < sizeof(T) * 8; shift += 7) {
+				if (offset == len) return -9;
+				auto b = buf[offset++];
+				u |= (b & 0x7Fu) << shift;
+				if ((b & 0x80) == 0) {
+					if constexpr (std::is_signed_v<T>) {
+						v = ZigZagDecode(u);
+					}
+					else {
+						v = u;
+					}
+					return 0;
+				}
+			}
+			return -10;
+		}
+
+
+		inline virtual uint16_t GetTypeId() const noexcept override {
+			return 2;
+		}
+
+		inline virtual void ToBBuffer(BBuffer& bb) const noexcept override {
+			assert(this != &bb);
+			bb.Write(len);
+			bb.AddRange(buf, len);
+		}
+
+		inline virtual int FromBBuffer(BBuffer& bb) noexcept override {
+			assert(this != &bb);
+			size_t len = 0;
+			if (auto r = bb.Read(len)) return r;
+			if (bb.offset + len > bb.len) return -11;
+			Clear();
+			AddRange(bb.buf + bb.offset, len);
+			bb.offset += len;
+			return 0;
+		}
+
+		inline virtual void ToString(std::string& s) const noexcept override {
+			s += "{ \"len\":" + std::to_string(len) + ", \"offset\":" + std::to_string(offset) + ", \"data\":[ ";
+			for (size_t i = 0; i < len; i++) {
+				s += std::to_string((int)buf[i]) + ", ";
+			}
+			if (len) s.resize(s.size() - 2);
+			s += " ] }";
+		}
 	};
 
+	template<typename T>
+	void List<T>::ToBBuffer(BBuffer& bb) const noexcept {
+		bb.Reserve(bb.len + 5 + len * sizeof(T));
+		bb.Write(len);
+		if (!len) return;
+		if constexpr (sizeof(T) == 1 || std::is_same_v<float, T>) {
+			::memcpy(bb.buf + bb.len, buf, len * sizeof(T));
+			bb.len += len * sizeof(T);
+		}
+		else {
+			for (size_t i = 0; i < len; ++i) {
+				bb.Write(buf[i]);
+			}
+		}
+	}
+	template<typename T>
+	int List<T>::FromBBuffer(BBuffer& bb) noexcept {
+		size_t len = 0;
+		if (auto rtv = bb.Read(len)) return rtv;
+		if (bb.readLengthLimit != 0 && len > bb.readLengthLimit) return -1;
+		if (bb.offset + len > bb.len) return -2;
+		Resize(len);
+		if (len == 0) return 0;
+		if constexpr (sizeof(T) == 1 || std::is_same_v<float, T>) {
+			::memcpy(buf, bb.buf + bb.offset, len * sizeof(T));
+			bb.offset += len * sizeof(T);
+			this->len = len;
+		}
+		else {
+			for (size_t i = 0; i < len; ++i) {
+				if (int r = bb.Read(buf[i])) return r;
+			}
+		}
+		return 0;
+	}
 
-	using BBuffer_p = Ptr<BBuffer>;
 
-	using BBuffer_r = Ref<BBuffer>;
+	inline void Random::ToBBuffer(BBuffer& bb) const noexcept {
+		// data len = 2 int + int[56] = 4 * 58 = 232
+		bb.Reserve(bb.len + 232);
+		memcpy(bb.buf + bb.len, &inext, 232);
+		bb.len += 232;
+	}
 
-	using BBuffer_u = Unique<BBuffer>;
+	inline int Random::FromBBuffer(BBuffer& bb) noexcept {
+		if (bb.offset + 232 > bb.len) return -1;
+		memcpy(&inext, bb.buf + bb.offset, 232);
+		bb.offset += 232;
+		return 0;
+	}
 
-	using BBuffer_w = Weak<BBuffer>;
+
+	// ���� 1 �ֽڳ��ȵ� ��ֵ �� float( ��Щ����ֱ�� memcpy )
+	template<typename T>
+	struct BFuncs<T, std::enable_if_t< (std::is_arithmetic_v<T> && sizeof(T) == 1) || (std::is_floating_point_v<T> && sizeof(T) == 4) >> {
+		static inline void WriteTo(BBuffer& bb, T const &in) noexcept {
+			bb.Reserve(bb.len + sizeof(T));
+			memcpy(bb.buf + bb.len, &in, sizeof(T));
+			bb.len += sizeof(T);
+		}
+		static inline int ReadFrom(BBuffer& bb, T &out) noexcept {
+			if (bb.offset + sizeof(T) > bb.len) return -12;
+			memcpy(&out, bb.buf + bb.offset, sizeof(T));
+			bb.offset += sizeof(T);
+			return 0;
+		}
+	};
+
+	// ���� 2+ �ֽ�����( �䳤��д )
+	template<typename T>
+	struct BFuncs<T, std::enable_if_t<std::is_integral_v<T> && sizeof(T) >= 2>> {
+		static inline void WriteTo(BBuffer& bb, T const &in) noexcept {
+			bb.WriteVarIntger(in);
+		}
+		static inline int ReadFrom(BBuffer& bb, T &out) noexcept {
+			return bb.ReadVarInteger(out);
+		}
+	};
+
+	// ���� enum( ����ԭʼ�������͵���������� )
+	template<typename T>
+	struct BFuncs<T, std::enable_if_t<std::is_enum_v<T>>> {
+		typedef std::underlying_type_t<T> UT;
+		static inline void WriteTo(BBuffer& bb, T const &in) noexcept {
+			bb.Write((UT const&)in);
+		}
+		static inline int ReadFrom(BBuffer& bb, T &out) noexcept {
+			return bb.Read((UT&)out);
+		}
+	};
+
+	// ���� double
+	template<>
+	struct BFuncs<double, void> {
+		static inline void WriteTo(BBuffer& bb, double const &in) noexcept {
+			bb.Reserve(bb.len + sizeof(double) + 1);
+			if (in == 0) {
+				bb.buf[bb.len++] = 0;
+			}
+			else if (std::isnan(in)) {
+				bb.buf[bb.len++] = 1;
+			}
+			else if (in == -std::numeric_limits<double>::infinity()) {	// negative infinity
+				bb.buf[bb.len++] = 2;
+			}
+			else if (in == std::numeric_limits<double>::infinity()) {	// positive infinity
+				bb.buf[bb.len++] = 3;
+			}
+			else {
+				auto i = (int32_t)in;
+				if (in == (double)i) {
+					bb.buf[bb.len++] = 4;
+					bb.WriteVarIntger(i);
+				}
+				else {
+					bb.buf[bb.len] = 5;
+					memcpy(bb.buf + bb.len + 1, &in, sizeof(double));
+					bb.len += sizeof(double) + 1;
+				}
+			}
+		}
+		static inline int ReadFrom(BBuffer& bb, double &out) noexcept {
+			if (bb.offset >= bb.len) return -13;	// ȷ������ 1 �ֽڿɶ�
+			switch (bb.buf[bb.offset++]) {			// ���� 1 �ֽ�
+			case 0:
+				out = 0;
+				return 0;
+			case 1:
+				out = std::numeric_limits<double>::quiet_NaN();
+				return 0;
+			case 2:
+				out = -std::numeric_limits<double>::infinity();
+				return 0;
+			case 3:
+				out = std::numeric_limits<double>::infinity();
+				return 0;
+			case 4: {
+				int32_t i = 0;
+				if (auto rtv = BFuncs<int32_t>::ReadFrom(bb, i)) return rtv;
+				out = i;
+				return 0;
+			}
+			case 5: {
+				if (bb.len < bb.offset + sizeof(double)) return -14;
+				memcpy(&out, bb.buf + bb.offset, sizeof(double));
+				bb.offset += sizeof(double);
+				return 0;
+			}
+			default:
+				return -15;							// failed
+			}
+		}
+	};
+
+	// ���� std::string ( д�� 32b���� + ���� )
+	template<>
+	struct BFuncs<std::string, void> {
+		static inline void WriteTo(BBuffer& bb, std::string const& in) noexcept {
+			bb.Write(in.size());
+			bb.AddRange((uint8_t*)in.data(), in.size());
+		}
+		static inline int ReadFrom(BBuffer& bb, std::string& out) noexcept {
+			size_t len = 0;
+			if (auto r = bb.Read(len)) return r;
+			if (bb.readLengthLimit && bb.readLengthLimit < len) return -16;
+			if (bb.offset + len > bb.len) return -17;
+			out.assign((char*)bb.buf + bb.offset, len);
+			bb.offset += len;
+			return 0;
+		}
+	};
+
+	// ���� std::shared_ptr<T>
+	template<typename T>
+	struct BFuncs<std::shared_ptr<T>, std::enable_if_t<std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>>> {
+		static inline void WriteTo(BBuffer& bb, std::shared_ptr<T> const& in) noexcept {
+			bb.WritePtr(in);
+		}
+		static inline int ReadFrom(BBuffer& bb, std::shared_ptr<T>& out) noexcept {
+			return bb.ReadPtr(out);
+		}
+	};
+
+	// ���� std::weak_ptr<T>
+	template<typename T>
+	struct BFuncs<std::weak_ptr<T>, std::enable_if_t<std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>>> {
+		static inline void WriteTo(BBuffer& bb, std::weak_ptr<T> const& in) noexcept {
+			if (auto ptr = in.lock()) {
+				bb.WritePtr(ptr);
+			}
+			else {
+				bb.Write((uint16_t)0);
+			}
+		}
+		static inline int ReadFrom(BBuffer& bb, std::weak_ptr<T>& out) noexcept {
+			std::shared_ptr<T> ptr;
+			if (int r = bb.ReadPtr(ptr)) return r;
+			out = ptr;
+			return 0;
+		}
+	};
+
+	// ���� Guid
+	template<>
+	struct BFuncs<Guid, void> {
+		static inline void WriteTo(BBuffer& bb, Guid const& in) noexcept {
+			bb.AddRange((uint8_t*)&in, sizeof(Guid));
+		}
+		static inline int ReadFrom(BBuffer& bb, Guid& out) noexcept {
+			if (bb.offset + sizeof(Guid) > bb.len) return -1;
+			memcpy(&out, bb.buf + bb.offset, sizeof(Guid));
+			bb.offset += sizeof(Guid);
+			return 0;
+		}
+	};
+
+	// todo: ���� std::optional<T>
+
+	template<typename ...TS>
+	void BBuffer::Write(TS const& ...vs) noexcept {
+		std::initializer_list<int> n{ (BFuncs<TS>::WriteTo(*this, vs), 0)... };
+	}
+
+	template<typename T, typename ...TS>
+	int BBuffer::ReadCore(T& v, TS&...vs) noexcept {
+		if (auto r = BFuncs<T>::ReadFrom(*this, v)) return r;
+		return ReadCore(vs...);
+	}
+
+	template<typename T>
+	int BBuffer::ReadCore(T& v) noexcept {
+		return BFuncs<T>::ReadFrom(*this, v);
+	}
+
+	template<typename ...TS>
+	int BBuffer::Read(TS&...vs) noexcept {
+		return ReadCore(vs...);
+	}
 
 }

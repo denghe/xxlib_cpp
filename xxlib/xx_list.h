@@ -1,59 +1,264 @@
-ï»¿#pragma once
+#pragma once
+#include "xx_object.h"
+
 namespace xx
 {
+	// ÒÆ¶¯Ê±ÊÇ·ñ¿ÉÊ¹ÓÃ memmove µÄ±êÖ¾ »ù´¡ÊÊÅäÄ£°å
+	template<typename T, typename ENABLED = void>
+	struct IsTrivial {
+		static const bool value = false;
+	};
+
+	template<typename T>
+	constexpr bool IsTrivial_v = IsTrivial<T>::value;
+
+	// ÊÊÅä std::is_trivial<T>::value
+	template<typename T>
+	struct IsTrivial<T, std::enable_if_t<std::is_trivial_v<T>>> {
+		static const bool value = true;
+	};
+
+
+	struct BBuffer;
+
 	// std::vector / .net List like
 	template<typename T>
-	class List : public Object
-	{
-	public:
+	struct List : Object {
 		typedef T ChildType;
 		T*			buf;
-		size_t		bufLen;
-		size_t		dataLen;
+		size_t		cap;
+		size_t		len;
 
-		explicit List(MemPool* const& mempool, size_t const& capacity = 0) noexcept;
-		List(List &&o) noexcept;
-		~List() noexcept;
+		List() noexcept 
+			: buf(nullptr)
+			, cap(0)
+			, len(0) {
+		}
+
+		explicit List(size_t const& cap) noexcept {
+			if (cap == 0) {
+				buf = nullptr;
+				this->cap = 0;
+			}
+			else {
+				// ³ä·ÖÀûÓÃ 2^n ¿Õ¼ä
+				auto bufByteLen = Round2n(cap * sizeof(T));
+				buf = (T*)::malloc(bufByteLen);
+				assert(buf);
+				this->cap = bufByteLen / sizeof(T);
+			}
+			len = 0;
+		}
+
+		List(List&& o) noexcept
+			: buf(o.buf)
+			, cap(o.cap)
+			, len(o.len) {
+			o.buf = nullptr;
+			o.cap = 0;
+			o.len = 0;
+		}
+
+		List& operator=(List&& o) {
+			std::swap(buf, o.buf);
+			std::swap(len, o.len);
+			std::swap(cap, o.cap);
+			return *this;
+		}
+
+		~List() noexcept {
+			Clear(true);
+		}
+
 		List(List const&o) = delete;
 		List& operator=(List const&o) = delete;
 
-		void Reserve(size_t const& capacity) noexcept;
-		size_t Resize(size_t const& len) noexcept;			// å¦‚æœä¸æƒ³åˆå§‹åŒ–æ‰©å®¹çš„å•å…ƒ, ç›´æ¥ Reserve + æ”¹ dataLen
+		void Reserve(size_t const& cap) noexcept {
+			if (cap <= this->cap) return;
 
-		T const& operator[](size_t const& idx) const noexcept;
-		T& operator[](size_t const& idx) noexcept;
-		T const& At(size_t const& idx) const noexcept;
-		T& At(size_t const& idx) noexcept;
+			auto newBufByteLen = Round2n(cap * sizeof(T));
+			auto newBuf = (T*)::malloc(newBufByteLen);
+			assert(newBuf);
 
-		T& Top() noexcept;
-		void Pop() noexcept;
-		T const& Top() const noexcept;
-		bool TryPop(T& output) noexcept;
+			if constexpr (IsTrivial_v<T>) {
+				::memcpy(newBuf, buf, len * sizeof(T));
+			}
+			else {
+				for (size_t i = 0; i < len; ++i) {
+					new (&newBuf[i]) T((T&&)buf[i]);
+					buf[i].~T();
+				}
+			}
 
-		void Clear(bool const& freeBuf = false) noexcept;
-		void RemoveAt(size_t const& idx) noexcept;
-		void SwapRemoveAt(size_t const& idx) noexcept;		// å’Œæœ€åä¸€ä¸ªå…ƒç´ åšäº¤æ¢åˆ é™¤. é€šå¸¸ä¸Šä¸€å¥ä¸º list[list.dataLen - 1]->idx = o->idx;
-		void Remove(T const& v) noexcept;
+			if (buf) ::free(buf);
+			buf = newBuf;
+			this->cap = size_t(newBufByteLen / sizeof(T));
+		}
 
+		size_t Resize(size_t const& len) noexcept {
+			if (len == this->len) return len;
+			else if (len < this->len) {
+				for (size_t i = len; i < this->len; ++i) {
+					buf[i].~T();
+				}
+			}
+			else {	// len > this->len
+				Reserve(len);
+				for (size_t i = this->len; i < len; ++i) {
+					new (buf + i) T();
+				}
+			}
+			auto rtv = this->len;
+			this->len = len;
+			return rtv;
+		}
+
+		T const& operator[](size_t const& idx) const noexcept {
+			assert(idx < len);
+			return buf[idx];
+		}
+		T& operator[](size_t const& idx) noexcept {
+			assert(idx < len);
+			return buf[idx];
+		}
+		T const& At(size_t const& idx) const noexcept {
+			assert(idx < len);
+			return buf[idx];
+		}
+		T& At(size_t const& idx) noexcept {
+			assert(idx < len);
+			return buf[idx];
+		}
+
+		T& Top() noexcept {
+			assert(len > 0);
+			return buf[len - 1];
+		}
+		void Pop() noexcept {
+			assert(len > 0);
+			--len;
+			buf[len].~T();
+		}
+		T const& Top() const noexcept {
+			assert(len > 0);
+			return buf[len - 1];
+		}
+		bool TryPop(T& output) noexcept {
+			if (!len) return false;
+			output = (T&&)buf[--len];
+			buf[len].~T();
+			return true;
+		}
+
+		void Clear(bool const& freeBuf = false) noexcept {
+			if (!buf) return;
+			if (len) {
+				for (size_t i = len - 1; i != (size_t)-1; --i) {
+					buf[i].~T();
+				}
+				len = 0;
+			}
+			if (freeBuf) {
+				::free(buf);
+				buf = nullptr;
+				cap = 0;
+			}
+		}
+
+		void Remove(T const& v) noexcept {
+			for (size_t i = 0; i < len; ++i) {
+				if (v == buf[i]) {
+					RemoveAt(i);
+					return;
+				}
+			}
+		}
+
+		void RemoveAt(size_t const& idx) noexcept {
+			assert(idx < len);
+			--len;
+			if constexpr (IsTrivial_v<T>) {
+				buf[idx].~T();
+				::memmove(buf + idx, buf + idx + 1, (len - idx) * sizeof(T));
+			}
+			else {
+				for (size_t i = idx; i < len; ++i) {
+					buf[i] = (T&&)buf[i + 1];
+				}
+				buf[len].~T();
+			}
+		}
+
+		// ºÍ×îºóÒ»¸öÔªËØ×ö½»»»É¾³ı. 
+		// Í¨³£»·¾³ÎªËæ»ú·ÃÎÊ»ò µ¹Ñ­»·É¨Ãè if (list.len) { for (auto i = list.len - 1; i != (size_t)-1; --i) { ...
+		// Í¨³£ÉÏÒ»¾äÎª list[list.len - 1]->idx = o->idx;
+		void SwapRemoveAt(size_t const& idx) noexcept {
+			if (idx + 1 < len) {
+				std::swap(buf[idx], buf[len - 1]);
+			}
+			len--;
+			buf[len].~T();
+		}
+
+
+		// ÓÃ T µÄÒ»µ½¶à¸ö¹¹Ôìº¯ÊıµÄ²ÎÊıÀ´×·¼Ó¹¹ÔìÒ»¸ö item
 		template<typename...Args>
-		T& Emplace(Args&&...args) noexcept;	// ç”¨ T çš„ä¸€åˆ°å¤šä¸ªæ„é€ å‡½æ•°çš„å‚æ•°æ¥è¿½åŠ æ„é€ ä¸€ä¸ª v
+		T& Emplace(Args&&...args) noexcept {
+			Reserve(len + 1);
+			return *new (&buf[len++]) T(std::forward<Args>(args)...);
+		}
 
+		// ÓÃ²ÎÊıÖ±½Ó¹¹ÔìÒ»¸ö item µ½Ö¸¶¨Î»ÖÃ
 		template<typename...Args>
-		T& EmplaceAt(size_t const& idx, Args&&...args) noexcept;	// ç”¨å‚æ•°ç›´æ¥æ„é€ ä¸€ä¸ªåˆ°æŒ‡å®šä½ç½®
+		T& EmplaceAt(size_t const& idx, Args&&...args) noexcept {
+			Reserve(len + 1);
+			if (idx < len) {
+				if constexpr (IsTrivial_v<T>) {
+					::memmove(buf + idx + 1, buf + idx, (len - idx) * sizeof(T));
+				}
+				else {
+					new (buf + len) T((T&&)buf[len - 1]);
+					for (size_t i = len - 1; i > idx; --i) {
+						buf[i] = (T&&)buf[i - 1];
+					}
+					buf[idx].~T();
+				}
+			}
+			else idx = len;
+			++len;
+			new (buf + idx) T(std::forward<Args>(args)...);
+			return buf[idx];
+		}
 
+		// Óë Emplace ²»Í¬µÄÊÇ, Õâ¸ö½öÖ§³Ö1¸ö²ÎÊıµÄ¹¹Ôìº¯Êı, ¿ÉÒ»´Î×·¼Ó¶à¸ö
 		template<typename ...TS>
-		void Add(TS&&...vs) noexcept;		// ä¸ Emplace ä¸åŒçš„æ˜¯, è¿™ä¸ªä»…æ”¯æŒ1ä¸ªå‚æ•°çš„æ„é€ å‡½æ•°, å¯åŒæ—¶è¿½åŠ å¤šä¸ª
+		void Add(TS&&...vs) noexcept {
+			std::initializer_list<int> n{ (Emplace(std::forward<TS>(vs)), 0)... };
+			(void)(n);
+		}
 
-		void AddRange(T const* const& items, size_t const& count) noexcept;
+		void AddRange(T const* const& items, size_t const& count) noexcept {
+			Reserve(len + count);
+			if constexpr (IsTrivial_v<T>) {
+				::memcpy(buf + len, items, count * sizeof(T));
+			}
+			else {
+				for (size_t i = 0; i < count; ++i) {
+					new (&buf[len + i]) T((T&&)items[i]);
+				}
+			}
+			len += count;
+		}
 
-		size_t Find(T const& v) noexcept;			// å¦‚æœæ‰¾åˆ°å°±è¿”å›ç´¢å¼•. æ‰¾ä¸åˆ°å°†è¿”å› size_t(-1)
-		size_t Find(std::function<bool(T const&)> cond) noexcept;
-		bool Exists(std::function<bool(T const&)> cond) noexcept;
-		bool TryFill(T& out, std::function<bool(T const&)> cond) noexcept;
+		// Èç¹ûÕÒµ½¾Í·µ»ØË÷Òı. ÕÒ²»µ½½«·µ»Ø size_t(-1)
+		size_t Find(T const& v) const noexcept {
+			for (size_t i = 0; i < len; ++i) {
+				if (v == buf[i]) return i;
+			}
+			return size_t(-1);
+		}
 
-		void ForEachRevert(std::function<void(T&)> handler) noexcept;	// å€’ç€æ‰«. ä¾¿äº SwapRemoveAt.
-
-		// æ”¯æŒ for( auto c : list ) è¯­æ³•
+		// Ö§³Ö for( auto c : list ) Óï·¨
 		struct Iter
 		{
 			T *ptr;
@@ -62,29 +267,48 @@ namespace xx
 			T& operator*() noexcept { return *ptr; }
 		};
 		Iter begin() noexcept { return Iter{ buf }; }
-		Iter end() noexcept { return Iter{ buf + dataLen }; }
+		Iter end() noexcept { return Iter{ buf + len }; }
 		Iter begin() const noexcept { return Iter{ buf }; }
-		Iter end() const noexcept { return Iter{ buf + dataLen }; }
+		Iter end() const noexcept { return Iter{ buf + len }; }
 
 
-		// Object æ¥å£æ”¯æŒ
-		List(BBuffer* const& bb);
+		// Object ½Ó¿ÚÖ§³Ö
+		inline virtual uint16_t GetTypeId() const noexcept override {
+			return TypeId_v<List<T>>;
+		}
 		void ToBBuffer(BBuffer& bb) const noexcept override;
 		int FromBBuffer(BBuffer& bb) noexcept override;
 
-		void ToString(String& s) const noexcept override;
+		void ToString(std::string& s) const noexcept override {
+			if (toStringFlag) {
+				Append(s, "{ ... }");
+				return;
+			}
+			SetToStringFlag();
+			Append(s, "[ ");
+			for (size_t i = 0; i < len; i++) {
+				Append(s, buf[i], ", ");
+			}
+			if (len) {
+				s.resize(s.size() - 2);
+				Append(s, " ]");
+			}
+			else {
+				s[s.size() - 1] = ']';
+			}
+			SetToStringFlag(false);
+		}
 	};
 
+	// ÊÊÅä List<T>
+	template<typename T>
+	struct IsTrivial<List<T>, void> {
+		static const bool value = true;
+	};
 
 	template<typename T>
-	using List_p = Ptr<List<T>>;
+	using List_s = std::shared_ptr<List<T>>;
 
 	template<typename T>
-	using List_r = Ref<List<T>>;
-
-	template<typename T>
-	using List_u = Unique<List<T>>;
-
-	template<typename T>
-	using List_w = Weak<List<T>>;
+	using List_w = std::shared_ptr<List<T>>;
 }
