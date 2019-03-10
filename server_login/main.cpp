@@ -1,22 +1,14 @@
-﻿//#pragma execution_character_set("utf-8")
-//
-//// 加载 xxlib & uv 环境
-//#include "xx_uv.h"
-//
-//// 加载包生成物
-//#include "pkg\PKG_class.h"
-//
-//// 简化 assert 写法
-//xx::RtvChecker rc;
-//
-//// 主线程内存池
-//xx::MemPool mp;
-//
-//// 主线程 uv 环境
-//xx::UvLoop uv(&mp);
-//
-//// 用于 lobby 互联的 net client
-//xx::UvTcpClient_w lobbyClient;
+﻿#pragma execution_character_set("utf-8")
+// 加载 xxlib & uv 环境
+#include "xx_uv.h"
+// 加载包生成物
+#include "PKG_class.h"
+
+// 主线程 uv 环境
+xx::Uv uv;
+
+// 用于 lobby 互联的 net client
+//xx::UvTcpDialer lobbyClient;
 //
 //// 用于 db 互联的 net client
 //xx::UvTcpClient_w dbClient;
