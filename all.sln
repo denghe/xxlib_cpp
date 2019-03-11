@@ -14,6 +14,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_lobby", "server_lobb
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server_login", "server_login\server_login.vcxproj", "{B93032E8-E86B-4A20-88F8-40F4F4B033F5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_uv_resolver", "test_uv_resolver\test_uv_resolver.vcxproj", "{721B0365-9D46-45E9-BF19-1B80B88DE742}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -32,6 +34,10 @@ Global
 		{B93032E8-E86B-4A20-88F8-40F4F4B033F5}.Debug|x64.Build.0 = Debug|x64
 		{B93032E8-E86B-4A20-88F8-40F4F4B033F5}.Release|x64.ActiveCfg = Release|x64
 		{B93032E8-E86B-4A20-88F8-40F4F4B033F5}.Release|x64.Build.0 = Release|x64
+		{721B0365-9D46-45E9-BF19-1B80B88DE742}.Debug|x64.ActiveCfg = Debug|x64
+		{721B0365-9D46-45E9-BF19-1B80B88DE742}.Debug|x64.Build.0 = Debug|x64
+		{721B0365-9D46-45E9-BF19-1B80B88DE742}.Release|x64.ActiveCfg = Release|x64
+		{721B0365-9D46-45E9-BF19-1B80B88DE742}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

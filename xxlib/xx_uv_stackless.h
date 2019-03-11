@@ -4,18 +4,14 @@
 
 namespace xx {
 
-	struct UvLoopStackless : UvLoop, Stackless {
-		std::chrono::time_point<std::chrono::system_clock> corsLastTime;
+	struct UvStackless : Uv, Stackless {
+		std::chrono::time_point<std::chrono::steady_clock> corsLastTime;
 		std::chrono::nanoseconds corsDurationPool;
-		std::shared_ptr<UvTimer> corsTimer;
-		UvLoopStackless(double const& framesPerSecond) : UvLoop() {
-			if (funcs.size()) throw - 1;
-			corsTimer = CreateTimer<>(0, 1);
-			if (!corsTimer) throw - 2;
-			corsLastTime = std::chrono::system_clock::now();
-			corsDurationPool = std::chrono::nanoseconds(0);
-			corsTimer->OnFire = [this, nanosPerFrame = std::chrono::nanoseconds(int64_t(1.0 / framesPerSecond * 1000000000))]{
-				auto currTime = std::chrono::system_clock::now();
+		UvTimer_s corsTimer;
+		UvStackless(double const& framesPerSecond = 61)
+			: Uv() {
+			corsTimer = MakeTo(corsTimer, *this, 0, 1, [this, nanosPerFrame = std::chrono::nanoseconds(int64_t(1.0 / framesPerSecond * 1000000000))]{
+				auto currTime = std::chrono::steady_clock::now();
 				corsDurationPool += currTime - corsLastTime;
 				corsLastTime = currTime;
 				while (corsDurationPool > nanosPerFrame) {
@@ -25,8 +21,36 @@ namespace xx {
 					};
 					corsDurationPool -= nanosPerFrame;
 				}
+			});
+			corsLastTime = std::chrono::steady_clock::now();
+			corsDurationPool = std::chrono::nanoseconds(0);
+		}
+
+
+		int MakeResolverTo(UvItem_s& holder, std::vector<std::string>& outResult, std::string const& domainName, int64_t const& timeoutMS = 0) {
+			auto resolver = TryMake<UvResolver>(*this);
+			if (!resolver) return -2;
+			resolver->OnFinish = [resolver = &*resolver, holder = &holder, outResult = &outResult]{
+				*outResult = std::move(resolver->ips);
+				holder->reset();
 			};
+			resolver->Resolve(domainName, timeoutMS);
+			holder = std::move(resolver);
+			return 0;
+		}
+
+		template<typename PeerType = UvTcpPeer>
+		int MakeTcpDialerTo(UvItem_s& holder, std::shared_ptr<PeerType>& outResult, std::vector<std::string>& ips, uint16_t const& port, int64_t const& timeoutMS = 0) {
+			auto dialer = TryMake<UvTcpDialer<PeerType>>(*this);
+			if (!dialer) return -2;
+			dialer->OnConnect = [dialer = &*dialer, holder = &holder, outResult = &outResult]{
+				*outResult = std::move(dialer->peer);
+				holder->reset();
+			};
+			if (int r = dialer->Dial(ips, port, timeoutMS))
+				return r;
+			holder = std::move(dialer);
+			return 0;
 		}
 	};
-
 }

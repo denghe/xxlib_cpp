@@ -21,13 +21,8 @@ namespace xx {
 			if (funcs.size()) {
 				for (decltype(auto) i = funcs.size() - 1; i != (size_t)-1; --i) {
 					decltype(auto) func = funcs[i];
-					if (func.second < 0) {
-						++func.second;
-					}
-					else {
-						func.second = func.first(func.second);
-					}
-					if (func.second == (int)0xFFFFFFFF) {
+					func.second = func.first(func.second);
+					if (!func.second) {
 						if (i + 1 < funcs.size()) {
 							funcs[i] = std::move(funcs[funcs.size() - 1]);
 						}
@@ -41,7 +36,7 @@ namespace xx {
 
 #define COR_BEGIN	switch (lineNumber) { case 0:
 #define COR_YIELD	return __LINE__; case __LINE__:;
-#define COR_END		} return (int)0xFFFFFFFF;
+#define COR_END		} return 0;
 
 }
 

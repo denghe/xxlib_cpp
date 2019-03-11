@@ -1,4 +1,5 @@
 ﻿#pragma execution_character_set("utf-8")
+
 // 加载 xxlib & uv 环境
 #include "xx_uv.h"
 // 加载包生成物
@@ -8,7 +9,7 @@
 xx::Uv uv;
 
 // 用于 lobby 互联的 net client
-//xx::UvTcpDialer lobbyClient;
+//xx::UvTcpDialer<> lobbyClient;
 //
 //// 用于 db 互联的 net client
 //xx::UvTcpClient_w dbClient;
