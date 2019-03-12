@@ -430,7 +430,8 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
 
         sb.Append(@"
 namespace " + templateName + @" {
-	inline void AllTypesRegister() noexcept {");
+	struct AllTypesRegister {
+        AllTypesRegister() {");
         foreach (var kv in typeIds.types)
         {
             var ct = kv.Key;
@@ -440,10 +441,12 @@ namespace " + templateName + @" {
             var btn = ct._HasBaseType() ? bt._GetTypeDecl_Cpp(templateName) : "xx::Object";
 
             sb.Append(@"
-	    xx::BBuffer::Register<" + ctn + @">(" + kv.Value + @");");
+	        xx::BBuffer::Register<" + ctn + @">(" + kv.Value + @");");
         }
         sb.Append(@"
-	}
+        }
+	};
+	inline AllTypesRegister AllTypesRegisterInstance;   // for auto register at program startup
 }
 ");
 

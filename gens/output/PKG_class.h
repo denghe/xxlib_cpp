@@ -3,7 +3,7 @@
 
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "29d1a8b88b58ab22d8325d53f9c143b2";
+		inline static const std::string value = "e40d89d6021c4a9af26cd71ffe9571e7";
     };
 
     // 操作成功( 默认 response 结果 )
@@ -1911,44 +1911,47 @@ namespace DB {
 }
 }
 namespace PKG {
-	inline void AllTypesRegister() noexcept {
-	    xx::BBuffer::Register<PKG::Success>(3);
-	    xx::BBuffer::Register<PKG::Error>(4);
-	    xx::BBuffer::Register<PKG::ConnInfo>(6);
-	    xx::BBuffer::Register<PKG::Collections>(7);
-	    xx::BBuffer::Register<xx::List<int32_t>>(8);
-	    xx::BBuffer::Register<xx::List<int64_t>>(9);
-	    xx::BBuffer::Register<xx::List<std::string_s>>(10);
-	    xx::BBuffer::Register<xx::List<xx::Object_s>>(11);
-	    xx::BBuffer::Register<PKG::Client_Login::Auth>(12);
-	    xx::BBuffer::Register<PKG::Server::Info>(5);
-	    xx::BBuffer::Register<PKG::Client_Lobby::Enter>(13);
-	    xx::BBuffer::Register<PKG::Client_Lobby::Enter_Game1>(14);
-	    xx::BBuffer::Register<PKG::Client_Lobby::Enter_Game1_Level>(15);
-	    xx::BBuffer::Register<PKG::Client_Lobby::Enter_Game1_Level_Desk>(16);
-	    xx::BBuffer::Register<PKG::Client_Lobby::Back>(17);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Self>(18);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Player>(19);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Root>(20);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Game1>(21);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby_Client::Game1_Level_Info_s>>(22);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Game1_Level_Info>(23);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Game1_Level>(24);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby_Client::Game1_Level_Desk_s>>(25);
-	    xx::BBuffer::Register<PKG::Lobby_Client::Game1_Level_Desk>(26);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby_Client::Player_s>>(27);
-	    xx::BBuffer::Register<PKG::Lobby::Player>(28);
-	    xx::BBuffer::Register<PKG::Lobby::Place>(29);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby::Player_s>>(30);
-	    xx::BBuffer::Register<PKG::Lobby::Root>(31);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby::Game_s>>(32);
-	    xx::BBuffer::Register<PKG::Lobby::Game>(33);
-	    xx::BBuffer::Register<PKG::Lobby::Game1>(34);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby::Game1_Level_s>>(35);
-	    xx::BBuffer::Register<PKG::Lobby::Game1_Level>(36);
-	    xx::BBuffer::Register<xx::List<PKG::Lobby::Game1_Level_Desk_s>>(37);
-	    xx::BBuffer::Register<PKG::Lobby::Game1_Level_Desk>(38);
-	    xx::BBuffer::Register<PKG::Login_DB::GetAccount>(39);
-	    xx::BBuffer::Register<PKG::DB::Account>(40);
-	}
+	struct AllTypesRegister {
+        AllTypesRegister() {
+	        xx::BBuffer::Register<PKG::Success>(3);
+	        xx::BBuffer::Register<PKG::Error>(4);
+	        xx::BBuffer::Register<PKG::ConnInfo>(6);
+	        xx::BBuffer::Register<PKG::Collections>(7);
+	        xx::BBuffer::Register<xx::List<int32_t>>(8);
+	        xx::BBuffer::Register<xx::List<int64_t>>(9);
+	        xx::BBuffer::Register<xx::List<std::string_s>>(10);
+	        xx::BBuffer::Register<xx::List<xx::Object_s>>(11);
+	        xx::BBuffer::Register<PKG::Client_Login::Auth>(12);
+	        xx::BBuffer::Register<PKG::Server::Info>(5);
+	        xx::BBuffer::Register<PKG::Client_Lobby::Enter>(13);
+	        xx::BBuffer::Register<PKG::Client_Lobby::Enter_Game1>(14);
+	        xx::BBuffer::Register<PKG::Client_Lobby::Enter_Game1_Level>(15);
+	        xx::BBuffer::Register<PKG::Client_Lobby::Enter_Game1_Level_Desk>(16);
+	        xx::BBuffer::Register<PKG::Client_Lobby::Back>(17);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Self>(18);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Player>(19);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Root>(20);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Game1>(21);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby_Client::Game1_Level_Info_s>>(22);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Game1_Level_Info>(23);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Game1_Level>(24);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby_Client::Game1_Level_Desk_s>>(25);
+	        xx::BBuffer::Register<PKG::Lobby_Client::Game1_Level_Desk>(26);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby_Client::Player_s>>(27);
+	        xx::BBuffer::Register<PKG::Lobby::Player>(28);
+	        xx::BBuffer::Register<PKG::Lobby::Place>(29);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby::Player_s>>(30);
+	        xx::BBuffer::Register<PKG::Lobby::Root>(31);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby::Game_s>>(32);
+	        xx::BBuffer::Register<PKG::Lobby::Game>(33);
+	        xx::BBuffer::Register<PKG::Lobby::Game1>(34);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby::Game1_Level_s>>(35);
+	        xx::BBuffer::Register<PKG::Lobby::Game1_Level>(36);
+	        xx::BBuffer::Register<xx::List<PKG::Lobby::Game1_Level_Desk_s>>(37);
+	        xx::BBuffer::Register<PKG::Lobby::Game1_Level_Desk>(38);
+	        xx::BBuffer::Register<PKG::Login_DB::GetAccount>(39);
+	        xx::BBuffer::Register<PKG::DB::Account>(40);
+        }
+	};
+	inline AllTypesRegister AllTypesRegisterInstance;   // for auto register at program startup
 }
