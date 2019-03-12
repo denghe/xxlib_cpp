@@ -29,7 +29,7 @@ namespace xx {
 
 		int MakeResolverTo(UvItem_s& holder, std::vector<std::string>& outResult, std::string const& domainName, int64_t const& timeoutMS = 0) {
 			auto resolver = TryMake<UvResolver>(*this);
-			if (!resolver) return -2;
+			if (!resolver) return -1;
 			resolver->OnFinish = [resolver = &*resolver, holder = &holder, outResult = &outResult]{
 				*outResult = std::move(resolver->ips);
 				holder->reset();
@@ -42,7 +42,7 @@ namespace xx {
 		template<typename PeerType = UvTcpPeer>
 		int MakeTcpDialerTo(UvItem_s& holder, std::shared_ptr<PeerType>& outResult, std::vector<std::string>& ips, uint16_t const& port, int64_t const& timeoutMS = 0) {
 			auto dialer = TryMake<UvTcpDialer<PeerType>>(*this);
-			if (!dialer) return -2;
+			if (!dialer) return -1;
 			dialer->OnConnect = [dialer = &*dialer, holder = &holder, outResult = &outResult]{
 				*outResult = std::move(dialer->peer);
 				holder->reset();
@@ -52,5 +52,19 @@ namespace xx {
 			holder = std::move(dialer);
 			return 0;
 		}
+
+		//template<typename PeerType = UvUdpKcpPeer>
+		//int MakeUdpDialerTo(UvItem_s& holder, std::shared_ptr<PeerType>& outResult, std::string ip, uint16_t const& port) {
+		//	auto dialer = TryMake<UvUdpKcpDialer<PeerType>>(*this);
+		//	if (!dialer) return -1;
+		//	dialer->OnConnect = [dialer = &*dialer, holder = &holder, outResult = &outResult]{
+		//		*outResult = std::move(dialer->peer);
+		//		holder->reset();
+		//	};
+		//	if (int r = dialer->Dial(ip, port, timeoutMS))
+		//		return r;
+		//	holder = std::move(dialer);
+		//	return 0;
+		//}
 	};
 }

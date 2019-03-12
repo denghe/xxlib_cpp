@@ -3,22 +3,6 @@
 
 namespace xx
 {
-	// 移动时是否可使用 memmove 的标志 基础适配模板
-	template<typename T, typename ENABLED = void>
-	struct IsTrivial {
-		static const bool value = false;
-	};
-
-	template<typename T>
-	constexpr bool IsTrivial_v = IsTrivial<T>::value;
-
-	// 适配 std::is_trivial<T>::value
-	template<typename T>
-	struct IsTrivial<T, std::enable_if_t<std::is_trivial_v<T>>> {
-		static const bool value = true;
-	};
-
-
 	struct BBuffer;
 
 	// std::vector / .net List like

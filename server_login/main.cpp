@@ -1,12 +1,56 @@
 ﻿#pragma execution_character_set("utf-8")
-
-// 加载 xxlib & uv 环境
 #include "xx_uv.h"
-// 加载包生成物
 #include "PKG_class.h"
 
-// 主线程 uv 环境
-xx::Uv uv;
+struct LoginPeer;
+struct LoginListener;
+struct LoginService {
+	xx::Uv uv;
+	std::shared_ptr<LoginListener> listener;
+	LoginService();
+	inline void Run() {
+		xx::CoutN("login service begin.");
+		uv.Run();
+		xx::CoutN("end begin.");
+	}
+};
+
+struct LoginPeer : xx::UvTcpPeer {
+	using BaseType = xx::UvTcpPeer;
+	using BaseType::BaseType;
+	LoginService* service;	// fill by listener accept
+	std::string ip;	// fill by listener accept
+	
+	// todo: override OnReceiveRequest for handle msgs
+};
+
+struct LoginListener : xx::UvTcpListener<LoginPeer> {
+	using BaseType = xx::UvTcpListener<LoginPeer>;
+	using BaseType::BaseType;
+	LoginService* service;	// fill by service
+	inline virtual void Accept(std::shared_ptr<LoginPeer>& peer) noexcept override {
+		peer->service = service;
+		peer->SetReceiveTimeoutMS(5000);
+		peer->OnDisconnect = [peer] {		// hold memory
+			xx::CoutN(peer->ip, " disposed.");
+		};
+		xx::Uv::FillIP(peer->uvTcp, peer->ip);
+		xx::CoutN(peer->ip, " accepted");
+	}
+};
+
+inline LoginService::LoginService() {
+	xx::MakeTo(listener, uv, "0.0.0.0", 12345);
+	listener->service = this;
+}
+
+int main() {
+	LoginService service;
+	service.Run();
+	return 0;
+}
+
+
 
 // 用于 lobby 互联的 net client
 //xx::UvTcpDialer<> lobbyClient;
@@ -226,5 +270,3 @@ xx::Uv uv;
 //	// 进入 uv 主循环
 //	return uv.Run();
 //}
-
-int main() { return 0; }

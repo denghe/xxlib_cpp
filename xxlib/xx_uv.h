@@ -65,6 +65,32 @@ namespace xx {
 			buf->base = (char*)::malloc(suggested_size);
 			buf->len = decltype(uv_buf_t::len)(suggested_size);
 		}
+
+		inline static int FillIP(sockaddr_in6& saddr, std::string& ip, bool includePort = true) noexcept {
+			ip.resize(64);
+			if (saddr.sin6_family == AF_INET6) {
+				if (int r = uv_ip6_name(&saddr, ip.data(), ip.size())) return r;
+				ip.resize(strlen(ip.data()));
+				if (includePort) {
+					ip.append(std::to_string(ntohs(saddr.sin6_port)));
+				}
+			}
+			else {
+				if (int r = uv_ip4_name((sockaddr_in*)&saddr, ip.data(), ip.size())) return r;
+				ip.resize(strlen(ip.data()));
+				if (includePort) {
+					ip.append(std::to_string(ntohs(((sockaddr_in*)&saddr)->sin_port)));
+				}
+			}
+			return 0;
+		}
+		inline static int FillIP(uv_tcp_t* stream, std::string& ip, bool includePort = true) noexcept {
+			sockaddr_in6 saddr;
+			int len = sizeof(saddr);
+			int r = 0;
+			if ((r = uv_tcp_getpeername(stream, (sockaddr*)&saddr, &len))) return r;
+			return FillIP(saddr, ip, includePort);
+		}
 	};
 
 	struct UvItem : std::enable_shared_from_this<UvItem> {
@@ -443,8 +469,12 @@ namespace xx {
 		inline virtual int ReceivePush(Object_s&& msg) noexcept { return OnReceivePush ? OnReceivePush(std::move(msg)) : 0; };
 		std::function<int(int const& serial, Object_s&& msg)> OnReceiveRequest;
 		inline virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept { return OnReceiveRequest ? OnReceiveRequest(serial, std::move(msg)) : 0; };
+		UvTimer_s timeouter;
 
-		using UvTcpBasePeer::UvTcpBasePeer;
+		UvTcpPeer(Uv& uv) 
+			: UvTcpBasePeer(uv) {
+			xx::MakeTo(timeouter, uv);
+		}
 		UvTcpPeer(UvTcpPeer const&) = delete;
 		UvTcpPeer& operator=(UvTcpPeer const&) = delete;
 		~UvTcpPeer() { this->Dispose(0); }
@@ -459,12 +489,32 @@ namespace xx {
 			return SendRequest(msg, 0, std::move(cb), timeoutMS);
 		}
 
+		// set timeout check duration. 0 = disable check
+		inline int SetReceiveTimeoutMS(uint64_t const& receiveTimeoutMS) {
+			if (!uvTcp) return -1;
+			if (!timeouter) return -2;
+			if (receiveTimeoutMS) {
+				return timeouter->Start(receiveTimeoutMS, 0, [this] { Dispose(); });
+			}
+			else {
+				return timeouter->Stop();
+			}
+		}
+
+		// refresh lastReceiveMS when receive a valid message
+		inline int ResetLastReceiveMS() {
+			if (!uvTcp) return -1;
+			if (!timeouter) return -2;
+			return timeouter->Restart();
+		}
+
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!uvTcp) return;
 			for (decltype(auto) kv : callbacks) {
 				kv.second.first(nullptr);
 			}
 			callbacks.clear();
+			timeouter.reset();
 			this->UvTcp::Dispose(flag);
 			if (flag) {
 				auto holder = shared_from_this();
@@ -528,7 +578,7 @@ namespace xx {
 				v.second = TryMake<UvTimer>(uv);
 				if (!v.second) return -1;
 				if (int r = v.second->Start(timeoutMS, 0, [this, serial = this->serial]() {
-					TimeoutCallback(serial);
+					RPCTimeoutCallback(serial);
 				})) return r;
 			}
 			if (int r = SendPackage(data, -serial, tar)) return r;
@@ -537,7 +587,7 @@ namespace xx {
 			return 0;
 		}
 
-		inline void TimeoutCallback(int const& serial) {
+		inline void RPCTimeoutCallback(int const& serial) {
 			auto iter = callbacks.find(serial);
 			if (iter == callbacks.end()) return;
 			iter->second.first(nullptr);
@@ -1215,6 +1265,8 @@ namespace xx {
 		// todo: 模拟握手？ peer 创建之后发送握手包并等待返回？
 		// todo: 批量拨号？
 		// todo: 实现一个与 kcp 无关的握手流程？只发送 guid? 直接返回 guid? 使用一个 timer 来管理? 不停的发，直到收到？
+		// todo: 允许将 peer 移走使用? 这意味着结构类似 listener
+		// todo: 进一步的，如果希望达到类似 tcp dialer 的使用效果，似乎要把 udp 上下文放置到 uv 中？
 
 		inline int Dial(std::string const& ip, int const& port) noexcept {
 			if (int r = timer->Stop()) return r;

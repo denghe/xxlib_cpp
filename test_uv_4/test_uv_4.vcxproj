@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{85039DD4-098C-4B31-924A-0F4D884DF2F7}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>test_uv_4</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CONSOLE;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)libuv/include;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>$(SolutionDir)../boost_1_69_0/lib64-msvc-14.1;$(SolutionDir)libuv</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CONSOLE;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)libuv/include;</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SolutionDir)../boost_1_69_0/lib64-msvc-14.1;$(SolutionDir)libuv</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="http_parser.c" />
+    <ClCompile Include="ikcp.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="xx_uv.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="fixed_function.hpp" />
+    <ClInclude Include="http_parser.h" />
+    <ClInclude Include="ikcp.h" />
+    <ClInclude Include="xx.h" />
+    <ClInclude Include="xx_bbuffer.h" />
+    <ClInclude Include="xx_bbuffer.hpp" />
+    <ClInclude Include="xx_bytesutils.h" />
+    <ClInclude Include="xx_bytesutils.hpp" />
+    <ClInclude Include="xx_charsutils.h" />
+    <ClInclude Include="xx_charsutils.hpp" />
+    <ClInclude Include="xx_dict.h" />
+    <ClInclude Include="xx_dict.hpp" />
+    <ClInclude Include="xx_dictex.h" />
+    <ClInclude Include="xx_guid.h" />
+    <ClInclude Include="xx_guid.hpp" />
+    <ClInclude Include="xx_hashset.h" />
+    <ClInclude Include="xx_hashset.hpp" />
+    <ClInclude Include="xx_hashutils.h" />
+    <ClInclude Include="xx_hashutils.hpp" />
+    <ClInclude Include="xx_list.h" />
+    <ClInclude Include="xx_list.hpp" />
+    <ClInclude Include="xx_mempool.h" />
+    <ClInclude Include="xx_mempool.hpp" />
+    <ClInclude Include="xx_queue.h" />
+    <ClInclude Include="xx_queue.hpp" />
+    <ClInclude Include="xx_random.h" />
+    <ClInclude Include="xx_random.hpp" />
+    <ClInclude Include="xx_string.h" />
+    <ClInclude Include="xx_string.hpp" />
+    <ClInclude Include="xx_uv.h" />
+    <ClInclude Include="xx_uv.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="xx.natvis" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

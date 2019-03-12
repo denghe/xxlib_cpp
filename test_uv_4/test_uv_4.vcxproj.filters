@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="http_parser.c">
+      <Filter>xx</Filter>
+    </ClCompile>
+    <ClCompile Include="ikcp.cpp">
+      <Filter>xx</Filter>
+    </ClCompile>
+    <ClCompile Include="xx_uv.cpp">
+      <Filter>xx</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="fixed_function.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="http_parser.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="ikcp.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_bbuffer.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_bbuffer.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_bytesutils.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_bytesutils.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_charsutils.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_charsutils.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_dict.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_dict.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_dictex.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_guid.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_guid.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_hashset.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_hashset.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_hashutils.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_hashutils.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_list.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_list.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_mempool.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_mempool.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_queue.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_queue.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_random.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_random.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_string.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_string.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_uv.h">
+      <Filter>xx</Filter>
+    </ClInclude>
+    <ClInclude Include="xx_uv.hpp">
+      <Filter>xx</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="xx">
+      <UniqueIdentifier>{ba2e18fa-4e25-4603-a396-101ef37fe599}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="xx.natvis">
+      <Filter>xx</Filter>
+    </Natvis>
+  </ItemGroup>
+</Project>

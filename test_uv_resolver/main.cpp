@@ -36,8 +36,9 @@ struct Sleeper {
 		return lineNumber = Update();
 	}
 };
-
+using namespace std::chrono;
 int main() {
+	std::this_thread::sleep_for(100ms);
 	xx::CoutN("begin");
 	{
 		xx::UvStackless uv;
