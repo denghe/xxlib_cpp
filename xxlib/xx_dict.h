@@ -27,7 +27,7 @@ namespace xx
 			int             prev;
 		};
 
-		//private:
+	private:
 		int                 freeList;               // 自由空间链表头( next 指向下一个未使用单元 )
 		int                 freeCount;              // 自由空间链长
 		int                 count;                  // 已使用空间数
@@ -103,7 +103,8 @@ namespace xx
 		bool UpdateAt(int const& idx, K&& newKey) noexcept;
 
 
-		// for( auto&& c :  支持
+		// for (auto&& data : dict) {
+		// for (auto&& iter = dict.begin(); iter != dict.end(); ++iter) {	if ... dict.RemoveAt( iter.i )
 		struct Iter {
 			Dict& hs;
 			int i;

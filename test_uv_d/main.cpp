@@ -2,65 +2,112 @@
 #include "xx_dict.h"
 
 namespace xx {
+	struct KcpUv;
+
 	struct KcpPeer;
 	using KcpPeer_s = std::shared_ptr<KcpPeer>;
 	using KcpPeer_w = std::weak_ptr<KcpPeer>;
 
+	struct KcpListener;
+	using KcpListener_s = std::shared_ptr<KcpListener>;
+	using KcpListener_w = std::weak_ptr<KcpListener>;
+
 	struct KcpUvUdpPeer : UvUdpBasePeer {
 		using UvUdpBasePeer::UvUdpBasePeer;
-		Dict<Guid, KcpPeer_w> peers;
-		int Update(uint32_t const& currentMS);
+		uint16_t port = 0;
+		KcpUv& GetKcpUv() noexcept;
+		~KcpUvUdpPeer();
+		KcpListener* listener = nullptr;
+		// todo: listener pointer for call listener's accept func or call dialer's accpet func
 	};
 	using KcpUvUdpPeer_s = std::shared_ptr<KcpUvUdpPeer>;
 	using KcpUvUdpPeer_w = std::weak_ptr<KcpUvUdpPeer>;
 
 	struct KcpPeer : UvItem {
-		KcpUvUdpPeer_s udpPeer;	// bind to udp peer
+		KcpUvUdpPeer_s udpPeer;								// bind to udp peer
+		Guid guid;
 		int Update(uint32_t const& currentMS) {
 			// todo
 			return 0;
 		}
+		KcpUv& GetKcpUv() noexcept;
+		KcpPeer(Uv& uv, KcpUvUdpPeer_s& udpPeer) 
+			: UvItem(uv)
+			, udpPeer(std::move(udpPeer)) {
+		}
+		~KcpPeer();
 	};
 
-	inline int KcpUvUdpPeer::Update(uint32_t const& currentMS) {
-		for (auto&& iter = peers.begin(); iter != peers.end(); ++iter) {
-			if (auto peer = (*iter).value.lock()) {
-				if (!peer->Update(currentMS)) continue;
-			}
-			peers.RemoveAt(iter.i);	// remove lock or Update failed
+	struct KcpListener : UvItem {
+		KcpUvUdpPeer_s udpPeer;
+		// todo: accept
+		KcpUv& GetKcpUv() noexcept;
+		KcpListener(Uv& uv, std::string const& ip, int const& port);
+		~KcpListener() {
+			udpPeer->listener = nullptr;
 		}
-		return 0;
-	}
+	};
+	struct KcpDialer : UvItem {
+		using UvItem::UvItem;
+		KcpUv& GetKcpUv() noexcept;
+		// todo: Dial create tmp KcpUvUdpPeer req, send guid & wait recv guid, when recv, callback Connect
+		// todo: req container
+	};
 
 	struct KcpUv : Uv {
-		List<KcpUvUdpPeer_w> listenerUdpPeers;
-		List<KcpUvUdpPeer_w> dialerUdpPeers;
+		Dict<uint16_t, KcpUvUdpPeer_w> udpPeers;			// search udp peer by create new listener
+		Dict<Guid, KcpPeer_w> kcpPeers;						// for update
 		UvTimer_s updater;
 		std::chrono::steady_clock::time_point createTime = std::chrono::steady_clock::now();
 		uint32_t currentMS = 0;	// why not int64_t: because kcp source code only support this type
 		KcpUv() {
 			xx::MakeTo(updater, *this, 10, 10, [this] {
 				currentMS = (uint32_t)(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->createTime).count());
-				Update(currentMS, listenerUdpPeers);
-				Update(currentMS, dialerUdpPeers);
+				for (auto&& iter = kcpPeers.begin(); iter != kcpPeers.end(); ++iter) {
+					if (auto peer = (*iter).value.lock()) {
+						if (!peer->Update(currentMS)) continue;
+						peer->Dispose(1);
+					}
+					kcpPeers.RemoveAt(iter.i);				// remove !lock or Update failed
+				}
 			});
 		}
-		inline void Update(uint32_t const& currentMS, List<KcpUvUdpPeer_w>& peers) {
-			if (!peers.len) return;
-			for (auto i = peers.len - 1; i != (size_t)-1; --i) {
-				if (auto&& peer = peers[i].lock()) {
-					if (Update(currentMS, peer)) {
-						peer->Dispose();
-						peers.SwapRemoveAt(i);
-					}
-				}
-			}
-		}
-		inline int Update(uint32_t const& currentMS, KcpUvUdpPeer_s& peer) {
-			// todo
-			return 0;
-		}
 	};
+
+	inline KcpListener::KcpListener(Uv& uv, std::string const& ip, int const& port)
+		: UvItem(uv) {
+		auto&& ps = GetKcpUv().udpPeers;
+		auto idx = ps.Find(port);
+		if (idx > -1) {
+			udpPeer = ps.ValueAt(idx).lock();
+			if (udpPeer->listener) throw - 1;		// same port listener already exists?
+		}
+		else {
+			xx::MakeTo(udpPeer, uv, ip, port, true);
+			ps[port] = udpPeer;
+		}
+		udpPeer->listener = this;
+		// todo
+	}
+
+	KcpUv& KcpUvUdpPeer::GetKcpUv() noexcept {
+		return (KcpUv&)uv;
+	}
+	KcpUv& KcpPeer::GetKcpUv() noexcept {
+		return (KcpUv&)uv;
+	}
+	KcpUv& KcpListener::GetKcpUv() noexcept {
+		return (KcpUv&)uv;
+	}
+	KcpUv& KcpDialer::GetKcpUv() noexcept {
+		return (KcpUv&)uv;
+	}
+	inline KcpUvUdpPeer::~KcpUvUdpPeer() {
+		GetKcpUv().udpPeers.Remove(port);
+	}
+	inline KcpPeer::~KcpPeer() {
+		GetKcpUv().kcpPeers.Remove(guid);
+	}
 }
 
 int main(int argc, char* argv[]) {
