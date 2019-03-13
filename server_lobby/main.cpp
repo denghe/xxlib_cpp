@@ -45,7 +45,7 @@
 //		peer->OnReceiveRequest = [peer](uint32_t serial, xx::BBuffer& bb)
 //		{
 //			// 试着解包
-//			decltype(auto) o = ToObject(peer, bb);
+//			auto&& o = ToObject(peer, bb);
 //			if (!o) return;
 //
 //			// 按包 id 路由
@@ -122,7 +122,7 @@
 //
 //		peer->OnReceiveRequest = [peer](uint32_t serial, xx::BBuffer& bb)
 //		{
-//			decltype(auto) o = ToObject(peer, bb);
+//			auto&& o = ToObject(peer, bb);
 //			if (!o) return;
 //
 //			// todo

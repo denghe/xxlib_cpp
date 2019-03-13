@@ -63,7 +63,7 @@ int main() {
 					xx::CoutN("timeout. retry.");
 					goto LabRetry;
 				}
-				for (decltype(auto) ip : zs->ips) {
+				for (auto&& ip : zs->ips) {
 					xx::CoutN(ip);
 				}
 				if (uv.MakeTcpDialerTo<HttpPeer>(zs->func, zs->peer, zs->ips, 80, 2000)) break;
@@ -101,7 +101,7 @@ int main() {
 //		auto resolver = xx::Make<xx::UvResolver>(uv);
 //		resolver->OnFinish = [&] {
 //			if (resolver->ips.size()) {
-//				for (decltype(auto) ip : resolver->ips) {
+//				for (auto&& ip : resolver->ips) {
 //					xx::CoutN(ip);
 //				}
 //			}

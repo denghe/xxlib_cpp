@@ -196,7 +196,7 @@ namespace xx
 
 
 
-		// 支持 for (decltype(auto) iv : dictex) 遍历
+		// 支持 for (auto&& iv : dictex) 遍历
 		// 可用 KeyAt<?>( index ) 来查 key. 
 		struct IterValue
 		{

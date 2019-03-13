@@ -47,7 +47,7 @@ void TestUvStackless() {
 		while (!zs->peer->Disposed()) {
 			COR_YIELD
 				if (zs->recvs.size()) {
-					for (decltype(auto) b : zs->recvs) {
+					for (auto&& b : zs->recvs) {
 						std::cout << std::string((char*)b.buf, b.len) << std::endl;
 					}
 					zs->recvs.clear();

@@ -148,7 +148,7 @@ int main() {
 //		peer->OnReceiveRequest = [peer](uint32_t serial, xx::BBuffer& bb)
 //		{
 //			// 试着反序列化 bb 的数据为 object.
-//			decltype(auto) o = ToObject(peer, bb);
+//			auto&& o = ToObject(peer, bb);
 //
 //			// 反序列化失败: o 为空值. 
 //			if (!o)
@@ -230,7 +230,7 @@ int main() {
 //	//}
 //
 //	//// 构造请求包
-//	//decltype(auto) pkg = mp.MPCreatePtr<PKG::Login_DB::GetAccount>();
+//	//auto&& pkg = mp.MPCreatePtr<PKG::Login_DB::GetAccount>();
 //	
 //	// todo: 向 dbClient 发 Auth 请求?
 //

@@ -47,7 +47,7 @@ void TestUvCoroutine() {
 		std::vector<std::string> ipList;
 		if (GetIPList(yield, ipList, "www.baidu.com", 1000)) {
 			std::cout << ipList.size() << std::endl;
-			for (decltype(auto) ip : ipList) {
+			for (auto&& ip : ipList) {
 				std::cout << ip << std::endl;
 			}
 		}

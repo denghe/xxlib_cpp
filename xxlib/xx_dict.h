@@ -103,7 +103,7 @@ namespace xx
 		bool UpdateAt(int const& idx, K&& newKey) noexcept;
 
 
-		// for( auto &c :  支持
+		// for( auto&& c :  支持
 		struct Iter {
 			Dict& hs;
 			int i;
@@ -116,8 +116,7 @@ namespace xx
 			}
 			Data& operator*() { return hs.items[i]; }
 		};
-		Iter begin() noexcept
-		{
+		Iter begin() noexcept {
 			if (Empty()) return end();
 			for (int i = 0; i < count; ++i) {
 				if (items[i].prev != -2) return Iter{ *this, i };
@@ -308,7 +307,7 @@ namespace xx
 	template <typename TK, typename TV>
 	void Dict<TK, TV>::Clear(std::function<void(Data&)> killer) noexcept {
 		if (killer) {
-			for (decltype(auto) data : *this) {
+			for (auto&& data : *this) {
 				killer(data);
 			}
 		}
@@ -642,8 +641,8 @@ namespace xx
 		}
 
 
-		// 支持 for (decltype(auto) iv : dictex) 遍历
-		// 可用 KeyAt<?>( index ) 来查 key. 
+		// 支持 for (auto&& iv : dictex) 遍历
+		// 可用 dictex.KeyAt<?>( iv.index ) 来查 key. 
 		struct IterValue {
 			int index;
 			V& value;

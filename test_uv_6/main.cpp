@@ -106,7 +106,7 @@ inline Loop::Loop()
 		//	timer.reset();
 		//	return;
 		//}
-		for (decltype(auto) kv : dialers) {
+		for (auto&& kv : dialers) {
 			if (!serverPeers[kv.first] && !kv.second->State()) {
 				kv.second->Dial();
 			}
@@ -161,7 +161,7 @@ int main() {
 
 
 
-//#define var decltype(auto)
+//#define var auto&&
 
 //struct GameEnv {
 //	std::unordered_map<int, PKG::Player_s> players;

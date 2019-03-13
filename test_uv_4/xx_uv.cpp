@@ -144,7 +144,7 @@ int xx::UvLoop::InitKcpFlushInterval(uint32_t const& interval) noexcept
 		for (int i = (int)udpListeners.dataLen - 1; i >= 0; --i)
 		{
 			auto& L = udpListeners[i];
-			for (decltype(auto) kv : L->peers)
+			for (auto&& kv : L->peers)
 			{
 				kv.value->Update(udpTicks);
 				if (udpTimer->IsReleased(vn)) return;
@@ -202,9 +202,9 @@ bool xx::UvLoop::CreateTcpClientEx(char const* const& domainName, int const& por
 		}
 
 		// 过滤出能合法创建出 conn 的 ip, 添加到 ctx conns
-		for (decltype(auto) ip : *ips)
+		for (auto&& ip : *ips)
 		{
-			decltype(auto) conn = CreateTcpClient();
+			auto&& conn = CreateTcpClient();
 			int r = 0;
 			if (ip->Find(':') != size_t(-1))
 			{
@@ -232,7 +232,7 @@ bool xx::UvLoop::CreateTcpClientEx(char const* const& domainName, int const& por
 		}
 
 		// 令所有连接开始尝试连接目标地址 & 端口
-		for (decltype(auto) conn : ctx->conns)
+		for (auto&& conn : ctx->conns)
 		{
 			conn->OnConnect = [conn_ = conn, ctx_ = ctx](int status)
 			{
@@ -247,7 +247,7 @@ bool xx::UvLoop::CreateTcpClientEx(char const* const& domainName, int const& por
 				// 如果连上了, 就干掉其他连接, 产生回调( 同时清掉使用痕迹 )
 				if (!status)
 				{
-					for (decltype(auto) c : ctx->conns)
+					for (auto&& c : ctx->conns)
 					{
 						c->Release();
 					}
@@ -452,7 +452,7 @@ void xx::UvDnsVisitor::OnResolvedCBImpl(void *resolver, int status, void *res)
 		} while (ai);
 		uv_freeaddrinfo((addrinfo*)res);
 
-		for (decltype(auto) s : *mp->strs)
+		for (auto&& s : *mp->strs)
 		{
 			self->results.Add(s);
 		}
@@ -884,7 +884,7 @@ void xx::UvTcpUdpBase::RpcTraceCallback() noexcept
 {
 	if (rpcSerials)
 	{
-		for (decltype(auto) serial : *rpcSerials)
+		for (auto&& serial : *rpcSerials)
 		{
 			loop.rpcMgr->Callback(serial, nullptr);
 		}
@@ -1569,7 +1569,7 @@ xx::UvUdpListener::~UvUdpListener() noexcept
 	assert(ptr);
 	CallOnDispose();
 
-	for (decltype(auto) kv : peers)
+	for (auto&& kv : peers)
 	{
 		kv.value->Release();
 	}

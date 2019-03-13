@@ -1,4 +1,67 @@
 ﻿#include "xx_uv.h"
+#include "xx_dict.h"
+
+namespace xx {
+	struct KcpPeer;
+	using KcpPeer_s = std::shared_ptr<KcpPeer>;
+	using KcpPeer_w = std::weak_ptr<KcpPeer>;
+
+	struct KcpUvUdpPeer : UvUdpBasePeer {
+		using UvUdpBasePeer::UvUdpBasePeer;
+		Dict<Guid, KcpPeer_w> peers;
+		int Update(uint32_t const& currentMS);
+	};
+	using KcpUvUdpPeer_s = std::shared_ptr<KcpUvUdpPeer>;
+	using KcpUvUdpPeer_w = std::weak_ptr<KcpUvUdpPeer>;
+
+	struct KcpPeer : UvItem {
+		KcpUvUdpPeer_s udpPeer;	// bind to udp peer
+		int Update(uint32_t const& currentMS) {
+			// todo
+			return 0;
+		}
+	};
+
+	inline int KcpUvUdpPeer::Update(uint32_t const& currentMS) {
+		for (auto&& iter = peers.begin(); iter != peers.end(); ++iter) {
+			if (auto peer = (*iter).value.lock()) {
+				if (!peer->Update(currentMS)) continue;
+			}
+			peers.RemoveAt(iter.i);	// remove lock or Update failed
+		}
+		return 0;
+	}
+
+	struct KcpUv : Uv {
+		List<KcpUvUdpPeer_w> listenerUdpPeers;
+		List<KcpUvUdpPeer_w> dialerUdpPeers;
+		UvTimer_s updater;
+		std::chrono::steady_clock::time_point createTime = std::chrono::steady_clock::now();
+		uint32_t currentMS = 0;	// why not int64_t: because kcp source code only support this type
+		KcpUv() {
+			xx::MakeTo(updater, *this, 10, 10, [this] {
+				currentMS = (uint32_t)(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->createTime).count());
+				Update(currentMS, listenerUdpPeers);
+				Update(currentMS, dialerUdpPeers);
+			});
+		}
+		inline void Update(uint32_t const& currentMS, List<KcpUvUdpPeer_w>& peers) {
+			if (!peers.len) return;
+			for (auto i = peers.len - 1; i != (size_t)-1; --i) {
+				if (auto&& peer = peers[i].lock()) {
+					if (Update(currentMS, peer)) {
+						peer->Dispose();
+						peers.SwapRemoveAt(i);
+					}
+				}
+			}
+		}
+		inline int Update(uint32_t const& currentMS, KcpUvUdpPeer_s& peer) {
+			// todo
+			return 0;
+		}
+	};
+}
 
 int main(int argc, char* argv[]) {
 	return 0;

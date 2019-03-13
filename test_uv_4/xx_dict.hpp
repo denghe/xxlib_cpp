@@ -188,7 +188,7 @@ namespace xx
 	{
 		if (killer)
 		{
-			for (decltype(auto) data : *this) killer(data);
+			for (auto&& data : *this) killer(data);
 		}
 
 		assert(buckets);

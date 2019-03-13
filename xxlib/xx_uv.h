@@ -3,7 +3,17 @@
 #include "xx_bbuffer.h"
 #include "ikcp.h"
 
-// todo: 补充 get ip, tcp timeout 相关
+// todo: peer accept 时获取 ip 并存下来
+// todo: 改造 udp listener & dialer, 将主体 peer 放置到 uv. 以实现与 tcp 相同的使用效果: listener / dialer dispose 了也不影响现有 peer.
+// udp dialer peer 的 uvUdp 与 kcp 似乎可以 2n1. dialer 内部啥都不放
+// udp listener 去 uv 放置收发用 udp peer, 该 udp peer 产生 accept 行为时从 weak listener lock. 如果 listener 已不存在就不再继续 accept
+// 如果所有相关 peer 都消失，则 dispose udp peer. 如果又有新的 udp listener 创建并且端口与已存在 udp peer 重叠，就再次与之建立关联
+// udp dialer:
+// todo: 模拟握手？ peer 创建之后发送握手包并等待返回？
+// todo: 批量拨号？
+// todo: 实现一个与 kcp 无关的握手流程？只发送 guid? 直接返回 guid? 使用一个 timer 来管理? 不停的发，直到收到？
+// todo: 允许将 peer 移走使用? 这意味着结构类似 listener
+// todo: 进一步的，如果希望达到类似 tcp dialer 的使用效果，似乎要把 udp 上下文放置到 uv 中？
 
 namespace xx {
 
@@ -510,7 +520,7 @@ namespace xx {
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!uvTcp) return;
-			for (decltype(auto) kv : callbacks) {
+			for (auto&& kv : callbacks) {
 				kv.second.first(nullptr);
 			}
 			callbacks.clear();
@@ -743,7 +753,7 @@ namespace xx {
 			if (!timeouter) return -1;
 			Cancel();
 			if (int r = SetTimeout(timeoutMS)) return r;
-			for (decltype(auto) ip : ips) {
+			for (auto&& ip : ips) {
 				if (int r = Dial(ip, port, 0, false)) return r;
 			}
 			return 0;
@@ -752,7 +762,7 @@ namespace xx {
 			if (!timeouter) return -1;
 			Cancel();
 			if (int r = SetTimeout(timeoutMS)) return r;
-			for (decltype(auto) ipport : ipports) {
+			for (auto&& ipport : ipports) {
 				if (int r = Dial(ipport.first, ipport.second, 0, false)) return r;
 			}
 			return 0;
@@ -764,7 +774,7 @@ namespace xx {
 			if (resetPeer) {
 				peer.reset();
 			}
-			for (decltype(auto) kv : reqs) {
+			for (auto&& kv : reqs) {
 				uv_cancel((uv_req_t*)kv.second);
 			}
 			reqs.clear();
@@ -994,7 +1004,7 @@ namespace xx {
 			if (!kcp) return;
 			ikcp_release(kcp);
 			kcp = nullptr;
-			for (decltype(auto) kv : callbacks) {
+			for (auto&& kv : callbacks) {
 				kv.second.first(nullptr);
 			}
 			callbacks.clear();
@@ -1153,7 +1163,7 @@ namespace xx {
 			: BaseType(uv, ip, port, true) {
 			if (int r = this->updater->Start(10, 16, [this] {
 				this->currentMS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->createTime).count();
-				for (decltype(auto) kv : peers) {		// todo: timeout check?
+				for (auto&& kv : peers) {		// todo: timeout check?
 					auto peer = kv.second.lock();
 					if (peer && !peer->Disposed()) {
 						if (peer->Update(this->currentMS)) {
@@ -1165,7 +1175,7 @@ namespace xx {
 						dels.push_back(kv.first);
 					}
 				}
-				for (decltype(auto) g : dels) {
+				for (auto&& g : dels) {
 					peers.erase(g);
 				}
 				dels.clear();
@@ -1177,7 +1187,7 @@ namespace xx {
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (this->Disposed()) return;
-			for (decltype(auto) kv : peers) {
+			for (auto&& kv : peers) {
 				if (auto peer = kv.second.lock()) {
 					peer->Dispose(flag);
 				}
@@ -1261,12 +1271,6 @@ namespace xx {
 				this->OnConnect = nullptr;
 			}
 		}
-
-		// todo: 模拟握手？ peer 创建之后发送握手包并等待返回？
-		// todo: 批量拨号？
-		// todo: 实现一个与 kcp 无关的握手流程？只发送 guid? 直接返回 guid? 使用一个 timer 来管理? 不停的发，直到收到？
-		// todo: 允许将 peer 移走使用? 这意味着结构类似 listener
-		// todo: 进一步的，如果希望达到类似 tcp dialer 的使用效果，似乎要把 udp 上下文放置到 uv 中？
 
 		inline int Dial(std::string const& ip, int const& port) noexcept {
 			if (int r = timer->Stop()) return r;

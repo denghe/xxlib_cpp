@@ -19,8 +19,8 @@ namespace xx {
 		}
 		size_t RunOnce() {
 			if (funcs.size()) {
-				for (decltype(auto) i = funcs.size() - 1; i != (size_t)-1; --i) {
-					decltype(auto) func = funcs[i];
+				for (auto&& i = funcs.size() - 1; i != (size_t)-1; --i) {
+					auto&& func = funcs[i];
 					func.second = func.first(func.second);
 					if (!func.second) {
 						if (i + 1 < funcs.size()) {

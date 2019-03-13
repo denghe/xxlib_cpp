@@ -26,7 +26,7 @@ int main() {
 					xx::CoutN("timeout. retry.");
 					goto LabRetry;
 				}
-				for (decltype(auto) ip : zs->ips) {
+				for (auto&& ip : zs->ips) {
 					xx::CoutN(ip);
 				}
 				if (uv.MakeTcpDialerTo<ClientPeer>(zs->func, zs->peer, zs->ips, 12345, 2000)) break;

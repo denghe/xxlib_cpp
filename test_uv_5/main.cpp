@@ -194,7 +194,7 @@ int main() {
 
 
 
-//#define var decltype(auto)
+//#define var auto&&
 
 //struct GameEnv {
 //	std::unordered_map<int, PKG::Player_s> players;

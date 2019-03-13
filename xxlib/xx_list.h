@@ -242,7 +242,7 @@ namespace xx
 			return size_t(-1);
 		}
 
-		// 支持 for( auto c : list ) 语法
+		// 支持 for( auto&& c : list ) 语法.
 		struct Iter
 		{
 			T *ptr;
