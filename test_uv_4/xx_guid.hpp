@@ -58,16 +58,17 @@ namespace xx
 	{
 		static inline void WriteTo(String& s, Guid const& in) noexcept
 		{
-			s.Reserve(s.dataLen + 48);
-			s.dataLen += snprintf(
+			s.Reserve(s.dataLen + 37);
+			snprintf(
 				s.buf + s.dataLen,
-				48,
+				37,
 				"%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
 				in.data1, in.data2, in.data3,
 				in.data4[0], in.data4[1],
 				in.data4[2], in.data4[3],
 				in.data4[4], in.data4[5],
 				in.data4[6], in.data4[7]);
+			s.dataLen += 36;
 		}
 	};
 
