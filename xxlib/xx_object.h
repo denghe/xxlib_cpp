@@ -306,6 +306,91 @@ namespace xx {
 
 
 
+
+	/************************************************************************************/
+	// time_point <--> .net DateTime.Now.ToUniversalTime().Ticks converts
+	/************************************************************************************/
+
+	/*
+
+	// some example for output:
+
+	#include <ctime>
+	#include <iomanip>
+
+	std::time_t t = std::time(nullptr);
+	std::tm tm;
+	localtime_s(&tm, &t);
+	std::cout << std::put_time(&tm, "%Y-%m-%d %X") << std::endl;
+
+	auto tp = xx::Epoch10mToTimePoint(15xxxxxxxxxxxxxxxxxxx);
+	t = std::chrono::system_clock::to_time_t(tp);
+	localtime_s(&tm, &t);
+	std::cout << std::put_time(&tm, "%Y-%m-%d %X") << std::endl;
+
+	// todo: epoch to string
+
+	*/
+
+	// 经历时间精度: 秒后 7 个 0( 这是 windows 下最高精度. android/ios 会低1个0的精度 )
+	typedef std::chrono::duration<long long, std::ratio<1LL, 10000000LL>> duration_10m;
+
+	// 时间点 转 epoch (精度为秒后 7 个 0)
+	inline int64_t TimePointToEpoch10m(std::chrono::system_clock::time_point const& val) noexcept
+	{
+		return std::chrono::duration_cast<duration_10m>(val.time_since_epoch()).count();
+	}
+
+	//  epoch (精度为秒后 7 个 0) 转 时间点
+	inline std::chrono::system_clock::time_point Epoch10mToTimePoint(int64_t const& val) noexcept
+	{
+		return std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(duration_10m(val)));
+	}
+
+
+	// 得到当前时间点
+	inline std::chrono::system_clock::time_point NowTimePoint() noexcept
+	{
+		return std::chrono::system_clock::now();
+	}
+
+	// 得到当前时间点的 epoch (精度为秒后 7 个 0)
+	inline int64_t NowEpoch10m() noexcept
+	{
+		return TimePointToEpoch10m(NowTimePoint());
+	}
+
+
+	// epoch (精度为秒后 7 个 0) 转为 .Net DateTime Utc Ticks
+	inline int64_t Epoch10mToUtcDateTimeTicks(int64_t const& val) noexcept
+	{
+		return val + 621355968000000000LL;
+	}
+
+	// .Net DateTime Utc Ticks 转为 epoch (精度为秒后 7 个 0)
+	inline int64_t UtcDateTimeTicksToEpoch10m(int64_t const& val) noexcept
+	{
+		return val - 621355968000000000LL;
+	}
+
+
+	// 时间点 转 epoch (精度为秒)
+	inline int32_t TimePointToEpoch(std::chrono::system_clock::time_point const& val) noexcept
+	{
+		return (int32_t)(val.time_since_epoch().count() / 10000000);
+	}
+
+	//  epoch (精度为秒) 转 时间点
+	inline std::chrono::system_clock::time_point EpochToTimePoint(int32_t const& val) noexcept
+	{
+		return std::chrono::system_clock::time_point(std::chrono::system_clock::time_point::duration((int64_t)val * 10000000));
+	}
+
+
+
+
+
+
 	// std::cout 扩展
 
 	//inline std::ostream& operator<<(std::ostream& os, const Object& o) {
@@ -359,7 +444,7 @@ namespace xx {
 	}
 
 	template<typename T>
-	std::weak_ptr<T> Weak(std::shared_ptr<T> const& v) {
+	std::weak_ptr<T> ToWeak(std::shared_ptr<T> const& v) {
 		return std::weak_ptr<T>(v);
 	}
 

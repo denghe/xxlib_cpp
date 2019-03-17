@@ -126,6 +126,9 @@ namespace xx
 		}
 		Iter end() noexcept { return Iter{ *this, count }; }
 
+		// 根据 iter 移除一条数据
+		void RemoveAt(Iter const& iter) noexcept { RemoveAt(iter.i); }
+
 	protected:
 		// 用于 析构, Clear
 		void DeleteKVs() noexcept;

@@ -101,6 +101,13 @@ namespace xx {
 			if ((r = uv_tcp_getpeername(stream, (sockaddr*)&saddr, &len))) return r;
 			return FillIP(saddr, ip, includePort);
 		}
+		inline static std::string ToIpPortString(sockaddr const* const& addr, bool includePort = true) noexcept {
+			sockaddr_in6 a;
+			memcpy(&a, addr, sizeof(addr));
+			std::string ipAndPort;
+			Uv::FillIP(a, ipAndPort, includePort);
+			return ipAndPort;
+		}
 	};
 
 	struct UvItem : std::enable_shared_from_this<UvItem> {

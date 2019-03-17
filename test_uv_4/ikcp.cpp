@@ -37,7 +37,7 @@ const uint32_t IKCP_WND_RCV = 128;       // must >= max fragment size
 const uint32_t IKCP_MTU_DEF = 1400;
 const uint32_t IKCP_ACK_FAST = 3;
 const uint32_t IKCP_INTERVAL = 17;	//100;
-const uint32_t IKCP_OVERHEAD = 24;
+const uint32_t IKCP_OVERHEAD = 36;	//24;
 const uint32_t IKCP_DEADLINK = 20;
 const uint32_t IKCP_THRESH_INIT = 2;
 const uint32_t IKCP_THRESH_MIN = 2;
