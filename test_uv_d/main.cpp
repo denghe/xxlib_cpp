@@ -26,29 +26,26 @@ namespace xx {
 	struct KcpDialer;
 	struct KcpListener;
 
+	// Listener & Dialer 的基类
 	struct KcpOwner : UvItem {
-		virtual Shared<KcpPeer> CreatePeer() noexcept = 0;
-		virtual void Accept(Shared<KcpPeer>& peer) noexcept = 0;
+		using UvItem::UvItem;
+		std::function<Shared<KcpPeer>(Uv& uv)> OnCreatePeer;
+		inline virtual Shared<KcpPeer> CreatePeer() noexcept { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<KcpPeer>(uv); }
+		std::function<void(Shared<KcpPeer>& peer)> OnAccept;
+		inline virtual void Accept(Shared<KcpPeer>& peer) noexcept { if (OnAccept) OnAccept(peer); }
 	};
+
+	// todo: 不弄 owner. 上面的代码复制两份. 做 Listener | DialerReq 专属 KcpUdp
+	// KcpUdp 变为基类，提供 virtual void Update(int64_t const& nowMS) noexcept = 0
 
 	struct KcpUdp : UvUdpBasePeer {
 		using UvUdpBasePeer::UvUdpBasePeer;
-		Weak<KcpOwner> owner_w;
-		int port = 0;
+		KcpOwner* owner = nullptr;
+		int port = 0;	// port > 0: listener
+		int serial = 0;	// for dialer req
 		Dict<Guid, Weak<KcpPeer>> peers;
-		Dict<std::string, std::pair<Guid, int64_t>> shakes;	// port > 0: listener	value: int64_t NowEpoch10m
-		// todo: scan shakes timeout by uv
-		virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!this->uvUdp) return;
-			for (auto&& kv : peers) {
-				if (auto&& peer = kv.value.lock()) {
-					peer->Dispose(flag);
-				}
-			}
-			peers.Clear();
-			((KcpUv&)uv).udps.Remove(port);
-			this->UvUdpBasePeer::Dispose(flag);
-		}
+		Dict<std::string, std::pair<Guid, int64_t>> shakes;	// for listener. value: guid + nowMS
+		virtual void Dispose(int const& flag = 1) noexcept override;
 		~KcpUdp();
 
 	protected:
@@ -62,14 +59,14 @@ namespace xx {
 		int64_t createMS = 0;	// create 之后在创建方赋值
 
 		ikcpcb* kcp = nullptr;
-		uint64_t currentMS = 0;				// fill before Update by dialer / listener
-		uint64_t nextUpdateMS = 0;			// for kcp update interval control. reduce cpu usage
+		uint32_t currentMS = 0;				// fill before Update by dialer / listener
+		uint32_t nextUpdateMS = 0;			// for kcp update interval control. reduce cpu usage
 		int serial = 0;
 		std::unordered_map<int, std::pair<std::function<int(Object_s&& msg)>, UvTimer_s>> callbacks;
 		Buffer buf;
 		sockaddr_in6 addr;					// for Send. fill by owner Unpack
-		uint64_t receiveTimeoutMS = 0;		// if receiveTimeoutMS > 0 && Update current - lastReceiveMS > receiveTimeoutMS , will Dispose
-		uint64_t lastReceiveMS = 0;			// refresh at Update when receive data
+		uint32_t receiveTimeoutMS = 0;		// if receiveTimeoutMS > 0 && Update current - lastReceiveMS > receiveTimeoutMS , will Dispose
+		uint32_t lastReceiveMS = 0;			// refresh at Update when receive data
 
 		std::function<void()> OnDisconnect;
 		inline virtual void Disconnect() noexcept { if (OnDisconnect) OnDisconnect(); }
@@ -83,7 +80,7 @@ namespace xx {
 		inline int InitKcp() {
 			if (kcp) return -1;
 			kcp = ikcp_create(guid, this);
-			if (!kcp) return - 1;
+			if (!kcp) return -1;
 			ScopeGuard sgKcp([&] { ikcp_release(kcp); kcp = nullptr; });
 			if (int r = ikcp_wndsize(kcp, 128, 128)) return r;
 			if (int r = ikcp_nodelay(kcp, 1, 10, 2, 1)) return r;
@@ -101,17 +98,14 @@ namespace xx {
 		}
 		virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!kcp) return;
-			udp->peers.Remove(guid);
-			udp.reset();
+			udp->peers.Remove(guid);				// remove self from container
+			udp.reset();							// unbind
 			ikcp_release(kcp);
 			kcp = nullptr;
 			for (auto&& kv : callbacks) {
 				kv.second.first(nullptr);
 			}
 			callbacks.clear();
-
-			// todo: remove self from udp.dict
-
 			if (flag) {
 				auto holder = shared_from_this();
 				Disconnect();						// maybe unhold memory here
@@ -133,21 +127,25 @@ namespace xx {
 
 		// called by udp kcp dialer or listener
 		// timer call this for recv data from kcp
-		inline int Update(uint64_t const& nowMS) noexcept {
-			currentMS = nowMS - createMS;
-			if (receiveTimeoutMS) {
-				if (receiveTimeoutMS + lastReceiveMS < currentMS)
-					return -1;	// receive timeout check
+		inline void Update(int64_t const& nowMS) noexcept {
+			currentMS = uint32_t(nowMS - createMS);						// known issue: 超出 uint32 限制. 理论上只能持续连接几十天
+			if (receiveTimeoutMS && receiveTimeoutMS + lastReceiveMS < currentMS) {		// receive timeout
+				Dispose();
+				return;
 			}
-			if (nextUpdateMS > currentMS) return 0;
-			ikcp_update(kcp, (uint32_t)currentMS);
-			nextUpdateMS = ikcp_check(kcp, (uint32_t)currentMS);	// todo: 如果 uint32 用完, 该值将比 currentMS 小, 于是不再触发 recv
+
+			if (nextUpdateMS > currentMS) return;						// reduce cpu usage
+			ikcp_update(kcp, currentMS);
+			nextUpdateMS = ikcp_check(kcp, currentMS);
+
 			do {
 				int recvLen = ikcp_recv(kcp, uv.recvBuf.data(), (int)uv.recvBuf.size());
 				if (recvLen <= 0) break;
-				if (int r = Unpack((uint8_t*)uv.recvBuf.data(), recvLen)) return r;
+				if (int r = Unpack((uint8_t*)uv.recvBuf.data(), recvLen)) {
+					Dispose();
+					return;
+				}
 			} while (true);
-			return 0;
 		}
 
 		inline int SendPush(Object_s const& data) {
@@ -167,7 +165,7 @@ namespace xx {
 		}
 
 		// set timeout check duration. 0 = disable check
-		inline void SetReceiveTimeoutMS(uint64_t const& receiveTimeoutMS) {
+		inline void SetReceiveTimeoutMS(uint32_t const& receiveTimeoutMS) {
 			this->receiveTimeoutMS = receiveTimeoutMS;
 		}
 
@@ -267,16 +265,154 @@ namespace xx {
 		}
 	};
 
+
+	struct KcpListener : KcpOwner {
+		Shared<KcpUdp> udp;
+		KcpListener(Uv& uv, std::string const& ip, int const& port);
+		~KcpListener() { this->Dispose(0); }
+		virtual bool Disposed() const noexcept override {
+			return !udp;
+		}
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (!udp) return;
+			udp->owner = nullptr;
+			udp.reset();
+			if (flag) {
+				auto holder = shared_from_this();
+				OnCreatePeer = nullptr;
+				OnAccept = nullptr;
+			}
+		}
+	};
+
+	struct KcpDialer;
+	struct KcpDialerReq : KcpUdp {
+		KcpDialer* dialer;
+		int batchNumber;
+		KcpDialerReq(Uv& uv, std::string const& ip, int const& port, KcpDialer* const& dialer)
+			: KcpUdp(uv, ip, port, false)
+			, dialer(dialer) {
+			this->serial = ++dialer->serial;
+			batchNumber = dialer->batchNumber;
+		}
+		//virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept override {
+		//}
+		~KcpDialerReq();
+	};
+
+	struct KcpDialer : KcpOwner {
+		using KcpOwner::KcpOwner;
+		int serial = 0;
+		std::unordered_map<int, Shared<KcpDialerReq>> reqs;
+		int batchNumber = 0;
+		UvTimer_s timeouter;
+		Shared<KcpPeer> peer;
+
+		~KcpDialer() { this->Dispose(0); }
+		virtual bool Disposed() const noexcept override {
+			return !timeouter;
+		}
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (!timeouter) return;
+			Cancel();
+			timeouter.reset();
+			if (flag) {
+				auto holder = shared_from_this();
+				OnCreatePeer = nullptr;
+				OnAccept = nullptr;
+			}
+		}
+
+		inline int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept {
+			if (!timeouter) return -1;
+			if (cleanup) {
+				Cancel();
+			}
+			if (int r = SetTimeout(timeoutMS)) return r;
+			auto req = TryMake<KcpDialerReq>(ip, port);
+			if (!req) return -2;
+			reqs[req->serial] = std::move(req);
+			return 0;
+		}
+
+		inline void Cancel(bool resetPeer = true) noexcept {
+			if (!timeouter) return;
+			timeouter->Stop();
+			if (resetPeer) {
+				peer.reset();
+			}
+			reqs.clear();
+			serial = 0;
+			++batchNumber;
+		}
+
+	protected:
+		inline int SetTimeout(uint64_t const& timeoutMS = 0) noexcept {
+			if (!timeouter) return -1;
+			int r = timeouter->Stop();
+			if (!timeoutMS) return r;
+			return timeouter->Start(timeoutMS, 0, [self_w = AsWeak<KcpDialer>(shared_from_this())]{
+				if (auto self = self_w.lock()) {
+					self->Cancel(true);
+					self->Accept(self->peer);
+				}
+			});
+		}
+	};
+
+	inline KcpDialerReq::~KcpDialerReq() {
+		if (dialer) {
+			dialer->reqs.erase(serial);
+		}
+	}
+
+	struct KcpUv : Uv {
+		Dict<int, Weak<KcpUdp>> udps;
+		int udpId = 0;					// client udp peer port 生成: --udpId
+		UvTimer_s updater;
+		std::chrono::steady_clock::time_point createTime = std::chrono::steady_clock::now();
+		int64_t nowMS = 0;
+		KcpUv() {
+			xx::MakeTo(updater, *this, 10, 10, [this] {
+				nowMS = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->createTime).count();
+				for (auto&& kv : udps) {
+					auto&& udp = kv.value.lock();
+					for (auto&& kv : udp->peers) {
+						kv.value.lock()->Update(nowMS);
+					}
+					auto&& shakes = udp->shakes;
+					for (auto&& iter = shakes.begin(); iter != shakes.end(); ++iter) {
+						if ((*iter).value.second < nowMS) {
+							shakes.RemoveAt(iter.i);
+						}
+					}
+				}
+			});
+		}
+	};
+
 	int KcpUdp::Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept {
 		// 看看是不是握手包 且这个 udp peer 的 owner 是健在的 listener
-		if (recvLen == 1 && recvBuf[0] == 1 && port > 0 && owner_w.lock()) {
+		if (recvLen == 4 && port > 0 && owner) {			// 握手包含有 4 字节自增序列号
 			auto&& ipAndPort = Uv::ToIpPortString(addr);
 			// ip_port : guid, create_time
 			auto&& idx = shakes.Find(ipAndPort);
 			if (idx == -1) {
-				idx = shakes.Add(ipAndPort, std::make_pair(Guid(), NowEpoch10m())).index;
+				idx = shakes.Add(ipAndPort, std::make_pair(Guid(), ((KcpUv&)uv).nowMS)).index;
 			}
-			return this->Send((uint8_t*)&shakes.ValueAt(idx).first, 16, addr);
+			memcpy(recvBuf + 4, &shakes.ValueAt(idx).first, 16);	// 序列号携带 guid 一起返回( 这里临时用一下 recvBuf 是安全的, 长度足够 )
+			return this->Send(recvBuf, 20, addr);
+		}
+
+		// 看看是不是握手回应包 且这个 udp peer 的 owner 是健在的 dialer
+		if (recvLen == 20 && port < 0 && owner) {					// 握手回应包含有 4 字节自增序列号 + 16 字节 guid
+			// todo: compare serial
+			if (memcmp(recvBuf, &serial, 4)) return 0;				// 序列号对不上
+			auto&& peer = owner->CreatePeer();
+			// todo: 
+			memcpy(&peer->guid, recvBuf + 4, 16);
+			owner->Accept(peer);
+			return 0;
 		}
 
 		// header 至少有 IKCP_OVERHEAD 字节长( kcp 头 ). 少于 IKCP_OVERHEAD 的直接忽略
@@ -292,7 +428,6 @@ namespace xx {
 		auto&& idx = peers.Find(g);
 		if (idx == -1) {									// guid 未找到: 如果是 listener: 用 addr 进一步去 shakes 找
 			if (port <= 0) return 0;						// 不是 listener: 忽略
-			auto&& owner = owner_w.lock();
 			if (!owner || owner->Disposed()) return 0;		// listener 已经没了: 忽略
 			auto&& ipAndPort = Uv::ToIpPortString(addr);
 			idx = shakes.Find(ipAndPort);
@@ -300,7 +435,7 @@ namespace xx {
 			shakes.RemoveAt(idx);							// 从握手队列移除
 			auto&& p = owner->CreatePeer();					// 创建 kcp peer 并填充基础数据
 			if (!p) return 0;
-			p->udp = std::move(xx::As<KcpPeer>(shared_from_this()));
+			p->udp = std::move(xx::As<KcpUdp>(shared_from_this()));
 			p->guid = g;
 			p->createMS = NowEpoch10m() / 10000;
 			if (p->InitKcp()) return 0;						// 初始化 kcp 失败直接忽略
@@ -312,78 +447,38 @@ namespace xx {
 		auto&& peer = peer_w.lock();
 		if (!peer || peer->Disposed()) return 0;			// 如果 kcp peer 已经没了就忽略
 
-		//memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// 更新 peer 的目标 ip 地址
-		//if (peer->Input(recvBuf, recvLen)) {
-		//	peer->Dispose();
-		//}
+		memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// 更新 peer 的目标 ip 地址
+		if (peer->Input(recvBuf, recvLen)) {
+			peer->Dispose();								// peer 自己会从 peers 中移除
+		}
 		return 0;
 	}
 
-	struct KcpListener : KcpOwner {
-		KcpListener(Uv& uv, std::string const& ip, int const& port);
-		virtual Shared<KcpPeer> CreatePeer() noexcept override;
-		virtual void Accept(Shared<KcpPeer>& peer) noexcept override;
-	};
-
-	struct KcpDialer;
-	struct KcpDialerReq : KcpOwner {
-		KcpDialer* dialer = nullptr;
-		//Shared<KcpUdp>
-	};
-
-	struct KcpDialer : UvItem {
-		using UvItem::UvItem;
-		virtual Shared<KcpPeer> CreatePeer() noexcept override;
-		virtual void Accept(Shared<KcpPeer>& peer) noexcept override;
-		// todo: Dial create tmp KcpDialerReq req, send guid & wait recv guid, when recv, callback Connect
-		// todo: req container
-		// Shared<KcpDialerReq>
-		// timeouter
-	};
-
-	Shared<KcpPeer> KcpDialerReq::CreatePeer() noexcept {
-		if (!dialer) return nullptr;
-		return dialer->CreatePeer();
-	}
-	void KcpDialerReq::Accept(Shared<KcpPeer>& peer) noexcept {
-		if (!dialer) return;
-		dialer->Accept(peer);
-	}
-
-	struct KcpUv : Uv {
-		Dict<int, Weak<KcpUdp>> udps;
-		Dict<Guid, Weak<KcpPeer>> kcpPeers;			// for update
-		UvTimer_s updater;
-		std::chrono::steady_clock::time_point createTime = std::chrono::steady_clock::now();
-		uint32_t currentMS = 0;	// why not int64_t: because kcp source code only support this type
-		KcpUv() {
-			xx::MakeTo(updater, *this, 10, 10, [this] {
-				currentMS = (uint32_t)(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->createTime).count());
-				for (auto&& iter = kcpPeers.begin(); iter != kcpPeers.end(); ++iter) {
-					if (auto peer = (*iter).value.lock()) {
-						if (!peer->Update(currentMS)) continue;
-						peer->Dispose(1);
-					}
-					kcpPeers.RemoveAt(iter);				// remove !lock or Update failed
-				}
-			});
+	void KcpUdp::Dispose(int const& flag) noexcept {
+		if (!this->uvUdp) return;
+		for (auto&& kv : peers) {
+			if (auto&& peer = kv.value.lock()) {
+				peer->Dispose(flag);
+			}
 		}
-	};
+		peers.Clear();
+		((KcpUv&)uv).udps.Remove(port);
+		this->UvUdpBasePeer::Dispose(flag);
+	}
 
 	inline KcpListener::KcpListener(Uv& uv, std::string const& ip, int const& port)
-		: UvItem(uv) {
-		auto&& ps = ((KcpUv&)uv).udps;
-		auto idx = ps.Find(port);
+		: KcpOwner(uv) {
+		auto&& udps = ((KcpUv&)uv).udps;
+		auto idx = udps.Find(port);
 		if (idx > -1) {
-			udpPeer = ps.ValueAt(idx).lock();
-			if (udpPeer->listener) throw - 1;		// same port listener already exists?
+			udp = udps.ValueAt(idx).lock();
+			if (udp->owner) throw - 1;			// same port listener already exists?
 		}
 		else {
-			xx::MakeTo(udpPeer, uv, ip, port, true);
-			ps[port] = udpPeer;
+			MakeTo(udp, uv, ip, port, true);
+			udps[port] = udp;
 		}
-		udpPeer->listener = this;
-		// todo
+		udp->owner = this;
 	}
 
 	inline KcpUdp::~KcpUdp() {

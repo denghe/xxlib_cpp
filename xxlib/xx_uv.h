@@ -3,17 +3,8 @@
 #include "xx_bbuffer.h"
 #include "ikcp.h"
 
+// todo: 统一 listener & dialer  Accept & OnAccept 接口
 // todo: peer accept 时获取 ip 并存下来
-// todo: 改造 udp listener & dialer, 将主体 peer 放置到 uv. 以实现与 tcp 相同的使用效果: listener / dialer dispose 了也不影响现有 peer.
-// udp dialer peer 的 uvUdp 与 kcp 似乎可以 2n1. dialer 内部啥都不放
-// udp listener 去 uv 放置收发用 udp peer, 该 udp peer 产生 accept 行为时从 weak listener lock. 如果 listener 已不存在就不再继续 accept
-// 如果所有相关 peer 都消失，则 dispose udp peer. 如果又有新的 udp listener 创建并且端口与已存在 udp peer 重叠，就再次与之建立关联
-// udp dialer:
-// todo: 模拟握手？ peer 创建之后发送握手包并等待返回？
-// todo: 批量拨号？
-// todo: 实现一个与 kcp 无关的握手流程？只发送 guid? 直接返回 guid? 使用一个 timer 来管理? 不停的发，直到收到？
-// todo: 允许将 peer 移走使用? 这意味着结构类似 listener
-// todo: 进一步的，如果希望达到类似 tcp dialer 的使用效果，似乎要把 udp 上下文放置到 uv 中？
 
 namespace xx {
 
@@ -683,8 +674,8 @@ namespace xx {
 		std::shared_ptr<PeerType> peer;
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
 		inline virtual std::shared_ptr<PeerType> CreatePeer() noexcept { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<PeerType>(uv); }
-		std::function<void()> OnConnect;
-		inline virtual void Connect() noexcept { if (OnConnect) OnConnect(); }
+		std::function<void(std::shared_ptr<PeerType>& peer)> OnAccept;
+		inline virtual void Accept() noexcept { if (OnAccept) OnAccept(peer); }
 
 		UvTcpDialer(Uv& uv)
 			: UvItem(uv) {
@@ -704,7 +695,7 @@ namespace xx {
 			if (flag) {
 				auto holder = shared_from_this();
 				OnCreatePeer = nullptr;
-				OnConnect = nullptr;
+				OnAccept = nullptr;
 			}
 		}
 
@@ -749,7 +740,7 @@ namespace xx {
 				if (req->peer->ReadStart()) return;
 				client->peer = std::move(req->peer);								// connect success
 				client->timeouter.reset();
-				client->Connect();
+				client->Accept();
 			})) return -3;
 
 			reqs[serial] = req.release();
@@ -797,7 +788,7 @@ namespace xx {
 			return timeouter->Start(timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
 				if (auto self = self_w.lock()) {
 					self->Cancel(true);
-					self->Connect();
+					self->Accept();
 				}
 				});
 		}
@@ -805,8 +796,8 @@ namespace xx {
 
 	template<typename PeerType>
 	inline uv_connect_t_ex<PeerType>::~uv_connect_t_ex() {
-		if (auto client = dialer_w.lock()) {
-			client->reqs.erase(serial);
+		if (auto&& dialer = dialer_w.lock()) {
+			dialer->reqs.erase(serial);
 		}
 	}
 
@@ -1242,9 +1233,9 @@ namespace xx {
 		using PeerType_s = std::shared_ptr<PeerType>;
 		Guid g;
 		PeerType_s peer;		// Dial timeout will be nullptr
-		std::function<void()> OnConnect;
-		inline virtual void Connect() noexcept { if (OnConnect) OnConnect(); }
-		UvTimer_s timer;		// 暂时用来延迟调用 Connect() 函数以避免 Disconnect 时 Dial 后 peer 被 Dispose 的尴尬
+		std::function<void()> OnAccept;
+		inline virtual void Accept() noexcept { if (OnAccept) OnAccept(); }
+		UvTimer_s timer;		// 暂时用来延迟调用 Accept() 函数以避免 Disconnect 时 Dial 后 peer 被 Dispose 的尴尬
 
 		UvUdpKcpDialer(Uv& uv)
 			: BaseType(uv, "", 0, false) {
@@ -1275,7 +1266,7 @@ namespace xx {
 				auto holder = shared_from_this();
 				this->Disconnect();
 				this->OnDisconnect = nullptr;
-				this->OnConnect = nullptr;
+				this->OnAccept = nullptr;
 			}
 		}
 
@@ -1296,7 +1287,7 @@ namespace xx {
 
 				peer->createMS = this->currentMS;
 				sgPeer.Cancel();
-				Connect();
+				Accept();
 			});
 		}
 

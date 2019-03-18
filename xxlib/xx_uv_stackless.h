@@ -43,8 +43,8 @@ namespace xx {
 		int MakeTcpDialerTo(UvItem_s& holder, std::shared_ptr<PeerType>& outResult, std::vector<std::string>& ips, uint16_t const& port, int64_t const& timeoutMS = 0) {
 			auto dialer = TryMake<UvTcpDialer<PeerType>>(*this);
 			if (!dialer) return -1;
-			dialer->OnConnect = [dialer = &*dialer, holder = &holder, outResult = &outResult]{
-				*outResult = std::move(dialer->peer);
+			dialer->OnAccept = [dialer = &*dialer, holder = &holder, outResult = &outResult](auto& peer){
+				*outResult = std::move(peer);
 				holder->reset();
 			};
 			if (int r = dialer->Dial(ips, port, timeoutMS))

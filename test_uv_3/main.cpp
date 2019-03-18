@@ -51,7 +51,7 @@ struct EchoDialer : xx::UvTcpDialer<EchoDialerPeer> {
 	using BaseType = xx::UvTcpDialer<EchoDialerPeer>;
 	using BaseType::BaseType;
 
-	inline virtual void Connect() noexcept override {
+	inline virtual void Accept() noexcept override {
 		if (!peer) {
 			std::cout << "dial timeout.\n";
 			return;

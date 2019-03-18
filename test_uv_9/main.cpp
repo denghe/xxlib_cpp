@@ -24,8 +24,8 @@ int main(int argc, char* argv[]) {
 	}
 	xx::Uv uv;
 	auto dialer = xx::Make<xx::UvTcpDialer<Peer>>(uv);
-	dialer->OnConnect = [&dialer] {
-		dialer->peer->SendData();
+	dialer->OnAccept = [&dialer](auto& peer) {
+		peer->SendData();
 	};
 	dialer->Dial(argv[1], std::atoi(argv[2]));
 	uv.Run();
