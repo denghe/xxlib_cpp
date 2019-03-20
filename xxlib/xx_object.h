@@ -465,7 +465,7 @@ namespace xx {
 	}
 
 	template<typename T, typename U>
-	std::shared_ptr<T> As(std::shared_ptr<U> const& v) {
+	std::shared_ptr<T>& As(std::shared_ptr<U> const& v) {
 		assert(std::dynamic_pointer_cast<T>(v));
 		return *(std::shared_ptr<T>*)&v;
 	}
@@ -564,6 +564,49 @@ namespace xx {
 			s.resize(s.size() - 1);	// remove \0
 		}
 	};
+
+
+
+
+
+
+
+
+
+	struct Stackless {
+		using FuncType = std::function<int(int const& lineNumber)>;
+		std::vector<std::pair<FuncType, int>> funcs;
+		inline void Add(FuncType&& func) {
+			if (!func) return;
+			funcs.emplace_back(std::move(func), 0);
+		}
+		inline void RunAdd(FuncType&& func) {
+			if (!func) return;
+			int n = func(0);
+			if (n == (int)0xFFFFFFFF) return;
+			funcs.emplace_back(std::move(func), n);
+		}
+		size_t RunOnce() {
+			if (funcs.size()) {
+				for (auto&& i = funcs.size() - 1; i != (size_t)-1; --i) {
+					auto&& func = funcs[i];
+					func.second = func.first(func.second);
+					if (!func.second) {
+						if (i + 1 < funcs.size()) {
+							funcs[i] = std::move(funcs[funcs.size() - 1]);
+						}
+						funcs.pop_back();
+					}
+				}
+			}
+			return funcs.size();
+		}
+	};
+
+#define COR_BEGIN	switch (lineNumber) { case 0:
+#define COR_YIELD	return __LINE__; case __LINE__:;
+#define COR_END		} return 0;
+
 
 
 

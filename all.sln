@@ -13,7 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{03B66A93-3
 		xxlib\xx_list.h = xxlib\xx_list.h
 		xxlib\xx_object.h = xxlib\xx_object.h
 		xxlib\xx_random.h = xxlib\xx_random.h
-		xxlib\xx_stackless.h = xxlib\xx_stackless.h
 		xxlib\xx_uv.h = xxlib\xx_uv.h
 		xxlib\xx_uv_stackless.h = xxlib\xx_uv_stackless.h
 	EndProjectSection

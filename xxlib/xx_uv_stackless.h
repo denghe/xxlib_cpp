@@ -1,6 +1,5 @@
 #pragma once
 #include "xx_uv.h"
-#include "xx_stackless.h"
 
 namespace xx {
 
