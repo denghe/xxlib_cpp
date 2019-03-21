@@ -1,36 +1,39 @@
 ﻿#include "xx_uv.h"
 
-struct EchoPeer : xx::UvUdpKcpPeer {
-	using BaseType = xx::UvUdpKcpPeer;
+struct EchoPeer : xx::UvKcpPeer {
+	using BaseType = xx::UvKcpPeer;
 	using BaseType::BaseType;
 
 	std::shared_ptr<EchoPeer> holder;
 	virtual void Disconnect() noexcept override {
-		xx::Cout(g, " disconnected.\n");
+		xx::Cout(guid, " disconnected.\n");
 		holder = nullptr;					// release peer
 	}
 	virtual int ReceivePush(xx::Object_s&& msg) noexcept override {
+		//xx::CoutN("recv push ", msg);
 		if (int r = SendPush(msg)) return r;
 		Flush();
-		ResetLastReceiveMS();
+		ResetTimeoutMS(3000);
 		return 0;
 	}
 	virtual int ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept override {
+		//xx::CoutN("recv request serial = ", serial, ", msg = ", msg);
 		if (int r = SendResponse(serial, msg)) return r;
 		Flush();
-		ResetLastReceiveMS();
+		ResetTimeoutMS(3000);
 		return 0;
 	}
 };
 
-struct EchoPeerListener : xx::UvUdpKcpListener<EchoPeer> {
-	using BaseType = xx::UvUdpKcpListener<EchoPeer>;
+struct EchoPeerListener : xx::UvKcpListener<EchoPeer> {
+	using BaseType = xx::UvKcpListener<EchoPeer>;
 	using BaseType::BaseType;
 
-	inline virtual void Accept(std::shared_ptr<EchoPeer>& peer) noexcept override {
+	inline virtual void Accept(std::shared_ptr<xx::UvKcpPeer>& peer_) noexcept override {
+		auto&& peer = xx::As<EchoPeer>(peer_);
 		peer->holder = peer;				// hold memory
-		peer->SetReceiveTimeoutMS(3000);	// 设置 3 秒内没收到能解析出来的合法包就 Dispose
-		xx::Cout(peer->g, " accepted.\n");
+		peer->ResetTimeoutMS(3000);			// 设置 3 秒内没收到能解析出来的合法包就 Dispose
+		xx::Cout(peer->guid, " accepted.\n");
 	}
 };
 

@@ -387,6 +387,17 @@ namespace xx {
 	}
 
 
+	// 得到当前 system 时间点的 epoch (精度为 ms)
+	inline int64_t NowSystemEpochMS() noexcept
+	{
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	}
+	// 得到当前 steady 时间点的 epoch (精度为 ms)
+	inline int64_t NowSteadyEpochMS() noexcept
+	{
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	}
+
 
 
 
