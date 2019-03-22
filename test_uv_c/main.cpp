@@ -40,7 +40,7 @@ struct Coroutines {
 #ifdef _WIN32
 	LPVOID mainFiber = nullptr;
 #else
-	ucontext_t ctx;
+	ucontext_t mainCtx;
 #endif
 };
 
@@ -55,12 +55,23 @@ inline Coroutine::Coroutine(Coroutines& owner, CoroutineFuncType&& func)
 inline Coroutine::Coroutine(Coroutine&& o) 
 	: owner(o.owner)
 	, func(std::move(o.func))
-	, fiber(std::move(o.fiber)) {
+#ifdef _WIN32
+	, fiber(std::move(o.fiber))
+#else
+	, stack(std::move(o.stack))
+	, ctx(std::move(o.ctx))
+#endif
+{
 }
 inline Coroutine& Coroutine::operator=(Coroutine&& o) {
 	std::swap(owner, o.owner);
 	std::swap(func, o.func);
+#ifdef _WIN32
 	std::swap(fiber, o.fiber);
+#else
+	std::swap(stack, o.stack);
+	std::swap(ctx, o.ctx);
+#endif
 	return *this;
 }
 
@@ -95,13 +106,13 @@ inline int Coroutine::resume() {
 	stack = new char[owner.stackSize];
 	ctx.uc_stack.ss_sp = stack;
 	ctx.uc_stack.ss_size = owner.stackSize;
-	ctx.uc_link = &owner.ctx;
+	ctx.uc_link = &owner.mainCtx;
 	makecontext(&ctx, (void(*)(void))([](uint32_t low32, uint32_t hi32) {
 		auto&& self = (Coroutine*)((uintptr_t)low32 | ((uintptr_t)hi32 << 32));
 		self->func(*self);
 		self->func = nullptr;
 	}), 2, (uint32_t)this, (uint32_t)(this >> 32));
-	swapcontext(&owner.ctx, &ctx);
+	swapcontext(&owner.mainCtx, &ctx);
 #endif
 	return 0;
 }
@@ -114,7 +125,7 @@ inline void Coroutine::operator()() {
 	char stackChecker;
 	assert(size_t(stack + owner.stackSize - &stackChecker) <= owner.stackSize);
 #endif
-	swapcontext(&ctx, &owner.ctx);
+	swapcontext(&ctx, &owner.mainCtx);
 #endif
 }
 
@@ -127,7 +138,11 @@ inline Coroutine::operator bool() {
 
 inline Coroutines::Coroutines(size_t const& stackSize)
 	: stackSize(stackSize) {
+#ifdef _WIN32
 	mainFiber = ConvertThreadToFiber(nullptr);
+#else
+	// todo: getcontext(mainCtx);
+#endif
 }
 
 inline void Coroutines::Add(CoroutineFuncType&& func) {
