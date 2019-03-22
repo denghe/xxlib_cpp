@@ -1,5 +1,6 @@
 ﻿#include <vector>
 #include <functional>
+#include <stdint.h>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -27,6 +28,7 @@ struct Coroutine {
 #ifdef _WIN32
 	LPVOID fiber = nullptr;
 #else
+	static void entry(uint32_t low32, uint32_t hi32);
 	char* stack = nullptr;
 	ucontext_t ctx;
 #endif
@@ -89,6 +91,15 @@ inline Coroutine::~Coroutine() {
 #endif
 }
 
+#ifdef _WIN32
+#else
+inline void Coroutine::entry(uint32_t low32, uint32_t hi32) {
+	auto&& self = (Coroutine*)((uintptr_t)low32 | ((uintptr_t)hi32 << 32));
+	self->func(*self);
+	self->func = nullptr;
+}
+#endif
+
 inline int Coroutine::resume() {
 	if (!func) return -1;
 #ifdef _WIN32
@@ -107,11 +118,7 @@ inline int Coroutine::resume() {
 	ctx.uc_stack.ss_sp = stack;
 	ctx.uc_stack.ss_size = owner.stackSize;
 	ctx.uc_link = &owner.mainCtx;
-	makecontext(&ctx, reinterpret_cast<void(*)(void)>([](uint32_t low32, uint32_t hi32) {
-		auto&& self = (Coroutine*)((uintptr_t)low32 | ((uintptr_t)hi32 << 32));
-		self->func(*self);
-		self->func = nullptr;
-	}), 2, (uint32_t)this, (uint32_t)(this >> 32));
+	makecontext(&ctx, reinterpret_cast<void(*)(void)>(Coroutine::entry), 2, (uint32_t)this, (uint32_t)(this >> 32));
 	swapcontext(&owner.mainCtx, &ctx);
 #endif
 	return 0;
