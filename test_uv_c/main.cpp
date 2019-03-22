@@ -150,7 +150,7 @@ inline Coroutines::Coroutines(size_t const& stackSize)
 #ifdef _WIN32
 	mainFiber = ConvertThreadToFiber(nullptr);
 #else
-	memset(mainCtx, 0, sizeof(mainCtx));
+	memset(&mainCtx, 0, sizeof(mainCtx));
 	// todo: getcontext(mainCtx);
 #endif
 }
