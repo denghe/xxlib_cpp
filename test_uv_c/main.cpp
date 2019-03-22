@@ -1,6 +1,7 @@
 ﻿#include <vector>
 #include <functional>
 #include <stdint.h>
+#include <assert.h>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -118,7 +119,7 @@ inline int Coroutine::resume() {
 	ctx.uc_stack.ss_sp = stack;
 	ctx.uc_stack.ss_size = owner.stackSize;
 	ctx.uc_link = &owner.mainCtx;
-	makecontext(&ctx, reinterpret_cast<void(*)(void)>(Coroutine::entry), 2, (uint32_t)this, (uint32_t)(this >> 32));
+	makecontext(&ctx, reinterpret_cast<void(*)(void)>(Coroutine::entry), 2, (uint32_t)this, (uint32_t)((size_t)this >> 32));
 	swapcontext(&owner.mainCtx, &ctx);
 #endif
 	return 0;
