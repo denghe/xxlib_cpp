@@ -5,3 +5,4 @@ bin
 obj
 .vs
 .DS_Store
+/test_linux_1/readme

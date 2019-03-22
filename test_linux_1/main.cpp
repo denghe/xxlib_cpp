@@ -1,4 +1,4 @@
-﻿#include <vector>
+#include <vector>
 #include <functional>
 #include <stdint.h>
 #include <assert.h>
