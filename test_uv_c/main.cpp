@@ -107,7 +107,7 @@ inline int Coroutine::resume() {
 	ctx.uc_stack.ss_sp = stack;
 	ctx.uc_stack.ss_size = owner.stackSize;
 	ctx.uc_link = &owner.mainCtx;
-	makecontext(&ctx, (void(*)(void))([](uint32_t low32, uint32_t hi32) {
+	makecontext(&ctx, reinterpret_cast<void(*)(void)>([](uint32_t low32, uint32_t hi32) {
 		auto&& self = (Coroutine*)((uintptr_t)low32 | ((uintptr_t)hi32 << 32));
 		self->func(*self);
 		self->func = nullptr;
