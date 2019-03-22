@@ -2,6 +2,7 @@
 #include <functional>
 #include <stdint.h>
 #include <assert.h>
+#include <string.h>
 #ifdef _WIN32
 #include <windows.h>
 #else
