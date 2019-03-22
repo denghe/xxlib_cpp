@@ -1,40 +1,167 @@
-﻿#include "xx_dict.h"
-struct Foo;
-std::unordered_map<int, std::shared_ptr<Foo>> foos;
-struct Foo {
-	int id;
-	Foo(int const& id) : id(id) {}
-	~Foo() {
-		foos.erase(id);
-	}
+﻿#include <vector>
+#include <functional>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#if defined(__APPLE__) && defined(__MACH__)
+#define _XOPEN_SOURCE
+#include <ucontext.h>
+#else
+#include <ucontext.h>
+#endif
+#endif
+
+struct Coroutine;
+using CoroutineFuncType = std::function<void(Coroutine& yield)>;
+struct Coroutines;
+struct Coroutine {
+	Coroutines& owner;
+	CoroutineFuncType func;
+	Coroutine(Coroutines& owner, CoroutineFuncType&& func);
+	Coroutine(Coroutine&& o);
+	Coroutine& operator=(Coroutine&& o);
+	~Coroutine();
+	int resume();
+	void operator()();	// yield
+	operator bool();
+#ifdef _WIN32
+	LPVOID fiber = nullptr;
+#else
+	char* stack = nullptr;
+	ucontext_t ctx;
+#endif
+};
+struct Coroutines {
+	std::vector<Coroutine> cors;
+	size_t stackSize;
+	Coroutines(size_t const& stackSize = 1024 * 1024);
+	inline void Add(CoroutineFuncType&& func);
+	size_t RunOnce();
+#ifdef _WIN32
+	LPVOID mainFiber = nullptr;
+#else
+	ucontext_t ctx;
+#endif
 };
 
-struct Bar;
-xx::Dict<int, std::shared_ptr<Bar>> bars;
-struct Bar {
-	int id;
-	Bar(int const& id) : id(id) {}
-	~Bar() {
-		bars.Remove(id);
+/***************************************************************************************/
+// Coroutine
+
+inline Coroutine::Coroutine(Coroutines& owner, CoroutineFuncType&& func)
+	: owner(owner)
+	, func(std::move(func)) {
+}
+
+inline Coroutine::Coroutine(Coroutine&& o) 
+	: owner(o.owner)
+	, func(std::move(o.func))
+	, fiber(std::move(o.fiber)) {
+}
+inline Coroutine& Coroutine::operator=(Coroutine&& o) {
+	std::swap(owner, o.owner);
+	std::swap(func, o.func);
+	std::swap(fiber, o.fiber);
+	return *this;
+}
+
+inline Coroutine::~Coroutine() {
+#ifdef _WIN32
+	if (fiber) {
+		DeleteFiber(fiber);
+		fiber = nullptr;
 	}
-};
+#else
+	if (stack) {
+		delete[] stack;
+		stack = nullptr;
+	}
+#endif
+}
 
+inline int Coroutine::resume() {
+	if (!func) return -1;
+#ifdef _WIN32
+	if (!fiber) {
+		fiber = CreateFiber(owner.stackSize, [](LPVOID lpParameter) {
+			auto&& self = (Coroutine*)lpParameter;
+			self->func(*self);
+			self->func = nullptr;
+			SwitchToFiber(self->owner.mainFiber);
+		}, this);
+	}
+	SwitchToFiber(fiber);
+#else
+	getcontext(&ctx);
+	stack = new char[owner.stackSize];
+	ctx.uc_stack.ss_sp = stack;
+	ctx.uc_stack.ss_size = owner.stackSize;
+	ctx.uc_link = &owner.ctx;
+	makecontext(&ctx, (void(*)(void))([](uint32_t low32, uint32_t hi32) {
+		auto&& self = (Coroutine*)((uintptr_t)low32 | ((uintptr_t)hi32 << 32));
+		self->func(*self);
+		self->func = nullptr;
+	}), 2, (uint32_t)this, (uint32_t)(this >> 32));
+	swapcontext(&owner.ctx, &ctx);
+#endif
+	return 0;
+}
 
+inline void Coroutine::operator()() {
+#ifdef _WIN32
+	SwitchToFiber(owner.mainFiber);
+#else
+#ifndef NDEBUG
+	char stackChecker;
+	assert(size_t(stack + owner.stackSize - &stackChecker) <= owner.stackSize);
+#endif
+	swapcontext(&ctx, &owner.ctx);
+#endif
+}
+
+inline Coroutine::operator bool() {
+	return (bool)func;
+}
+
+/***************************************************************************************/
+// Coroutines
+
+inline Coroutines::Coroutines(size_t const& stackSize)
+	: stackSize(stackSize) {
+	mainFiber = ConvertThreadToFiber(nullptr);
+}
+
+inline void Coroutines::Add(CoroutineFuncType&& func) {
+	cors.emplace_back(*this, std::move(func));
+}
+
+inline size_t Coroutines::RunOnce() {
+	if (!cors.size()) return 0;
+	for (decltype(auto) i = cors.size() - 1; i != (size_t)-1; --i) {
+		if (cors[i].resume()) {
+			if (i + 1 < cors.size()) {
+				cors[i] = std::move(cors[cors.size() - 1]);
+			}
+			cors.pop_back();
+		}
+	}
+	return cors.size();
+}
+
+#include <iostream>
 int main(int argc, char* argv[]) {
-	foos[1] = std::make_shared<Foo>(1);
-	foos[2] = std::make_shared<Foo>(2);
-	foos[3] = std::make_shared<Foo>(3);
-	for (auto&& iter = foos.begin(); iter != foos.end();) {
-		(iter++)->second.reset();
-	}
-	xx::CoutN(foos.size());
-
-	bars[1] = std::make_shared<Bar>(1);
-	bars[2] = std::make_shared<Bar>(2);
-	bars[3] = std::make_shared<Bar>(3);
-	for (auto&& kv : bars) {
-		kv.value.reset();
-	}
-	xx::CoutN(bars.Count());
+	Coroutines cors;
+	cors.Add([](Coroutine& yield) {
+		for (size_t i = 0; i < 9; i++) {
+			std::cout << i << std::endl;
+			yield();
+		}
+	});
+	cors.Add([](Coroutine& yield) {
+		for (size_t i = 11; i < 19; i++) {
+			std::cout << i << std::endl;
+			yield();
+		}
+	});
+	while (cors.RunOnce()) {}
 	return 0;
 }
