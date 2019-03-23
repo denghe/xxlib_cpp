@@ -6,11 +6,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
-#if defined(__APPLE__) && defined(__MACH__)
-#include <sys/ucontext.h>
-#else
 #include <ucontext.h>
-#endif
 #endif
 
 struct Coroutine;
@@ -152,7 +148,6 @@ inline Coroutines::Coroutines(size_t const& stackSize)
 	mainFiber = ConvertThreadToFiber(nullptr);
 #else
 	memset(&mainCtx, 0, sizeof(mainCtx));
-	// todo: getcontext(mainCtx);
 #endif
 }
 
