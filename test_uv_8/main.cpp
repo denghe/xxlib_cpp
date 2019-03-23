@@ -115,7 +115,7 @@ inline size_t Coroutines::RunOnce() {
 		cors[i].Resume();
 		if (!cors[i]) {
 			if (i + 1 < cors.size()) {
-				cors[i] = std::move(cors[cors.size() - 1]);
+				std::swap(cors[i], cors[cors.size() - 1]);
 			}
 			cors.pop_back();
 		}
@@ -132,7 +132,27 @@ int main(int argc, char* argv[]) {
 	Coroutines cors;
 	int i = 0;
 	cors.Add([&](Coroutine& yield) {
-		while (++i < 10000000) {
+		while (++i < 11111111) {
+			yield();
+		}
+	});
+	cors.Add([&](Coroutine& yield) {
+		while (++i < 11111111) {
+			yield();
+		}
+	});
+	cors.Add([&](Coroutine& yield) {
+		while (++i < 11111111) {
+			yield();
+		}
+	});
+	cors.Add([&](Coroutine& yield) {
+		while (++i < 11111111) {
+			yield();
+		}
+	});
+	cors.Add([&](Coroutine& yield) {
+		while (++i < 11111111) {
 			yield();
 		}
 	});
