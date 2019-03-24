@@ -26,7 +26,7 @@ namespace xx {
 		std::array<char, 65536> recvBuf;	// shared receive buf for kcp
 		std::unordered_map<int, std::weak_ptr<UvKcpUdp>> udps;
 		int udpPortId = 0;					// dialer port 生成: --udpPortId
-		std::shared_ptr<UvTimer> updater;	// call kcp update & udp hand shake
+		std::shared_ptr<UvTimer> kcpUpdater;// call kcp update & udp hand shake
 		int64_t nowMS = 0;					// NowSteadyEpochMS cache
 #endif
 
@@ -1482,7 +1482,7 @@ namespace xx {
 		if (int r = uv_loop_init(&uvLoop)) throw r;
 #if ENABLE_KCP
 		nowMS = NowSteadyEpochMS();
-		MakeTo(updater, *this, 10, 10, [this] {
+		MakeTo(kcpUpdater, *this, 10, 10, [this] {
 			nowMS = NowSteadyEpochMS();
 			for (auto&& iter = udps.begin(); iter != udps.end();) {
 				(iter++)->second.lock()->Update(nowMS);
