@@ -437,6 +437,25 @@ namespace xx {
 		puts(s.c_str());
 	}
 
+	inline void SetConsoleUtf8() {
+#ifdef _WIN32
+		// 控制台显示乱码纠正, 设置字符集  system("chcp 65001");
+		SetConsoleOutputCP(65001);
+		CONSOLE_FONT_INFOEX info = { 0 };
+		// 以下设置字体来支持中文显示。  
+		info.cbSize = sizeof(info);
+		info.dwFontSize.Y = 18;
+		info.dwFontSize.X = 10;
+		info.FontWeight = FW_NORMAL;
+		wcscpy_s(info.FaceName, L"新宋体");
+		SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), NULL, &info);
+#endif
+	}
+
+
+
+
+
 
 	// make_shared, weak helpers
 

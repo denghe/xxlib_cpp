@@ -12,6 +12,7 @@ std::string httpHeader = "GET / HTTP/1.1\r\n\r\n";
 
 using namespace std::chrono;
 int main() {
+	xx::SetConsoleUtf8();
 	std::this_thread::sleep_for(100ms);
 	xx::CoutN("begin");
 	{
