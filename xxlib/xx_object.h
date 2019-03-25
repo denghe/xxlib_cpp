@@ -19,6 +19,7 @@
 #include <memory>
 #include <chrono>
 #include <iostream>
+#include <thread>
 
 #include "fixed_function.hpp"
 
@@ -427,12 +428,13 @@ namespace xx {
 	inline void Cout(Args const&...args) {
 		std::string s;
 		Append(s, args...);
-		std::cout << s;
+		fputs(s.c_str(), stdout);				// std::cout 似乎会受 fcontext 切换影响 输出不能
 	}
 	template<typename...Args>
 	inline void CoutN(Args const&...args) {
-		Cout(args...);
-		std::cout << std::endl;
+		std::string s;
+		Append(s, args...);
+		puts(s.c_str());
 	}
 
 

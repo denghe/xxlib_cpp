@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "uv.h"
 #include "xx_bbuffer.h"
-#include <unordered_set>
 
 // todo: 简化 tcp dialer 逻辑? 参考 udp dialer ?
 
@@ -10,7 +9,6 @@
 #if ENABLE_KCP
 #include "ikcp.h"
 #endif
-
 
 namespace xx {
 	struct UvTimer;
@@ -36,6 +34,10 @@ namespace xx {
 
 		~Uv() {
 			recvBB.Reset();					// clear replaced buf.
+			updater.reset();
+#if ENABLE_KCP
+			kcpUpdater.reset();
+#endif
 			int r = uv_run(&uvLoop, UV_RUN_DEFAULT);
 			//Cout("~UvLooop() uv_run return ", r);
 			assert(!r);
@@ -243,6 +245,11 @@ namespace xx {
 			return uv_timer_again(uvTimer);
 		}
 
+		// force the loop to exit early by unreferencing handles which are active
+		inline void Unref() noexcept {
+			uv_unref((uv_handle_t*)uvTimer);
+		}
+
 	protected:
 		inline static void Fire(uv_timer_t* t) {
 			auto self = Uv::GetSelf<UvTimer>(t);
@@ -383,8 +390,17 @@ namespace xx {
 			}
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
+		void AddToUpdates() {
+			autoId = --uv.autoId;
+			uv.updates[autoId] = xx::As<UvUpdate>(shared_from_this());
+		};
+
+		inline void RemoveFromUpdates() {
 			uv.updates.erase(this->autoId);
+		}
+
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			RemoveFromUpdates();
 		}
 	};
 
@@ -407,7 +423,7 @@ namespace xx {
 		}
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!uvTcp) return;
-			uv.updates.erase(this->autoId);
+			RemoveFromUpdates();
 			Uv::HandleCloseAndFree(uvTcp);
 		}
 	};
@@ -655,7 +671,7 @@ namespace xx {
 				if (!peer) return;
 				if (uv_accept(server, (uv_stream_t*)peer->uvTcp)) return;
 				if (peer->ReadStart()) return;
-				self->uv.updates[--self->uv.autoId] = peer;
+				peer->AddToUpdates();
 				self->Accept(peer);
 			})) throw - 4;
 		};
@@ -766,7 +782,7 @@ namespace xx {
 				if (req->peer->ReadStart()) return;
 				dialer->peer = std::move(req->peer);								// connect success
 				dialer->timeouter.reset();
-				dialer->uv.updates[--dialer->uv.autoId] = dialer->peer;
+				dialer->peer->AddToUpdates();
 				dialer->Accept();
 			})) return -3;
 
@@ -886,7 +902,7 @@ namespace xx {
 		}
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!uvUdp) return;
-			uv.updates.erase(this->autoId);
+			RemoveFromUpdates();
 			Uv::HandleCloseAndFree(uvUdp);
 			if (flag) {
 				auto handler = shared_from_this();
@@ -1008,7 +1024,7 @@ namespace xx {
 		}
 		virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!kcp) return;
-			uv.updates.erase(this->autoId);
+			RemoveFromUpdates();
 			ikcp_release(kcp);
 			kcp = nullptr;
 			udp->Remove(guid);						// remove self from container
@@ -1498,6 +1514,7 @@ namespace xx {
 				(iter++)->second.lock()->Update(nowMS);
 			}
 		});
+		updater->Unref();
 #if ENABLE_KCP
 		MakeTo(kcpUpdater, *this, 10, 10, [this] {
 			nowMS = NowSteadyEpochMS();
@@ -1505,6 +1522,7 @@ namespace xx {
 				(iter++)->second.lock()->Update(nowMS);
 			}
 		});
+		kcpUpdater->Unref();
 #endif
 	}
 }

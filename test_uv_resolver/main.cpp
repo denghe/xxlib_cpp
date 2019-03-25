@@ -19,7 +19,11 @@ int main() {
 		uv.Add([&uv](xx::Coro&& yield) {
 			while (true) {
 				std::vector<std::string> ips;
-				if (uv.Resolve(yield, ips, "www.baidu.com", 500)) break;
+				int r = 0;
+				if (r = uv.Resolve(yield, ips, "www.baidu.com", 500)) {
+					xx::CoutN("resolve error. r = ", r);
+					break;
+				}
 				if (!ips.size()) {
 					xx::CoutN("timeout. retry.");
 					continue;
@@ -28,15 +32,28 @@ int main() {
 					xx::CoutN(ip);
 				}
 				std::shared_ptr<HttpPeer> peer;
-				if (uv.Dial<HttpPeer>(yield, peer, ips, 80, 2000)) break;
+				if (r = uv.Dial<HttpPeer>(yield, peer, ips, 80, 2000)) {
+					xx::CoutN("dial error. r = ", r);
+				}
 				if (!peer) {
 					xx::CoutN("connect timeout. retry.");
 					continue;
 				}
-				xx::CoutN("connected.");
-				if (peer->Send((uint8_t*)httpHeader.data(), httpHeader.size())) break;
-				while (!peer->Disposed()) yield();
-				xx::CoutN("disconnected. retry.");
+				xx::CoutN("connected. send http header.");
+				if (r = peer->Send((uint8_t*)httpHeader.data(), httpHeader.size())) {
+					xx::CoutN("send error. r = ", r);
+				}
+
+				xx::CoutN("set timeoutms 3k.");
+				peer->ResetTimeoutMS(3000);
+
+				xx::Cout("wait disconnect.");
+				while (!peer->Disposed()) {
+					yield();
+					xx::Cout(".");
+				}
+				//xx::CoutN("disconnected. retry.");
+				break;
 			};
 		});
 		uv.Run();
