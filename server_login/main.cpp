@@ -30,7 +30,7 @@ struct LoginListener : xx::UvTcpListener<LoginPeer> {
 	LoginService* service;	// fill by service
 	inline virtual void Accept(std::shared_ptr<LoginPeer>& peer) noexcept override {
 		peer->service = service;
-		peer->SetReceiveTimeoutMS(5000);
+		peer->ResetTimeoutMS(5000);
 		peer->OnDisconnect = [peer] {		// hold memory
 			xx::CoutN(peer->ip, " disposed.");
 		};
