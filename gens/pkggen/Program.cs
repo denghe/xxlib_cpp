@@ -46,7 +46,9 @@ public static class Program
                 continue;
             }
             GenCPP_Class.Gen(asm, path, tn, md5);
-			GenCPP_SQLite.Gen(asm, path, tn);
+            GenLUA_Class.Gen(asm, path, tn, md5);
+
+			//GenCPP_SQLite.Gen(asm, path, tn);
         }
     }
 }

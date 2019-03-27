@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="GenCPP_Class.cs" />
     <Compile Include="GenCPP_SQLite.cs" />
+    <Compile Include="GenLUA_Class.cs" />
     <Compile Include="GenTypeId.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

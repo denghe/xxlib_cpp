@@ -3,7 +3,7 @@
 
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "e40d89d6021c4a9af26cd71ffe9571e7";
+		inline static const std::string value = "502f8afc15f8a5bc5f55bb013cf82d93";
     };
 
     // 操作成功( 默认 response 结果 )
