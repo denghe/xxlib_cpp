@@ -162,11 +162,11 @@ public static class GenExtensions
     }
 
     /// <summary>
-    /// 返回 t 是否为 Ref
+    /// 返回 t 是否为 Weak
     /// </summary>
-    public static bool _IsRef(this Type t)
+    public static bool _IsWeak(this Type t)
     {
-        return t.Namespace == nameof(TemplateLibrary) && t.Name == "Ref`1";
+        return t.Namespace == nameof(TemplateLibrary) && t.Name == "Weak`1";
     }
 
 
@@ -518,9 +518,9 @@ public static class GenExtensions
         {
             if (t.Namespace == nameof(TemplateLibrary))
             {
-                if (t.Name == "Ref`1")
+                if (t.Name == "Weak`1")
                 {
-                    return "Ref<" + _GetTypeDecl_GenTypeIdTemplate(t.GenericTypeArguments[0]) + ">";
+                    return "Weak<" + _GetTypeDecl_GenTypeIdTemplate(t.GenericTypeArguments[0]) + ">";
                 }
                 else if (t.Name == "List`1")
                 {
@@ -617,9 +617,9 @@ public static class GenExtensions
         {
             if (t.Namespace == nameof(TemplateLibrary))
             {
-                if (t.Name == "Ref`1")
+                if (t.Name == "Weak`1")
                 {
-                    return "xx.Ref<" + _GetTypeDecl_Csharp(t.GenericTypeArguments[0]) + ">";
+                    return "xx.Weak<" + _GetTypeDecl_Csharp(t.GenericTypeArguments[0]) + ">";
                 }
                 else if (t.Name == "List`1")
                 {
@@ -717,7 +717,7 @@ public static class GenExtensions
         {
             if (t.Namespace == nameof(TemplateLibrary))
             {
-                if (t.Name == "Ref`1")
+                if (t.Name == "Weak`1")
                 {
                     return "std::weak_ptr<" + _GetTypeDecl_Cpp(t.GenericTypeArguments[0], templateName) + ">";
                 }
@@ -793,7 +793,7 @@ public static class GenExtensions
         {
             return "Nullable" + _GetTypeDecl_Lua(t.GenericTypeArguments[0], templateName);
         }
-        else if(t._IsRef())
+        else if(t._IsWeak())
         {
             return "Ref_" + _GetTypeDecl_Lua(t.GenericTypeArguments[0], templateName);
         }

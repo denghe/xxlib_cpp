@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
@@ -23,7 +23,7 @@
 
 #include "fixed_function.hpp"
 
-// µ± IOS ×îµÍ°æ±¾¼æÈİ²ÎÊıµÍÓÚ 11 Ê±ÎŞ·¨ÆôÓÃ C++17, ¹ÊÆôÓÃ C++14 ½áºÏÏÂÃæµÄ¸÷ÖÖÔì¼ÙÀ´½â¾ö
+// å½“ IOS æœ€ä½ç‰ˆæœ¬å…¼å®¹å‚æ•°ä½äº 11 æ—¶æ— æ³•å¯ç”¨ C++17, æ•…å¯ç”¨ C++14 ç»“åˆä¸‹é¢çš„å„ç§é€ å‡æ¥è§£å†³
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #include <experimental/optional>
 namespace std
@@ -127,22 +127,26 @@ namespace xx {
 	struct Object {
 		virtual ~Object() {}
 
+		// åºåˆ—åŒ–ç›¸å…³
 		inline virtual uint16_t GetTypeId() const noexcept { return 0; }
 		inline virtual void ToBBuffer(BBuffer& bb) const noexcept {}
 		inline virtual int FromBBuffer(BBuffer& bb) noexcept { return 0; }
 
+		// å­—ä¸²è¾“å‡ºç›¸å…³
 		inline virtual void ToString(std::string& s) const noexcept {};
 		inline virtual void ToStringCore(std::string& s) const noexcept {};
-
 		bool toStringFlag = false;
 		inline void SetToStringFlag(bool const& b = true) const noexcept {
 			((Object*)this)->toStringFlag = b;
 		}
+
+		// çº§è”åˆå§‹åŒ–ç›¸å…³( ä¸»ç”¨äºéå†è°ƒç”¨ç”Ÿæˆç‰©æ´¾ç”Ÿç±»çš„è¿˜åŸä»£ç  )
+		inline virtual void InitCascade() noexcept {};
 	};
 
 	using Object_s = std::shared_ptr<Object>;
 
-	// TypeId Ó³Éä
+	// TypeId æ˜ å°„
 	template<typename T>
 	struct TypeId {
 		static const uint16_t value = 0;
@@ -152,7 +156,7 @@ namespace xx {
 	constexpr uint16_t TypeId_v = TypeId<T>::value;
 
 
-	// ĞòÁĞ»¯ »ù´¡ÊÊÅäÄ£°å
+	// åºåˆ—åŒ– åŸºç¡€é€‚é…æ¨¡æ¿
 	template<typename T, typename ENABLED = void>
 	struct BFuncs {
 		static inline void WriteTo(BBuffer& bb, T const& in) noexcept {
@@ -164,7 +168,7 @@ namespace xx {
 		}
 	};
 
-	// ×Ö·û´® »ù´¡ÊÊÅäÄ£°å
+	// å­—ç¬¦ä¸² åŸºç¡€é€‚é…æ¨¡æ¿
 	template<typename T, typename ENABLED = void>
 	struct SFuncs {
 		static inline void WriteTo(std::string& s, T const& in) noexcept {
@@ -184,7 +188,7 @@ namespace xx {
 		(void)(n);
 	}
 
-	// ÊÊÅä char* \0 ½áÎ² ×Ö´®( ²»ÊÇºÜ¸ßĞ§ )
+	// é€‚é… char* \0 ç»“å°¾ å­—ä¸²( ä¸æ˜¯å¾ˆé«˜æ•ˆ )
 	template<>
 	struct SFuncs<char*, void> {
 		static inline void WriteTo(std::string& s, char* const& in) noexcept {
@@ -194,7 +198,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä char const* \0 ½áÎ² ×Ö´®( ²»ÊÇºÜ¸ßĞ§ )
+	// é€‚é… char const* \0 ç»“å°¾ å­—ä¸²( ä¸æ˜¯å¾ˆé«˜æ•ˆ )
 	template<>
 	struct SFuncs<char const*, void> {
 		static inline void WriteTo(std::string& s, char const* const& in) noexcept {
@@ -204,7 +208,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä literal char[len] string
+	// é€‚é… literal char[len] string
 	template<size_t len>
 	struct SFuncs<char[len], void> {
 		static inline void WriteTo(std::string& s, char const(&in)[len]) noexcept {
@@ -212,7 +216,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅäËùÓĞÊı×Ö
+	// é€‚é…æ‰€æœ‰æ•°å­—
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_arithmetic_v<T>>> {
 		static inline void WriteTo(std::string& s, T const &in) noexcept {
@@ -228,7 +232,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä enum( ¸ù¾İÔ­Ê¼Êı¾İÀàĞÍµ÷ÉÏÃæµÄÊÊÅä )
+	// é€‚é… enum( æ ¹æ®åŸå§‹æ•°æ®ç±»å‹è°ƒä¸Šé¢çš„é€‚é… )
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_enum_v<T>>> {
 		static inline void WriteTo(std::string& s, T const &in) noexcept {
@@ -236,7 +240,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä Object
+	// é€‚é… Object
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_base_of_v<Object, T>>> {
 		static inline void WriteTo(std::string& s, T const &in) noexcept {
@@ -244,7 +248,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä std::string
+	// é€‚é… std::string
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_base_of_v<std::string, T>>> {
 		static inline void WriteTo(std::string& s, T const &in) noexcept {
@@ -252,7 +256,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä std::shared_ptr<T>
+	// é€‚é… std::shared_ptr<T>
 	template<typename T>
 	struct SFuncs<std::shared_ptr<T>, std::enable_if_t<std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>>> {
 		static inline void WriteTo(std::string& s, std::shared_ptr<T> const& in) noexcept {
@@ -265,7 +269,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä std::weak_ptr<T>
+	// é€‚é… std::weak_ptr<T>
 	template<typename T>
 	struct SFuncs<std::weak_ptr<T>, std::enable_if_t<std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>>> {
 		static inline void WriteTo(std::string& s, std::weak_ptr<T> const& in) noexcept {
@@ -333,67 +337,67 @@ namespace xx {
 
 	*/
 
-	// ¾­ÀúÊ±¼ä¾«¶È: Ãëºó 7 ¸ö 0( ÕâÊÇ windows ÏÂ×î¸ß¾«¶È. android/ios »áµÍ1¸ö0µÄ¾«¶È )
+	// ç»å†æ—¶é—´ç²¾åº¦: ç§’å 7 ä¸ª 0( è¿™æ˜¯ windows ä¸‹æœ€é«˜ç²¾åº¦. android/ios ä¼šä½1ä¸ª0çš„ç²¾åº¦ )
 	typedef std::chrono::duration<long long, std::ratio<1LL, 10000000LL>> duration_10m;
 
-	// Ê±¼äµã ×ª epoch (¾«¶ÈÎªÃëºó 7 ¸ö 0)
+	// æ—¶é—´ç‚¹ è½¬ epoch (ç²¾åº¦ä¸ºç§’å 7 ä¸ª 0)
 	inline int64_t TimePointToEpoch10m(std::chrono::system_clock::time_point const& val) noexcept
 	{
 		return std::chrono::duration_cast<duration_10m>(val.time_since_epoch()).count();
 	}
 
-	//  epoch (¾«¶ÈÎªÃëºó 7 ¸ö 0) ×ª Ê±¼äµã
+	//  epoch (ç²¾åº¦ä¸ºç§’å 7 ä¸ª 0) è½¬ æ—¶é—´ç‚¹
 	inline std::chrono::system_clock::time_point Epoch10mToTimePoint(int64_t const& val) noexcept
 	{
 		return std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(duration_10m(val)));
 	}
 
 
-	// µÃµ½µ±Ç°Ê±¼äµã
+	// å¾—åˆ°å½“å‰æ—¶é—´ç‚¹
 	inline std::chrono::system_clock::time_point NowTimePoint() noexcept
 	{
 		return std::chrono::system_clock::now();
 	}
 
-	// µÃµ½µ±Ç°Ê±¼äµãµÄ epoch (¾«¶ÈÎªÃëºó 7 ¸ö 0)
+	// å¾—åˆ°å½“å‰æ—¶é—´ç‚¹çš„ epoch (ç²¾åº¦ä¸ºç§’å 7 ä¸ª 0)
 	inline int64_t NowEpoch10m() noexcept
 	{
 		return TimePointToEpoch10m(NowTimePoint());
 	}
 
 
-	// epoch (¾«¶ÈÎªÃëºó 7 ¸ö 0) ×ªÎª .Net DateTime Utc Ticks
+	// epoch (ç²¾åº¦ä¸ºç§’å 7 ä¸ª 0) è½¬ä¸º .Net DateTime Utc Ticks
 	inline int64_t Epoch10mToUtcDateTimeTicks(int64_t const& val) noexcept
 	{
 		return val + 621355968000000000LL;
 	}
 
-	// .Net DateTime Utc Ticks ×ªÎª epoch (¾«¶ÈÎªÃëºó 7 ¸ö 0)
+	// .Net DateTime Utc Ticks è½¬ä¸º epoch (ç²¾åº¦ä¸ºç§’å 7 ä¸ª 0)
 	inline int64_t UtcDateTimeTicksToEpoch10m(int64_t const& val) noexcept
 	{
 		return val - 621355968000000000LL;
 	}
 
 
-	// Ê±¼äµã ×ª epoch (¾«¶ÈÎªÃë)
+	// æ—¶é—´ç‚¹ è½¬ epoch (ç²¾åº¦ä¸ºç§’)
 	inline int32_t TimePointToEpoch(std::chrono::system_clock::time_point const& val) noexcept
 	{
 		return (int32_t)(val.time_since_epoch().count() / 10000000);
 	}
 
-	//  epoch (¾«¶ÈÎªÃë) ×ª Ê±¼äµã
+	//  epoch (ç²¾åº¦ä¸ºç§’) è½¬ æ—¶é—´ç‚¹
 	inline std::chrono::system_clock::time_point EpochToTimePoint(int32_t const& val) noexcept
 	{
 		return std::chrono::system_clock::time_point(std::chrono::system_clock::time_point::duration((int64_t)val * 10000000));
 	}
 
 
-	// µÃµ½µ±Ç° system Ê±¼äµãµÄ epoch (¾«¶ÈÎª ms)
+	// å¾—åˆ°å½“å‰ system æ—¶é—´ç‚¹çš„ epoch (ç²¾åº¦ä¸º ms)
 	inline int64_t NowSystemEpochMS() noexcept
 	{
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	}
-	// µÃµ½µ±Ç° steady Ê±¼äµãµÄ epoch (¾«¶ÈÎª ms)
+	// å¾—åˆ°å½“å‰ steady æ—¶é—´ç‚¹çš„ epoch (ç²¾åº¦ä¸º ms)
 	inline int64_t NowSteadyEpochMS() noexcept
 	{
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -403,7 +407,7 @@ namespace xx {
 
 
 
-	// std::cout À©Õ¹
+	// std::cout æ‰©å±•
 
 	//inline std::ostream& operator<<(std::ostream& os, const Object& o) {
 	//	std::string s;
@@ -428,7 +432,7 @@ namespace xx {
 	inline void Cout(Args const&...args) {
 		std::string s;
 		Append(s, args...);
-		fputs(s.c_str(), stdout);				// std::cout ËÆºõ»áÊÜ fcontext ÇĞ»»Ó°Ïì Êä³ö²»ÄÜ
+		fputs(s.c_str(), stdout);				// std::cout ä¼¼ä¹ä¼šå— fcontext åˆ‡æ¢å½±å“ è¾“å‡ºä¸èƒ½
 	}
 	template<typename...Args>
 	inline void CoutN(Args const&...args) {
@@ -439,15 +443,15 @@ namespace xx {
 
 	inline void SetConsoleUtf8() {
 #ifdef _WIN32
-		// ¿ØÖÆÌ¨ÏÔÊ¾ÂÒÂë¾ÀÕı, ÉèÖÃ×Ö·û¼¯  system("chcp 65001");
+		// æ§åˆ¶å°æ˜¾ç¤ºä¹±ç çº æ­£, è®¾ç½®å­—ç¬¦é›†  system("chcp 65001");
 		SetConsoleOutputCP(65001);
 		CONSOLE_FONT_INFOEX info = { 0 };
-		// ÒÔÏÂÉèÖÃ×ÖÌåÀ´Ö§³ÖÖĞÎÄÏÔÊ¾¡£  
+		// ä»¥ä¸‹è®¾ç½®å­—ä½“æ¥æ”¯æŒä¸­æ–‡æ˜¾ç¤ºã€‚  
 		info.cbSize = sizeof(info);
 		info.dwFontSize.Y = 18;
 		info.dwFontSize.X = 10;
 		info.FontWeight = FW_NORMAL;
-		wcscpy_s(info.FaceName, L"ĞÂËÎÌå");
+		wcscpy_s(info.FaceName, L"æ–°å®‹ä½“");
 		SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), NULL, &info);
 #endif
 	}
@@ -508,33 +512,23 @@ namespace xx {
 
 
 	// type check helpers
-	template<typename T, typename ENABLED = void>
-	struct IsShared {
-		static const bool value = false;
-	};
+	template<typename T>
+	struct IsShared : std::false_type {};
+
+	template<typename T>
+	struct IsShared<std::shared_ptr<T>> : std::true_type {};
 
 	template<typename T>
 	constexpr bool IsShared_v = IsShared<T>::value;
 
 	template<typename T>
-	struct IsShared<std::shared_ptr<T>, void> {
-		static const bool value = true;
-	};
+	struct IsWeak : std::false_type {};
 
-	template<typename T, typename ENABLED = void>
-	struct IsWeak {
-		static const bool value = false;
-	};
+	template<typename T>
+	struct IsWeak<std::weak_ptr<T>> : std::true_type {};
 
 	template<typename T>
 	constexpr bool IsWeak_v = IsWeak<T>::value;
-
-	template<typename T>
-	struct IsShared<std::weak_ptr<T>, void> {
-		static const bool value = true;
-	};
-
-
 
 
 
@@ -679,7 +673,7 @@ namespace xx {
 
 
 
-	// ÒÆ¶¯Ê±ÊÇ·ñ¿ÉÊ¹ÓÃ memmove µÄ±êÖ¾ »ù´¡ÊÊÅäÄ£°å
+	// ç§»åŠ¨æ—¶æ˜¯å¦å¯ä½¿ç”¨ memmove çš„æ ‡å¿— åŸºç¡€é€‚é…æ¨¡æ¿
 	template<typename T, typename ENABLED = void>
 	struct IsTrivial {
 		static const bool value = false;
@@ -688,7 +682,7 @@ namespace xx {
 	template<typename T>
 	constexpr bool IsTrivial_v = IsTrivial<T>::value;
 
-	// ÊÊÅä std::is_trivial<T>::value
+	// é€‚é… std::is_trivial<T>::value
 	template<typename T>
 	struct IsTrivial<T, std::enable_if_t<std::is_trivial_v<T>>> {
 		static const bool value = true;
@@ -736,10 +730,10 @@ namespace xx {
 		if (maxCapacity == capacity) {
 			return primes2n[Calc2n(capacity)];
 		}
-		if (dataSize >= 8 && dataSize <= 512) {                     // Êı¾İ³¤ÔÚ ²é±í ·¶Î§ÄÚµÄ
+		if (dataSize >= 8 && dataSize <= 512) {                     // æ•°æ®é•¿åœ¨ æŸ¥è¡¨ èŒƒå›´å†…çš„
 			return *std::upper_bound(std::begin(primes), std::end(primes), (int32_t)maxCapacity);
 		}
-		for (size_t i = maxCapacity + 1; i <= 0x7fffffff; i += 2) { // maxCapacity ÊÇË«Êı. +1 ¼´Îªµ¥Êı
+		for (size_t i = maxCapacity + 1; i <= 0x7fffffff; i += 2) { // maxCapacity æ˜¯åŒæ•°. +1 å³ä¸ºå•æ•°
 			if (IsPrime(i)) return (int32_t)i;
 		}
 		assert(false);

@@ -184,4 +184,6 @@ namespace xx {
 			s.append("{ \"type\":\"Random\" }");
 		}
 	};
+
+	using Random_s = std::shared_ptr<Random>;
 }

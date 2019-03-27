@@ -13,7 +13,7 @@ namespace xx
 		size_t		cap;
 		size_t		len;
 
-		List() noexcept 
+		List() noexcept
 			: buf(nullptr)
 			, cap(0)
 			, len(0) {
@@ -257,11 +257,28 @@ namespace xx
 
 
 		// Object 接口支持
-		inline virtual uint16_t GetTypeId() const noexcept override {
+		virtual uint16_t GetTypeId() const noexcept override {
 			return TypeId_v<List<T>>;
 		}
 		void ToBBuffer(BBuffer& bb) const noexcept override;
 		int FromBBuffer(BBuffer& bb) noexcept override;
+
+		void InitCascade() noexcept override {
+			if constexpr (std::is_base_of_v<Object, T>) {
+				for (size_t i = 0; i < len; ++i) {
+					buf[i].InitCascade();
+				}
+			}
+			else if constexpr (xx::IsShared_v<T>) {
+				if constexpr (std::is_base_of_v<Object, typename T::element_type>) {
+					for (size_t i = 0; i < len; ++i) {
+						if (buf[i]) {
+							buf[i]->InitCascade();
+						}
+					}
+				}
+			}
+		}
 
 		void ToString(std::string& s) const noexcept override {
 			if (toStringFlag) {

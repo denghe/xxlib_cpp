@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,8 +12,6 @@ public static class GenCPP_Class
 
         // template namespace
         sb.Append(@"#pragma once
-#include ""xx_list.h""
-
 namespace " + templateName + @" {
 	struct PkgGenMd5 {
 		inline static const std::string value = """ + md5 + @""";
@@ -123,7 +120,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
 
                 var v = f.GetValue(f.IsStatic ? null : o);
                 var dv = v._GetDefaultValueDecl_Cpp(templateName);
-                if (dv != "" && !ft._IsList() && !ft._IsUserClass() && !ft._IsString() && !ft._IsObject() && !ft._IsRef())  // 当前还无法正确处理 String 数据类型的默认值
+                if (dv != "" && !ft._IsList() && !ft._IsUserClass() && !ft._IsString() && !ft._IsObject() && !ft._IsWeak())  // 当前还无法正确处理 String 数据类型的默认值
                 {
                     sb.Append(" = " + dv + ";");
                 }
@@ -190,7 +187,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 {
                     var v = f.GetValue(f.IsStatic ? null : o);
                     var dv = v._GetDefaultValueDecl_Cpp(templateName);
-                    if (dv != "" && !ft._IsList() && !(ft._IsUserClass()) && !ft._IsString() && !ft._IsNullable() && !ft._IsObject() && !ft._IsRef())  // 当前还无法正确处理 String 数据类型的默认值
+                    if (dv != "" && !ft._IsList() && !(ft._IsUserClass()) && !ft._IsString() && !ft._IsNullable() && !ft._IsObject() && !ft._IsWeak())  // 当前还无法正确处理 String 数据类型的默认值
                     {
                         sb.Append(" = " + dv + ";");
                     }
@@ -211,13 +208,11 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
-
-        virtual uint16_t GetTypeId() const noexcept;
+        uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int FromBBufferCore(xx::BBuffer& bb) noexcept;
+        void InitCascade() noexcept override;
 
-        static std::shared_ptr<" + c.Name + @"> MakeShared() noexcept;
         inline static std::shared_ptr<ThisType> defaultInstance;
     };");   // class }
 
@@ -358,10 +353,6 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 sb.Append(@"
         if (int r = this->BaseType::FromBBuffer(bb)) return r;");
             }
-            sb.Append(@"
-        return this->FromBBufferCore(bb);
-    }
-    inline int " + c.Name + @"::FromBBufferCore(xx::BBuffer& bb) noexcept {");
             fs = c._GetFields();
             foreach (var f in fs)
             {
@@ -377,6 +368,24 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             }
             sb.Append(@"
         return 0;
+    }
+    inline void " + c.Name + @"::InitCascade() noexcept {");
+            if (c._HasBaseType())
+            {
+                sb.Append(@"
+        this->BaseType::InitCascade();");
+            }
+            fs = c._GetFields();
+            foreach (var f in fs)
+            {
+                var ft = f.FieldType;
+                if (!ft._IsList() && !ft._IsUserClass() || ft._IsWeak() || ft._IsExternal() && !ft._GetExternalSerializable()) continue;
+                sb.Append(@"
+        if (this->" + f.Name + @") {
+            this->" + f.Name + @"->InitCascade();
+        }");
+            }
+            sb.Append(@"
     }
     inline void " + c.Name + @"::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
@@ -410,9 +419,6 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 }
             }
             sb.Append(@"
-    }
-    inline std::shared_ptr<" + c.Name + @"> " + c.Name + @"::MakeShared() noexcept {
-        return std::make_shared<" + c.Name + @">();
     }");
 
             // namespace }

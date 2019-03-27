@@ -60,9 +60,9 @@ namespace TemplateLibrary
     public class List<T> { }
 
     /// <summary>
-    /// 模拟 xx.Ref 弱引用数据类型
+    /// 模拟 std::weak_ptr 弱引用数据类型
     /// </summary>
-    public class Ref<T> { }
+    public class Weak<T> { }
 
     /// <summary>
     /// 模拟 xx.BBuffer

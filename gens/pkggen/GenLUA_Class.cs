@@ -84,7 +84,7 @@ public static class GenLUA_Class
                     var v = f.GetValue(f.IsStatic ? null : o);
                     var dv = v._GetDefaultValueDecl_Lua(templateName);
                     sb.Append(f._GetDesc()._GetComment_Lua(8));
-                    if (ft._IsRef())
+                    if (ft._IsWeak())
                     {
                         sb.Append(@"
         o." + f.Name + @" = MakeRef()");
@@ -125,7 +125,7 @@ public static class GenLUA_Class
             {
                 var ft = f.FieldType;
                 var ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
-                if (ft._IsBBuffer() || ft._IsString() || ft._IsRef()) ftn = "Object";
+                if (ft._IsBBuffer() || ft._IsString() || ft._IsWeak()) ftn = "Object";
                 if (ftn != "Object" && ft._IsNullable()) ftn = "Nullable" + ftn;
                 if (ftns.ContainsKey(ftn)) ftns[ftn]++;
                 else ftns.Add(ftn, 1);
@@ -142,11 +142,11 @@ public static class GenLUA_Class
             {
                 var ft = f.FieldType;
                 var ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
-                if (ft._IsBBuffer() || ft._IsString() || ft._IsRef()) ftn = "Object";
+                if (ft._IsBBuffer() || ft._IsString() || ft._IsWeak()) ftn = "Object";
                 if (ftn != "Object" && ft._IsNullable()) ftn = "Nullable" + ftn;
                 if (ftns[ftn] > 1)
                 {
-                    if (ft._IsRef())
+                    if (ft._IsWeak())
                     {
                         sb.Append(@"
         o." + f.Name + @" = MakeRef( Read" + ftn + @"( bb ) )");
@@ -159,7 +159,7 @@ public static class GenLUA_Class
                 }
                 else
                 {
-                    if (ft._IsRef())
+                    if (ft._IsWeak())
                     {
                         sb.Append(@"
         o." + f.Name + @" = MakeRef( Read" + ftn + @"( bb ) )");
@@ -175,7 +175,7 @@ public static class GenLUA_Class
             {
                 var fn = "ReadObject";
                 var ct = c.GenericTypeArguments[0];
-                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString() && !ct._IsRef())
+                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString() && !ct._IsWeak())
                 {
                     if (ct.IsEnum)
                     {
@@ -198,7 +198,7 @@ public static class GenLUA_Class
 		local len = bb:ReadUInt32()
         local f = BBuffer." + fn + @"
 		for i = 1, len do
-			o[ i ] = " + (ct._IsRef() ? "MakeRef( f( bb ) )" : "f( bb )") + @"
+			o[ i ] = " + (ct._IsWeak() ? "MakeRef( f( bb ) )" : "f( bb )") + @"
 		end");
             }
             sb.Append(@"
@@ -223,24 +223,24 @@ public static class GenLUA_Class
             {
                 var ft = f.FieldType;
                 var ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
-                if (ft._IsBBuffer() || ft._IsString() || ft._IsRef()) ftn = "Object";
+                if (ft._IsBBuffer() || ft._IsString() || ft._IsWeak()) ftn = "Object";
                 if (ftn != "Object" && ft._IsNullable()) ftn = "Nullable" + ftn;
                 if (ftns[ftn] > 1)
                 {
                     sb.Append(@"
-        Write" + ftn + @"( bb, o." + f.Name + (ft._IsRef() ? ".Lock()" : "") + @" )");
+        Write" + ftn + @"( bb, o." + f.Name + (ft._IsWeak() ? ".Lock()" : "") + @" )");
                 }
                 else
                 {
                     sb.Append(@"
-        bb:Write" + ftn + @"( o." + f.Name + (ft._IsRef() ? ".Lock()" : "") + @" )");
+        bb:Write" + ftn + @"( o." + f.Name + (ft._IsWeak() ? ".Lock()" : "") + @" )");
                 }
             }
             if (c._IsList())
             {
                 var fn = "WriteObject";
                 var ct = c.GenericTypeArguments[0];
-                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString() && !ct._IsRef())
+                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString() && !ct._IsWeak())
                 {
                     if (ct.IsEnum)
                     {
@@ -259,7 +259,7 @@ public static class GenLUA_Class
 		bb:WriteUInt32( len )
         local f = BBuffer." + fn + @"
         for i = 1, len do
-			f( bb, o[ i ]" + (ct._IsRef() ? ".Lock()" : "") + @" )
+			f( bb, o[ i ]" + (ct._IsWeak() ? ".Lock()" : "") + @" )
 		end");
             }
             sb.Append(@"
