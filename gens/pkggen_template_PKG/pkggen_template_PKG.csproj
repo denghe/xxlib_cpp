@@ -42,19 +42,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DB_Login.cs" />
+    <Compile Include="Client_Lobby.cs" />
+    <Compile Include="Client_Login.cs" />
     <Compile Include="DB.cs" />
-    <Compile Include="Login_DB.cs" />
-    <Compile Include="LuaGenFilter.cs" />
+    <Compile Include="DB_Login.cs" />
+    <Compile Include="Global.cs" />
     <Compile Include="Lobby.cs" />
     <Compile Include="Lobby_Client.cs" />
-    <Compile Include="Client_Lobby.cs" />
-    <Compile Include="PKG_TypeIdMappings.cs" />
-    <Compile Include="Server.cs" />
-    <Compile Include="Global.cs" />
     <Compile Include="Login_Client.cs" />
-    <Compile Include="Client_Login.cs" />
+    <Compile Include="Login_DB.cs" />
+    <Compile Include="LuaGenFilter.cs" />
+    <Compile Include="PKG_TypeIdMappings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Server.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\gen_library\gen_library.csproj">

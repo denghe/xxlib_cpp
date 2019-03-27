@@ -15,8 +15,8 @@ struct LoginService {
 	}
 };
 
-struct LoginPeer : xx::UvTcpPeer {
-	using BaseType = xx::UvTcpPeer;
+struct LoginPeer : xx::UvKcpPeer {
+	using BaseType = xx::UvKcpPeer;
 	using BaseType::BaseType;
 	LoginService* service;	// fill by listener accept
 	std::string ip;	// fill by listener accept
@@ -24,17 +24,18 @@ struct LoginPeer : xx::UvTcpPeer {
 	// todo: override OnReceiveRequest for handle msgs
 };
 
-struct LoginListener : xx::UvTcpListener<LoginPeer> {
-	using BaseType = xx::UvTcpListener<LoginPeer>;
+struct LoginListener : xx::UvKcpListener<LoginPeer> {
+	using BaseType = xx::UvKcpListener<LoginPeer>;
 	using BaseType::BaseType;
 	LoginService* service;	// fill by service
-	inline virtual void Accept(std::shared_ptr<LoginPeer>& peer) noexcept override {
+	inline virtual void Accept(std::shared_ptr<xx::UvKcpBasePeer>& peer_) noexcept override {
+		auto&& peer = xx::As<LoginPeer>(peer_);
 		peer->service = service;
 		peer->ResetTimeoutMS(5000);
 		peer->OnDisconnect = [peer] {		// hold memory
 			xx::CoutN(peer->ip, " disposed.");
 		};
-		xx::Uv::FillIP(peer->uvTcp, peer->ip);
+		xx::Uv::FillIP(peer->addr, peer->ip);
 		xx::CoutN(peer->ip, " accepted");
 	}
 };

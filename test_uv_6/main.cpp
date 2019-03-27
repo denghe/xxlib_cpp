@@ -106,11 +106,11 @@ inline Loop::Loop()
 		//	timer.reset();
 		//	return;
 		//}
-		for (auto&& kv : dialers) {
-			if (!serverPeers[kv.first] && !kv.second->State()) {
-				kv.second->Dial();
-			}
-		}
+		//for (auto&& kv : dialers) {
+		//	if (!serverPeers[kv.first] && !kv.second->State()) {
+		//		kv.second->Dial();
+		//	}
+		//}
 	})) throw r;
 }
 

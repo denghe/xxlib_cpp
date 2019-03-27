@@ -29,7 +29,7 @@ struct EchoPeerListener : xx::UvKcpListener<EchoPeer> {
 	using BaseType = xx::UvKcpListener<EchoPeer>;
 	using BaseType::BaseType;
 
-	inline virtual void Accept(std::shared_ptr<xx::UvKcpPeer>& peer_) noexcept override {
+	inline virtual void Accept(std::shared_ptr<xx::UvKcpBasePeer>& peer_) noexcept override {
 		auto&& peer = xx::As<EchoPeer>(peer_);
 		peer->holder = peer;				// hold memory
 		peer->ResetTimeoutMS(3000);			// 设置 3 秒内没收到能解析出来的合法包就 Dispose
