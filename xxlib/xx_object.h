@@ -507,6 +507,37 @@ namespace xx {
 	}
 
 
+	// type check helpers
+	template<typename T, typename ENABLED = void>
+	struct IsShared {
+		static const bool value = false;
+	};
+
+	template<typename T>
+	constexpr bool IsShared_v = IsShared<T>::value;
+
+	template<typename T>
+	struct IsShared<std::shared_ptr<T>, void> {
+		static const bool value = true;
+	};
+
+	template<typename T, typename ENABLED = void>
+	struct IsWeak {
+		static const bool value = false;
+	};
+
+	template<typename T>
+	constexpr bool IsWeak_v = IsWeak<T>::value;
+
+	template<typename T>
+	struct IsShared<std::weak_ptr<T>, void> {
+		static const bool value = true;
+	};
+
+
+
+
+
 	// helpers
 
 	struct ScopeGuard {

@@ -428,18 +428,18 @@ inline int _itimediff(uint32_t later, uint32_t earlier) {
 //---------------------------------------------------------------------
 typedef struct IKCPSEG IKCPSEG;
 
-void* (*ikcp_malloc_hook)(size_t) = NULL;
-void(*ikcp_free_hook)(void *) = NULL;
+inline void* (*ikcp_malloc_hook)(size_t) = NULL;
+inline void(*ikcp_free_hook)(void *) = NULL;
 
 // internal malloc
-void* ikcp_malloc(size_t size) {
+inline void* ikcp_malloc(size_t size) {
 	if (ikcp_malloc_hook)
 		return ikcp_malloc_hook(size);
 	return malloc(size);
 }
 
 // internal free
-void ikcp_free(void *ptr) {
+inline void ikcp_free(void *ptr) {
 	if (ikcp_free_hook) {
 		ikcp_free_hook(ptr);
 	}
@@ -449,23 +449,23 @@ void ikcp_free(void *ptr) {
 }
 
 // redefine allocator
-void ikcp_allocator(void* (*new_malloc)(size_t), void(*new_free)(void*)) {
+inline void ikcp_allocator(void* (*new_malloc)(size_t), void(*new_free)(void*)) {
 	ikcp_malloc_hook = new_malloc;
 	ikcp_free_hook = new_free;
 }
 
 // allocate a new kcp segment
-IKCPSEG* ikcp_segment_new(ikcpcb *kcp, int size) {
+inline IKCPSEG* ikcp_segment_new(ikcpcb *kcp, int size) {
 	return (IKCPSEG*)ikcp_malloc(sizeof(IKCPSEG) + size);
 }
 
 // delete a segment
-void ikcp_segment_delete(ikcpcb *kcp, IKCPSEG *seg) {
+inline void ikcp_segment_delete(ikcpcb *kcp, IKCPSEG *seg) {
 	ikcp_free(seg);
 }
 
 // write log
-void ikcp_log(ikcpcb *kcp, int mask, const char *fmt, ...) {
+inline void ikcp_log(ikcpcb *kcp, int mask, const char *fmt, ...) {
 	char buffer[1024];
 	va_list argptr;
 	if ((mask & kcp->logmask) == 0 || kcp->writelog == 0) return;
@@ -476,13 +476,13 @@ void ikcp_log(ikcpcb *kcp, int mask, const char *fmt, ...) {
 }
 
 // check log mask
-int ikcp_canlog(const ikcpcb *kcp, int mask) {
+inline int ikcp_canlog(const ikcpcb *kcp, int mask) {
 	if ((mask & kcp->logmask) == 0 || kcp->writelog == NULL) return 0;
 	return 1;
 }
 
 // output segment
-int ikcp_output(ikcpcb *kcp, const void *data, int size) {
+inline int ikcp_output(ikcpcb *kcp, const void *data, int size) {
 	assert(kcp);
 	assert(kcp->output);
 	if (ikcp_canlog(kcp, IKCP_LOG_OUTPUT)) {
@@ -493,7 +493,7 @@ int ikcp_output(ikcpcb *kcp, const void *data, int size) {
 }
 
 // output queue
-void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head) {
+inline void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head) {
 #if 0
 	const struct IQUEUEHEAD *p;
 	printf("<%s>: [", name);

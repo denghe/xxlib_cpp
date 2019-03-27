@@ -562,7 +562,7 @@ namespace xx {
 			this->UvTcp::Dispose(flag);
 			if (flag) {
 				auto holder = shared_from_this();
-				Disconnect();		// maybe unhold memory here
+				Disconnect();
 				OnDisconnect = nullptr;
 				OnReceivePush = nullptr;
 				OnReceiveRequest = nullptr;
