@@ -567,7 +567,7 @@ namespace xx {
 			};
 		};
 
-		explicit Guid(bool const& gen = true) noexcept {
+		explicit Guid(bool const& gen = false) noexcept {
 			if (gen) {
 				Gen();
 			}

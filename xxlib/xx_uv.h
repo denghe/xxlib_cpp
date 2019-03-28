@@ -2,7 +2,7 @@
 #include "uv.h"
 #include "xx_bbuffer.h"
 
-// todo: 简化 tcp dialer 逻辑? 参考 udp dialer ? timeouter 部分可能有问题
+// todo: 简化 tcp dialer 逻辑? 参考 udp dialer ?
 
 #define ENABLE_KCP 1
 
@@ -541,19 +541,19 @@ namespace xx {
 		inline virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept { return OnReceiveRequest ? OnReceiveRequest(serial, std::move(msg)) : 0; };
 
 		inline int SendPush(Object_s const& data) {
-			return SendPackage(data);
+			return this->SendPackage(data);
 		}
 		inline int SendResponse(int32_t const& serial, Object_s const& data, int const& tar = 0) {
-			return SendPackage(data, serial);
+			return this->SendPackage(data, serial);
 		}
 		inline int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS = 0) {
 			if (this->Disposed()) return -1;
 			std::pair<std::function<int(Object_s&& msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
 			if (timeoutMS) {
-				v.second = uv.nowMS + timeoutMS;
+				v.second = this->uv.nowMS + timeoutMS;
 			}
-			if (int r = SendPackage(data, -serial)) return r;
+			if (int r = this->SendPackage(data, -serial)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);
 			return 0;
@@ -561,7 +561,7 @@ namespace xx {
 
 	protected:
 		virtual int HandlePack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept override {
-			auto& recvBB = uv.recvBB;
+			auto& recvBB = this->uv.recvBB;
 			recvBB.Reset((uint8_t*)recvBuf, recvLen);
 
 			int serial = 0;
@@ -984,7 +984,6 @@ namespace xx {
 	};
 
 	struct UvKcpBasePeer : UvUpdate {
-		using UvUpdate::UvUpdate;
 		std::shared_ptr<UvKcpUdp> udp;				// fill by creater
 		Guid guid;									// fill by creater
 		int64_t createMS = 0;						// fill by creater
@@ -994,6 +993,8 @@ namespace xx {
 		sockaddr_in6 addr;							// for Send. fill by owner Unpack
 		std::function<void()> OnDisconnect;
 		inline virtual void Disconnect() noexcept { if (OnDisconnect) OnDisconnect(); }
+
+		UvKcpBasePeer(Uv& uv) : UvUpdate(uv), guid(false) {}
 
 		inline std::string GetIP() {
 			std::string ip;
@@ -1207,7 +1208,7 @@ namespace xx {
 				// ip_port : guid, createMS
 				auto&& iter = shakes.find(ipAndPort);
 				if (iter == shakes.end()) {
-					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(Guid(), uv.nowMS + 3000))).first;	// + 3000: 暂定写死握手 3 秒超时
+					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(Guid(true), uv.nowMS + 3000))).first;	// + 3000: 暂定写死握手 3 秒超时
 				}
 				memcpy(recvBuf + 4, &iter->second.first, 16);	// 序列号携带 guid 一起返回( 这里临时用一下 recvBuf 是安全的, 长度足够 )
 				return this->Send(recvBuf, 20, addr);
@@ -1219,7 +1220,7 @@ namespace xx {
 			}
 
 			// 前 16 字节转为 Guid
-			Guid g(false);
+			Guid g;
 			g.Fill(recvBuf);
 			std::shared_ptr<UvKcpBasePeer> peer;
 
@@ -1323,7 +1324,7 @@ namespace xx {
 			if (!peer) return 0;								// 握手没完成? 忽略
 
 			// 前 16 字节转为 Guid
-			Guid g(false);
+			Guid g;
 			g.Fill(recvBuf);
 			if (peer->guid != g) return 0;						// guid 对不上? 忽略
 
