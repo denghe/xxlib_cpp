@@ -1118,7 +1118,7 @@ namespace xx {
 			auto& sendBB = this->uv.sendBB;
 			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
 			sendBB.Reserve(1024);
-			sendBB.len = sizeof(uv_write_t_ex) + 4;		// skip uv_write_t_ex + header space
+			sendBB.len = 4;		// skip header space
 			sendBB.Write(serial);
 			sendBB.WriteRoot(data);
 			auto buf = sendBB.buf;
