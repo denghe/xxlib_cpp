@@ -1034,15 +1034,13 @@ namespace xx {
 			this->Dispose(0);
 		}
 
-		// called by udp kcp dialer or listener
-		// put data to kcp when udp receive 
+		// called by udp class. put data to kcp when udp receive 
 		inline int Input(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			if (!kcp) return -1;
 			return ikcp_input(kcp, (char*)recvBuf, recvLen);
 		}
 
-		// called by udp kcp dialer or listener
-		// timer call this for recv data from kcp
+		// called by timeouter
 		inline virtual void Update(int64_t const& nowMS) noexcept override {
 			if (!kcp) return;
 			if (this->timeoutMS && this->timeoutMS < nowMS) {
@@ -1051,8 +1049,7 @@ namespace xx {
 			}
 		}
 
-		// called by udp kcp dialer or listener
-		// timer call this for recv data from kcp
+		// called by kcp updater for recv data from kcp
 		inline void UpdateKcp(int64_t const& nowMS) noexcept {
 			if (!kcp) return;
 
@@ -1072,7 +1069,7 @@ namespace xx {
 			} while (true);
 		}
 
-		// put send data into kcp. though ikcp_setoutput func send.
+		// push send data to kcp. though ikcp_setoutput func send.
 		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
 			if (!kcp) return -1;
 			return ikcp_send(kcp, (char*)buf, (int)dataLen);
