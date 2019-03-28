@@ -1121,14 +1121,13 @@ namespace xx {
 			sendBB.len = sizeof(uv_write_t_ex) + 4;		// skip uv_write_t_ex + header space
 			sendBB.Write(serial);
 			sendBB.WriteRoot(data);
-
-			auto buf = sendBB.buf;						// cut buf memory for send
-			auto len = sendBB.len - sizeof(uv_write_t_ex) - 4;
-			sendBB.buf = nullptr;
-			sendBB.len = 0;
-			sendBB.cap = 0;
-
-			return this->Send(buf, (uint32_t)len);
+			auto buf = sendBB.buf;
+			auto len = sendBB.len - 4;
+			buf[0] = uint8_t(len);					// fill package len
+			buf[1] = uint8_t(len >> 8);
+			buf[2] = uint8_t(len >> 16);
+			buf[3] = uint8_t(len >> 24);
+			return this->Send(buf, sendBB.len);
 		}
 	};
 
@@ -1240,6 +1239,7 @@ namespace xx {
 				memcpy(&peer->addr, addr, sizeof(sockaddr_in6));// 更新 peer 的目标 ip 地址
 				if (peer->InitKcp()) return 0;					// 初始化 kcp 失败直接忽略
 				peers[g] = peer;								// 塞字典
+				peer->AddToUpdates();
 				owner->Accept(peer);							// 触发 accept 回调
 			}
 			else {
@@ -1309,6 +1309,7 @@ namespace xx {
 				p->createMS = uv.nowMS;
 				if (p->InitKcp()) return 0;						// 初始化 kcp 失败直接忽略
 				connected = true;								// 标记为已连接
+				p->AddToUpdates();
 				owner->Accept(p);								// cleanup all reqs( 当前 udp 已经 bind 到 kcp 上且 kcp 被 dialer 持有, 并不会被 dispose )
 				return 0;
 			}

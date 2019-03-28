@@ -39,6 +39,7 @@ namespace xx {
 
 			int serial = 0;
 			if (int r = recvBB.Read(serial)) return r;
+			recvBB.readLengthLimit = recvLen;			// 用于 lua 创建时计算 memcpy 读取长度
 
 			if (serial == 0) {
 				return ReceivePush(recvBB);
@@ -140,7 +141,7 @@ namespace xx {
 			buf[1] = uint8_t(len >> 8);
 			buf[2] = uint8_t(len >> 16);
 			buf[3] = uint8_t(len >> 24);
-			return Send(buf, sendBB.len);
+			return this->Send(buf, sendBB.len);
 		}
 	};
 
