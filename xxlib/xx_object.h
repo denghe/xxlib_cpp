@@ -502,7 +502,7 @@ namespace xx {
 
 	template<typename T, typename U>
 	std::shared_ptr<T>& As(std::shared_ptr<U> const& v) {
-		assert(std::dynamic_pointer_cast<T>(v));
+		assert(!v || v && std::dynamic_pointer_cast<T>(v));
 		return *(std::shared_ptr<T>*)&v;
 	}
 	template<typename T, typename U>

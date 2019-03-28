@@ -2,7 +2,7 @@
 #include "uv.h"
 #include "xx_bbuffer.h"
 
-// todo: 简化 tcp dialer 逻辑? 参考 udp dialer ?
+// todo: 简化 tcp dialer 逻辑? 参考 udp dialer ? timeouter 部分可能有问题
 
 #define ENABLE_KCP 1
 
@@ -272,6 +272,7 @@ namespace xx {
 	struct UvResolver : UvItem {
 		uv_getaddrinfo_t_ex* req = nullptr;
 		UvTimer_s timeouter;
+		bool disposed = false;
 		std::vector<std::string> ips;
 		std::function<void()> OnFinish;
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
@@ -280,7 +281,6 @@ namespace xx {
 
 		UvResolver(Uv& uv) noexcept
 			: UvItem(uv) {
-			timeouter = Make<UvTimer>(uv);
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 			hints.ai_family = PF_UNSPEC;
 			hints.ai_socktype = SOCK_STREAM;
@@ -294,39 +294,38 @@ namespace xx {
 		~UvResolver() { this->Dispose(0); }
 
 		inline virtual bool Disposed() const noexcept override {
-			return !timeouter;
+			return disposed;
 		}
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (timeouter) {
-				Cancel();
-				timeouter.reset();
-				if (flag) {
-					auto holder = shared_from_this();
-					OnFinish = nullptr;
-				}
+			if (disposed) return;
+			Cancel();
+			if (flag) {
+				auto holder = shared_from_this();
+				OnFinish = nullptr;
 			}
 		}
 
 		inline void Cancel() {
-			if (!timeouter) return;
+			if (disposed) return;
 			ips.clear();
 			if (req) {
 				uv_cancel((uv_req_t*)req);
 				req = nullptr;
 			}
-			timeouter->Stop();
+			timeouter.reset();
 		}
 
 		inline int Resolve(std::string const& domainName, uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			Cancel();
 			if (timeoutMS) {
-				if (int r = timeouter->Start(timeoutMS, 0, [this] {
+				TryMakeTo(timeouter, uv, timeoutMS, 0, [this] {
 					Cancel();
 					if (OnFinish) {
 						OnFinish();
 					}
-				})) return r;
+				});
+				if (!timeouter) return -2;
 			}
 			auto req = std::make_unique<uv_getaddrinfo_t_ex>();
 			req->resolver_w = As<UvResolver>(shared_from_this());
@@ -406,6 +405,10 @@ namespace xx {
 
 	struct UvTcp : UvUpdate {
 		uv_tcp_t* uvTcp = nullptr;
+		std::string ip;
+		inline std::string GetIP() {
+			return ip;
+		}
 
 		UvTcp(Uv& uv)
 			: UvUpdate(uv) {
@@ -628,7 +631,7 @@ namespace xx {
 		UvTcpPeer(UvTcpPeer const&) = delete;
 		UvTcpPeer& operator=(UvTcpPeer const&) = delete;
 		~UvTcpPeer() {
-			this->Dispose(0); 
+			this->Dispose(0);
 		}
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
@@ -676,6 +679,7 @@ namespace xx {
 				if (uv_accept(server, (uv_stream_t*)peer->uvTcp)) return;
 				if (peer->ReadStart()) return;
 				peer->AddToUpdates();
+				Uv::FillIP(peer->uvTcp, peer->ip);
 				self->Accept(peer);
 			})) throw - 4;
 		};
@@ -711,33 +715,30 @@ namespace xx {
 
 	template<typename PeerType>
 	struct UvTcpDialer : UvItem {
+		using UvItem::UvItem;
 		using ThisType = UvTcpDialer<PeerType>;
 		using ReqType = uv_connect_t_ex<PeerType>;
 		int serial = 0;
 		std::unordered_map<int, ReqType*> reqs;
 		int batchNumber = 0;
 		UvTimer_s timeouter;
+		bool disposed = false;
 		std::shared_ptr<PeerType> peer;
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
 		inline virtual std::shared_ptr<PeerType> CreatePeer() noexcept { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<PeerType>(uv); }
 		std::function<void(std::shared_ptr<PeerType>& peer)> OnAccept;
 		inline virtual void Accept() noexcept { if (OnAccept) OnAccept(peer); }
 
-		UvTcpDialer(Uv& uv)
-			: UvItem(uv) {
-			timeouter = Make<UvTimer>(uv);
-		}
 		UvTcpDialer(UvTcpDialer const&) = delete;
 		UvTcpDialer& operator=(UvTcpDialer const&) = delete;
 		~UvTcpDialer() { this->Dispose(0); }
 
 		inline virtual bool Disposed() const noexcept override {
-			return !timeouter;
+			return disposed;
 		}
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!timeouter) return;
+			if (disposed) return;
 			Cancel();
-			timeouter.reset();
 			if (flag) {
 				auto holder = shared_from_this();
 				OnCreatePeer = nullptr;
@@ -745,18 +746,11 @@ namespace xx {
 			}
 		}
 
-		//// 0: free    1: dialing    2: connected		3: disposed
-		//inline int State() const noexcept {
-		//	if (!timeouter) return 3;
-		//	if (peer && !peer->Disposed()) return 2;
-		//	if (reqs.size()) return 1;
-		//	return 0;
-		//}
-
 		inline int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			if (cleanup) {
 				Cancel();
+				if (int r = SetTimeout(timeoutMS)) return r;
 			}
 
 			sockaddr_in6 addr;
@@ -766,8 +760,6 @@ namespace xx {
 			else {																	// ipv6
 				if (int r = uv_ip6_addr(ip.c_str(), port, &addr)) return r;
 			}
-
-			if (int r = SetTimeout(timeoutMS)) return r;
 
 			auto req = std::make_unique<ReqType>();
 			req->peer = CreatePeer();
@@ -787,6 +779,7 @@ namespace xx {
 				dialer->peer = std::move(req->peer);								// connect success
 				dialer->timeouter.reset();
 				dialer->peer->AddToUpdates();
+				Uv::FillIP(dialer->peer->uvTcp, dialer->peer->ip);
 				dialer->Accept();
 			})) return -3;
 
@@ -795,7 +788,7 @@ namespace xx {
 		}
 
 		inline int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			Cancel();
 			if (int r = SetTimeout(timeoutMS)) return r;
 			for (auto&& ip : ips) {
@@ -804,7 +797,7 @@ namespace xx {
 			return 0;
 		}
 		inline int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			Cancel();
 			if (int r = SetTimeout(timeoutMS)) return r;
 			for (auto&& ipport : ipports) {
@@ -814,8 +807,8 @@ namespace xx {
 		}
 
 		inline void Cancel(bool resetPeer = true) noexcept {
-			if (!timeouter) return;
-			timeouter->Stop();
+			if (disposed) return;
+			timeouter.reset();
 			if (resetPeer) {
 				peer.reset();
 			}
@@ -829,15 +822,14 @@ namespace xx {
 
 	protected:
 		inline int SetTimeout(uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
-			int r = timeouter->Stop();
-			if (!timeoutMS) return r;
-			return timeouter->Start(timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
+			if (disposed) return -1;
+			TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
 				if (auto self = self_w.lock()) {
 					self->Cancel(true);
 					self->Accept();
 				}
-				});
+			});
+			return timeouter ? 0 : -2;
 		}
 	};
 
@@ -857,6 +849,12 @@ namespace xx {
 		uv_udp_t* uvUdp = nullptr;
 		sockaddr_in6 addr;
 		Buffer buf;
+
+		inline std::string GetIP() {
+			std::string ip;
+			Uv::FillIP(addr, ip);
+			return ip;
+		}
 
 		std::function<void()> OnDisconnect;
 		inline virtual void Disconnect() noexcept { if (OnDisconnect) OnDisconnect(); }
@@ -996,6 +994,12 @@ namespace xx {
 		sockaddr_in6 addr;							// for Send. fill by owner Unpack
 		std::function<void()> OnDisconnect;
 		inline virtual void Disconnect() noexcept { if (OnDisconnect) OnDisconnect(); }
+
+		inline std::string GetIP() {
+			std::string ip;
+			Uv::FillIP(addr, ip);
+			return ip;
+		}
 
 		// 填充 udp, guid, createMS, addr 之后调用
 		inline int InitKcp() {
@@ -1376,6 +1380,7 @@ namespace xx {
 		using UvKcpPeerOwner::UvKcpPeerOwner;
 		std::unordered_map<int, std::shared_ptr<UvKcpDialerUdp>> reqs;		// key: port
 		UvTimer_s timeouter;
+		bool disposed = false;
 		std::shared_ptr<PeerType> peer;
 
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
@@ -1386,7 +1391,7 @@ namespace xx {
 			assert(!this->peer);
 			auto&& peer = As<PeerType>(peer_);
 			if (peer) {
-				timeouter->Stop();
+				timeouter.reset();
 				auto&& udp = As<UvKcpDialerUdp>(peer->udp);
 				udp->owner = nullptr;
 				this->peer = std::move(peer);
@@ -1396,18 +1401,14 @@ namespace xx {
 				this->OnAccept(this->peer);
 			}
 		}
-		UvKcpDialer(Uv& uv)
-			: UvKcpPeerOwner(uv) {
-			timeouter = Make<UvTimer>(uv);
-		}
 		~UvKcpDialer() { this->Dispose(0); }
 		virtual bool Disposed() const noexcept override {
-			return !timeouter;
+			return disposed;
 		}
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!timeouter) return;
+			if (disposed) return;
+			disposed = true;
 			Cancel();
-			timeouter.reset();
 			if (flag) {
 				auto holder = shared_from_this();
 				OnCreatePeer = nullptr;
@@ -1416,11 +1417,11 @@ namespace xx {
 		}
 
 		inline int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			if (cleanup) {
 				Cancel();
+				if (int r = SetTimeout(timeoutMS)) return r;
 			}
-			if (int r = SetTimeout(timeoutMS)) return r;
 			auto req = TryMake<UvKcpDialerUdp>(uv, ip, port, false);
 			if (!req) return -2;
 			req->owner = this;
@@ -1432,7 +1433,7 @@ namespace xx {
 		}
 
 		inline int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			Cancel();
 			if (int r = SetTimeout(timeoutMS)) return r;
 			for (auto&& ip : ips) {
@@ -1441,7 +1442,7 @@ namespace xx {
 			return 0;
 		}
 		inline int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
+			if (disposed) return -1;
 			Cancel();
 			if (int r = SetTimeout(timeoutMS)) return r;
 			for (auto&& ipport : ipports) {
@@ -1451,8 +1452,8 @@ namespace xx {
 		}
 
 		inline void Cancel(bool resetPeer = true) noexcept {
-			if (!timeouter) return;
-			timeouter->Stop();
+			if (disposed) return;
+			timeouter.reset();
 			if (resetPeer) {
 				peer.reset();
 			}
@@ -1461,15 +1462,16 @@ namespace xx {
 
 	protected:
 		inline int SetTimeout(uint64_t const& timeoutMS = 0) noexcept {
-			if (!timeouter) return -1;
-			int r = timeouter->Stop();
-			if (!timeoutMS) return r;
-			return timeouter->Start(timeoutMS, 0, [self_w = AsWeak<UvKcpDialer>(shared_from_this())]{
+			if (disposed) return -1;
+			timeouter.reset();
+			if (!timeoutMS) return 0;
+			xx::TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvKcpDialer>(shared_from_this())]{
 				if (auto self = self_w.lock()) {
 					self->Cancel(true);
 					self->Accept(As<UvKcpBasePeer>(self->peer));
 				}
 			});
+			return timeouter ? 0 : -2;
 		}
 	};
 #endif
