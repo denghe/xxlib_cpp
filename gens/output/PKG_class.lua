@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '8a0380cef9eda62800e6c66e92235f9f'
+PKG_PkgGenMd5_Value = '9550604077f71f483abb9f899da07bc2'
 
 --[[
 座位列表
@@ -422,7 +422,7 @@ PKG_CatchFishConfig_SpriteFrame = {
 
 
         --[[
-        基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模 )
+        基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
         ]]
         o.polygons = null -- List_List__xx_Pos__
         --[[
@@ -434,9 +434,9 @@ PKG_CatchFishConfig_SpriteFrame = {
         ]]
         o.lockPoints = null -- List__xx_Pos_
         --[[
-        这一帧切到下一帧后应该移动的距离( 受 Fish.speedScale 影响 )
+        本帧动画切到下一帧动画后应该移动的距离( 受 Fish.speedScale 影响 )
         ]]
-        o.distance = 0 -- Single
+        o.moveDistance = 0 -- Single
         setmetatable( o, PKG_CatchFishConfig_SpriteFrameBase.Create() )
         return o
     end,
@@ -447,7 +447,7 @@ PKG_CatchFishConfig_SpriteFrame = {
         o.polygons = ReadObject( bb )
         o.lockPoint = ReadObject( bb )
         o.lockPoints = ReadObject( bb )
-        o.distance = bb:ReadSingle()
+        o.moveDistance = bb:ReadSingle()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -456,7 +456,7 @@ PKG_CatchFishConfig_SpriteFrame = {
         WriteObject( bb, o.polygons )
         WriteObject( bb, o.lockPoint )
         WriteObject( bb, o.lockPoints )
-        bb:WriteSingle( o.distance )
+        bb:WriteSingle( o.moveDistance )
     end
 }
 BBuffer.Register( PKG_CatchFishConfig_SpriteFrame )
@@ -525,14 +525,14 @@ List__xx_Pos_ = {
 }
 BBuffer.Register( List__xx_Pos_ )
 --[[
-鱼配置信息基类 ( 部分 boss 可能具有更多 frame, state 等配置参数 )
+配置基类
 ]]
-PKG_CatchFishConfig_Fish = {
-    typeName = "PKG_CatchFishConfig_Fish",
+PKG_CatchFishConfig_Base = {
+    typeName = "PKG_CatchFishConfig_Base",
     typeId = 19,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFishConfig_Fish
+        o.__proto = PKG_CatchFishConfig_Base
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -546,124 +546,46 @@ PKG_CatchFishConfig_Fish = {
         ]]
         o.id = 0 -- Int32
         --[[
-        鱼名
+        名称
         ]]
         o.name = null -- String
         --[[
-        金币 / 倍率 ( 最小值 )
-        ]]
-        o.minCoin = 0 -- Int64
-        --[[
-        金币 / 倍率 ( 最大值 )
-        ]]
-        o.maxCoin = 0 -- Int64
-        --[[
-        基于整个鱼的最大晃动范围的圆形碰撞检测半径( 粗判 )
-        ]]
-        o.maxDetectRadius = 0 -- Single
-        --[[
-        鱼移动帧集合
-        ]]
-        o.moveFrames = null -- List_PKG_CatchFishConfig_SpriteFrame_
-        --[[
-        鱼死帧集合
-        ]]
-        o.dieFrames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
-        --[[
-        显示放大系数. 创建精灵时先设起. 后面不用反复改
+        放大系数( 影响各种判定, 坐标计算 )
         ]]
         o.scale = 0 -- Single
         --[[
-        屏幕显示 z 轴( 决定显示覆盖顺序 )
+        初始z轴( 部分 boss 可能临时改变自己的 z )
         ]]
         o.zOrder = 0 -- Int32
         --[[
-        点选优先级说明参数, 越大越优先
+        帧集合 ( 用于贴图动态加载 / 卸载管理. 派生类所有帧都应该在此放一份 )
         ]]
-        o.hitRank = 0 -- Int32
-        --[[
-        影子显示时的放大系数. 平时与 scale 相等. 部分 boss 影子比身体小.
-        ]]
-        o.shadowScale = 0 -- Single
-        --[[
-        影子的偏移坐标
-        ]]
-        o.shadowOffset = null -- _xx_Pos
+        o.frames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
         return o
     end,
     FromBBuffer = function( bb, o )
         local ReadInt32 = bb.ReadInt32
         local ReadObject = bb.ReadObject
-        local ReadInt64 = bb.ReadInt64
-        local ReadSingle = bb.ReadSingle
         o.id = ReadInt32( bb )
         o.name = ReadObject( bb )
-        o.minCoin = ReadInt64( bb )
-        o.maxCoin = ReadInt64( bb )
-        o.maxDetectRadius = ReadSingle( bb )
-        o.moveFrames = ReadObject( bb )
-        o.dieFrames = ReadObject( bb )
-        o.scale = ReadSingle( bb )
+        o.scale = bb:ReadSingle()
         o.zOrder = ReadInt32( bb )
-        o.hitRank = ReadInt32( bb )
-        o.shadowScale = ReadSingle( bb )
-        o.shadowOffset = ReadObject( bb )
+        o.frames = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
         local WriteInt32 = bb.WriteInt32
         local WriteObject = bb.WriteObject
-        local WriteInt64 = bb.WriteInt64
-        local WriteSingle = bb.WriteSingle
         WriteInt32( bb, o.id )
         WriteObject( bb, o.name )
-        WriteInt64( bb, o.minCoin )
-        WriteInt64( bb, o.maxCoin )
-        WriteSingle( bb, o.maxDetectRadius )
-        WriteObject( bb, o.moveFrames )
-        WriteObject( bb, o.dieFrames )
-        WriteSingle( bb, o.scale )
+        bb:WriteSingle( o.scale )
         WriteInt32( bb, o.zOrder )
-        WriteInt32( bb, o.hitRank )
-        WriteSingle( bb, o.shadowScale )
-        WriteObject( bb, o.shadowOffset )
+        WriteObject( bb, o.frames )
     end
 }
-BBuffer.Register( PKG_CatchFishConfig_Fish )
-List_PKG_CatchFishConfig_SpriteFrame_ = {
-    typeName = "List_PKG_CatchFishConfig_SpriteFrame_",
-    typeId = 20,
-    Create = function()
-        local o = {}
-        o.__proto = List_PKG_CatchFishConfig_SpriteFrame_
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-		local len = bb:ReadUInt32()
-        local f = BBuffer.ReadObject
-		for i = 1, len do
-			o[ i ] = f( bb )
-		end
-    end,
-    ToBBuffer = function( bb, o )
-        local len = #o
-		bb:WriteUInt32( len )
-        local f = BBuffer.WriteObject
-        for i = 1, len do
-			f( bb, o[ i ] )
-		end
-    end
-}
-BBuffer.Register( List_PKG_CatchFishConfig_SpriteFrame_ )
+BBuffer.Register( PKG_CatchFishConfig_Base )
 List_PKG_CatchFishConfig_SpriteFrameBase_ = {
     typeName = "List_PKG_CatchFishConfig_SpriteFrameBase_",
-    typeId = 21,
+    typeId = 20,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFishConfig_SpriteFrameBase_
@@ -693,9 +615,128 @@ List_PKG_CatchFishConfig_SpriteFrameBase_ = {
     end
 }
 BBuffer.Register( List_PKG_CatchFishConfig_SpriteFrameBase_ )
+--[[
+鱼配置基类 ( 派生类中不再包含 sprite frame 相关, 以便于资源加载管理扫描 )
+]]
+PKG_CatchFishConfig_Fish = {
+    typeName = "PKG_CatchFishConfig_Fish",
+    typeId = 21,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFishConfig_Fish
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        金币 / 倍率随机范围 ( 最小值 )
+        ]]
+        o.minCoin = 0 -- Int64
+        --[[
+        金币 / 倍率随机范围 ( 最大值 )
+        ]]
+        o.maxCoin = 0 -- Int64
+        --[[
+        基于整个鱼的最大晃动范围的圆形碰撞检测半径( 粗判 )
+        ]]
+        o.maxDetectRadius = 0 -- Single
+        --[[
+        移动帧集合 ( 部分鱼可能具有多种移动状态, 硬编码确定下标范围 )
+        ]]
+        o.moveFrames = null -- List_PKG_CatchFishConfig_SpriteFrame_
+        --[[
+        鱼死帧集合
+        ]]
+        o.dieFrames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
+        --[[
+        点选优先级说明参数, 越大越优先
+        ]]
+        o.touchRank = 0 -- Int32
+        --[[
+        影子显示时的放大系数. 平时与 scale 相等. 部分 boss 影子比身体小.
+        ]]
+        o.shadowScale = 0 -- Single
+        --[[
+        影子的偏移坐标
+        ]]
+        o.shadowOffset = null -- _xx_Pos
+        setmetatable( o, PKG_CatchFishConfig_Base.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt64 = bb.ReadInt64
+        local ReadSingle = bb.ReadSingle
+        local ReadObject = bb.ReadObject
+        o.minCoin = ReadInt64( bb )
+        o.maxCoin = ReadInt64( bb )
+        o.maxDetectRadius = ReadSingle( bb )
+        o.moveFrames = ReadObject( bb )
+        o.dieFrames = ReadObject( bb )
+        o.touchRank = bb:ReadInt32()
+        o.shadowScale = ReadSingle( bb )
+        o.shadowOffset = ReadObject( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt64 = bb.WriteInt64
+        local WriteSingle = bb.WriteSingle
+        local WriteObject = bb.WriteObject
+        WriteInt64( bb, o.minCoin )
+        WriteInt64( bb, o.maxCoin )
+        WriteSingle( bb, o.maxDetectRadius )
+        WriteObject( bb, o.moveFrames )
+        WriteObject( bb, o.dieFrames )
+        bb:WriteInt32( o.touchRank )
+        WriteSingle( bb, o.shadowScale )
+        WriteObject( bb, o.shadowOffset )
+    end
+}
+BBuffer.Register( PKG_CatchFishConfig_Fish )
+List_PKG_CatchFishConfig_SpriteFrame_ = {
+    typeName = "List_PKG_CatchFishConfig_SpriteFrame_",
+    typeId = 22,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFishConfig_SpriteFrame_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadObject
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteObject
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFishConfig_SpriteFrame_ )
+--[[
+炮台 & 子弹配置基类
+]]
 PKG_CatchFishConfig_Cannon = {
     typeName = "PKG_CatchFishConfig_Cannon",
-    typeId = 22,
+    typeId = 23,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFishConfig_Cannon
@@ -708,31 +749,65 @@ PKG_CatchFishConfig_Cannon = {
 
 
         --[[
-        配置id
+        炮管默认角度
         ]]
-        o.id = 0 -- Int32
+        o.angle = 0 -- Int32
         --[[
-        对应子弹的配置
+        炮口于座位坐标的距离 ( 适合大部分炮台 )
         ]]
-        o.bullet = null -- PKG_CatchFishConfig_Bullet
+        o.muzzleDistance = 0 -- Single
+        --[[
+        拥有的数量( -1: 无限 )
+        ]]
+        o.bulletQuantity = 0 -- Int32
+        --[[
+        同屏颗数限制 ( 到达上限就不允许继续发射 )
+        ]]
+        o.numBulletLimit = 0 -- Int32
+        --[[
+        发射间隔帧数
+        ]]
+        o.shootCD = 0 -- Int32
+        --[[
+        帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
+        ]]
+        o.frames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
+        setmetatable( o, PKG_CatchFishConfig_Base.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        o.id = bb:ReadInt32()
-        o.bullet = bb:ReadObject()
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
+        o.angle = ReadInt32( bb )
+        o.muzzleDistance = bb:ReadSingle()
+        o.bulletQuantity = ReadInt32( bb )
+        o.numBulletLimit = ReadInt32( bb )
+        o.shootCD = ReadInt32( bb )
+        o.frames = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        bb:WriteInt32( o.id )
-        bb:WriteObject( o.bullet )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.angle )
+        bb:WriteSingle( o.muzzleDistance )
+        WriteInt32( bb, o.bulletQuantity )
+        WriteInt32( bb, o.numBulletLimit )
+        WriteInt32( bb, o.shootCD )
+        bb:WriteObject( o.frames )
     end
 }
 BBuffer.Register( PKG_CatchFishConfig_Cannon )
-PKG_CatchFishConfig_Bullet = {
-    typeName = "PKG_CatchFishConfig_Bullet",
-    typeId = 23,
+--[[
+打爆部分特殊鱼出现的特殊武器配置基类
+]]
+PKG_CatchFishConfig_Weapon = {
+    typeName = "PKG_CatchFishConfig_Weapon",
+    typeId = 24,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFishConfig_Bullet
+        o.__proto = PKG_CatchFishConfig_Weapon
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -742,51 +817,44 @@ PKG_CatchFishConfig_Bullet = {
 
 
         --[[
-        配置id
+        每帧移动距离
         ]]
-        o.id = 0 -- Int32
+        o.distance = 0 -- Single
         --[[
-        开火火焰帧集合
+        展示时长 ( 帧数 )
         ]]
-        o.fireFrames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
+        o.showNumFrames = 0 -- Single
         --[[
-        子弹移动帧集合
+        飞到玩家坐标之后变化出来的炮台 cfg 之基类
         ]]
-        o.moveFrames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
-        --[[
-        子弹爆炸帧集合
-        ]]
-        o.boomFrames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
-        --[[
-        渔网帧集合
-        ]]
-        o.fishingNetsFrames = null -- List_PKG_CatchFishConfig_SpriteFrameBase_
+        o.cannon = null -- PKG_CatchFishConfig_Cannon
+        setmetatable( o, PKG_CatchFishConfig_Base.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadObject = bb.ReadObject
-        o.id = bb:ReadInt32()
-        o.fireFrames = ReadObject( bb )
-        o.moveFrames = ReadObject( bb )
-        o.boomFrames = ReadObject( bb )
-        o.fishingNetsFrames = ReadObject( bb )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadSingle = bb.ReadSingle
+        o.distance = ReadSingle( bb )
+        o.showNumFrames = ReadSingle( bb )
+        o.cannon = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        local WriteObject = bb.WriteObject
-        bb:WriteInt32( o.id )
-        WriteObject( bb, o.fireFrames )
-        WriteObject( bb, o.moveFrames )
-        WriteObject( bb, o.boomFrames )
-        WriteObject( bb, o.fishingNetsFrames )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteSingle = bb.WriteSingle
+        WriteSingle( bb, o.distance )
+        WriteSingle( bb, o.showNumFrames )
+        bb:WriteObject( o.cannon )
     end
 }
-BBuffer.Register( PKG_CatchFishConfig_Bullet )
+BBuffer.Register( PKG_CatchFishConfig_Weapon )
 --[[
 游戏配置信息( 配置信息并不会随着网络同步而下发, 反序列化后需要手工还原 )
 ]]
 PKG_CatchFishConfig_Config = {
     typeName = "PKG_CatchFishConfig_Config",
-    typeId = 24,
+    typeId = 25,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFishConfig_Config
@@ -807,28 +875,40 @@ PKG_CatchFishConfig_Config = {
         ]]
         o.cannons = null -- List_PKG_CatchFishConfig_Cannon_
         --[[
+        所有炮台的配置信息
+        ]]
+        o.weapons = null -- List_PKG_CatchFishConfig_Weapon_
+        --[[
         基于设计尺寸为 1280 x 720, 屏中心为 0,0 点的 4 个玩家炮台的坐标( 0: 左下  1: 右下    2: 右上  3: 左上 )
         ]]
         o.sitPositons = null -- List__xx_Pos_
+        --[[
+        锁定点击范围 ( 将枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )
+        ]]
+        o.aimTouchRadius = 0 -- Single
         return o
     end,
     FromBBuffer = function( bb, o )
         local ReadObject = bb.ReadObject
         o.fishs = ReadObject( bb )
         o.cannons = ReadObject( bb )
+        o.weapons = ReadObject( bb )
         o.sitPositons = ReadObject( bb )
+        o.aimTouchRadius = bb:ReadSingle()
     end,
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
         WriteObject( bb, o.fishs )
         WriteObject( bb, o.cannons )
+        WriteObject( bb, o.weapons )
         WriteObject( bb, o.sitPositons )
+        bb:WriteSingle( o.aimTouchRadius )
     end
 }
 BBuffer.Register( PKG_CatchFishConfig_Config )
 List_PKG_CatchFishConfig_Fish_ = {
     typeName = "List_PKG_CatchFishConfig_Fish_",
-    typeId = 25,
+    typeId = 26,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFishConfig_Fish_
@@ -860,7 +940,7 @@ List_PKG_CatchFishConfig_Fish_ = {
 BBuffer.Register( List_PKG_CatchFishConfig_Fish_ )
 List_PKG_CatchFishConfig_Cannon_ = {
     typeName = "List_PKG_CatchFishConfig_Cannon_",
-    typeId = 26,
+    typeId = 27,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFishConfig_Cannon_
@@ -890,12 +970,44 @@ List_PKG_CatchFishConfig_Cannon_ = {
     end
 }
 BBuffer.Register( List_PKG_CatchFishConfig_Cannon_ )
+List_PKG_CatchFishConfig_Weapon_ = {
+    typeName = "List_PKG_CatchFishConfig_Weapon_",
+    typeId = 42,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFishConfig_Weapon_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadObject
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteObject
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFishConfig_Weapon_ )
 --[[
 场景基础配置参数 ( 主要来自 db )
 ]]
 PKG_CatchFish_SceneConfig = {
     typeName = "PKG_CatchFish_SceneConfig",
-    typeId = 27,
+    typeId = 28,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_SceneConfig
@@ -972,7 +1084,7 @@ BBuffer.Register( PKG_CatchFish_SceneConfig )
 ]]
 PKG_CatchFish_Scene = {
     typeName = "PKG_CatchFish_Scene",
-    typeId = 28,
+    typeId = 29,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Scene
@@ -1046,7 +1158,7 @@ PKG_CatchFish_Scene = {
 BBuffer.Register( PKG_CatchFish_Scene )
 _xx_Random = {
     typeName = "_xx_Random",
-    typeId = 29,
+    typeId = 30,
     Create = function()
         local o = {}
         o.__proto = _xx_Random
@@ -1068,7 +1180,7 @@ _xx_Random = {
 BBuffer.Register( _xx_Random )
 List_PKG_CatchFish_Fish_ = {
     typeName = "List_PKG_CatchFish_Fish_",
-    typeId = 30,
+    typeId = 31,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Fish_
@@ -1099,11 +1211,11 @@ List_PKG_CatchFish_Fish_ = {
 }
 BBuffer.Register( List_PKG_CatchFish_Fish_ )
 --[[
-鱼基类
+鱼基类 ( 下列属性适合大多数鱼, 不一定适合部分 boss )
 ]]
 PKG_CatchFish_Fish = {
     typeName = "PKG_CatchFish_Fish",
-    typeId = 31,
+    typeId = 32,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Fish
@@ -1116,19 +1228,7 @@ PKG_CatchFish_Fish = {
 
 
         --[[
-        自增id
-        ]]
-        o.id = 0 -- Int32
-        --[[
-        位于容器时的下标 ( 用于快速交换删除 )
-        ]]
-        o.indexAtContainer = 0 -- Int32
-        --[[
-        中心点坐标
-        ]]
-        o.pos = null -- _xx_Pos
-        --[[
-        配置id( 用来还原配置 )
+        配置id
         ]]
         o.cfgId = 0 -- Int32
         --[[
@@ -1139,25 +1239,22 @@ PKG_CatchFish_Fish = {
         碰撞 | 显示 体积系数 ( 默认为 1 )
         ]]
         o.sizeScale = 0 -- Single
+        setmetatable( o, PKG_CatchFish_MoveObject.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadInt32 = bb.ReadInt32
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
         local ReadSingle = bb.ReadSingle
-        o.id = ReadInt32( bb )
-        o.indexAtContainer = ReadInt32( bb )
-        o.pos = bb:ReadObject()
-        o.cfgId = ReadInt32( bb )
+        o.cfgId = bb:ReadInt32()
         o.speedScale = ReadSingle( bb )
         o.sizeScale = ReadSingle( bb )
     end,
     ToBBuffer = function( bb, o )
-        local WriteInt32 = bb.WriteInt32
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
         local WriteSingle = bb.WriteSingle
-        WriteInt32( bb, o.id )
-        WriteInt32( bb, o.indexAtContainer )
-        bb:WriteObject( o.pos )
-        WriteInt32( bb, o.cfgId )
+        bb:WriteInt32( o.cfgId )
         WriteSingle( bb, o.speedScale )
         WriteSingle( bb, o.sizeScale )
     end
@@ -1165,7 +1262,7 @@ PKG_CatchFish_Fish = {
 BBuffer.Register( PKG_CatchFish_Fish )
 List_PKG_CatchFish_Sits_ = {
     typeName = "List_PKG_CatchFish_Sits_",
-    typeId = 32,
+    typeId = 33,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Sits_
@@ -1197,7 +1294,7 @@ List_PKG_CatchFish_Sits_ = {
 BBuffer.Register( List_PKG_CatchFish_Sits_ )
 List_Ref_PKG_CatchFish_Player_ = {
     typeName = "List_Ref_PKG_CatchFish_Player_",
-    typeId = 33,
+    typeId = 34,
     Create = function()
         local o = {}
         o.__proto = List_Ref_PKG_CatchFish_Player_
@@ -1232,7 +1329,7 @@ BBuffer.Register( List_Ref_PKG_CatchFish_Player_ )
 ]]
 PKG_CatchFish_Cannon = {
     typeName = "PKG_CatchFish_Cannon",
-    typeId = 34,
+    typeId = 35,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Cannon
@@ -1278,7 +1375,7 @@ PKG_CatchFish_Cannon = {
 BBuffer.Register( PKG_CatchFish_Cannon )
 List_PKG_CatchFish_Bullet_ = {
     typeName = "List_PKG_CatchFish_Bullet_",
-    typeId = 35,
+    typeId = 36,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Bullet_
@@ -1313,7 +1410,7 @@ BBuffer.Register( List_PKG_CatchFish_Bullet_ )
 ]]
 PKG_CatchFish_Bullet = {
     typeName = "PKG_CatchFish_Bullet",
-    typeId = 36,
+    typeId = 37,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Bullet
@@ -1326,18 +1423,6 @@ PKG_CatchFish_Bullet = {
 
 
         --[[
-        自增id
-        ]]
-        o.id = 0 -- Int32
-        --[[
-        位于容器时的下标 ( 用于快速交换删除 )
-        ]]
-        o.indexAtContainer = 0 -- Int32
-        --[[
-        中心点坐标
-        ]]
-        o.pos = null -- _xx_Pos
-        --[[
         每帧的直线移动坐标增量( 60fps )
         ]]
         o.moveInc = null -- _xx_Pos
@@ -1345,24 +1430,19 @@ PKG_CatchFish_Bullet = {
         金币 / 倍率( 记录炮台开火时的 Bet 值 )
         ]]
         o.coin = 0 -- Int64
+        setmetatable( o, PKG_CatchFish_MoveObject.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadInt32 = bb.ReadInt32
-        local ReadObject = bb.ReadObject
-        o.id = ReadInt32( bb )
-        o.indexAtContainer = ReadInt32( bb )
-        o.pos = ReadObject( bb )
-        o.moveInc = ReadObject( bb )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        o.moveInc = bb:ReadObject()
         o.coin = bb:ReadInt64()
     end,
     ToBBuffer = function( bb, o )
-        local WriteInt32 = bb.WriteInt32
-        local WriteObject = bb.WriteObject
-        WriteInt32( bb, o.id )
-        WriteInt32( bb, o.indexAtContainer )
-        WriteObject( bb, o.pos )
-        WriteObject( bb, o.moveInc )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        bb:WriteObject( o.moveInc )
         bb:WriteInt64( o.coin )
     end
 }
@@ -1372,7 +1452,7 @@ BBuffer.Register( PKG_CatchFish_Bullet )
 ]]
 PKG_CatchFish_Player = {
     typeName = "PKG_CatchFish_Player",
-    typeId = 37,
+    typeId = 38,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Player
@@ -1419,17 +1499,17 @@ PKG_CatchFish_Player = {
         --[[
         破产标识 ( 每帧开始检测一次是否破产, 是就标记之 )
         ]]
-        o.isBankRuptcy = false -- Boolean
+        o.dead = false -- Boolean
         --[[
-        开火锁定状态
+        自动锁定状态
         ]]
-        o.fireLocking = false -- Boolean
+        o.autoLock = false -- Boolean
         --[[
         自动开火状态
         ]]
-        o.automating = false -- Boolean
+        o.autoFire = false -- Boolean
         --[[
-        开火锁定瞄准的鱼
+        锁定瞄准的鱼
         ]]
         o.aimFish = MakeRef() -- Ref_PKG_CatchFish_Fish
         --[[
@@ -1455,9 +1535,9 @@ PKG_CatchFish_Player = {
         o.coin = ReadInt64( bb )
         o.scene = MakeRef( ReadObject( bb ) )
         o.sit = ReadInt32( bb )
-        o.isBankRuptcy = ReadBoolean( bb )
-        o.fireLocking = ReadBoolean( bb )
-        o.automating = ReadBoolean( bb )
+        o.dead = ReadBoolean( bb )
+        o.autoLock = ReadBoolean( bb )
+        o.autoFire = ReadBoolean( bb )
         o.aimFish = MakeRef( ReadObject( bb ) )
         o.autoIncId = ReadInt32( bb )
         o.cannons = ReadObject( bb )
@@ -1475,9 +1555,9 @@ PKG_CatchFish_Player = {
         WriteInt64( bb, o.coin )
         WriteObject( bb, o.scene.Lock() )
         WriteInt32( bb, o.sit )
-        WriteBoolean( bb, o.isBankRuptcy )
-        WriteBoolean( bb, o.fireLocking )
-        WriteBoolean( bb, o.automating )
+        WriteBoolean( bb, o.dead )
+        WriteBoolean( bb, o.autoLock )
+        WriteBoolean( bb, o.autoFire )
         WriteObject( bb, o.aimFish.Lock() )
         WriteInt32( bb, o.autoIncId )
         WriteObject( bb, o.cannons )
@@ -1486,7 +1566,7 @@ PKG_CatchFish_Player = {
 BBuffer.Register( PKG_CatchFish_Player )
 List_PKG_CatchFish_Cannon_ = {
     typeName = "List_PKG_CatchFish_Cannon_",
-    typeId = 38,
+    typeId = 39,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Cannon_
@@ -1521,7 +1601,7 @@ BBuffer.Register( List_PKG_CatchFish_Cannon_ )
 ]]
 PKG_CatchFish_MoveObject = {
     typeName = "PKG_CatchFish_MoveObject",
-    typeId = 39,
+    typeId = 40,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_MoveObject
@@ -1545,6 +1625,10 @@ PKG_CatchFish_MoveObject = {
         中心点坐标
         ]]
         o.pos = null -- _xx_Pos
+        --[[
+        当前角度
+        ]]
+        o.angle = 0 -- Single
         return o
     end,
     FromBBuffer = function( bb, o )
@@ -1552,21 +1636,23 @@ PKG_CatchFish_MoveObject = {
         o.id = ReadInt32( bb )
         o.indexAtContainer = ReadInt32( bb )
         o.pos = bb:ReadObject()
+        o.angle = bb:ReadSingle()
     end,
     ToBBuffer = function( bb, o )
         local WriteInt32 = bb.WriteInt32
         WriteInt32( bb, o.id )
         WriteInt32( bb, o.indexAtContainer )
         bb:WriteObject( o.pos )
+        bb:WriteSingle( o.angle )
     end
 }
 BBuffer.Register( PKG_CatchFish_MoveObject )
 --[[
-武器 ( 有一些特殊鱼死后会变做 某种武器的长相，并花一段世家飞向玩家炮台 )
+武器基类 ( 有一些特殊鱼死后会变做 某种武器的长相，并花一段世家飞向玩家炮台 )
 ]]
 PKG_CatchFish_Weapon = {
     typeName = "PKG_CatchFish_Weapon",
-    typeId = 40,
+    typeId = 41,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Weapon
@@ -1578,11 +1664,22 @@ PKG_CatchFish_Weapon = {
 		end
 
 
+        --[[
+        配置id
+        ]]
+        o.cfgId = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_MoveObject.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        o.cfgId = bb:ReadInt32()
     end,
     ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        bb:WriteInt32( o.cfgId )
     end
 }
 BBuffer.Register( PKG_CatchFish_Weapon )

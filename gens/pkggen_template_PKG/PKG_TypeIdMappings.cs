@@ -36,48 +36,52 @@ interface ITypeIdMappings
 
     List<xx.Pos> _18 { get; }
 
-    CatchFishConfig.Fish _19 { get; }
+    CatchFishConfig.Base _19 { get; }
 
-    List<CatchFishConfig.SpriteFrame> _20 { get; }
+    List<CatchFishConfig.SpriteFrameBase> _20 { get; }
 
-    List<CatchFishConfig.SpriteFrameBase> _21 { get; }
+    CatchFishConfig.Fish _21 { get; }
 
-    CatchFishConfig.Cannon _22 { get; }
+    List<CatchFishConfig.SpriteFrame> _22 { get; }
 
-    CatchFishConfig.Bullet _23 { get; }
+    CatchFishConfig.Cannon _23 { get; }
 
-    CatchFishConfig.Config _24 { get; }
+    CatchFishConfig.Weapon _24 { get; }
 
-    List<CatchFishConfig.Fish> _25 { get; }
+    CatchFishConfig.Config _25 { get; }
 
-    List<CatchFishConfig.Cannon> _26 { get; }
+    List<CatchFishConfig.Fish> _26 { get; }
 
-    CatchFish.SceneConfig _27 { get; }
+    List<CatchFishConfig.Cannon> _27 { get; }
 
-    CatchFish.Scene _28 { get; }
+    List<CatchFishConfig.Weapon> _42 { get; }
 
-    xx.Random _29 { get; }
+    CatchFish.SceneConfig _28 { get; }
 
-    List<CatchFish.Fish> _30 { get; }
+    CatchFish.Scene _29 { get; }
 
-    CatchFish.Fish _31 { get; }
+    xx.Random _30 { get; }
 
-    List<CatchFish.Sits> _32 { get; }
+    List<CatchFish.Fish> _31 { get; }
 
-    List<Weak<CatchFish.Player>> _33 { get; }
+    CatchFish.Fish _32 { get; }
 
-    CatchFish.Cannon _34 { get; }
+    List<CatchFish.Sits> _33 { get; }
 
-    List<CatchFish.Bullet> _35 { get; }
+    List<Weak<CatchFish.Player>> _34 { get; }
 
-    CatchFish.Bullet _36 { get; }
+    CatchFish.Cannon _35 { get; }
 
-    CatchFish.Player _37 { get; }
+    List<CatchFish.Bullet> _36 { get; }
 
-    List<CatchFish.Cannon> _38 { get; }
+    CatchFish.Bullet _37 { get; }
 
-    CatchFish.MoveObject _39 { get; }
+    CatchFish.Player _38 { get; }
 
-    CatchFish.Weapon _40 { get; }
+    List<CatchFish.Cannon> _39 { get; }
+
+    CatchFish.MoveObject _40 { get; }
+
+    CatchFish.Weapon _41 { get; }
 
 }
