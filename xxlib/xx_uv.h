@@ -703,6 +703,7 @@ namespace xx {
 		uv_connect_t req;
 		std::shared_ptr<PeerType> peer;
 		std::weak_ptr<UvTcpDialer<PeerType>> dialer_w;
+		bool finished = false;
 	};
 
 	template<typename PeerType>
@@ -762,15 +763,15 @@ namespace xx {
 
 			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)&addr, [](uv_connect_t* conn, int status) {
 				auto req = std::unique_ptr<ReqType>(container_of(conn, ReqType, req));	// auto delete when return
-				if (!req->peer) return;													// canceled
+				if (req->finished) return;												// canceled
+				req->finished = true;													// set flag
 				auto dialer = req->dialer_w.lock();
 				if (!dialer) return;													// container disposed
 				if (status) return;														// error or -4081 canceled
-
 				if (req->peer->ReadStart()) return;										// read error
-				dialer->peer.reset();
+
+				dialer->Cancel();														// cancel other reqs
 				dialer->peer = std::move(req->peer);									// store peer
-				dialer->Cancel(false);													// cancel all reqs
 				dialer->peer->AddToUpdates();
 				Uv::FillIP(dialer->peer->uvTcp, dialer->peer->ip);
 				dialer->Accept();														// callback
@@ -807,8 +808,8 @@ namespace xx {
 				peer.reset();
 			}
 			for (auto&& req : reqs) {
-				if (req->peer) {
-					req->peer.reset();
+				if (!req->finished) {
+					req->finished = true;
 					uv_cancel((uv_req_t*)&req->req);
 				}
 			}
