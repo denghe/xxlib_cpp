@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "uv.h"
 #include "xx_bbuffer.h"
 
@@ -86,7 +86,7 @@ namespace xx {
 		inline static int FillIP(sockaddr_in6& saddr, std::string& ip, bool includePort = true) noexcept {
 			ip.resize(64);
 			if (saddr.sin6_family == AF_INET6) {
-				if (int r = uv_ip6_name(&saddr, ip.data(), ip.size())) return r;
+				if (int r = uv_ip6_name(&saddr, (char*)ip.data(), ip.size())) return r;
 				ip.resize(strlen(ip.data()));
 				if (includePort) {
 					ip.append(":");
@@ -94,7 +94,7 @@ namespace xx {
 				}
 			}
 			else {
-				if (int r = uv_ip4_name((sockaddr_in*)&saddr, ip.data(), ip.size())) return r;
+				if (int r = uv_ip4_name((sockaddr_in*)&saddr, (char*)ip.data(), ip.size())) return r;
 				ip.resize(strlen(ip.data()));
 				if (includePort) {
 					ip.append(":");
@@ -112,7 +112,7 @@ namespace xx {
 		}
 		inline static std::string ToIpPortString(sockaddr const* const& addr, bool includePort = true) noexcept {
 			sockaddr_in6 a;
-			memcpy(&a, addr, sizeof(addr));
+			memcpy(&a, addr, sizeof(a));
 			std::string ipAndPort;
 			Uv::FillIP(a, ipAndPort, includePort);
 			return ipAndPort;
@@ -341,10 +341,10 @@ namespace xx {
 				do {
 					s.resize(64);
 					if (ai->ai_addr->sa_family == AF_INET6) {
-						uv_ip6_name((sockaddr_in6*)ai->ai_addr, s.data(), s.size());
+						uv_ip6_name((sockaddr_in6*)ai->ai_addr, (char*)s.data(), s.size());
 					}
 					else {
-						uv_ip4_name((sockaddr_in*)ai->ai_addr, s.data(), s.size());
+						uv_ip4_name((sockaddr_in*)ai->ai_addr, (char*)s.data(), s.size());
 					}
 					s.resize(strlen(s.data()));
 
@@ -362,7 +362,7 @@ namespace xx {
 
 			}, domainName.c_str(), nullptr,
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-			(const addrinfo*)hints
+			(const addrinfo*)&hints
 #else
 				nullptr
 #endif
@@ -984,6 +984,7 @@ namespace xx {
 	};
 
 	struct UvKcpBasePeer : UvUpdate {
+		using UvUpdate::UvUpdate;
 		std::shared_ptr<UvKcpUdp> udp;				// fill by creater
 		Guid guid;									// fill by creater
 		int64_t createMS = 0;						// fill by creater
@@ -993,8 +994,6 @@ namespace xx {
 		sockaddr_in6 addr;							// for Send. fill by owner Unpack
 		std::function<void()> OnDisconnect;
 		inline virtual void Disconnect() noexcept { if (OnDisconnect) OnDisconnect(); }
-
-		UvKcpBasePeer(Uv& uv) : UvUpdate(uv), guid(false) {}
 
 		inline std::string GetIP() {
 			std::string ip;

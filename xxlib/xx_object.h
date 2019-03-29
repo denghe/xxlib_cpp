@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
@@ -46,6 +46,12 @@ namespace std
 	inline constexpr bool is_unsigned_v = is_unsigned<T>::value;
 	template<class T>
 	inline constexpr bool is_enum_v = is_enum<T>::value;
+    template<class T>
+    inline constexpr bool is_pod_v = is_pod<T>::value;
+    template<class T>
+    inline constexpr bool is_signed_v = is_signed<T>::value;
+    template<class T>
+    inline constexpr bool is_trivial_v = is_trivial<T>::value;
 	template<class T>
 	inline constexpr bool is_pointer_v = is_pointer<T>::value;
 	template<class T1, class T2>
@@ -610,7 +616,7 @@ namespace xx {
 		static inline void WriteTo(std::string& s, Guid const& in) noexcept {
 			auto offset = s.size();
 			s.resize(offset + 37);
-			snprintf(s.data() + offset, 37,
+			snprintf((char*)s.data() + offset, 37,
 				"%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
 				in.data1, in.data2, in.data3,
 				in.data4[0], in.data4[1],
