@@ -1,11 +1,7 @@
-#pragma once
+﻿#pragma once
 #include "uv.h"
 #include "xx_bbuffer.h"
-
-// todo: 简化 tcp dialer 逻辑? 参考 udp dialer ?
-
 #define ENABLE_KCP 1
-
 #if ENABLE_KCP
 #include "ikcp.h"
 #endif
@@ -17,14 +13,14 @@ namespace xx {
 		uv_loop_t uvLoop;
 		BBuffer recvBB;						// shared deserialization for package receive. direct replace buf when using
 		BBuffer sendBB;						// shared serialization for package send
-		std::unordered_map<int, std::weak_ptr<UvUpdate>> updates;
+		std::unordered_map<int, std::weak_ptr<UvUpdate>> updates;	// key: autoId
 		std::shared_ptr<UvTimer> updater;	// for live or rpc timeout check. interval: 200ms 
 		int64_t nowMS = 0;					// NowSteadyEpochMS cache
-		int autoId = 0;						// updater key, udp dialer port 生成: --autoId
+		int autoId = 0;						// updater key, udp dialer port gen: --autoId
 
 #if ENABLE_KCP
 		std::array<char, 65536> recvBuf;	// shared receive buf for kcp
-		std::unordered_map<int, std::weak_ptr<UvUpdate>> udps;	// key: port
+		std::unordered_map<int, std::weak_ptr<UvUpdate>> udps;	// key: port( dialer peer port = autoId )
 		std::shared_ptr<UvTimer> kcpUpdater;// call kcp update & udp hand shake. interval: 10ms
 #endif
 
@@ -39,11 +35,9 @@ namespace xx {
 			kcpUpdater.reset();
 #endif
 			int r = uv_run(&uvLoop, UV_RUN_DEFAULT);
-			//Cout("~UvLooop() uv_run return ", r);
 			assert(!r);
 			r = uv_loop_close(&uvLoop);
 			assert(!r);
-			//Cout(", uv_loop_close return ", r, "\n");
 		}
 
 		inline int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
@@ -334,6 +328,7 @@ namespace xx {
 				if (status) return;													// error or -4081 canceled
 				auto resolver = req->resolver_w.lock();
 				if (!resolver) return;
+				resolver->req = nullptr;
 				assert(ai);
 
 				auto& ips = resolver->ips;
@@ -708,9 +703,6 @@ namespace xx {
 		uv_connect_t req;
 		std::shared_ptr<PeerType> peer;
 		std::weak_ptr<UvTcpDialer<PeerType>> dialer_w;
-		int serial;
-		int batchNumber;
-		~uv_connect_t_ex();
 	};
 
 	template<typename PeerType>
@@ -718,9 +710,7 @@ namespace xx {
 		using UvItem::UvItem;
 		using ThisType = UvTcpDialer<PeerType>;
 		using ReqType = uv_connect_t_ex<PeerType>;
-		int serial = 0;
-		std::unordered_map<int, ReqType*> reqs;
-		int batchNumber = 0;
+		std::vector<ReqType*> reqs;
 		UvTimer_s timeouter;
 		bool disposed = false;
 		std::shared_ptr<PeerType> peer;
@@ -760,30 +750,34 @@ namespace xx {
 			else {																	// ipv6
 				if (int r = uv_ip6_addr(ip.c_str(), port, &addr)) return r;
 			}
+			
+			auto req = new (std::nothrow) ReqType();
+			if (!req) return -1;
+			xx::ScopeGuard sgReq([&req] { delete req; });
 
-			auto req = std::make_unique<ReqType>();
 			req->peer = CreatePeer();
+			if (!req->peer) return -2;
+
 			req->dialer_w = As<ThisType>(shared_from_this());
-			req->serial = ++serial;
-			req->batchNumber = batchNumber;
 
 			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)&addr, [](uv_connect_t* conn, int status) {
-				auto req = std::unique_ptr<ReqType>(container_of(conn, ReqType, req));
+				auto req = std::unique_ptr<ReqType>(container_of(conn, ReqType, req));	// auto delete when return
+				if (!req->peer) return;													// canceled
 				auto dialer = req->dialer_w.lock();
-				if (!dialer) return;
-				if (status) return;													// error or -4081 canceled
-				if (dialer->batchNumber > req->batchNumber) return;
-				if (dialer->peer) return;											// only fastest connected peer can survival
+				if (!dialer) return;													// container disposed
+				if (status) return;														// error or -4081 canceled
 
-				if (req->peer->ReadStart()) return;
-				dialer->peer = std::move(req->peer);								// connect success
-				dialer->timeouter.reset();
+				if (req->peer->ReadStart()) return;										// read error
+				dialer->peer.reset();
+				dialer->peer = std::move(req->peer);									// store peer
+				dialer->Cancel(false);													// cancel all reqs
 				dialer->peer->AddToUpdates();
 				Uv::FillIP(dialer->peer->uvTcp, dialer->peer->ip);
-				dialer->Accept();
+				dialer->Accept();														// callback
 			})) return -3;
 
-			reqs[serial] = req.release();
+			reqs.push_back(req);
+			sgReq.Cancel();
 			return 0;
 		}
 
@@ -812,12 +806,13 @@ namespace xx {
 			if (resetPeer) {
 				peer.reset();
 			}
-			for (auto&& kv : reqs) {
-				uv_cancel((uv_req_t*)kv.second);
+			for (auto&& req : reqs) {
+				if (req->peer) {
+					req->peer.reset();
+					uv_cancel((uv_req_t*)&req->req);
+				}
 			}
 			reqs.clear();
-			serial = 0;
-			++batchNumber;
 		}
 
 	protected:
@@ -825,20 +820,13 @@ namespace xx {
 			if (disposed) return -1;
 			TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
 				if (auto self = self_w.lock()) {
-					self->Cancel(true);
+					self->Cancel();
 					self->Accept();
 				}
 			});
 			return timeouter ? 0 : -2;
 		}
 	};
-
-	template<typename PeerType>
-	inline uv_connect_t_ex<PeerType>::~uv_connect_t_ex() {
-		if (auto&& dialer = dialer_w.lock()) {
-			dialer->reqs.erase(serial);
-		}
-	}
 
 
 	struct uv_udp_send_t_ex : uv_udp_send_t {
@@ -1001,7 +989,7 @@ namespace xx {
 			return ip;
 		}
 
-		// 填充 udp, guid, createMS, addr 之后调用
+		// require: fill udp, guid, createMS, addr
 		inline int InitKcp() {
 			if (kcp) return -1;
 			kcp = ikcp_create(guid, this);
@@ -1057,7 +1045,7 @@ namespace xx {
 		inline void UpdateKcp(int64_t const& nowMS) noexcept {
 			if (!kcp) return;
 
-			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: 超出 uint32 限制. 理论上只能持续连接几十天
+			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: uint32 limit. connect only alive 50+ days
 			if (nextUpdateMS > currentMS) return;						// reduce cpu usage
 			ikcp_update(kcp, currentMS);
 			if (!kcp) return;
@@ -1166,6 +1154,8 @@ namespace xx {
 		using UvKcpUdp::UvKcpUdp;
 		std::unordered_map<Guid, std::weak_ptr<UvKcpBasePeer>> peers;
 		std::unordered_map<std::string, std::pair<Guid, int64_t>> shakes;	// key: ip:port   value: guid,nowMS
+		int handShakeTimeoutMS = 3000;
+
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!this->uvUdp) return;
 			this->UvUdp::Dispose(flag);
@@ -1201,55 +1191,55 @@ namespace xx {
 	protected:
 		inline virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept override {
 			assert(port);
-			// 看看是不是握手包 且这个 udp peer 的 owner 是健在的 listener
-			if (recvLen == 4 && owner) {						// 握手包含有 4 字节自增序列号
+			// ensure hand shake, and udp peer owner still alive
+			if (recvLen == 4 && owner) {						// hand shake contain 4 bytes auto inc serial
 				auto&& ipAndPort = Uv::ToIpPortString(addr);
 				// ip_port : guid, createMS
 				auto&& iter = shakes.find(ipAndPort);
 				if (iter == shakes.end()) {
-					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(Guid(true), uv.nowMS + 3000))).first;	// + 3000: 暂定写死握手 3 秒超时
+					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(Guid(true), uv.nowMS + handShakeTimeoutMS))).first;
 				}
-				memcpy(recvBuf + 4, &iter->second.first, 16);	// 序列号携带 guid 一起返回( 这里临时用一下 recvBuf 是安全的, 长度足够 )
+				memcpy(recvBuf + 4, &iter->second.first, 16);	// return serial + guid( temp write to recvBuf is safe )
 				return this->Send(recvBuf, 20, addr);
 			}
 
-			// header 至少有 IKCP_OVERHEAD 字节长( kcp 头 ). 少于 IKCP_OVERHEAD 的直接忽略
+			// header size limit IKCP_OVERHEAD ( kcp header ) check. ignore non kcp or hand shake pkgs.
 			if (recvLen < IKCP_OVERHEAD) {
 				return 0;
 			}
 
-			// 前 16 字节转为 Guid
+			// read Guid header
 			Guid g;
 			g.Fill(recvBuf);
 			std::shared_ptr<UvKcpBasePeer> peer;
 
-			// 去字典中找. 如果在握手队列中发现就创建
+			// find at peers. if does not exists, find addr at shakes. if exists, create peer
 			auto&& peerIter = peers.find(g);
-			if (peerIter == peers.end()) {						// guid 未找到: 如果是 listener: 用 addr 进一步去 shakes 找
-				if (!owner || owner->Disposed()) return 0;		// listener 已经没了: 忽略
+			if (peerIter == peers.end()) {						// guid not found: scan shakes
+				if (!owner || owner->Disposed()) return 0;		// listener disposed: ignore
 				auto&& ipAndPort = Uv::ToIpPortString(addr);
-				auto&& iter = shakes.find(ipAndPort);
-				if (iter == shakes.end() || iter->second.first != g) return 0;	// addr 没找到 或 guid 对不上: 忽略
-				shakes.erase(iter);								// 从握手队列移除
-				peer = owner->CreatePeer();						// 创建 kcp peer 并填充基础数据
+				auto&& iter = shakes.find(ipAndPort);			// find by addr
+				if (iter == shakes.end() || iter->second.first != g) return 0;	// not found or bad guid: ignore
+				shakes.erase(iter);								// remove from shakes
+				peer = owner->CreatePeer();						// create kcp peer and init
 				if (!peer) return 0;
 				peer->udp = std::move(As<UvKcpUdp>(shared_from_this()));
 				peer->guid = g;
 				peer->createMS = uv.nowMS;
-				memcpy(&peer->addr, addr, sizeof(sockaddr_in6));// 更新 peer 的目标 ip 地址
-				if (peer->InitKcp()) return 0;					// 初始化 kcp 失败直接忽略
-				peers[g] = peer;								// 塞字典
-				peer->AddToUpdates();
-				owner->Accept(peer);							// 触发 accept 回调
+				memcpy(&peer->addr, addr, sizeof(sockaddr_in6));// upgrade peer's tar addr( maybe accept callback need it )
+				if (peer->InitKcp()) return 0;					// init failed: ignore
+				peers[g] = peer;								// store
+				peer->AddToUpdates();							// register to updates
+				owner->Accept(peer);							// accept callback
 			}
 			else {
 				peer = peerIter->second.lock();
-				if (!peer || peer->Disposed()) return 0;		// 如果 kcp peer 已经没了就忽略
+				if (!peer || peer->Disposed()) return 0;		// disposed: ignore
 			}
 
-			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// 更新 peer 的目标 ip 地址
+			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 			if (peer->Input(recvBuf, recvLen)) {
-				peer->Dispose();								// peer 自己会从 peers 中移除
+				peer->Dispose();								// peer will remove self from peers
 			}
 			return 0;
 		}
@@ -1298,38 +1288,36 @@ namespace xx {
 		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept override {
 			assert(owner || peer_w.lock());
 
-			// 看看是不是握手回应包
-			if (recvLen == 20 && owner) {						// 握手回应包含有 4 字节自增序列号 + 16 字节 guid
-				if (memcmp(recvBuf, &port, 4)) return 0;		// 序列号对不上
+			// ensure hand shake result data
+			if (recvLen == 20 && owner) {						// 4 bytes serial + 16 bytes guid
+				if (memcmp(recvBuf, &port, 4)) return 0;		// bad serial: ignore
 				auto&& p = owner->CreatePeer();
 				peer_w = p;										// bind
 				p->udp = std::move(As<UvKcpUdp>(shared_from_this()));
 				memcpy(&p->guid, recvBuf + 4, 16);
-				memcpy(&p->addr, addr, sizeof(sockaddr_in6));	// 更新 peer 的目标 ip 地址
+				memcpy(&p->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 				p->createMS = uv.nowMS;
-				if (p->InitKcp()) return 0;						// 初始化 kcp 失败直接忽略
-				connected = true;								// 标记为已连接
+				if (p->InitKcp()) return 0;						// init kcp fail: ignore
+				connected = true;								// set flag
 				p->AddToUpdates();
-				owner->Accept(p);								// cleanup all reqs( 当前 udp 已经 bind 到 kcp 上且 kcp 被 dialer 持有, 并不会被 dispose )
+				owner->Accept(p);								// cleanup all reqs
 				return 0;
 			}
 
-			// header 至少有 IKCP_OVERHEAD 字节长( kcp 头 ). 少于 IKCP_OVERHEAD 的直接忽略
-			if (recvLen < IKCP_OVERHEAD) {
+			if (recvLen < IKCP_OVERHEAD) {						// ignore non kcp data
 				return 0;
 			}
 
 			auto&& peer = peer_w.lock();
-			if (!peer) return 0;								// 握手没完成? 忽略
+			if (!peer) return 0;								// hand shake not finish: ignore
 
-			// 前 16 字节转为 Guid
 			Guid g;
-			g.Fill(recvBuf);
-			if (peer->guid != g) return 0;						// guid 对不上? 忽略
+			g.Fill(recvBuf);									// read guid
+			if (peer->guid != g) return 0;						// bad guid: ignore
 
-			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// 更新 peer 的目标 ip 地址
-			if (peer->Input(recvBuf, recvLen)) {				// 数据输入
-				peer->Dispose();								// peer 自己调用 Remove
+			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
+			if (peer->Input(recvBuf, recvLen)) {				// input data to kcp
+				peer->Dispose();								// if fail: sucide
 			}
 			return 0;
 		}
