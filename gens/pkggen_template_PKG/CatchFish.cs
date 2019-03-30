@@ -49,8 +49,14 @@ namespace CatchFish
         //[Desc("自减id ( 从 -1 开始, 用于服务器下发鱼生成 )")]
         //int autoDecId;
 
-        [Desc("所有鱼 ( 乱序 )")]
-        List<Fish> fishss;
+        [Desc("所有活鱼 ( 乱序 )")]
+        List<Fish> fishs;
+
+        [Desc("所有已创建非活鱼 ( 乱序 )")]
+        List<Item> items;
+
+        [Desc("所有预约 ( 乱序 )")]
+        List<Item> appointments;
 
         [Desc("空闲座位下标( 初始时填入 Sits.LeftBottom RightBottom LeftTop RightTop )")]
         List<Sits> freeSits;
@@ -115,8 +121,8 @@ namespace CatchFish
         //[Desc("开炮等行为花掉的金币数汇总 ( 统计 )")]
         //long consumeCoin;
 
-        [Desc("破产标识 ( 每帧检测一次总资产是否为 0, 是就标记之. 总资产包括 coin + 爆出的 weapons 总币值, 已发射未消失的 bullets 总币值 )")]
-        bool dead;
+        [Desc("破产标识 ( 每帧检测一次总资产是否为 0, 是就标记之. 总资产包括 coin, 已爆出的 weapons, 已获得的附加炮台, 飞行中的 bullets )")]
+        bool noMoney;
 
         [Desc("剩余金币值( 不代表玩家总资产 ). 当玩家进入到游戏时, 该值填充 money * exchangeCoinRatio. 玩家退出时, 做除法还原为 money.")]
         long coin;
@@ -143,8 +149,24 @@ namespace CatchFish
         List<Weapon> weapons;
     }
 
+    [Desc("场景元素的共通基类")]
+    class Item
+    {
+        [Desc("自增id ( 服务器实时下发的id为负 )")]
+        int id;
+
+        [Desc("位于容器时的下标 ( 用于快速交换删除 )")]
+        int indexAtContainer;
+
+        [Desc("开始帧编号( 用于预约生成 )")]
+        int beginFrameNumber;
+
+        [Desc("结束帧编号")]
+        int endFrameNumber;
+    }
+
     [Desc("子弹 & 鱼 & 武器 的基类")]
-    class MoveObject
+    class MoveItem : Item
     {
         [Desc("自增id")]
         int id;
@@ -160,7 +182,7 @@ namespace CatchFish
     }
 
     [Desc("子弹基类")]
-    class Bullet : MoveObject
+    class Bullet : MoveItem
     {
         [Desc("每帧的直线移动坐标增量( 60fps )")]
         xx.Pos moveInc;
@@ -170,7 +192,7 @@ namespace CatchFish
     }
 
     [Desc("鱼基类 ( 下列属性适合大多数鱼, 不一定适合部分 boss )")]
-    class Fish : MoveObject
+    class Fish : MoveItem
     {
         [Desc("配置id")]
         int cfgId;
@@ -185,8 +207,18 @@ namespace CatchFish
         float sizeScale;
     }
 
-    [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器的长相，并花一段世家飞向玩家炮台 )")]
-    class Weapon : MoveObject
+    [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
+    class Weapon : MoveItem
+    {
+        [Desc("配置id")]
+        int cfgId;
+
+        [Desc("开始飞行的帧编号")]
+        int flyFrameNumber;
+    }
+
+    [Desc("特效基类 ( 声音，画面等元素。派生类进一步具备具体信息 )")]
+    class Effect : Item
     {
         [Desc("配置id")]
         int cfgId;
