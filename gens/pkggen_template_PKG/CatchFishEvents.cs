@@ -87,17 +87,10 @@ namespace CatchFish
 
         // todo: 预约: 炸弹爆炸
 
-        [Desc("通知: 得到武器( 需判定预约的 flyFrameNumber ). 直接放入 Player.weapons 队列")]
-        class GotWeapon : Event
+        [Desc("通知或预约: 下发及时已生效对象( 例如 Weapon ), 或是鱼发生器, 或是预约出鱼( 需判定 beginFrameNumber ), 放入 scene 相应队列")]
+        class PushItem : Event
         {
-            [Desc("已于 server 端构造好的, 能干净下发的，于指定帧编号开始飞向炮台的武器")]
-            Weapon weapon;
-        }
-
-        [Desc("预约: 得到 Item( 用于各种生成 )( 需判定 beginFrameNumber ), 放入 Scene.appointments 队列")]
-        class GotItem : Event
-        {
-            [Desc("已于 server 端构造好的, 能干净下发的，于指定帧编号开始 初始化 并放进 Scene.fishs 或 Scene.items 队列的元素")]
+            [Desc("已于 server 端构造好的, 无牵挂的, 能干净下发的实例")]
             Item item;
         }
 
