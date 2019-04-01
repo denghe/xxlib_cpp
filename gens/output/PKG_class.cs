@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "62b01f0b89b838c6559a11daa2ba2623"; 
+        public const string value = "16dd183daf80be58de8a0c883014894d"; 
     }
 
 namespace CatchFish
@@ -2240,6 +2240,10 @@ namespace CatchFish.Configs
         /// </summary>
         public xx.List<CatchFish.Configs.Way> ways;
         /// <summary>
+        /// 所有精灵帧都在这放一份
+        /// </summary>
+        public xx.List<CatchFish.Configs.SpriteFrame> frames;
+        /// <summary>
         /// 所有鱼的配置信息
         /// </summary>
         public xx.List<CatchFish.Configs.Fish> fishs;
@@ -2272,6 +2276,7 @@ namespace CatchFish.Configs
         public override void ToBBuffer(xx.BBuffer bb)
         {
             bb.Write(this.ways);
+            bb.Write(this.frames);
             bb.Write(this.fishs);
             bb.Write(this.cannons);
             bb.Write(this.weapons);
@@ -2284,6 +2289,8 @@ namespace CatchFish.Configs
         {
             bb.readLengthLimit = 0;
             bb.Read(ref this.ways);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.frames);
             bb.readLengthLimit = 0;
             bb.Read(ref this.fishs);
             bb.readLengthLimit = 0;
@@ -2314,6 +2321,7 @@ namespace CatchFish.Configs
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             s.Append(", \"ways\":" + (ways == null ? "nil" : ways.ToString()));
+            s.Append(", \"frames\":" + (frames == null ? "nil" : frames.ToString()));
             s.Append(", \"fishs\":" + (fishs == null ? "nil" : fishs.ToString()));
             s.Append(", \"cannons\":" + (cannons == null ? "nil" : cannons.ToString()));
             s.Append(", \"weapons\":" + (weapons == null ? "nil" : weapons.ToString()));
@@ -2753,8 +2761,12 @@ namespace CatchFish.Configs
     /// <summary>
     /// 带物理检测区和锁定线等附加数据的鱼移动帧动画
     /// </summary>
-    public partial class FishSpriteFrame : CatchFish.Configs.SpriteFrame
+    public partial class FishSpriteFrame : xx.Object
     {
+        /// <summary>
+        /// 指向精灵帧
+        /// </summary>
+        public CatchFish.Configs.SpriteFrame frame;
         /// <summary>
         /// 基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
         /// </summary>
@@ -2779,7 +2791,7 @@ namespace CatchFish.Configs
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            base.ToBBuffer(bb);
+            bb.Write(this.frame);
             bb.Write(this.polygons);
             ((xx.IObject)this.lockPoint).ToBBuffer(bb);
             bb.Write(this.lockPoints);
@@ -2788,7 +2800,7 @@ namespace CatchFish.Configs
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            base.FromBBuffer(bb);
+            bb.Read(ref this.frame);
             bb.readLengthLimit = 0;
             bb.Read(ref this.polygons);
             ((xx.IObject)this.lockPoint).FromBBuffer(bb);
@@ -2813,7 +2825,7 @@ namespace CatchFish.Configs
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            base.ToStringCore(s);
+            s.Append(", \"frame\":" + (frame == null ? "nil" : frame.ToString()));
             s.Append(", \"polygons\":" + (polygons == null ? "nil" : polygons.ToString()));
             s.Append(", \"lockPoint\":" + lockPoint.ToString());
             s.Append(", \"lockPoints\":" + (lockPoints == null ? "nil" : lockPoints.ToString()));
@@ -2827,7 +2839,6 @@ namespace CatchFish.Configs
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
-            base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
     /// <summary>
@@ -3006,6 +3017,8 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Configs.Config>(47);
             xx.Object.Register<xx.List<CatchFish.Configs.Way>>(48);
             xx.Object.Register<CatchFish.Configs.Way>(49);
+            xx.Object.Register<xx.List<CatchFish.Configs.SpriteFrame>>(59);
+            xx.Object.Register<CatchFish.Configs.SpriteFrame>(60);
             xx.Object.Register<xx.List<CatchFish.Configs.Fish>>(50);
             xx.Object.Register<CatchFish.Configs.Fish>(51);
             xx.Object.Register<xx.List<CatchFish.Configs.Cannon>>(52);
@@ -3015,8 +3028,6 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Stages.Stage>>(56);
             xx.Object.Register<xx.List<xx.Pos>>(57);
             xx.Object.Register<CatchFish.Configs.Item>(58);
-            xx.Object.Register<xx.List<CatchFish.Configs.SpriteFrame>>(59);
-            xx.Object.Register<CatchFish.Configs.SpriteFrame>(60);
             xx.Object.Register<xx.List<CatchFish.Configs.FishSpriteFrame>>(61);
             xx.Object.Register<CatchFish.Configs.FishSpriteFrame>(62);
             xx.Object.Register<xx.List<xx.List<xx.Pos>>>(63);

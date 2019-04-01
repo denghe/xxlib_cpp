@@ -11,6 +11,9 @@ namespace CatchFish
             [Desc("所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )")]
             List<Way> ways;
 
+            [Desc("所有精灵帧都在这放一份")]
+            List<SpriteFrame> frames;
+
             [Desc("所有鱼的配置信息")]
             List<Fish> fishs;
 
@@ -126,8 +129,11 @@ namespace CatchFish
         }
 
         [Desc("带物理检测区和锁定线等附加数据的鱼移动帧动画")]
-        class FishSpriteFrame : SpriteFrame
+        class FishSpriteFrame
         {
+            [Desc("指向精灵帧")]
+            SpriteFrame frame;
+
             [Desc("基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )")]
             List<List<xx.Pos>> polygons;
 
