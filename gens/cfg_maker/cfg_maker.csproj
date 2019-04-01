@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6F49DE2C-1F92-47C8-B03D-D3D5C66D3CBC}</ProjectGuid>
+    <ProjectGuid>{E51C28E1-9DD8-489D-95B1-3A04B5A89222}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>pkggen</RootNamespace>
     <AssemblyName>pkggen</AssemblyName>
@@ -45,26 +45,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GenCPP_Class.cs" />
-    <Compile Include="GenCPP_SQLite.cs" />
-    <Compile Include="GenCS_Class.cs" />
-    <Compile Include="GenCS_MySql.cs" />
-    <Compile Include="GenLUA_Class.cs" />
-    <Compile Include="GenTypeId.cs" />
+    <Compile Include="..\output\PKG_class.cs">
+      <Link>PKG_class.cs</Link>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\gen_library\gen_library.csproj">
-      <Project>{7f62e40f-e079-46d2-85e9-661fce50168c}</Project>
-      <Name>gen_library</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\pkggen_template_PKG\pkggen_template_PKG.csproj">
-      <Project>{82112fe9-6a59-4f6d-a295-d4c7c039a977}</Project>
-      <Name>pkggen_template_PKG</Name>
+    <ProjectReference Include="..\xxlib_csharp\xxlib_csharp.csproj">
+      <Project>{6dd7a5a2-3411-4ecb-a811-2421be960743}</Project>
+      <Name>xxlib_csharp</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

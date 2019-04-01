@@ -45,10 +45,14 @@ public static class Program
                 System.Console.WriteLine(tn + "_TypeIdMappings.cs 已生成. 请将其放入模板项目并再次生成. ");
                 continue;
             }
+
             GenCPP_Class.Gen(asm, path, tn, md5);
+            GenCPP_SQLite.Gen(asm, path, tn);
+
             GenLUA_Class.Gen(asm, path, tn, md5);
 
-			//GenCPP_SQLite.Gen(asm, path, tn);
+            GenCS_Class.Gen(asm, path, tn, md5);
+            GenCS_MySql.Gen(asm, path, tn);
         }
     }
 }

@@ -4,13 +4,13 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6F49DE2C-1F92-47C8-B03D-D3D5C66D3CBC}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>pkggen</RootNamespace>
-    <AssemblyName>pkggen</AssemblyName>
+    <ProjectGuid>{6DD7A5A2-3411-4ECB-A811-2421BE960743}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>xxlib</RootNamespace>
+    <AssemblyName>xxlib_csharp</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
@@ -21,7 +21,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <OutputPath>bin\x64\Release\</OutputPath>
@@ -31,12 +31,11 @@
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -45,27 +44,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GenCPP_Class.cs" />
-    <Compile Include="GenCPP_SQLite.cs" />
-    <Compile Include="GenCS_Class.cs" />
-    <Compile Include="GenCS_MySql.cs" />
-    <Compile Include="GenLUA_Class.cs" />
-    <Compile Include="GenTypeId.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="XxBBuffer.cs" />
+    <Compile Include="XxDictEx.cs" />
+    <Compile Include="XxDict.cs" />
+    <Compile Include="XxObject.cs" />
+    <Compile Include="XxPos.cs" />
+    <Compile Include="XxQueue.cs" />
+    <Compile Include="XxList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\gen_library\gen_library.csproj">
-      <Project>{7f62e40f-e079-46d2-85e9-661fce50168c}</Project>
-      <Name>gen_library</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\pkggen_template_PKG\pkggen_template_PKG.csproj">
-      <Project>{82112fe9-6a59-4f6d-a295-d4c7c039a977}</Project>
-      <Name>pkggen_template_PKG</Name>
-    </ProjectReference>
+    <Compile Include="XxRandom.cs" />
+    <Compile Include="XxUv.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

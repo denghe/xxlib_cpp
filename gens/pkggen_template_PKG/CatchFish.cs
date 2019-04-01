@@ -6,7 +6,7 @@ namespace CatchFish
     // 下列类中，Scene, Player 无法干净下发。
 
     [Desc("场景基础配置参数 ( 主要来自 db )")]
-    class SceneConfig
+    class SceneInfo
     {
         [Desc("游戏id")]
         int gameId;
@@ -37,7 +37,7 @@ namespace CatchFish
     class Scene
     {
         [Desc("场景基础配置参数 ( 主要来自 db )")]
-        SceneConfig cfg;
+        SceneInfo info;
 
         [Desc("帧编号, 每帧 + 1. 用于同步")]
         int frameNumber;
@@ -61,7 +61,7 @@ namespace CatchFish
         List<FishBorn> borns;
 
         [Desc("当前关卡. endFrameNumber 到达时切换到下一关( clone from cfg.stages[(stage.id + 1) % cfg.stages.len] 并修正 各种 frameNumber )")]
-        Timers.Stage stage;
+        Stages.Stage stage;
 
         [Desc("空闲座位下标( 初始时填入 Sits.LeftBottom RightBottom LeftTop RightTop )")]
         List<Sits> freeSits;

@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pkggen_template_PKG", "pkgg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "gen_library", "gen_library\gen_library.csproj", "{7F62E40F-E079-46D2-85E9-661FCE50168C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cfg_maker", "cfg_maker\cfg_maker.csproj", "{E51C28E1-9DD8-489D-95B1-3A04B5A89222}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xxlib_csharp", "xxlib_csharp\xxlib_csharp.csproj", "{6DD7A5A2-3411-4ECB-A811-2421BE960743}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +31,14 @@ Global
 		{7F62E40F-E079-46D2-85E9-661FCE50168C}.Debug|x64.Build.0 = Debug|x64
 		{7F62E40F-E079-46D2-85E9-661FCE50168C}.Release|x64.ActiveCfg = Release|x64
 		{7F62E40F-E079-46D2-85E9-661FCE50168C}.Release|x64.Build.0 = Release|x64
+		{E51C28E1-9DD8-489D-95B1-3A04B5A89222}.Debug|x64.ActiveCfg = Debug|x64
+		{E51C28E1-9DD8-489D-95B1-3A04B5A89222}.Debug|x64.Build.0 = Debug|x64
+		{E51C28E1-9DD8-489D-95B1-3A04B5A89222}.Release|x64.ActiveCfg = Release|x64
+		{E51C28E1-9DD8-489D-95B1-3A04B5A89222}.Release|x64.Build.0 = Release|x64
+		{6DD7A5A2-3411-4ECB-A811-2421BE960743}.Debug|x64.ActiveCfg = Debug|x64
+		{6DD7A5A2-3411-4ECB-A811-2421BE960743}.Debug|x64.Build.0 = Debug|x64
+		{6DD7A5A2-3411-4ECB-A811-2421BE960743}.Release|x64.ActiveCfg = Release|x64
+		{6DD7A5A2-3411-4ECB-A811-2421BE960743}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

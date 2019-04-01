@@ -94,11 +94,11 @@ namespace CatchFish
             Weapon weapon;
         }
 
-        [Desc("预约: 下发 Timer, 通常是预约出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列")]
-        class PushItem : Event
+        [Desc("预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列")]
+        class PushFish : Event
         {
             [Desc("已于 server 端构造好的, 无牵挂的, 能干净下发的实例")]
-            Timers.Timer timer;
+            FishBorn born;
         }
 
         [Desc("转发: 开启开火锁定")]
