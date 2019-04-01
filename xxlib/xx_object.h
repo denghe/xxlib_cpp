@@ -146,8 +146,11 @@ namespace xx {
 			((Object*)this)->toStringFlag = b;
 		}
 
-		// 级联初始化相关( 主用于遍历调用生成物派生类的还原代码 )
+		// 级联相关( 主用于遍历调用生成物派生类 override 的代码 )
 		inline virtual void InitCascade() noexcept {};
+
+		// useful funcs
+		inline virtual int UpdateVoid() noexcept {};
 	};
 
 	using Object_s = std::shared_ptr<Object>;

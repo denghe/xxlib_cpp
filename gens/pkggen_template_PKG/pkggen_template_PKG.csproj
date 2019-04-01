@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="CatchFish.cs" />
     <Compile Include="CatchFishConfig.cs" />
+    <Compile Include="CatchFishStages.cs" />
     <Compile Include="CatchFishEvents.cs" />
     <Compile Include="Externals.cs" />
     <Compile Include="Generic.cs" />

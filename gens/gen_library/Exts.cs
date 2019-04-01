@@ -795,7 +795,7 @@ public static class GenExtensions
         }
         else if(t._IsWeak())
         {
-            return "Ref_" + _GetTypeDecl_Lua(t.GenericTypeArguments[0], templateName);
+            return "Weak_" + _GetTypeDecl_Lua(t.GenericTypeArguments[0], templateName);
         }
         else if (t._IsList())
         {

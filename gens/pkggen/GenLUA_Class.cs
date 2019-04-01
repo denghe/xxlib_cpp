@@ -87,7 +87,7 @@ public static class GenLUA_Class
                     if (ft._IsWeak())
                     {
                         sb.Append(@"
-        o." + f.Name + @" = MakeRef()");
+        o." + f.Name + @" = MakeWeak()");
                     }
                     else if (dv != "")
                     {
@@ -149,7 +149,7 @@ public static class GenLUA_Class
                     if (ft._IsWeak())
                     {
                         sb.Append(@"
-        o." + f.Name + @" = MakeRef( Read" + ftn + @"( bb ) )");
+        o." + f.Name + @" = MakeWeak( Read" + ftn + @"( bb ) )");
                     }
                     else
                     {
@@ -162,7 +162,7 @@ public static class GenLUA_Class
                     if (ft._IsWeak())
                     {
                         sb.Append(@"
-        o." + f.Name + @" = MakeRef( Read" + ftn + @"( bb ) )");
+        o." + f.Name + @" = MakeWeak( Read" + ftn + @"( bb ) )");
                     }
                     else
                     {
@@ -198,7 +198,7 @@ public static class GenLUA_Class
 		local len = bb:ReadUInt32()
         local f = BBuffer." + fn + @"
 		for i = 1, len do
-			o[ i ] = " + (ct._IsWeak() ? "MakeRef( f( bb ) )" : "f( bb )") + @"
+			o[ i ] = " + (ct._IsWeak() ? "MakeWeak( f( bb ) )" : "f( bb )") + @"
 		end");
             }
             sb.Append(@"

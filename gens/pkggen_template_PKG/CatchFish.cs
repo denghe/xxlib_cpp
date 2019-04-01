@@ -3,6 +3,8 @@ using TemplateLibrary;
 
 namespace CatchFish
 {
+    // 下列类中，Scene, Player 无法干净下发。
+
     [Desc("场景基础配置参数 ( 主要来自 db )")]
     class SceneConfig
     {
@@ -55,8 +57,11 @@ namespace CatchFish
         [Desc("所有已创建非活鱼 ( 乱序 )")]
         List<Item> items;
 
-        [Desc("所有预约 ( 乱序 )")]
-        List<Item> appointments;
+        [Desc("所有鱼预约生成 ( 乱序 )")]
+        List<FishBorn> borns;
+
+        [Desc("当前关卡. endFrameNumber 到达时切换到下一关( clone from cfg.stages[(stage.id + 1) % cfg.stages.len] 并修正 各种 frameNumber )")]
+        Timers.Stage stage;
 
         [Desc("空闲座位下标( 初始时填入 Sits.LeftBottom RightBottom LeftTop RightTop )")]
         List<Sits> freeSits;
@@ -157,28 +162,18 @@ namespace CatchFish
 
         [Desc("位于容器时的下标 ( 用于快速交换删除 )")]
         int indexAtContainer;
-
-        [Desc("开始帧编号( 用于预约生成 )")]
-        int beginFrameNumber;
-
-        [Desc("结束帧编号")]
-        int endFrameNumber;
     }
 
     [Desc("子弹 & 鱼 & 武器 的基类")]
     class MoveItem : Item
     {
-        [Desc("自增id")]
-        int id;
-
-        [Desc("位于容器时的下标 ( 用于快速交换删除 )")]
-        int indexAtContainer;
-
         [Desc("中心点坐标")]
         xx.Pos pos;
 
         [Desc("当前角度")]
         float angle;
+
+        // FishLine
     }
 
     [Desc("子弹基类")]
@@ -207,7 +202,7 @@ namespace CatchFish
         float sizeScale;
     }
 
-    [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
+    [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
     class Weapon : MoveItem
     {
         [Desc("配置id")]
@@ -217,10 +212,19 @@ namespace CatchFish
         int flyFrameNumber;
     }
 
-    [Desc("特效基类 ( 声音，画面等元素。派生类进一步具备具体信息 )")]
-    class Effect : Item
+
+    [Desc("定时器基类")]
+    class Timer
     {
-        [Desc("配置id")]
-        int cfgId;
+        [Desc("开始 / 生效帧编号")]
+        int beginFrameNumber;
     }
+
+    [Desc("预约出鱼")]
+    class FishBorn : Timer
+    {
+        [Desc("当 currentFrameNumber == beginFrameNumber 时，将 fish 放入 Scene.fishs 并自杀")]
+        Fish fish;
+    }
+
 }
