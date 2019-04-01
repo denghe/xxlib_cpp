@@ -8,6 +8,9 @@ namespace CatchFish
         [Desc("游戏配置主体")]
         class Config
         {
+            [Desc("所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )")]
+            List<Way> ways;
+
             [Desc("所有鱼的配置信息")]
             List<Fish> fishs;
 
@@ -30,7 +33,7 @@ namespace CatchFish
         [Desc("配置基类")]
         class Item
         {
-            [Desc("内部编号")]
+            [Desc("内部编号. 通常等同于所在容器下标")]
             int id;
 
             [Desc("放大系数( 影响各种判定, 坐标计算 )")]
