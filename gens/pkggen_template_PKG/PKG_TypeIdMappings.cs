@@ -94,9 +94,9 @@ interface ITypeIdMappings
 
     CatchFish.Configs.Config _47 { get; }
 
-    List<CatchFish.Configs.Way> _48 { get; }
+    List<CatchFish.Way> _48 { get; }
 
-    CatchFish.Configs.Way _49 { get; }
+    CatchFish.Way _49 { get; }
 
     List<CatchFish.Configs.Fish> _50 { get; }
 
@@ -124,8 +124,10 @@ interface ITypeIdMappings
 
     CatchFish.Configs.FishSpriteFrame _62 { get; }
 
+    CatchFish.Configs.Physics _65 { get; }
+
     List<List<xx.Pos>> _63 { get; }
 
-    List<CatchFish.Configs.WayPoint> _64 { get; }
+    List<CatchFish.WayPoint> _64 { get; }
 
 }

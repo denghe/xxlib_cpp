@@ -4,7 +4,7 @@
     <dict>
         <key>frames</key>
         <dict>
-            <key>pao_01.png</key>
+            <key>pao_01</key>
             <dict>
                 <key>frame</key>
                 <string>{{171,2},{183,132}}</string>
@@ -17,7 +17,7 @@
                 <key>sourceSize</key>
                 <string>{189,220}</string>
             </dict>
-            <key>xiaochouyu_die (1).png</key>
+            <key>xiaochouyu_die (1)</key>
             <dict>
                 <key>frame</key>
                 <string>{{606,118},{50,32}}</string>
@@ -30,7 +30,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (10).png</key>
+            <key>xiaochouyu_die (10)</key>
             <dict>
                 <key>frame</key>
                 <string>{{810,110},{52,32}}</string>
@@ -43,7 +43,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (2).png</key>
+            <key>xiaochouyu_die (2)</key>
             <dict>
                 <key>frame</key>
                 <string>{{572,118},{50,32}}</string>
@@ -56,7 +56,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (3).png</key>
+            <key>xiaochouyu_die (3)</key>
             <dict>
                 <key>frame</key>
                 <string>{{776,114},{52,32}}</string>
@@ -69,7 +69,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (4).png</key>
+            <key>xiaochouyu_die (4)</key>
             <dict>
                 <key>frame</key>
                 <string>{{742,114},{52,32}}</string>
@@ -82,7 +82,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (5).png</key>
+            <key>xiaochouyu_die (5)</key>
             <dict>
                 <key>frame</key>
                 <string>{{708,116},{52,32}}</string>
@@ -95,7 +95,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (6).png</key>
+            <key>xiaochouyu_die (6)</key>
             <dict>
                 <key>frame</key>
                 <string>{{387,122},{46,32}}</string>
@@ -108,7 +108,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (7).png</key>
+            <key>xiaochouyu_die (7)</key>
             <dict>
                 <key>frame</key>
                 <string>{{509,120},{48,32}}</string>
@@ -121,7 +121,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (8).png</key>
+            <key>xiaochouyu_die (8)</key>
             <dict>
                 <key>frame</key>
                 <string>{{475,120},{48,32}}</string>
@@ -134,7 +134,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_die (9).png</key>
+            <key>xiaochouyu_die (9)</key>
             <dict>
                 <key>frame</key>
                 <string>{{674,116},{52,32}}</string>
@@ -147,7 +147,7 @@
                 <key>sourceSize</key>
                 <string>{60,48}</string>
             </dict>
-            <key>xiaochouyu_move (1).png</key>
+            <key>xiaochouyu_move (1)</key>
             <dict>
                 <key>frame</key>
                 <string>{{797,2},{52,34}}</string>
@@ -160,7 +160,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (10).png</key>
+            <key>xiaochouyu_move (10)</key>
             <dict>
                 <key>frame</key>
                 <string>{{680,78},{52,36}}</string>
@@ -173,7 +173,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (11).png</key>
+            <key>xiaochouyu_move (11)</key>
             <dict>
                 <key>frame</key>
                 <string>{{680,40},{52,36}}</string>
@@ -186,7 +186,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (12).png</key>
+            <key>xiaochouyu_move (12)</key>
             <dict>
                 <key>frame</key>
                 <string>{{626,78},{52,36}}</string>
@@ -199,7 +199,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (13).png</key>
+            <key>xiaochouyu_move (13)</key>
             <dict>
                 <key>frame</key>
                 <string>{{626,40},{52,36}}</string>
@@ -212,7 +212,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (14).png</key>
+            <key>xiaochouyu_move (14)</key>
             <dict>
                 <key>frame</key>
                 <string>{{572,40},{52,38}}</string>
@@ -225,7 +225,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (15).png</key>
+            <key>xiaochouyu_move (15)</key>
             <dict>
                 <key>frame</key>
                 <string>{{518,80},{52,38}}</string>
@@ -238,7 +238,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (16).png</key>
+            <key>xiaochouyu_move (16)</key>
             <dict>
                 <key>frame</key>
                 <string>{{464,38},{52,40}}</string>
@@ -251,7 +251,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (17).png</key>
+            <key>xiaochouyu_move (17)</key>
             <dict>
                 <key>frame</key>
                 <string>{{410,80},{52,40}}</string>
@@ -264,7 +264,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (18).png</key>
+            <key>xiaochouyu_move (18)</key>
             <dict>
                 <key>frame</key>
                 <string>{{410,38},{52,40}}</string>
@@ -277,7 +277,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (19).png</key>
+            <key>xiaochouyu_move (19)</key>
             <dict>
                 <key>frame</key>
                 <string>{{356,80},{52,40}}</string>
@@ -290,7 +290,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (2).png</key>
+            <key>xiaochouyu_move (2)</key>
             <dict>
                 <key>frame</key>
                 <string>{{421,122},{52,34}}</string>
@@ -303,7 +303,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (20).png</key>
+            <key>xiaochouyu_move (20)</key>
             <dict>
                 <key>frame</key>
                 <string>{{518,40},{52,38}}</string>
@@ -316,7 +316,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (21).png</key>
+            <key>xiaochouyu_move (21)</key>
             <dict>
                 <key>frame</key>
                 <string>{{356,38},{52,40}}</string>
@@ -329,7 +329,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (22).png</key>
+            <key>xiaochouyu_move (22)</key>
             <dict>
                 <key>frame</key>
                 <string>{{743,2},{52,38}}</string>
@@ -342,7 +342,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (23).png</key>
+            <key>xiaochouyu_move (23)</key>
             <dict>
                 <key>frame</key>
                 <string>{{572,80},{52,36}}</string>
@@ -355,7 +355,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (24).png</key>
+            <key>xiaochouyu_move (24)</key>
             <dict>
                 <key>frame</key>
                 <string>{{734,78},{52,34}}</string>
@@ -368,7 +368,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (25).png</key>
+            <key>xiaochouyu_move (25)</key>
             <dict>
                 <key>frame</key>
                 <string>{{640,116},{52,32}}</string>
@@ -381,7 +381,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (26).png</key>
+            <key>xiaochouyu_move (26)</key>
             <dict>
                 <key>frame</key>
                 <string>{{788,56},{52,32}}</string>
@@ -394,7 +394,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (27).png</key>
+            <key>xiaochouyu_move (27)</key>
             <dict>
                 <key>frame</key>
                 <string>{{333,136},{52,32}}</string>
@@ -407,7 +407,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (28).png</key>
+            <key>xiaochouyu_move (28)</key>
             <dict>
                 <key>frame</key>
                 <string>{{279,136},{52,32}}</string>
@@ -420,7 +420,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (29).png</key>
+            <key>xiaochouyu_move (29)</key>
             <dict>
                 <key>frame</key>
                 <string>{{225,136},{52,32}}</string>
@@ -433,7 +433,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (3).png</key>
+            <key>xiaochouyu_move (3)</key>
             <dict>
                 <key>frame</key>
                 <string>{{734,42},{52,34}}</string>
@@ -446,7 +446,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (30).png</key>
+            <key>xiaochouyu_move (30)</key>
             <dict>
                 <key>frame</key>
                 <string>{{171,136},{52,32}}</string>
@@ -459,7 +459,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (4).png</key>
+            <key>xiaochouyu_move (4)</key>
             <dict>
                 <key>frame</key>
                 <string>{{473,2},{52,34}}</string>
@@ -472,7 +472,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (5).png</key>
+            <key>xiaochouyu_move (5)</key>
             <dict>
                 <key>frame</key>
                 <string>{{689,2},{52,36}}</string>
@@ -485,7 +485,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (6).png</key>
+            <key>xiaochouyu_move (6)</key>
             <dict>
                 <key>frame</key>
                 <string>{{635,2},{52,36}}</string>
@@ -498,7 +498,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (7).png</key>
+            <key>xiaochouyu_move (7)</key>
             <dict>
                 <key>frame</key>
                 <string>{{581,2},{52,36}}</string>
@@ -511,7 +511,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (8).png</key>
+            <key>xiaochouyu_move (8)</key>
             <dict>
                 <key>frame</key>
                 <string>{{527,2},{52,36}}</string>
@@ -524,7 +524,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>xiaochouyu_move (9).png</key>
+            <key>xiaochouyu_move (9)</key>
             <dict>
                 <key>frame</key>
                 <string>{{464,80},{52,38}}</string>
@@ -537,7 +537,7 @@
                 <key>sourceSize</key>
                 <string>{62,60}</string>
             </dict>
-            <key>yuwang_1.png</key>
+            <key>yuwang_1</key>
             <dict>
                 <key>frame</key>
                 <string>{{2,2},{166,167}}</string>
@@ -550,7 +550,7 @@
                 <key>sourceSize</key>
                 <string>{166,167}</string>
             </dict>
-            <key>zidan_01.png</key>
+            <key>zidan_01</key>
             <dict>
                 <key>frame</key>
                 <string>{{356,2},{115,34}}</string>
@@ -573,7 +573,7 @@
             <key>size</key>
             <string>{844,170}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:5abfc9a33e656252f6c59e7ee2c3c1e9:96866df7d5963770df1b9c89a92bce47:928a4ce365e7133476de68860937c334$</string>
+            <string>$TexturePacker:SmartUpdate:5d13dd7ad671ed194dfeed5df735e53a:96866df7d5963770df1b9c89a92bce47:928a4ce365e7133476de68860937c334$</string>
             <key>textureFileName</key>
             <string>all.png</string>
         </dict>

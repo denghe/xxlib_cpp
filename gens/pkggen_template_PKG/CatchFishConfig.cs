@@ -11,9 +11,6 @@ namespace CatchFish
             [Desc("所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )")]
             List<Way> ways;
 
-            [Desc("所有精灵帧都在这放一份")]
-            List<SpriteFrame> frames;
-
             [Desc("所有鱼的配置信息")]
             List<Fish> fishs;
 
@@ -29,7 +26,7 @@ namespace CatchFish
             [Desc("基于设计尺寸为 1280 x 720, 屏中心为 0,0 点的 4 个玩家炮台的坐标( 0: 左下  1: 右下    2: 右上  3: 左上 )")]
             List<xx.Pos> sitPositons;
 
-            [Desc("锁定点击范围 ( 将枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )")]
+            [Desc("锁定点击范围 ( 增加容错, 不必点的太精确. 点击作用是 枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )")]
             float aimTouchRadius;
         }
 
@@ -98,8 +95,7 @@ namespace CatchFish
             [Desc("发射间隔帧数")]
             int shootCD;
 
-            [Desc("帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )")]
-            List<SpriteFrame> frames;
+            // 基类 frames 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
         }
 
         [Desc("打爆部分特殊鱼出现的特殊武器配置基类")]
@@ -128,14 +124,25 @@ namespace CatchFish
             //SpriteFramePointer spriteFrame;
         }
 
+
+        [Desc("物理建模 for 鱼与子弹碰撞检测")]
+        class Physics
+        {
+            [Desc("基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )")]
+            List<List<xx.Pos>> polygons;
+
+            //[Desc("指向 chipmunk 空间指针")]
+            //CpSpacePointer cpSpace;
+        }
+
         [Desc("带物理检测区和锁定线等附加数据的鱼移动帧动画")]
         class FishSpriteFrame
         {
             [Desc("指向精灵帧")]
             SpriteFrame frame;
 
-            [Desc("基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )")]
-            List<List<xx.Pos>> polygons;
+            [Desc("指向物理建模")]
+            Physics physics;
 
             [Desc("首选锁定点( 如果该点还在屏幕上, 则 lock 准星一直在其上 )")]
             xx.Pos lockPoint;
@@ -146,34 +153,6 @@ namespace CatchFish
             [Desc("本帧动画切到下一帧动画后应该移动的距离( 受 Fish.speedScale 影响 )")]
             float moveDistance;
 
-            //[Desc("指向 chipmunk 空间指针")]
-            //CpSpacePointer cpSpace;
-        }
-
-        [Desc("轨迹点")]
-        struct WayPoint
-        {
-            [Desc("坐标")]
-            xx.Pos pos;
-
-            [Desc("角度")]
-            float angle;
-
-            [Desc("当前点到下一个点的物理/逻辑距离( 下一个点可能是相同坐标, 停在原地转身的效果 )")]
-            float distance;
-        }
-
-        [Desc("轨迹. 预约下发安全, 将复制轨迹完整数据")]
-        class Way
-        {
-            [Desc("轨迹点集合")]
-            List<WayPoint> points;
-
-            [Desc("总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )")]
-            float distance;
-
-            [Desc("是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完")]
-            bool loop;
         }
     }
 }

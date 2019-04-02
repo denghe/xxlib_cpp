@@ -172,8 +172,6 @@ namespace CatchFish
 
         [Desc("当前角度")]
         float angle;
-
-        // FishLine
     }
 
     [Desc("子弹基类")]
@@ -198,8 +196,32 @@ namespace CatchFish
         [Desc("移动速度系数 ( 默认为 1 )")]
         float speedScale;
 
-        [Desc("碰撞 | 显示 体积系数 ( 默认为 1 )")]
-        float sizeScale;
+        [Desc("运行时缩放比例( 通常为 1 )")]
+        float scale;
+
+        [Desc("移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayIndex ( 常见于非直线鱼 )")]
+        Way way;
+
+        [Desc("移动轨迹 于 cfg.ways 的下标. 启用优先级低于 way")]
+        int wayIndex;
+
+        [Desc("当前轨迹点下标")]
+        int wayPointIndex;
+
+        [Desc("当前轨迹点上的已前进距离")]
+        float wayPointDistance;
+
+        [Desc("鱼的每帧移动距离")]
+        float wayFrameDistance;
+
+        [Desc("当前帧下标( 每帧循环累加 )")]
+        int spriteFrameIndex;
+
+        [Desc("帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )")]
+        int frameRatio;
+
+        [Desc("是否为在鱼线上倒着移动( 默认否 )")]
+        bool reverse;
     }
 
     [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
@@ -227,4 +249,29 @@ namespace CatchFish
         Fish fish;
     }
 
+    [Desc("轨迹点")]
+    struct WayPoint
+    {
+        [Desc("坐标")]
+        xx.Pos pos;
+
+        [Desc("角度")]
+        float angle;
+
+        [Desc("当前点到下一个点的物理/逻辑距离( 下一个点可能是相同坐标, 停在原地转身的效果 )")]
+        float distance;
+    }
+
+    [Desc("轨迹. 预约下发安全, 将复制轨迹完整数据")]
+    class Way
+    {
+        [Desc("轨迹点集合")]
+        List<WayPoint> points;
+
+        [Desc("总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )")]
+        float distance;
+
+        [Desc("是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完")]
+        bool loop;
+    }
 }

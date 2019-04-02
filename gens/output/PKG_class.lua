@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '16dd183daf80be58de8a0c883014894d'
+PKG_PkgGenMd5_Value = '3ccea2a0a6ad09a64cbc2acf031c81c4'
 
 --[[
 座位列表
@@ -384,29 +384,79 @@ PKG_CatchFish_Fish = {
         ]]
         o.speedScale = 0 -- Single
         --[[
-        碰撞 | 显示 体积系数 ( 默认为 1 )
+        运行时缩放比例( 通常为 1 )
         ]]
-        o.sizeScale = 0 -- Single
+        o.scale = 0 -- Single
+        --[[
+        移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayIndex ( 常见于非直线鱼 )
+        ]]
+        o.way = null -- PKG_CatchFish_Way
+        --[[
+        移动轨迹 于 cfg.ways 的下标. 启用优先级低于 way
+        ]]
+        o.wayIndex = 0 -- Int32
+        --[[
+        当前轨迹点下标
+        ]]
+        o.wayPointIndex = 0 -- Int32
+        --[[
+        当前轨迹点上的已前进距离
+        ]]
+        o.wayPointDistance = 0 -- Single
+        --[[
+        鱼的每帧移动距离
+        ]]
+        o.wayFrameDistance = 0 -- Single
+        --[[
+        当前帧下标( 每帧循环累加 )
+        ]]
+        o.spriteFrameIndex = 0 -- Int32
+        --[[
+        帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
+        ]]
+        o.frameRatio = 0 -- Int32
+        --[[
+        是否为在鱼线上倒着移动( 默认否 )
+        ]]
+        o.reverse = false -- Boolean
         setmetatable( o, PKG_CatchFish_MoveItem.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
         local ReadSingle = bb.ReadSingle
-        o.cfgId = bb:ReadInt32()
+        o.cfgId = ReadInt32( bb )
         o.coin = bb:ReadInt64()
         o.speedScale = ReadSingle( bb )
-        o.sizeScale = ReadSingle( bb )
+        o.scale = ReadSingle( bb )
+        o.way = bb:ReadObject()
+        o.wayIndex = ReadInt32( bb )
+        o.wayPointIndex = ReadInt32( bb )
+        o.wayPointDistance = ReadSingle( bb )
+        o.wayFrameDistance = ReadSingle( bb )
+        o.spriteFrameIndex = ReadInt32( bb )
+        o.frameRatio = ReadInt32( bb )
+        o.reverse = bb:ReadBoolean()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
         local WriteSingle = bb.WriteSingle
-        bb:WriteInt32( o.cfgId )
+        WriteInt32( bb, o.cfgId )
         bb:WriteInt64( o.coin )
         WriteSingle( bb, o.speedScale )
-        WriteSingle( bb, o.sizeScale )
+        WriteSingle( bb, o.scale )
+        bb:WriteObject( o.way )
+        WriteInt32( bb, o.wayIndex )
+        WriteInt32( bb, o.wayPointIndex )
+        WriteSingle( bb, o.wayPointDistance )
+        WriteSingle( bb, o.wayFrameDistance )
+        WriteInt32( bb, o.spriteFrameIndex )
+        WriteInt32( bb, o.frameRatio )
+        bb:WriteBoolean( o.reverse )
     end
 }
 BBuffer.Register( PKG_CatchFish_Fish )
@@ -1049,6 +1099,49 @@ PKG_CatchFish_MoveItem = {
 }
 BBuffer.Register( PKG_CatchFish_MoveItem )
 --[[
+轨迹. 预约下发安全, 将复制轨迹完整数据
+]]
+PKG_CatchFish_Way = {
+    typeName = "PKG_CatchFish_Way",
+    typeId = 49,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Way
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        轨迹点集合
+        ]]
+        o.points = null -- List_PKG_CatchFish_WayPoint_
+        --[[
+        总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )
+        ]]
+        o.distance = 0 -- Single
+        --[[
+        是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完
+        ]]
+        o.loop = false -- Boolean
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.points = bb:ReadObject()
+        o.distance = bb:ReadSingle()
+        o.loop = bb:ReadBoolean()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteObject( o.points )
+        bb:WriteSingle( o.distance )
+        bb:WriteBoolean( o.loop )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Way )
+--[[
 定时器基类
 ]]
 PKG_CatchFish_Timer = {
@@ -1079,6 +1172,38 @@ PKG_CatchFish_Timer = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Timer )
+List_PKG_CatchFish_WayPoint_ = {
+    typeName = "List_PKG_CatchFish_WayPoint_",
+    typeId = 64,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFish_WayPoint_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadWayPoint
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteWayPoint
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFish_WayPoint_ )
 --[[
 事件基类
 ]]
@@ -1823,11 +1948,7 @@ PKG_CatchFish_Configs_Config = {
         --[[
         所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )
         ]]
-        o.ways = null -- List_PKG_CatchFish_Configs_Way_
-        --[[
-        所有精灵帧都在这放一份
-        ]]
-        o.frames = null -- List_PKG_CatchFish_Configs_SpriteFrame_
+        o.ways = null -- List_PKG_CatchFish_Way_
         --[[
         所有鱼的配置信息
         ]]
@@ -1849,7 +1970,7 @@ PKG_CatchFish_Configs_Config = {
         ]]
         o.sitPositons = null -- List__xx_Pos_
         --[[
-        锁定点击范围 ( 将枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )
+        锁定点击范围 ( 增加容错, 不必点的太精确. 点击作用是 枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )
         ]]
         o.aimTouchRadius = 0 -- Single
         return o
@@ -1857,7 +1978,6 @@ PKG_CatchFish_Configs_Config = {
     FromBBuffer = function( bb, o )
         local ReadObject = bb.ReadObject
         o.ways = ReadObject( bb )
-        o.frames = ReadObject( bb )
         o.fishs = ReadObject( bb )
         o.cannons = ReadObject( bb )
         o.weapons = ReadObject( bb )
@@ -1868,7 +1988,6 @@ PKG_CatchFish_Configs_Config = {
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
         WriteObject( bb, o.ways )
-        WriteObject( bb, o.frames )
         WriteObject( bb, o.fishs )
         WriteObject( bb, o.cannons )
         WriteObject( bb, o.weapons )
@@ -1878,12 +1997,12 @@ PKG_CatchFish_Configs_Config = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_Config )
-List_PKG_CatchFish_Configs_Way_ = {
-    typeName = "List_PKG_CatchFish_Configs_Way_",
+List_PKG_CatchFish_Way_ = {
+    typeName = "List_PKG_CatchFish_Way_",
     typeId = 48,
     Create = function()
         local o = {}
-        o.__proto = List_PKG_CatchFish_Configs_Way_
+        o.__proto = List_PKG_CatchFish_Way_
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -1909,121 +2028,7 @@ List_PKG_CatchFish_Configs_Way_ = {
 		end
     end
 }
-BBuffer.Register( List_PKG_CatchFish_Configs_Way_ )
---[[
-轨迹. 预约下发安全, 将复制轨迹完整数据
-]]
-PKG_CatchFish_Configs_Way = {
-    typeName = "PKG_CatchFish_Configs_Way",
-    typeId = 49,
-    Create = function()
-        local o = {}
-        o.__proto = PKG_CatchFish_Configs_Way
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-
-        --[[
-        轨迹点集合
-        ]]
-        o.points = null -- List_PKG_CatchFish_Configs_WayPoint_
-        --[[
-        总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )
-        ]]
-        o.distance = 0 -- Single
-        --[[
-        是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完
-        ]]
-        o.loop = false -- Boolean
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-        o.points = bb:ReadObject()
-        o.distance = bb:ReadSingle()
-        o.loop = bb:ReadBoolean()
-    end,
-    ToBBuffer = function( bb, o )
-        bb:WriteObject( o.points )
-        bb:WriteSingle( o.distance )
-        bb:WriteBoolean( o.loop )
-    end
-}
-BBuffer.Register( PKG_CatchFish_Configs_Way )
-List_PKG_CatchFish_Configs_SpriteFrame_ = {
-    typeName = "List_PKG_CatchFish_Configs_SpriteFrame_",
-    typeId = 59,
-    Create = function()
-        local o = {}
-        o.__proto = List_PKG_CatchFish_Configs_SpriteFrame_
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-		local len = bb:ReadUInt32()
-        local f = BBuffer.ReadObject
-		for i = 1, len do
-			o[ i ] = f( bb )
-		end
-    end,
-    ToBBuffer = function( bb, o )
-        local len = #o
-		bb:WriteUInt32( len )
-        local f = BBuffer.WriteObject
-        for i = 1, len do
-			f( bb, o[ i ] )
-		end
-    end
-}
-BBuffer.Register( List_PKG_CatchFish_Configs_SpriteFrame_ )
---[[
-精灵帧
-]]
-PKG_CatchFish_Configs_SpriteFrame = {
-    typeName = "PKG_CatchFish_Configs_SpriteFrame",
-    typeId = 60,
-    Create = function()
-        local o = {}
-        o.__proto = PKG_CatchFish_Configs_SpriteFrame
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-
-        --[[
-        贴图名. 通过遍历扫描去重之后, 结合关卡数据, 可以针对即将出现的鱼以及短期内不再出现的鱼做异步加载/卸载
-        ]]
-        o.textureName = null -- String
-        --[[
-        帧名
-        ]]
-        o.frameName = null -- String
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-        local ReadObject = bb.ReadObject
-        o.textureName = ReadObject( bb )
-        o.frameName = ReadObject( bb )
-    end,
-    ToBBuffer = function( bb, o )
-        local WriteObject = bb.WriteObject
-        WriteObject( bb, o.textureName )
-        WriteObject( bb, o.frameName )
-    end
-}
-BBuffer.Register( PKG_CatchFish_Configs_SpriteFrame )
+BBuffer.Register( List_PKG_CatchFish_Way_ )
 List_PKG_CatchFish_Configs_Fish_ = {
     typeName = "List_PKG_CatchFish_Configs_Fish_",
     typeId = 50,
@@ -2088,7 +2093,7 @@ PKG_CatchFish_Configs_Fish = {
         --[[
         与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利
         ]]
-        o.ways = null -- List_PKG_CatchFish_Configs_Way_
+        o.ways = null -- List_PKG_CatchFish_Way_
         --[[
         移动帧集合 ( 部分鱼可能具有多种移动状态, 硬编码确定下标范围 )
         ]]
@@ -2215,10 +2220,6 @@ PKG_CatchFish_Configs_Cannon = {
         发射间隔帧数
         ]]
         o.shootCD = 0 -- Int32
-        --[[
-        帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
-        ]]
-        o.frames = null -- List_PKG_CatchFish_Configs_SpriteFrame_
         setmetatable( o, PKG_CatchFish_Configs_Item.Create() )
         return o
     end,
@@ -2231,7 +2232,6 @@ PKG_CatchFish_Configs_Cannon = {
         o.bulletQuantity = ReadInt32( bb )
         o.numBulletLimit = ReadInt32( bb )
         o.shootCD = ReadInt32( bb )
-        o.frames = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -2242,7 +2242,6 @@ PKG_CatchFish_Configs_Cannon = {
         WriteInt32( bb, o.bulletQuantity )
         WriteInt32( bb, o.numBulletLimit )
         WriteInt32( bb, o.shootCD )
-        bb:WriteObject( o.frames )
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_Cannon )
@@ -2443,6 +2442,77 @@ PKG_CatchFish_Configs_Item = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_Item )
+List_PKG_CatchFish_Configs_SpriteFrame_ = {
+    typeName = "List_PKG_CatchFish_Configs_SpriteFrame_",
+    typeId = 59,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFish_Configs_SpriteFrame_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadObject
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteObject
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFish_Configs_SpriteFrame_ )
+--[[
+精灵帧
+]]
+PKG_CatchFish_Configs_SpriteFrame = {
+    typeName = "PKG_CatchFish_Configs_SpriteFrame",
+    typeId = 60,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Configs_SpriteFrame
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        贴图名. 通过遍历扫描去重之后, 结合关卡数据, 可以针对即将出现的鱼以及短期内不再出现的鱼做异步加载/卸载
+        ]]
+        o.textureName = null -- String
+        --[[
+        帧名
+        ]]
+        o.frameName = null -- String
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadObject = bb.ReadObject
+        o.textureName = ReadObject( bb )
+        o.frameName = ReadObject( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteObject = bb.WriteObject
+        WriteObject( bb, o.textureName )
+        WriteObject( bb, o.frameName )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Configs_SpriteFrame )
 List_PKG_CatchFish_Configs_FishSpriteFrame_ = {
     typeName = "List_PKG_CatchFish_Configs_FishSpriteFrame_",
     typeId = 61,
@@ -2497,9 +2567,9 @@ PKG_CatchFish_Configs_FishSpriteFrame = {
         ]]
         o.frame = null -- PKG_CatchFish_Configs_SpriteFrame
         --[[
-        基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
+        指向物理建模
         ]]
-        o.polygons = null -- List_List__xx_Pos__
+        o.physics = null -- PKG_CatchFish_Configs_Physics
         --[[
         首选锁定点( 如果该点还在屏幕上, 则 lock 准星一直在其上 )
         ]]
@@ -2517,7 +2587,7 @@ PKG_CatchFish_Configs_FishSpriteFrame = {
     FromBBuffer = function( bb, o )
         local ReadObject = bb.ReadObject
         o.frame = ReadObject( bb )
-        o.polygons = ReadObject( bb )
+        o.physics = ReadObject( bb )
         o.lockPoint = ReadObject( bb )
         o.lockPoints = ReadObject( bb )
         o.moveDistance = bb:ReadSingle()
@@ -2525,13 +2595,44 @@ PKG_CatchFish_Configs_FishSpriteFrame = {
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
         WriteObject( bb, o.frame )
-        WriteObject( bb, o.polygons )
+        WriteObject( bb, o.physics )
         WriteObject( bb, o.lockPoint )
         WriteObject( bb, o.lockPoints )
         bb:WriteSingle( o.moveDistance )
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_FishSpriteFrame )
+--[[
+物理建模 for 鱼与子弹碰撞检测
+]]
+PKG_CatchFish_Configs_Physics = {
+    typeName = "PKG_CatchFish_Configs_Physics",
+    typeId = 65,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Configs_Physics
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
+        ]]
+        o.polygons = null -- List_List__xx_Pos__
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.polygons = bb:ReadObject()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteObject( o.polygons )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Configs_Physics )
 List_List__xx_Pos__ = {
     typeName = "List_List__xx_Pos__",
     typeId = 63,
@@ -2564,35 +2665,3 @@ List_List__xx_Pos__ = {
     end
 }
 BBuffer.Register( List_List__xx_Pos__ )
-List_PKG_CatchFish_Configs_WayPoint_ = {
-    typeName = "List_PKG_CatchFish_Configs_WayPoint_",
-    typeId = 64,
-    Create = function()
-        local o = {}
-        o.__proto = List_PKG_CatchFish_Configs_WayPoint_
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-		local len = bb:ReadUInt32()
-        local f = BBuffer.ReadWayPoint
-		for i = 1, len do
-			o[ i ] = f( bb )
-		end
-    end,
-    ToBBuffer = function( bb, o )
-        local len = #o
-		bb:WriteUInt32( len )
-        local f = BBuffer.WriteWayPoint
-        for i = 1, len do
-			f( bb, o[ i ] )
-		end
-    end
-}
-BBuffer.Register( List_PKG_CatchFish_Configs_WayPoint_ )

@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "16dd183daf80be58de8a0c883014894d"; 
+        public const string value = "3ccea2a0a6ad09a64cbc2acf031c81c4"; 
     }
 
 namespace CatchFish
@@ -887,9 +887,41 @@ namespace CatchFish
         /// </summary>
         public float speedScale;
         /// <summary>
-        /// 碰撞 | 显示 体积系数 ( 默认为 1 )
+        /// 运行时缩放比例( 通常为 1 )
         /// </summary>
-        public float sizeScale;
+        public float scale;
+        /// <summary>
+        /// 移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayIndex ( 常见于非直线鱼 )
+        /// </summary>
+        public CatchFish.Way way;
+        /// <summary>
+        /// 移动轨迹 于 cfg.ways 的下标. 启用优先级低于 way
+        /// </summary>
+        public int wayIndex;
+        /// <summary>
+        /// 当前轨迹点下标
+        /// </summary>
+        public int wayPointIndex;
+        /// <summary>
+        /// 当前轨迹点上的已前进距离
+        /// </summary>
+        public float wayPointDistance;
+        /// <summary>
+        /// 鱼的每帧移动距离
+        /// </summary>
+        public float wayFrameDistance;
+        /// <summary>
+        /// 当前帧下标( 每帧循环累加 )
+        /// </summary>
+        public int spriteFrameIndex;
+        /// <summary>
+        /// 帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
+        /// </summary>
+        public int frameRatio;
+        /// <summary>
+        /// 是否为在鱼线上倒着移动( 默认否 )
+        /// </summary>
+        public bool reverse = false;
 
         public override ushort GetPackageId()
         {
@@ -902,7 +934,15 @@ namespace CatchFish
             bb.Write(this.cfgId);
             bb.Write(this.coin);
             bb.Write(this.speedScale);
-            bb.Write(this.sizeScale);
+            bb.Write(this.scale);
+            bb.Write(this.way);
+            bb.Write(this.wayIndex);
+            bb.Write(this.wayPointIndex);
+            bb.Write(this.wayPointDistance);
+            bb.Write(this.wayFrameDistance);
+            bb.Write(this.spriteFrameIndex);
+            bb.Write(this.frameRatio);
+            bb.Write(this.reverse);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -911,7 +951,15 @@ namespace CatchFish
             bb.Read(ref this.cfgId);
             bb.Read(ref this.coin);
             bb.Read(ref this.speedScale);
-            bb.Read(ref this.sizeScale);
+            bb.Read(ref this.scale);
+            bb.Read(ref this.way);
+            bb.Read(ref this.wayIndex);
+            bb.Read(ref this.wayPointIndex);
+            bb.Read(ref this.wayPointDistance);
+            bb.Read(ref this.wayFrameDistance);
+            bb.Read(ref this.spriteFrameIndex);
+            bb.Read(ref this.frameRatio);
+            bb.Read(ref this.reverse);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -934,7 +982,15 @@ namespace CatchFish
             s.Append(", \"cfgId\":" + cfgId.ToString());
             s.Append(", \"coin\":" + coin.ToString());
             s.Append(", \"speedScale\":" + speedScale.ToString());
-            s.Append(", \"sizeScale\":" + sizeScale.ToString());
+            s.Append(", \"scale\":" + scale.ToString());
+            s.Append(", \"way\":" + (way == null ? "nil" : way.ToString()));
+            s.Append(", \"wayIndex\":" + wayIndex.ToString());
+            s.Append(", \"wayPointIndex\":" + wayPointIndex.ToString());
+            s.Append(", \"wayPointDistance\":" + wayPointDistance.ToString());
+            s.Append(", \"wayFrameDistance\":" + wayFrameDistance.ToString());
+            s.Append(", \"spriteFrameIndex\":" + spriteFrameIndex.ToString());
+            s.Append(", \"frameRatio\":" + frameRatio.ToString());
+            s.Append(", \"reverse\":" + reverse.ToString());
         }
         public override string ToString()
         {
@@ -1119,6 +1175,129 @@ namespace CatchFish
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
             base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 轨迹点
+    /// </summary>
+    public partial struct WayPoint : xx.IObject
+    {
+        /// <summary>
+        /// 坐标
+        /// </summary>
+        public xx.Pos pos;
+        /// <summary>
+        /// 角度
+        /// </summary>
+        public float angle;
+        /// <summary>
+        /// 当前点到下一个点的物理/逻辑距离( 下一个点可能是相同坐标, 停在原地转身的效果 )
+        /// </summary>
+        public float distance;
+
+        public ushort GetPackageId()
+        {
+            return xx.TypeId<WayPoint>.value;
+        }
+
+        public void ToBBuffer(xx.BBuffer bb)
+        {
+            ((xx.IObject)this.pos).ToBBuffer(bb);
+            bb.Write(this.angle);
+            bb.Write(this.distance);
+        }
+
+        public void FromBBuffer(xx.BBuffer bb)
+        {
+            ((xx.IObject)this.pos).FromBBuffer(bb);
+            bb.Read(ref this.angle);
+            bb.Read(ref this.distance);
+        }
+        public void ToString(System.Text.StringBuilder s)
+        {
+            s.Append("{ \"pkgTypeName\":\"CatchFish.WayPoint\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+        }
+        public void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"pos\":" + pos.ToString());
+            s.Append(", \"angle\":" + angle.ToString());
+            s.Append(", \"distance\":" + distance.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+    }
+    /// <summary>
+    /// 轨迹. 预约下发安全, 将复制轨迹完整数据
+    /// </summary>
+    public partial class Way : xx.Object
+    {
+        /// <summary>
+        /// 轨迹点集合
+        /// </summary>
+        public xx.List<CatchFish.WayPoint> points;
+        /// <summary>
+        /// 总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )
+        /// </summary>
+        public float distance;
+        /// <summary>
+        /// 是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完
+        /// </summary>
+        public bool loop = false;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Way>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.points);
+            bb.Write(this.distance);
+            bb.Write(this.loop);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.points);
+            bb.Read(ref this.distance);
+            bb.Read(ref this.loop);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Way\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"points\":" + (points == null ? "nil" : points.ToString()));
+            s.Append(", \"distance\":" + distance.ToString());
+            s.Append(", \"loop\":" + loop.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
         }
     }
 }
@@ -2238,11 +2417,7 @@ namespace CatchFish.Configs
         /// <summary>
         /// 所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )
         /// </summary>
-        public xx.List<CatchFish.Configs.Way> ways;
-        /// <summary>
-        /// 所有精灵帧都在这放一份
-        /// </summary>
-        public xx.List<CatchFish.Configs.SpriteFrame> frames;
+        public xx.List<CatchFish.Way> ways;
         /// <summary>
         /// 所有鱼的配置信息
         /// </summary>
@@ -2264,7 +2439,7 @@ namespace CatchFish.Configs
         /// </summary>
         public xx.List<xx.Pos> sitPositons;
         /// <summary>
-        /// 锁定点击范围 ( 将枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )
+        /// 锁定点击范围 ( 增加容错, 不必点的太精确. 点击作用是 枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )
         /// </summary>
         public float aimTouchRadius;
 
@@ -2276,7 +2451,6 @@ namespace CatchFish.Configs
         public override void ToBBuffer(xx.BBuffer bb)
         {
             bb.Write(this.ways);
-            bb.Write(this.frames);
             bb.Write(this.fishs);
             bb.Write(this.cannons);
             bb.Write(this.weapons);
@@ -2289,8 +2463,6 @@ namespace CatchFish.Configs
         {
             bb.readLengthLimit = 0;
             bb.Read(ref this.ways);
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.frames);
             bb.readLengthLimit = 0;
             bb.Read(ref this.fishs);
             bb.readLengthLimit = 0;
@@ -2321,7 +2493,6 @@ namespace CatchFish.Configs
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             s.Append(", \"ways\":" + (ways == null ? "nil" : ways.ToString()));
-            s.Append(", \"frames\":" + (frames == null ? "nil" : frames.ToString()));
             s.Append(", \"fishs\":" + (fishs == null ? "nil" : fishs.ToString()));
             s.Append(", \"cannons\":" + (cannons == null ? "nil" : cannons.ToString()));
             s.Append(", \"weapons\":" + (weapons == null ? "nil" : weapons.ToString()));
@@ -2434,7 +2605,7 @@ namespace CatchFish.Configs
         /// <summary>
         /// 与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利
         /// </summary>
-        public xx.List<CatchFish.Configs.Way> ways;
+        public xx.List<CatchFish.Way> ways;
         /// <summary>
         /// 移动帧集合 ( 部分鱼可能具有多种移动状态, 硬编码确定下标范围 )
         /// </summary>
@@ -2555,10 +2726,6 @@ namespace CatchFish.Configs
         /// 发射间隔帧数
         /// </summary>
         public int shootCD;
-        /// <summary>
-        /// 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
-        /// </summary>
-        public xx.List<CatchFish.Configs.SpriteFrame> frames;
 
         public override ushort GetPackageId()
         {
@@ -2573,7 +2740,6 @@ namespace CatchFish.Configs
             bb.Write(this.bulletQuantity);
             bb.Write(this.numBulletLimit);
             bb.Write(this.shootCD);
-            bb.Write(this.frames);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -2584,8 +2750,6 @@ namespace CatchFish.Configs
             bb.Read(ref this.bulletQuantity);
             bb.Read(ref this.numBulletLimit);
             bb.Read(ref this.shootCD);
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.frames);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2610,7 +2774,6 @@ namespace CatchFish.Configs
             s.Append(", \"bulletQuantity\":" + bulletQuantity.ToString());
             s.Append(", \"numBulletLimit\":" + numBulletLimit.ToString());
             s.Append(", \"shootCD\":" + shootCD.ToString());
-            s.Append(", \"frames\":" + (frames == null ? "nil" : frames.ToString()));
         }
         public override string ToString()
         {
@@ -2759,6 +2922,60 @@ namespace CatchFish.Configs
         }
     }
     /// <summary>
+    /// 物理建模 for 鱼与子弹碰撞检测
+    /// </summary>
+    public partial class Physics : xx.Object
+    {
+        /// <summary>
+        /// 基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
+        /// </summary>
+        public xx.List<xx.List<xx.Pos>> polygons;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Physics>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.polygons);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.polygons);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.Physics\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"polygons\":" + (polygons == null ? "nil" : polygons.ToString()));
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+    /// <summary>
     /// 带物理检测区和锁定线等附加数据的鱼移动帧动画
     /// </summary>
     public partial class FishSpriteFrame : xx.Object
@@ -2768,9 +2985,9 @@ namespace CatchFish.Configs
         /// </summary>
         public CatchFish.Configs.SpriteFrame frame;
         /// <summary>
-        /// 基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
+        /// 指向物理建模
         /// </summary>
-        public xx.List<xx.List<xx.Pos>> polygons;
+        public CatchFish.Configs.Physics physics;
         /// <summary>
         /// 首选锁定点( 如果该点还在屏幕上, 则 lock 准星一直在其上 )
         /// </summary>
@@ -2792,7 +3009,7 @@ namespace CatchFish.Configs
         public override void ToBBuffer(xx.BBuffer bb)
         {
             bb.Write(this.frame);
-            bb.Write(this.polygons);
+            bb.Write(this.physics);
             ((xx.IObject)this.lockPoint).ToBBuffer(bb);
             bb.Write(this.lockPoints);
             bb.Write(this.moveDistance);
@@ -2801,8 +3018,7 @@ namespace CatchFish.Configs
         public override void FromBBuffer(xx.BBuffer bb)
         {
             bb.Read(ref this.frame);
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.polygons);
+            bb.Read(ref this.physics);
             ((xx.IObject)this.lockPoint).FromBBuffer(bb);
             bb.readLengthLimit = 0;
             bb.Read(ref this.lockPoints);
@@ -2826,133 +3042,10 @@ namespace CatchFish.Configs
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             s.Append(", \"frame\":" + (frame == null ? "nil" : frame.ToString()));
-            s.Append(", \"polygons\":" + (polygons == null ? "nil" : polygons.ToString()));
+            s.Append(", \"physics\":" + (physics == null ? "nil" : physics.ToString()));
             s.Append(", \"lockPoint\":" + lockPoint.ToString());
             s.Append(", \"lockPoints\":" + (lockPoints == null ? "nil" : lockPoints.ToString()));
             s.Append(", \"moveDistance\":" + moveDistance.ToString());
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-        }
-    }
-    /// <summary>
-    /// 轨迹点
-    /// </summary>
-    public partial struct WayPoint : xx.IObject
-    {
-        /// <summary>
-        /// 坐标
-        /// </summary>
-        public xx.Pos pos;
-        /// <summary>
-        /// 角度
-        /// </summary>
-        public float angle;
-        /// <summary>
-        /// 当前点到下一个点的物理/逻辑距离( 下一个点可能是相同坐标, 停在原地转身的效果 )
-        /// </summary>
-        public float distance;
-
-        public ushort GetPackageId()
-        {
-            return xx.TypeId<WayPoint>.value;
-        }
-
-        public void ToBBuffer(xx.BBuffer bb)
-        {
-            ((xx.IObject)this.pos).ToBBuffer(bb);
-            bb.Write(this.angle);
-            bb.Write(this.distance);
-        }
-
-        public void FromBBuffer(xx.BBuffer bb)
-        {
-            ((xx.IObject)this.pos).FromBBuffer(bb);
-            bb.Read(ref this.angle);
-            bb.Read(ref this.distance);
-        }
-        public void ToString(System.Text.StringBuilder s)
-        {
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.WayPoint\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-        }
-        public void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"pos\":" + pos.ToString());
-            s.Append(", \"angle\":" + angle.ToString());
-            s.Append(", \"distance\":" + distance.ToString());
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-    }
-    /// <summary>
-    /// 轨迹. 预约下发安全, 将复制轨迹完整数据
-    /// </summary>
-    public partial class Way : xx.Object
-    {
-        /// <summary>
-        /// 轨迹点集合
-        /// </summary>
-        public xx.List<CatchFish.Configs.WayPoint> points;
-        /// <summary>
-        /// 总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )
-        /// </summary>
-        public float distance;
-        /// <summary>
-        /// 是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完
-        /// </summary>
-        public bool loop = false;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Way>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.points);
-            bb.Write(this.distance);
-            bb.Write(this.loop);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.points);
-            bb.Read(ref this.distance);
-            bb.Read(ref this.loop);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.Way\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"points\":" + (points == null ? "nil" : points.ToString()));
-            s.Append(", \"distance\":" + distance.ToString());
-            s.Append(", \"loop\":" + loop.ToString());
         }
         public override string ToString()
         {
@@ -2994,7 +3087,9 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Weapon>>(24);
             xx.Object.Register<CatchFish.Weapon>(25);
             xx.Object.Register<CatchFish.MoveItem>(26);
+            xx.Object.Register<CatchFish.Way>(49);
             xx.Object.Register<CatchFish.Timer>(27);
+            xx.Object.Register<xx.List<CatchFish.WayPoint>>(64);
             xx.Object.Register<CatchFish.Events.Event>(28);
             xx.Object.Register<CatchFish.Events.Enter>(29);
             xx.Object.Register<CatchFish.Events.Leave>(30);
@@ -3015,10 +3110,7 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Timer>>(45);
             xx.Object.Register<CatchFish.Stages.Script>(46);
             xx.Object.Register<CatchFish.Configs.Config>(47);
-            xx.Object.Register<xx.List<CatchFish.Configs.Way>>(48);
-            xx.Object.Register<CatchFish.Configs.Way>(49);
-            xx.Object.Register<xx.List<CatchFish.Configs.SpriteFrame>>(59);
-            xx.Object.Register<CatchFish.Configs.SpriteFrame>(60);
+            xx.Object.Register<xx.List<CatchFish.Way>>(48);
             xx.Object.Register<xx.List<CatchFish.Configs.Fish>>(50);
             xx.Object.Register<CatchFish.Configs.Fish>(51);
             xx.Object.Register<xx.List<CatchFish.Configs.Cannon>>(52);
@@ -3028,10 +3120,12 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Stages.Stage>>(56);
             xx.Object.Register<xx.List<xx.Pos>>(57);
             xx.Object.Register<CatchFish.Configs.Item>(58);
+            xx.Object.Register<xx.List<CatchFish.Configs.SpriteFrame>>(59);
+            xx.Object.Register<CatchFish.Configs.SpriteFrame>(60);
             xx.Object.Register<xx.List<CatchFish.Configs.FishSpriteFrame>>(61);
             xx.Object.Register<CatchFish.Configs.FishSpriteFrame>(62);
+            xx.Object.Register<CatchFish.Configs.Physics>(65);
             xx.Object.Register<xx.List<xx.List<xx.Pos>>>(63);
-            xx.Object.Register<xx.List<CatchFish.Configs.WayPoint>>(64);
         }
     }
 }
