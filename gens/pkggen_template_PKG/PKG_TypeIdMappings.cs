@@ -12,8 +12,6 @@ interface ITypeIdMappings
 
     Generic.Pong _6 { get; }
 
-    CatchFish.SceneInfo _7 { get; }
-
     CatchFish.Scene _8 { get; }
 
     xx.Random _9 { get; }

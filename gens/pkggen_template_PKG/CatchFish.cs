@@ -3,10 +3,8 @@ using TemplateLibrary;
 
 namespace CatchFish
 {
-    // 下列类中，Scene, Player 无法干净下发。
-
-    [Desc("场景基础配置参数 ( 主要来自 db )")]
-    class SceneInfo
+    [Desc("场景")]
+    class Scene
     {
         [Desc("游戏id")]
         int gameId;
@@ -29,15 +27,7 @@ namespace CatchFish
         [Desc("进出游戏时 money 自动兑换成 coin 要 乘除 的系数")]
         int exchangeCoinRatio;
 
-        [Desc("子弹颗数限制 ( 分别针对每个炮台 )")]
-        long maxBulletsPerCannon;
-    }
 
-    [Desc("场景")]
-    class Scene
-    {
-        [Desc("场景基础配置参数 ( 主要来自 db )")]
-        SceneInfo info;
 
         [Desc("帧编号, 每帧 + 1. 用于同步")]
         int frameNumber;
@@ -210,9 +200,6 @@ namespace CatchFish
 
         [Desc("当前轨迹点上的已前进距离")]
         float wayPointDistance;
-
-        [Desc("鱼的每帧移动距离")]
-        float wayFrameDistance;
 
         [Desc("当前帧下标( 每帧循环累加 )")]
         int spriteFrameIndex;

@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '3ccea2a0a6ad09a64cbc2acf031c81c4'
+PKG_PkgGenMd5_Value = 'c5e94da308a7bf7e5baec2339f543bd1'
 
 --[[
 座位列表
@@ -135,14 +135,14 @@ PKG_Generic_Pong = {
 }
 BBuffer.Register( PKG_Generic_Pong )
 --[[
-场景基础配置参数 ( 主要来自 db )
+场景
 ]]
-PKG_CatchFish_SceneInfo = {
-    typeName = "PKG_CatchFish_SceneInfo",
-    typeId = 7,
+PKG_CatchFish_Scene = {
+    typeName = "PKG_CatchFish_Scene",
+    typeId = 8,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFish_SceneInfo
+        o.__proto = PKG_CatchFish_Scene
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -179,59 +179,6 @@ PKG_CatchFish_SceneInfo = {
         进出游戏时 money 自动兑换成 coin 要 乘除 的系数
         ]]
         o.exchangeCoinRatio = 0 -- Int32
-        --[[
-        子弹颗数限制 ( 分别针对每个炮台 )
-        ]]
-        o.maxBulletsPerCannon = 0 -- Int64
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-        local ReadInt32 = bb.ReadInt32
-        local ReadInt64 = bb.ReadInt64
-        o.gameId = ReadInt32( bb )
-        o.levelId = ReadInt32( bb )
-        o.roomId = ReadInt32( bb )
-        o.minMoney = bb:ReadDouble()
-        o.minBet = ReadInt64( bb )
-        o.maxBet = ReadInt64( bb )
-        o.exchangeCoinRatio = ReadInt32( bb )
-        o.maxBulletsPerCannon = ReadInt64( bb )
-    end,
-    ToBBuffer = function( bb, o )
-        local WriteInt32 = bb.WriteInt32
-        local WriteInt64 = bb.WriteInt64
-        WriteInt32( bb, o.gameId )
-        WriteInt32( bb, o.levelId )
-        WriteInt32( bb, o.roomId )
-        bb:WriteDouble( o.minMoney )
-        WriteInt64( bb, o.minBet )
-        WriteInt64( bb, o.maxBet )
-        WriteInt32( bb, o.exchangeCoinRatio )
-        WriteInt64( bb, o.maxBulletsPerCannon )
-    end
-}
-BBuffer.Register( PKG_CatchFish_SceneInfo )
---[[
-场景
-]]
-PKG_CatchFish_Scene = {
-    typeName = "PKG_CatchFish_Scene",
-    typeId = 8,
-    Create = function()
-        local o = {}
-        o.__proto = PKG_CatchFish_Scene
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-
-        --[[
-        场景基础配置参数 ( 主要来自 db )
-        ]]
-        o.info = null -- PKG_CatchFish_SceneInfo
         --[[
         帧编号, 每帧 + 1. 用于同步
         ]]
@@ -271,9 +218,16 @@ PKG_CatchFish_Scene = {
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadObject = bb.ReadObject
         local ReadInt32 = bb.ReadInt32
-        o.info = ReadObject( bb )
+        local ReadInt64 = bb.ReadInt64
+        local ReadObject = bb.ReadObject
+        o.gameId = ReadInt32( bb )
+        o.levelId = ReadInt32( bb )
+        o.roomId = ReadInt32( bb )
+        o.minMoney = bb:ReadDouble()
+        o.minBet = ReadInt64( bb )
+        o.maxBet = ReadInt64( bb )
+        o.exchangeCoinRatio = ReadInt32( bb )
         o.frameNumber = ReadInt32( bb )
         o.rnd = ReadObject( bb )
         o.autoIncId = ReadInt32( bb )
@@ -285,9 +239,16 @@ PKG_CatchFish_Scene = {
         o.players = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
-        local WriteObject = bb.WriteObject
         local WriteInt32 = bb.WriteInt32
-        WriteObject( bb, o.info )
+        local WriteInt64 = bb.WriteInt64
+        local WriteObject = bb.WriteObject
+        WriteInt32( bb, o.gameId )
+        WriteInt32( bb, o.levelId )
+        WriteInt32( bb, o.roomId )
+        bb:WriteDouble( o.minMoney )
+        WriteInt64( bb, o.minBet )
+        WriteInt64( bb, o.maxBet )
+        WriteInt32( bb, o.exchangeCoinRatio )
         WriteInt32( bb, o.frameNumber )
         WriteObject( bb, o.rnd )
         WriteInt32( bb, o.autoIncId )
@@ -404,10 +365,6 @@ PKG_CatchFish_Fish = {
         ]]
         o.wayPointDistance = 0 -- Single
         --[[
-        鱼的每帧移动距离
-        ]]
-        o.wayFrameDistance = 0 -- Single
-        --[[
         当前帧下标( 每帧循环累加 )
         ]]
         o.spriteFrameIndex = 0 -- Int32
@@ -435,7 +392,6 @@ PKG_CatchFish_Fish = {
         o.wayIndex = ReadInt32( bb )
         o.wayPointIndex = ReadInt32( bb )
         o.wayPointDistance = ReadSingle( bb )
-        o.wayFrameDistance = ReadSingle( bb )
         o.spriteFrameIndex = ReadInt32( bb )
         o.frameRatio = ReadInt32( bb )
         o.reverse = bb:ReadBoolean()
@@ -453,7 +409,6 @@ PKG_CatchFish_Fish = {
         WriteInt32( bb, o.wayIndex )
         WriteInt32( bb, o.wayPointIndex )
         WriteSingle( bb, o.wayPointDistance )
-        WriteSingle( bb, o.wayFrameDistance )
         WriteInt32( bb, o.spriteFrameIndex )
         WriteInt32( bb, o.frameRatio )
         bb:WriteBoolean( o.reverse )

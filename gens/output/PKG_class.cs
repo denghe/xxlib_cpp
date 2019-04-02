@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "3ccea2a0a6ad09a64cbc2acf031c81c4"; 
+        public const string value = "c5e94da308a7bf7e5baec2339f543bd1"; 
     }
 
 namespace CatchFish
@@ -239,9 +239,9 @@ namespace Generic
 namespace CatchFish
 {
     /// <summary>
-    /// 场景基础配置参数 ( 主要来自 db )
+    /// 场景
     /// </summary>
-    public partial class SceneInfo : xx.Object
+    public partial class Scene : xx.Object
     {
         /// <summary>
         /// 游戏id
@@ -271,84 +271,6 @@ namespace CatchFish
         /// 进出游戏时 money 自动兑换成 coin 要 乘除 的系数
         /// </summary>
         public int exchangeCoinRatio;
-        /// <summary>
-        /// 子弹颗数限制 ( 分别针对每个炮台 )
-        /// </summary>
-        public long maxBulletsPerCannon;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<SceneInfo>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.gameId);
-            bb.Write(this.levelId);
-            bb.Write(this.roomId);
-            bb.Write(this.minMoney);
-            bb.Write(this.minBet);
-            bb.Write(this.maxBet);
-            bb.Write(this.exchangeCoinRatio);
-            bb.Write(this.maxBulletsPerCannon);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.Read(ref this.gameId);
-            bb.Read(ref this.levelId);
-            bb.Read(ref this.roomId);
-            bb.Read(ref this.minMoney);
-            bb.Read(ref this.minBet);
-            bb.Read(ref this.maxBet);
-            bb.Read(ref this.exchangeCoinRatio);
-            bb.Read(ref this.maxBulletsPerCannon);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"CatchFish.SceneInfo\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"gameId\":" + gameId.ToString());
-            s.Append(", \"levelId\":" + levelId.ToString());
-            s.Append(", \"roomId\":" + roomId.ToString());
-            s.Append(", \"minMoney\":" + minMoney.ToString());
-            s.Append(", \"minBet\":" + minBet.ToString());
-            s.Append(", \"maxBet\":" + maxBet.ToString());
-            s.Append(", \"exchangeCoinRatio\":" + exchangeCoinRatio.ToString());
-            s.Append(", \"maxBulletsPerCannon\":" + maxBulletsPerCannon.ToString());
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-        }
-    }
-    /// <summary>
-    /// 场景
-    /// </summary>
-    public partial class Scene : xx.Object
-    {
-        /// <summary>
-        /// 场景基础配置参数 ( 主要来自 db )
-        /// </summary>
-        public CatchFish.SceneInfo info;
         /// <summary>
         /// 帧编号, 每帧 + 1. 用于同步
         /// </summary>
@@ -393,7 +315,13 @@ namespace CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.info);
+            bb.Write(this.gameId);
+            bb.Write(this.levelId);
+            bb.Write(this.roomId);
+            bb.Write(this.minMoney);
+            bb.Write(this.minBet);
+            bb.Write(this.maxBet);
+            bb.Write(this.exchangeCoinRatio);
             bb.Write(this.frameNumber);
             bb.Write(this.rnd);
             bb.Write(this.autoIncId);
@@ -407,7 +335,13 @@ namespace CatchFish
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            bb.Read(ref this.info);
+            bb.Read(ref this.gameId);
+            bb.Read(ref this.levelId);
+            bb.Read(ref this.roomId);
+            bb.Read(ref this.minMoney);
+            bb.Read(ref this.minBet);
+            bb.Read(ref this.maxBet);
+            bb.Read(ref this.exchangeCoinRatio);
             bb.Read(ref this.frameNumber);
             bb.Read(ref this.rnd);
             bb.Read(ref this.autoIncId);
@@ -440,7 +374,13 @@ namespace CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            s.Append(", \"info\":" + (info == null ? "nil" : info.ToString()));
+            s.Append(", \"gameId\":" + gameId.ToString());
+            s.Append(", \"levelId\":" + levelId.ToString());
+            s.Append(", \"roomId\":" + roomId.ToString());
+            s.Append(", \"minMoney\":" + minMoney.ToString());
+            s.Append(", \"minBet\":" + minBet.ToString());
+            s.Append(", \"maxBet\":" + maxBet.ToString());
+            s.Append(", \"exchangeCoinRatio\":" + exchangeCoinRatio.ToString());
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
             s.Append(", \"rnd\":" + (rnd == null ? "nil" : rnd.ToString()));
             s.Append(", \"autoIncId\":" + autoIncId.ToString());
@@ -907,10 +847,6 @@ namespace CatchFish
         /// </summary>
         public float wayPointDistance;
         /// <summary>
-        /// 鱼的每帧移动距离
-        /// </summary>
-        public float wayFrameDistance;
-        /// <summary>
         /// 当前帧下标( 每帧循环累加 )
         /// </summary>
         public int spriteFrameIndex;
@@ -939,7 +875,6 @@ namespace CatchFish
             bb.Write(this.wayIndex);
             bb.Write(this.wayPointIndex);
             bb.Write(this.wayPointDistance);
-            bb.Write(this.wayFrameDistance);
             bb.Write(this.spriteFrameIndex);
             bb.Write(this.frameRatio);
             bb.Write(this.reverse);
@@ -956,7 +891,6 @@ namespace CatchFish
             bb.Read(ref this.wayIndex);
             bb.Read(ref this.wayPointIndex);
             bb.Read(ref this.wayPointDistance);
-            bb.Read(ref this.wayFrameDistance);
             bb.Read(ref this.spriteFrameIndex);
             bb.Read(ref this.frameRatio);
             bb.Read(ref this.reverse);
@@ -987,7 +921,6 @@ namespace CatchFish
             s.Append(", \"wayIndex\":" + wayIndex.ToString());
             s.Append(", \"wayPointIndex\":" + wayPointIndex.ToString());
             s.Append(", \"wayPointDistance\":" + wayPointDistance.ToString());
-            s.Append(", \"wayFrameDistance\":" + wayFrameDistance.ToString());
             s.Append(", \"spriteFrameIndex\":" + spriteFrameIndex.ToString());
             s.Append(", \"frameRatio\":" + frameRatio.ToString());
             s.Append(", \"reverse\":" + reverse.ToString());
@@ -3067,7 +3000,6 @@ namespace CatchFish.Configs
             xx.Object.Register<Generic.Error>(4);
             xx.Object.Register<Generic.Ping>(5);
             xx.Object.Register<Generic.Pong>(6);
-            xx.Object.Register<CatchFish.SceneInfo>(7);
             xx.Object.Register<CatchFish.Scene>(8);
             xx.Object.Register<xx.Random>(9);
             xx.Object.Register<xx.List<CatchFish.Fish>>(10);

@@ -19,7 +19,7 @@ public static class Fishs
             f.zOrder = 3;
             f.shadowOffset = CalcShadowOffset(f.zOrder);
             f.shadowScale = f.scale;
-            FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10);
+            FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
         }
     }
 
@@ -54,7 +54,7 @@ public static class Fishs
     }
 
 
-    public static void FillFishFrames(PKG.CatchFish.Configs.Fish f, string moveName, int moveFrameCount, string dieName = null, int dieFrameCount = 0)
+    public static void FillFishFrames(PKG.CatchFish.Configs.Fish f, string moveName, int moveFrameCount, string dieName = null, int dieFrameCount = 0, float moveDistance = 2.5f)
     {
         f.frames = new xx.List<PKG.CatchFish.Configs.SpriteFrame>();
         f.moveFrames = new xx.List<PKG.CatchFish.Configs.FishSpriteFrame>();
@@ -82,7 +82,7 @@ public static class Fishs
                     fishFrame.physics = firstFrame.physics;
                 }
             }
-            fishFrame.moveDistance = 2.5f;
+            fishFrame.moveDistance = moveDistance;
         }
         for (int i = 1; i <= dieFrameCount; ++i)
         {
