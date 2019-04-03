@@ -39,7 +39,7 @@ public static class SpriteFrames
                 if (Program.frames.ContainsKey(f)) throw new System.Exception("发现重复的帧名:" + f);
                 Program.frames[f] = sf;
                 sf.frameName = f;
-                sf.textureName = fn;
+                sf.textureName = fn.Substring(Program.inputPath.Length + 1);
             }
         }
 
