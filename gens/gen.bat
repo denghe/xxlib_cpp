@@ -7,5 +7,6 @@ if exist output\PKG_TypeIdMappings.cs (
 	call "pkggen\bin\x64\Debug\pkggen.exe"
 	del output\PKG_TypeIdMappings.cs
 )
+call "%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\amd64\MSBuild.exe"
 call "cfg_maker\bin\x64\Debug\cfg_maker.exe"
 pause

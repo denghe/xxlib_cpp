@@ -211,7 +211,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        void InitCascade() noexcept override;
+        int InitCascade() noexcept override;
 
         inline static std::shared_ptr<ThisType> defaultInstance;
     };");   // class }
@@ -369,11 +369,11 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             sb.Append(@"
         return 0;
     }
-    inline void " + c.Name + @"::InitCascade() noexcept {");
+    inline int " + c.Name + @"::InitCascade() noexcept {");
             if (c._HasBaseType())
             {
                 sb.Append(@"
-        this->BaseType::InitCascade();");
+        if (int r = this->BaseType::InitCascade()) return r;");
             }
             fs = c._GetFields();
             foreach (var f in fs)
@@ -382,10 +382,11 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 if (!ft._IsList() && !ft._IsUserClass() || ft._IsWeak() || ft._IsExternal() && !ft._GetExternalSerializable()) continue;
                 sb.Append(@"
         if (this->" + f.Name + @") {
-            this->" + f.Name + @"->InitCascade();
+            if (int r = this->" + f.Name + @"->InitCascade()) return r;
         }");
             }
             sb.Append(@"
+        return 0;
     }
     inline void " + c.Name + @"::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
