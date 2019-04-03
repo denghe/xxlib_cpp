@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'c5e94da308a7bf7e5baec2339f543bd1'
+PKG_PkgGenMd5_Value = '7c01779aedc6919b55badb75546ab8c8'
 
 --[[
 座位列表
@@ -2447,9 +2447,9 @@ PKG_CatchFish_Configs_SpriteFrame = {
 
 
         --[[
-        贴图名. 通过遍历扫描去重之后, 结合关卡数据, 可以针对即将出现的鱼以及短期内不再出现的鱼做异步加载/卸载
+        plist资源名
         ]]
-        o.textureName = null -- String
+        o.plistName = null -- String
         --[[
         帧名
         ]]
@@ -2458,12 +2458,12 @@ PKG_CatchFish_Configs_SpriteFrame = {
     end,
     FromBBuffer = function( bb, o )
         local ReadObject = bb.ReadObject
-        o.textureName = ReadObject( bb )
+        o.plistName = ReadObject( bb )
         o.frameName = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
-        WriteObject( bb, o.textureName )
+        WriteObject( bb, o.plistName )
         WriteObject( bb, o.frameName )
     end
 }

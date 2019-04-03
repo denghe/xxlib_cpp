@@ -7,4 +7,5 @@ if exist output\PKG_TypeIdMappings.cs (
 	call "pkggen\bin\x64\Debug\pkggen.exe"
 	del output\PKG_TypeIdMappings.cs
 )
+call "cfg_maker\bin\x64\Debug\cfg_maker.exe"
 pause

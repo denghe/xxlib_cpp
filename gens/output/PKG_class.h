@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "c5e94da308a7bf7e5baec2339f543bd1";
+		inline static const std::string value = "7c01779aedc6919b55badb75546ab8c8";
     };
 
 namespace Generic {
@@ -702,8 +702,8 @@ namespace CatchFish::Configs {
     };
     // 精灵帧
     struct SpriteFrame : xx::Object {
-        // 贴图名. 通过遍历扫描去重之后, 结合关卡数据, 可以针对即将出现的鱼以及短期内不再出现的鱼做异步加载/卸载
-        std::string_s textureName;
+        // plist资源名
+        std::string_s plistName;
         // 帧名
         std::string_s frameName;
 
@@ -2922,12 +2922,12 @@ namespace CatchFish::Configs {
         return 60;
     }
     inline void SpriteFrame::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        bb.Write(this->textureName);
+        bb.Write(this->plistName);
         bb.Write(this->frameName);
     }
     inline int SpriteFrame::FromBBuffer(xx::BBuffer& bb) noexcept {
         bb.readLengthLimit = 0;
-        if (int r = bb.Read(this->textureName)) return r;
+        if (int r = bb.Read(this->plistName)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->frameName)) return r;
         return 0;
@@ -2950,8 +2950,8 @@ namespace CatchFish::Configs {
     }
     inline void SpriteFrame::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
-        if (this->textureName) xx::Append(s, ", \"textureName\":\"", this->textureName, "\"");
-        else xx::Append(s, ", \"textureName\":nil");
+        if (this->plistName) xx::Append(s, ", \"plistName\":\"", this->plistName, "\"");
+        else xx::Append(s, ", \"plistName\":nil");
         if (this->frameName) xx::Append(s, ", \"frameName\":\"", this->frameName, "\"");
         else xx::Append(s, ", \"frameName\":nil");
     }

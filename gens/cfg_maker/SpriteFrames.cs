@@ -39,7 +39,7 @@ public static class SpriteFrames
                 if (Program.frames.ContainsKey(f)) throw new System.Exception("发现重复的帧名:" + f);
                 Program.frames[f] = sf;
                 sf.frameName = f;
-                sf.textureName = fn.Substring(Program.inputPath.Length + 1);
+                sf.plistName = fn.Substring(Program.inputPath.Length + 1);  // 移除目录路径部分. 只留下文件名
             }
         }
 

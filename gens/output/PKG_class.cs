@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "c5e94da308a7bf7e5baec2339f543bd1"; 
+        public const string value = "7c01779aedc6919b55badb75546ab8c8"; 
     }
 
 namespace CatchFish
@@ -2796,9 +2796,9 @@ namespace CatchFish.Configs
     public partial class SpriteFrame : xx.Object
     {
         /// <summary>
-        /// 贴图名. 通过遍历扫描去重之后, 结合关卡数据, 可以针对即将出现的鱼以及短期内不再出现的鱼做异步加载/卸载
+        /// plist资源名
         /// </summary>
-        public string textureName;
+        public string plistName;
         /// <summary>
         /// 帧名
         /// </summary>
@@ -2811,14 +2811,14 @@ namespace CatchFish.Configs
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.textureName);
+            bb.Write(this.plistName);
             bb.Write(this.frameName);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             bb.readLengthLimit = 0;
-            bb.Read(ref this.textureName);
+            bb.Read(ref this.plistName);
             bb.readLengthLimit = 0;
             bb.Read(ref this.frameName);
         }
@@ -2839,8 +2839,8 @@ namespace CatchFish.Configs
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            if (textureName != null) s.Append(", \"textureName\":\"" + textureName.ToString() + "\"");
-            else s.Append(", \"textureName\":nil");
+            if (plistName != null) s.Append(", \"plistName\":\"" + plistName.ToString() + "\"");
+            else s.Append(", \"plistName\":nil");
             if (frameName != null) s.Append(", \"frameName\":\"" + frameName.ToString() + "\"");
             else s.Append(", \"frameName\":nil");
         }

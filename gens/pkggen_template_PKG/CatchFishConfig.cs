@@ -114,14 +114,11 @@ namespace CatchFish
         [Desc("精灵帧")]
         class SpriteFrame
         {
-            [Desc("贴图名. 通过遍历扫描去重之后, 结合关卡数据, 可以针对即将出现的鱼以及短期内不再出现的鱼做异步加载/卸载")]
-            string textureName;
+            [Desc("plist资源名")]
+            string plistName;
 
             [Desc("帧名")]
             string frameName;
-
-            //[Desc("指向显示用精灵帧")]
-            //SpriteFramePointer spriteFrame;
         }
 
 
@@ -130,9 +127,6 @@ namespace CatchFish
         {
             [Desc("基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )")]
             List<List<xx.Pos>> polygons;
-
-            //[Desc("指向 chipmunk 空间指针")]
-            //CpSpacePointer cpSpace;
         }
 
         [Desc("带物理检测区和锁定线等附加数据的鱼移动帧动画")]

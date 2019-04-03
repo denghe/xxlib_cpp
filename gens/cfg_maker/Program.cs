@@ -36,12 +36,12 @@ public static class Program
     /// <summary>
     /// 基础配置文件输入目录
     /// </summary>
-    public const string inputPath = "../../../../input";
+    public static string inputPath = Application.StartupPath + "/../../../../input";
 
     /// <summary>
     /// 存盘输出目录
     /// </summary>
-    public const string outputPath = "../../../../output";
+    public static string outputPath = Application.StartupPath + "/../../../../output";
 
     static void Main(string[] args)
     {
