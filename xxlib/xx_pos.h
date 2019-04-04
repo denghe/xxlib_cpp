@@ -33,6 +33,12 @@ namespace xx
 			float dy = v.y - y;
 			return std::sqrtf(dx * dx + dy * dy);
 		}
+
+#ifdef CC_TARGET_PLATFORM
+		inline operator cocos2d::Vec2() const {
+			return *(cocos2d::Vec2*)this;
+		}
+#endif
 	};
 
 	// 适配 Pos 之 ToString
@@ -90,7 +96,7 @@ namespace xx
 		return true;
 	}
 
-	// 计算直线的弧度( 转为角度还要 / float(M_PI) * 180.0f )
+	// 计算直线的弧度( 转为角度还要  * (180.0f / float(M_PI) )
 	inline float GetAngle(Pos const& from, Pos const& to)
 	{
 		if (from == to) return 0.0f;
@@ -99,7 +105,7 @@ namespace xx
 		return std::atan2f(len_y, len_x);
 	}
 
-	// 以 0,0 为中心旋转. a 为弧度( 角度 / 180.0f * float(M_PI) )
+	// 以 0,0 为中心旋转. a 为弧度( 角度 * (float(M_PI) / 180.0f) )
 	inline Pos Rotate(Pos const& pos, float const& a)
 	{
 		auto&& sinA = std::sinf(a);

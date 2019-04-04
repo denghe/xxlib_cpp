@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "00b260547a113cca5a55d79acbbef0ad";
+		inline static const std::string value = "48c5ab66be157dcf85e5401fe0e28696";
     };
 
 namespace Generic {
@@ -618,8 +618,10 @@ namespace CatchFish::Configs {
         int64_t minCoin = 0;
         // 金币 / 倍率随机范围 ( 最大值 )
         int64_t maxCoin = 0;
-        // 基于整个鱼的最大晃动范围的圆形碰撞检测半径( 粗判. <= 0 则直接进行细判 )
+        // 基于整个鱼的最大晃动范围的圆形碰撞检测半径( 2 判. <= 0 则直接进行 3 判: 物理检测 )
         float maxDetectRadius = 0;
+        // 必然命中的最小检测半径( 1 判. <= 0 则直接进行 2 判. 如果 bulletRadius + minDetectRadius > 子弹中心到鱼中心的距离 就认为命中 )
+        float minDetectRadius = 0;
         // 与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利
         xx::List_s<PKG::CatchFish::Way_s> ways;
         // 移动帧集合 ( 部分鱼可能具有多种移动状态, 硬编码确定下标范围 )
@@ -2809,6 +2811,7 @@ namespace CatchFish::Configs {
         bb.Write(this->minCoin);
         bb.Write(this->maxCoin);
         bb.Write(this->maxDetectRadius);
+        bb.Write(this->minDetectRadius);
         bb.Write(this->ways);
         bb.Write(this->moveFrames);
         bb.Write(this->dieFrames);
@@ -2821,6 +2824,7 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->minCoin)) return r;
         if (int r = bb.Read(this->maxCoin)) return r;
         if (int r = bb.Read(this->maxDetectRadius)) return r;
+        if (int r = bb.Read(this->minDetectRadius)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->ways)) return r;
         bb.readLengthLimit = 0;
@@ -2864,6 +2868,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"minCoin\":", this->minCoin);
         xx::Append(s, ", \"maxCoin\":", this->maxCoin);
         xx::Append(s, ", \"maxDetectRadius\":", this->maxDetectRadius);
+        xx::Append(s, ", \"minDetectRadius\":", this->minDetectRadius);
         xx::Append(s, ", \"ways\":", this->ways);
         xx::Append(s, ", \"moveFrames\":", this->moveFrames);
         xx::Append(s, ", \"dieFrames\":", this->dieFrames);

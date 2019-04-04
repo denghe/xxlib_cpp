@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "00b260547a113cca5a55d79acbbef0ad"; 
+        public const string value = "48c5ab66be157dcf85e5401fe0e28696"; 
     }
 
 namespace CatchFish
@@ -2529,9 +2529,13 @@ namespace CatchFish.Configs
         /// </summary>
         public long maxCoin;
         /// <summary>
-        /// 基于整个鱼的最大晃动范围的圆形碰撞检测半径( 粗判. <= 0 则直接进行细判 )
+        /// 基于整个鱼的最大晃动范围的圆形碰撞检测半径( 2 判. <= 0 则直接进行 3 判: 物理检测 )
         /// </summary>
         public float maxDetectRadius;
+        /// <summary>
+        /// 必然命中的最小检测半径( 1 判. <= 0 则直接进行 2 判. 如果 bulletRadius + minDetectRadius > 子弹中心到鱼中心的距离 就认为命中 )
+        /// </summary>
+        public float minDetectRadius;
         /// <summary>
         /// 与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利
         /// </summary>
@@ -2568,6 +2572,7 @@ namespace CatchFish.Configs
             bb.Write(this.minCoin);
             bb.Write(this.maxCoin);
             bb.Write(this.maxDetectRadius);
+            bb.Write(this.minDetectRadius);
             bb.Write(this.ways);
             bb.Write(this.moveFrames);
             bb.Write(this.dieFrames);
@@ -2582,6 +2587,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.minCoin);
             bb.Read(ref this.maxCoin);
             bb.Read(ref this.maxDetectRadius);
+            bb.Read(ref this.minDetectRadius);
             bb.readLengthLimit = 0;
             bb.Read(ref this.ways);
             bb.readLengthLimit = 0;
@@ -2613,6 +2619,7 @@ namespace CatchFish.Configs
             s.Append(", \"minCoin\":" + minCoin.ToString());
             s.Append(", \"maxCoin\":" + maxCoin.ToString());
             s.Append(", \"maxDetectRadius\":" + maxDetectRadius.ToString());
+            s.Append(", \"minDetectRadius\":" + minDetectRadius.ToString());
             s.Append(", \"ways\":" + (ways == null ? "nil" : ways.ToString()));
             s.Append(", \"moveFrames\":" + (moveFrames == null ? "nil" : moveFrames.ToString()));
             s.Append(", \"dieFrames\":" + (dieFrames == null ? "nil" : dieFrames.ToString()));

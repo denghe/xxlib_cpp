@@ -55,8 +55,11 @@ namespace CatchFish
             [Desc("金币 / 倍率随机范围 ( 最大值 )")]
             long maxCoin;
 
-            [Desc("基于整个鱼的最大晃动范围的圆形碰撞检测半径( 粗判. <= 0 则直接进行细判 )")]
+            [Desc("基于整个鱼的最大晃动范围的圆形碰撞检测半径( 2 判. <= 0 则直接进行 3 判: 物理检测 )")]
             float maxDetectRadius;
+
+            [Desc("必然命中的最小检测半径( 1 判. <= 0 则直接进行 2 判. 如果 bulletRadius + minDetectRadius > 子弹中心到鱼中心的距离 就认为命中 )")]
+            float minDetectRadius;
 
             [Desc("与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利")]
             List<Way> ways;

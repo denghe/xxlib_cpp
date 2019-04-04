@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '00b260547a113cca5a55d79acbbef0ad'
+PKG_PkgGenMd5_Value = '48c5ab66be157dcf85e5401fe0e28696'
 
 --[[
 座位列表
@@ -2039,9 +2039,13 @@ PKG_CatchFish_Configs_Fish = {
         ]]
         o.maxCoin = 0 -- Int64
         --[[
-        基于整个鱼的最大晃动范围的圆形碰撞检测半径( 粗判. <= 0 则直接进行细判 )
+        基于整个鱼的最大晃动范围的圆形碰撞检测半径( 2 判. <= 0 则直接进行 3 判: 物理检测 )
         ]]
         o.maxDetectRadius = 0 -- Single
+        --[[
+        必然命中的最小检测半径( 1 判. <= 0 则直接进行 2 判. 如果 bulletRadius + minDetectRadius > 子弹中心到鱼中心的距离 就认为命中 )
+        ]]
+        o.minDetectRadius = 0 -- Single
         --[[
         与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利
         ]]
@@ -2078,6 +2082,7 @@ PKG_CatchFish_Configs_Fish = {
         o.minCoin = ReadInt64( bb )
         o.maxCoin = ReadInt64( bb )
         o.maxDetectRadius = ReadSingle( bb )
+        o.minDetectRadius = ReadSingle( bb )
         o.ways = ReadObject( bb )
         o.moveFrames = ReadObject( bb )
         o.dieFrames = ReadObject( bb )
@@ -2094,6 +2099,7 @@ PKG_CatchFish_Configs_Fish = {
         WriteInt64( bb, o.minCoin )
         WriteInt64( bb, o.maxCoin )
         WriteSingle( bb, o.maxDetectRadius )
+        WriteSingle( bb, o.minDetectRadius )
         WriteObject( bb, o.ways )
         WriteObject( bb, o.moveFrames )
         WriteObject( bb, o.dieFrames )

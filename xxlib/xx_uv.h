@@ -653,8 +653,8 @@ namespace xx {
 		sockaddr_in6 addr;
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
 		inline virtual std::shared_ptr<PeerType> CreatePeer() noexcept { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<PeerType>(uv); }
-		std::function<void(std::shared_ptr<PeerType>& peer)> OnAccept;
-		inline virtual void Accept(std::shared_ptr<PeerType>& peer) noexcept { if (OnAccept) OnAccept(peer); }
+		std::function<void(std::shared_ptr<PeerType> peer)> OnAccept;
+		inline virtual void Accept(std::shared_ptr<PeerType> peer) noexcept { if (OnAccept) OnAccept(peer); }
 
 		UvTcpListener(Uv& uv, std::string const& ip, int const& port, int const& backlog = 128)
 			: UvTcp(uv) {
@@ -717,7 +717,7 @@ namespace xx {
 		std::shared_ptr<PeerType> peer;
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
 		inline virtual std::shared_ptr<PeerType> CreatePeer() noexcept { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<PeerType>(uv); }
-		std::function<void(std::shared_ptr<PeerType>& peer)> OnAccept;
+		std::function<void(std::shared_ptr<PeerType> peer)> OnAccept;
 		inline virtual void Accept() noexcept { if (OnAccept) OnAccept(peer); }
 
 		UvTcpDialer(UvTcpDialer const&) = delete;
@@ -962,7 +962,7 @@ namespace xx {
 	struct UvKcpPeerOwner : UvItem {
 		using UvItem::UvItem;
 		inline virtual std::shared_ptr<UvKcpBasePeer> CreatePeer() noexcept = 0;
-		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer>& peer) noexcept = 0;
+		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer> peer) noexcept = 0;
 	};
 
 	struct UvKcpUdp : UvUdp {
@@ -1224,7 +1224,7 @@ namespace xx {
 				shakes.erase(iter);								// remove from shakes
 				peer = owner->CreatePeer();						// create kcp peer and init
 				if (!peer) return 0;
-				peer->udp = std::move(As<UvKcpUdp>(shared_from_this()));
+				peer->udp = As<UvKcpUdp>(shared_from_this());
 				peer->guid = g;
 				peer->createMS = uv.nowMS;
 				memcpy(&peer->addr, addr, sizeof(sockaddr_in6));// upgrade peer's tar addr( maybe accept callback need it )
@@ -1294,7 +1294,7 @@ namespace xx {
 				if (memcmp(recvBuf, &port, 4)) return 0;		// bad serial: ignore
 				auto&& p = owner->CreatePeer();
 				peer_w = p;										// bind
-				p->udp = std::move(As<UvKcpUdp>(shared_from_this()));
+				p->udp = As<UvKcpUdp>(shared_from_this());
 				memcpy(&p->guid, recvBuf + 4, 16);
 				memcpy(&p->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 				p->createMS = uv.nowMS;
@@ -1330,8 +1330,8 @@ namespace xx {
 
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
 		inline virtual std::shared_ptr<UvKcpBasePeer> CreatePeer() noexcept override { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<PeerType>(uv); }
-		std::function<void(std::shared_ptr<PeerType>& peer)> OnAccept;
-		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer>& peer) noexcept override { if (OnAccept) OnAccept(As<PeerType>(peer)); }
+		std::function<void(std::shared_ptr<PeerType> peer)> OnAccept;
+		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer> peer) noexcept override { if (OnAccept) OnAccept(As<PeerType>(peer)); }
 
 		UvKcpListener(Uv& uv, std::string const& ip, int const& port)
 			: UvKcpPeerOwner(uv) {
@@ -1375,9 +1375,9 @@ namespace xx {
 
 		std::function<std::shared_ptr<PeerType>(Uv& uv)> OnCreatePeer;
 		inline virtual std::shared_ptr<UvKcpBasePeer> CreatePeer() noexcept override { return OnCreatePeer ? OnCreatePeer(uv) : TryMake<PeerType>(uv); }
-		std::function<void(std::shared_ptr<PeerType>& peer)> OnAccept;
+		std::function<void(std::shared_ptr<PeerType> peer)> OnAccept;
 
-		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer>& peer_) noexcept override {
+		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer> peer_) noexcept override {
 			assert(!this->peer);
 			auto&& peer = As<PeerType>(peer_);
 			if (peer) {

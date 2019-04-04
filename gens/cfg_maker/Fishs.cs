@@ -14,6 +14,7 @@ public static class Fishs
             cfg.fishs.Add(f);
             f.minCoin = 3;
             f.maxCoin = 3;
+            f.minDetectRadius = 20;
             f.maxDetectRadius = 32;
             f.scale = 1;
             f.zOrder = 3;
