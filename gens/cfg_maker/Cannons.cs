@@ -13,18 +13,20 @@ public static class Cannons
             c.id = cfg.cannons.dataLen;
             cfg.cannons.Add(c);
 
-            c.angle = 90;
-            c.bulletQuantity = -1;
             c.frames = new xx.List<PKG.CatchFish.Configs.SpriteFrame>();
             c.frames.Add(GetSpriteFrame("pao_01"));
             c.frames.Add(GetSpriteFrame("zidan_01"));
             c.frames.Add(GetSpriteFrame("yuwang_1"));
-            c.muzzleDistance = 100;
-            c.numBulletLimit = 2;
+            c.angle = 90;
+            c.quantity = -1;
+            c.muzzleLen = 100;
+            c.numLimit = 500;
             c.scale = 1;
-            c.shootCD = 15;
+            c.shootCD = 0;
             c.zOrder = 100;
-            c.bulletRadius = 15;
+            c.radius = 15;
+            c.maxRadius = 200;
+            c.distance = 720 / 60;  // 一秒钟上下穿越屏幕?
         }
     }
 

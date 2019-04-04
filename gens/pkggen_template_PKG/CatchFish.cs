@@ -76,25 +76,6 @@ namespace CatchFish
         LeftTop,
     }
 
-    [Desc("炮台基类. 下列属性适合大多数炮")]
-    class Cannon
-    {
-        [Desc("炮台id")]
-        int id;
-
-        [Desc("配置id")]
-        int cfgId;
-
-        [Desc("币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )")]
-        long coin;
-
-        [Desc("炮管角度 ( 每次发射时都填充一下 )")]
-        float angle;
-
-        [Desc("所有子弹")]
-        List<Bullet> bullets;
-    }
-
     [Desc("玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )")]
     class Player
     {
@@ -152,6 +133,22 @@ namespace CatchFish
 
         [Desc("位于容器时的下标 ( 用于快速交换删除 )")]
         int indexAtContainer;
+    }
+
+    [Desc("炮台基类. 下列属性适合大多数炮")]
+    class Cannon : Item
+    {
+        [Desc("配置id")]
+        int cfgId;
+
+        [Desc("币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )")]
+        long coin;
+
+        [Desc("炮管角度 ( 每次发射时都填充一下 )")]
+        float angle;
+
+        [Desc("所有子弹")]
+        List<Bullet> bullets;
     }
 
     [Desc("子弹 & 鱼 & 武器 的基类")]

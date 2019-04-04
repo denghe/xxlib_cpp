@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "64695287d0e9ba1112badd2cd998beb0"; 
+        public const string value = "00b260547a113cca5a55d79acbbef0ad"; 
     }
 
 namespace CatchFish
@@ -402,88 +402,6 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 炮台基类. 下列属性适合大多数炮
-    /// </summary>
-    public partial class Cannon : xx.Object
-    {
-        /// <summary>
-        /// 炮台id
-        /// </summary>
-        public int id;
-        /// <summary>
-        /// 配置id
-        /// </summary>
-        public int cfgId;
-        /// <summary>
-        /// 币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )
-        /// </summary>
-        public long coin;
-        /// <summary>
-        /// 炮管角度 ( 每次发射时都填充一下 )
-        /// </summary>
-        public float angle;
-        /// <summary>
-        /// 所有子弹
-        /// </summary>
-        public xx.List<CatchFish.Bullet> bullets;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Cannon>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.id);
-            bb.Write(this.cfgId);
-            bb.Write(this.coin);
-            bb.Write(this.angle);
-            bb.Write(this.bullets);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.Read(ref this.id);
-            bb.Read(ref this.cfgId);
-            bb.Read(ref this.coin);
-            bb.Read(ref this.angle);
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.bullets);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Cannon\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"id\":" + id.ToString());
-            s.Append(", \"cfgId\":" + cfgId.ToString());
-            s.Append(", \"coin\":" + coin.ToString());
-            s.Append(", \"angle\":" + angle.ToString());
-            s.Append(", \"bullets\":" + (bullets == null ? "nil" : bullets.ToString()));
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-        }
-    }
-    /// <summary>
     /// 玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
     /// </summary>
     public partial class Player : xx.Object
@@ -679,6 +597,85 @@ namespace CatchFish
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
+        }
+    }
+    /// <summary>
+    /// 炮台基类. 下列属性适合大多数炮
+    /// </summary>
+    public partial class Cannon : CatchFish.Item
+    {
+        /// <summary>
+        /// 配置id
+        /// </summary>
+        public int cfgId;
+        /// <summary>
+        /// 币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )
+        /// </summary>
+        public long coin;
+        /// <summary>
+        /// 炮管角度 ( 每次发射时都填充一下 )
+        /// </summary>
+        public float angle;
+        /// <summary>
+        /// 所有子弹
+        /// </summary>
+        public xx.List<CatchFish.Bullet> bullets;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Cannon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.cfgId);
+            bb.Write(this.coin);
+            bb.Write(this.angle);
+            bb.Write(this.bullets);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.cfgId);
+            bb.Read(ref this.coin);
+            bb.Read(ref this.angle);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.bullets);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Cannon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"cfgId\":" + cfgId.ToString());
+            s.Append(", \"coin\":" + coin.ToString());
+            s.Append(", \"angle\":" + angle.ToString());
+            s.Append(", \"bullets\":" + (bullets == null ? "nil" : bullets.ToString()));
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
     /// <summary>
@@ -2640,29 +2637,37 @@ namespace CatchFish.Configs
     public partial class Cannon : CatchFish.Configs.Item
     {
         /// <summary>
-        /// 炮管默认角度
+        /// 初始角度
         /// </summary>
         public int angle;
         /// <summary>
-        /// 炮口于座位坐标的距离 ( 适合大部分炮台 )
+        /// 炮管长度
         /// </summary>
-        public float muzzleDistance;
+        public float muzzleLen;
         /// <summary>
         /// 拥有的数量( -1: 无限 )
         /// </summary>
-        public int bulletQuantity;
+        public int quantity;
         /// <summary>
         /// 同屏颗数限制 ( 到达上限就不允许继续发射 )
         /// </summary>
-        public int numBulletLimit;
+        public int numLimit;
         /// <summary>
         /// 发射间隔帧数
         /// </summary>
         public int shootCD;
         /// <summary>
-        /// 子弹半径
+        /// 子弹检测半径
         /// </summary>
-        public int bulletRadius;
+        public int radius;
+        /// <summary>
+        /// 子弹最大 / 显示半径
+        /// </summary>
+        public int maxRadius;
+        /// <summary>
+        /// 子弹每帧前进距离
+        /// </summary>
+        public float distance;
 
         public override ushort GetPackageId()
         {
@@ -2673,22 +2678,26 @@ namespace CatchFish.Configs
         {
             base.ToBBuffer(bb);
             bb.Write(this.angle);
-            bb.Write(this.muzzleDistance);
-            bb.Write(this.bulletQuantity);
-            bb.Write(this.numBulletLimit);
+            bb.Write(this.muzzleLen);
+            bb.Write(this.quantity);
+            bb.Write(this.numLimit);
             bb.Write(this.shootCD);
-            bb.Write(this.bulletRadius);
+            bb.Write(this.radius);
+            bb.Write(this.maxRadius);
+            bb.Write(this.distance);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.angle);
-            bb.Read(ref this.muzzleDistance);
-            bb.Read(ref this.bulletQuantity);
-            bb.Read(ref this.numBulletLimit);
+            bb.Read(ref this.muzzleLen);
+            bb.Read(ref this.quantity);
+            bb.Read(ref this.numLimit);
             bb.Read(ref this.shootCD);
-            bb.Read(ref this.bulletRadius);
+            bb.Read(ref this.radius);
+            bb.Read(ref this.maxRadius);
+            bb.Read(ref this.distance);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2709,11 +2718,13 @@ namespace CatchFish.Configs
         {
             base.ToStringCore(s);
             s.Append(", \"angle\":" + angle.ToString());
-            s.Append(", \"muzzleDistance\":" + muzzleDistance.ToString());
-            s.Append(", \"bulletQuantity\":" + bulletQuantity.ToString());
-            s.Append(", \"numBulletLimit\":" + numBulletLimit.ToString());
+            s.Append(", \"muzzleLen\":" + muzzleLen.ToString());
+            s.Append(", \"quantity\":" + quantity.ToString());
+            s.Append(", \"numLimit\":" + numLimit.ToString());
             s.Append(", \"shootCD\":" + shootCD.ToString());
-            s.Append(", \"bulletRadius\":" + bulletRadius.ToString());
+            s.Append(", \"radius\":" + radius.ToString());
+            s.Append(", \"maxRadius\":" + maxRadius.ToString());
+            s.Append(", \"distance\":" + distance.ToString());
         }
         public override string ToString()
         {
@@ -3018,13 +3029,13 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Stages.Stage>(16);
             xx.Object.Register<xx.List<CatchFish.Sits>>(17);
             xx.Object.Register<xx.List<xx.Weak<CatchFish.Player>>>(18);
-            xx.Object.Register<CatchFish.Cannon>(19);
-            xx.Object.Register<xx.List<CatchFish.Bullet>>(20);
-            xx.Object.Register<CatchFish.Bullet>(21);
             xx.Object.Register<CatchFish.Player>(22);
             xx.Object.Register<xx.List<CatchFish.Cannon>>(23);
+            xx.Object.Register<CatchFish.Cannon>(19);
             xx.Object.Register<xx.List<CatchFish.Weapon>>(24);
             xx.Object.Register<CatchFish.Weapon>(25);
+            xx.Object.Register<xx.List<CatchFish.Bullet>>(20);
+            xx.Object.Register<CatchFish.Bullet>(21);
             xx.Object.Register<CatchFish.MoveItem>(26);
             xx.Object.Register<CatchFish.Way>(49);
             xx.Object.Register<CatchFish.Timer>(27);

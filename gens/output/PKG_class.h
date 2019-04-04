@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "64695287d0e9ba1112badd2cd998beb0";
+		inline static const std::string value = "00b260547a113cca5a55d79acbbef0ad";
     };
 
 namespace Generic {
@@ -32,11 +32,6 @@ namespace CatchFish {
     using Scene_s = std::shared_ptr<Scene>;
     using Scene_w = std::weak_ptr<Scene>;
 
-    // 炮台基类. 下列属性适合大多数炮
-    struct Cannon;
-    using Cannon_s = std::shared_ptr<Cannon>;
-    using Cannon_w = std::weak_ptr<Cannon>;
-
     // 玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
     struct Player;
     using Player_s = std::shared_ptr<Player>;
@@ -46,6 +41,11 @@ namespace CatchFish {
     struct Item;
     using Item_s = std::shared_ptr<Item>;
     using Item_w = std::weak_ptr<Item>;
+
+    // 炮台基类. 下列属性适合大多数炮
+    struct Cannon;
+    using Cannon_s = std::shared_ptr<Cannon>;
+    using Cannon_w = std::weak_ptr<Cannon>;
 
     // 子弹 & 鱼 & 武器 的基类
     struct MoveItem;
@@ -650,18 +650,22 @@ namespace CatchFish::Configs {
     };
     // 炮台 & 子弹配置基类
     struct Cannon : PKG::CatchFish::Configs::Item {
-        // 炮管默认角度
+        // 初始角度
         int32_t angle = 0;
-        // 炮口于座位坐标的距离 ( 适合大部分炮台 )
-        float muzzleDistance = 0;
+        // 炮管长度
+        float muzzleLen = 0;
         // 拥有的数量( -1: 无限 )
-        int32_t bulletQuantity = 0;
+        int32_t quantity = 0;
         // 同屏颗数限制 ( 到达上限就不允许继续发射 )
-        int32_t numBulletLimit = 0;
+        int32_t numLimit = 0;
         // 发射间隔帧数
         int32_t shootCD = 0;
-        // 子弹半径
-        int32_t bulletRadius = 0;
+        // 子弹检测半径
+        int32_t radius = 0;
+        // 子弹最大 / 显示半径
+        int32_t maxRadius = 0;
+        // 子弹每帧前进距离
+        float distance = 0;
 
         typedef Cannon ThisType;
         typedef PKG::CatchFish::Configs::Item BaseType;
@@ -926,34 +930,6 @@ namespace CatchFish {
 
         inline static std::shared_ptr<ThisType> defaultInstance;
     };
-    // 炮台基类. 下列属性适合大多数炮
-    struct Cannon : xx::Object {
-        // 炮台id
-        int32_t id = 0;
-        // 配置id
-        int32_t cfgId = 0;
-        // 币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )
-        int64_t coin = 0;
-        // 炮管角度 ( 每次发射时都填充一下 )
-        float angle = 0;
-        // 所有子弹
-        xx::List_s<PKG::CatchFish::Bullet_s> bullets;
-
-        typedef Cannon ThisType;
-        typedef xx::Object BaseType;
-	    Cannon() = default;
-		Cannon(Cannon const&) = delete;
-		Cannon& operator=(Cannon const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
-    };
     // 玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
     struct Player : xx::Object {
         // 账号id. 用于定位玩家 ( 填充自 db )
@@ -986,6 +962,32 @@ namespace CatchFish {
 	    Player() = default;
 		Player(Player const&) = delete;
 		Player& operator=(Player const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+
+        inline static std::shared_ptr<ThisType> defaultInstance;
+    };
+    // 炮台基类. 下列属性适合大多数炮
+    struct Cannon : PKG::CatchFish::Item {
+        // 配置id
+        int32_t cfgId = 0;
+        // 币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )
+        int64_t coin = 0;
+        // 炮管角度 ( 每次发射时都填充一下 )
+        float angle = 0;
+        // 所有子弹
+        xx::List_s<PKG::CatchFish::Bullet_s> bullets;
+
+        typedef Cannon ThisType;
+        typedef PKG::CatchFish::Item BaseType;
+	    Cannon() = default;
+		Cannon(Cannon const&) = delete;
+		Cannon& operator=(Cannon const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1299,13 +1301,13 @@ namespace xx {
     template<> struct TypeId<PKG::CatchFish::Stages::Stage> { static const uint16_t value = 16; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Sits>> { static const uint16_t value = 17; };
     template<> struct TypeId<xx::List<std::weak_ptr<PKG::CatchFish::Player>>> { static const uint16_t value = 18; };
-    template<> struct TypeId<PKG::CatchFish::Cannon> { static const uint16_t value = 19; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Bullet_s>> { static const uint16_t value = 20; };
-    template<> struct TypeId<PKG::CatchFish::Bullet> { static const uint16_t value = 21; };
     template<> struct TypeId<PKG::CatchFish::Player> { static const uint16_t value = 22; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Cannon_s>> { static const uint16_t value = 23; };
+    template<> struct TypeId<PKG::CatchFish::Cannon> { static const uint16_t value = 19; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Weapon_s>> { static const uint16_t value = 24; };
     template<> struct TypeId<PKG::CatchFish::Weapon> { static const uint16_t value = 25; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Bullet_s>> { static const uint16_t value = 20; };
+    template<> struct TypeId<PKG::CatchFish::Bullet> { static const uint16_t value = 21; };
     template<> struct TypeId<PKG::CatchFish::MoveItem> { static const uint16_t value = 26; };
     template<> struct TypeId<PKG::CatchFish::Way> { static const uint16_t value = 49; };
     template<> struct TypeId<PKG::CatchFish::Timer> { static const uint16_t value = 27; };
@@ -1579,53 +1581,6 @@ namespace CatchFish {
         xx::Append(s, ", \"freeSits\":", this->freeSits);
         xx::Append(s, ", \"players\":", this->players);
     }
-    inline uint16_t Cannon::GetTypeId() const noexcept {
-        return 19;
-    }
-    inline void Cannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        bb.Write(this->id);
-        bb.Write(this->cfgId);
-        bb.Write(this->coin);
-        bb.Write(this->angle);
-        bb.Write(this->bullets);
-    }
-    inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = bb.Read(this->id)) return r;
-        if (int r = bb.Read(this->cfgId)) return r;
-        if (int r = bb.Read(this->coin)) return r;
-        if (int r = bb.Read(this->angle)) return r;
-        bb.readLengthLimit = 0;
-        if (int r = bb.Read(this->bullets)) return r;
-        return 0;
-    }
-    inline int Cannon::InitCascade(void* const& o) noexcept {
-        if (this->bullets) {
-            if (int r = this->bullets->InitCascade(o)) return r;
-        }
-        return 0;
-    }
-    inline void Cannon::ToString(std::string& s) const noexcept {
-        if (this->toStringFlag)
-        {
-        	xx::Append(s, "[ \"***** recursived *****\" ]");
-        	return;
-        }
-        else this->SetToStringFlag();
-
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Cannon\", \"pkgTypeId\":", GetTypeId());
-        ToStringCore(s);
-        xx::Append(s, " }");
-        
-        this->SetToStringFlag(false);
-    }
-    inline void Cannon::ToStringCore(std::string& s) const noexcept {
-        this->BaseType::ToStringCore(s);
-        xx::Append(s, ", \"id\":", this->id);
-        xx::Append(s, ", \"cfgId\":", this->cfgId);
-        xx::Append(s, ", \"coin\":", this->coin);
-        xx::Append(s, ", \"angle\":", this->angle);
-        xx::Append(s, ", \"bullets\":", this->bullets);
-    }
     inline uint16_t Player::GetTypeId() const noexcept {
         return 22;
     }
@@ -1733,6 +1688,53 @@ namespace CatchFish {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"id\":", this->id);
         xx::Append(s, ", \"indexAtContainer\":", this->indexAtContainer);
+    }
+    inline uint16_t Cannon::GetTypeId() const noexcept {
+        return 19;
+    }
+    inline void Cannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        this->BaseType::ToBBuffer(bb);
+        bb.Write(this->cfgId);
+        bb.Write(this->coin);
+        bb.Write(this->angle);
+        bb.Write(this->bullets);
+    }
+    inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        if (int r = bb.Read(this->cfgId)) return r;
+        if (int r = bb.Read(this->coin)) return r;
+        if (int r = bb.Read(this->angle)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->bullets)) return r;
+        return 0;
+    }
+    inline int Cannon::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->bullets) {
+            if (int r = this->bullets->InitCascade(o)) return r;
+        }
+        return 0;
+    }
+    inline void Cannon::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Cannon\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void Cannon::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"cfgId\":", this->cfgId);
+        xx::Append(s, ", \"coin\":", this->coin);
+        xx::Append(s, ", \"angle\":", this->angle);
+        xx::Append(s, ", \"bullets\":", this->bullets);
     }
     inline uint16_t MoveItem::GetTypeId() const noexcept {
         return 26;
@@ -2875,20 +2877,24 @@ namespace CatchFish::Configs {
     inline void Cannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->angle);
-        bb.Write(this->muzzleDistance);
-        bb.Write(this->bulletQuantity);
-        bb.Write(this->numBulletLimit);
+        bb.Write(this->muzzleLen);
+        bb.Write(this->quantity);
+        bb.Write(this->numLimit);
         bb.Write(this->shootCD);
-        bb.Write(this->bulletRadius);
+        bb.Write(this->radius);
+        bb.Write(this->maxRadius);
+        bb.Write(this->distance);
     }
     inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->angle)) return r;
-        if (int r = bb.Read(this->muzzleDistance)) return r;
-        if (int r = bb.Read(this->bulletQuantity)) return r;
-        if (int r = bb.Read(this->numBulletLimit)) return r;
+        if (int r = bb.Read(this->muzzleLen)) return r;
+        if (int r = bb.Read(this->quantity)) return r;
+        if (int r = bb.Read(this->numLimit)) return r;
         if (int r = bb.Read(this->shootCD)) return r;
-        if (int r = bb.Read(this->bulletRadius)) return r;
+        if (int r = bb.Read(this->radius)) return r;
+        if (int r = bb.Read(this->maxRadius)) return r;
+        if (int r = bb.Read(this->distance)) return r;
         return 0;
     }
     inline int Cannon::InitCascade(void* const& o) noexcept {
@@ -2912,11 +2918,13 @@ namespace CatchFish::Configs {
     inline void Cannon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"angle\":", this->angle);
-        xx::Append(s, ", \"muzzleDistance\":", this->muzzleDistance);
-        xx::Append(s, ", \"bulletQuantity\":", this->bulletQuantity);
-        xx::Append(s, ", \"numBulletLimit\":", this->numBulletLimit);
+        xx::Append(s, ", \"muzzleLen\":", this->muzzleLen);
+        xx::Append(s, ", \"quantity\":", this->quantity);
+        xx::Append(s, ", \"numLimit\":", this->numLimit);
         xx::Append(s, ", \"shootCD\":", this->shootCD);
-        xx::Append(s, ", \"bulletRadius\":", this->bulletRadius);
+        xx::Append(s, ", \"radius\":", this->radius);
+        xx::Append(s, ", \"maxRadius\":", this->maxRadius);
+        xx::Append(s, ", \"distance\":", this->distance);
     }
     inline uint16_t Weapon::GetTypeId() const noexcept {
         return 55;
@@ -3107,13 +3115,13 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::CatchFish::Stages::Stage>(16);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Sits>>(17);
 	        xx::BBuffer::Register<xx::List<std::weak_ptr<PKG::CatchFish::Player>>>(18);
-	        xx::BBuffer::Register<PKG::CatchFish::Cannon>(19);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Bullet_s>>(20);
-	        xx::BBuffer::Register<PKG::CatchFish::Bullet>(21);
 	        xx::BBuffer::Register<PKG::CatchFish::Player>(22);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Cannon_s>>(23);
+	        xx::BBuffer::Register<PKG::CatchFish::Cannon>(19);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Weapon_s>>(24);
 	        xx::BBuffer::Register<PKG::CatchFish::Weapon>(25);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Bullet_s>>(20);
+	        xx::BBuffer::Register<PKG::CatchFish::Bullet>(21);
 	        xx::BBuffer::Register<PKG::CatchFish::MoveItem>(26);
 	        xx::BBuffer::Register<PKG::CatchFish::Way>(49);
 	        xx::BBuffer::Register<PKG::CatchFish::Timer>(27);

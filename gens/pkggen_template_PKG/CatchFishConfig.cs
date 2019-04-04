@@ -80,23 +80,29 @@ namespace CatchFish
         [Desc("炮台 & 子弹配置基类")]
         class Cannon : Item
         {
-            [Desc("炮管默认角度")]
+            [Desc("初始角度")]
             int angle;
 
-            [Desc("炮口于座位坐标的距离 ( 适合大部分炮台 )")]
-            float muzzleDistance;
+            [Desc("炮管长度")]
+            float muzzleLen;
 
             [Desc("拥有的数量( -1: 无限 )")]
-            int bulletQuantity;
+            int quantity;
 
             [Desc("同屏颗数限制 ( 到达上限就不允许继续发射 )")]
-            int numBulletLimit;
+            int numLimit;
 
             [Desc("发射间隔帧数")]
             int shootCD;
 
-            [Desc("子弹半径")]
-            int bulletRadius;
+            [Desc("子弹检测半径")]
+            int radius;
+
+            [Desc("子弹最大 / 显示半径")]
+            int maxRadius;
+
+            [Desc("子弹每帧前进距离")]
+            float distance;
 
             // 基类 frames 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
         }
