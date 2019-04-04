@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "9ff3f1cb029438b3a1eb689d22da336f";
+		inline static const std::string value = "64695287d0e9ba1112badd2cd998beb0";
     };
 
 namespace Generic {
@@ -660,6 +660,8 @@ namespace CatchFish::Configs {
         int32_t numBulletLimit = 0;
         // 发射间隔帧数
         int32_t shootCD = 0;
+        // 子弹半径
+        int32_t bulletRadius = 0;
 
         typedef Cannon ThisType;
         typedef PKG::CatchFish::Configs::Item BaseType;
@@ -2877,6 +2879,7 @@ namespace CatchFish::Configs {
         bb.Write(this->bulletQuantity);
         bb.Write(this->numBulletLimit);
         bb.Write(this->shootCD);
+        bb.Write(this->bulletRadius);
     }
     inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
@@ -2885,6 +2888,7 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->bulletQuantity)) return r;
         if (int r = bb.Read(this->numBulletLimit)) return r;
         if (int r = bb.Read(this->shootCD)) return r;
+        if (int r = bb.Read(this->bulletRadius)) return r;
         return 0;
     }
     inline int Cannon::InitCascade(void* const& o) noexcept {
@@ -2912,6 +2916,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"bulletQuantity\":", this->bulletQuantity);
         xx::Append(s, ", \"numBulletLimit\":", this->numBulletLimit);
         xx::Append(s, ", \"shootCD\":", this->shootCD);
+        xx::Append(s, ", \"bulletRadius\":", this->bulletRadius);
     }
     inline uint16_t Weapon::GetTypeId() const noexcept {
         return 55;

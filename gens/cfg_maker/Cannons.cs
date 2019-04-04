@@ -17,11 +17,14 @@ public static class Cannons
             c.bulletQuantity = -1;
             c.frames = new xx.List<PKG.CatchFish.Configs.SpriteFrame>();
             c.frames.Add(GetSpriteFrame("pao_01"));
+            c.frames.Add(GetSpriteFrame("zidan_01"));
+            c.frames.Add(GetSpriteFrame("yuwang_1"));
             c.muzzleDistance = 100;
             c.numBulletLimit = 2;
             c.scale = 1;
             c.shootCD = 15;
             c.zOrder = 100;
+            c.bulletRadius = 15;
         }
     }
 

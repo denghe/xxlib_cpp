@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '9ff3f1cb029438b3a1eb689d22da336f'
+PKG_PkgGenMd5_Value = '64695287d0e9ba1112badd2cd998beb0'
 
 --[[
 座位列表
@@ -2175,6 +2175,10 @@ PKG_CatchFish_Configs_Cannon = {
         发射间隔帧数
         ]]
         o.shootCD = 0 -- Int32
+        --[[
+        子弹半径
+        ]]
+        o.bulletRadius = 0 -- Int32
         setmetatable( o, PKG_CatchFish_Configs_Item.Create() )
         return o
     end,
@@ -2187,6 +2191,7 @@ PKG_CatchFish_Configs_Cannon = {
         o.bulletQuantity = ReadInt32( bb )
         o.numBulletLimit = ReadInt32( bb )
         o.shootCD = ReadInt32( bb )
+        o.bulletRadius = ReadInt32( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -2197,6 +2202,7 @@ PKG_CatchFish_Configs_Cannon = {
         WriteInt32( bb, o.bulletQuantity )
         WriteInt32( bb, o.numBulletLimit )
         WriteInt32( bb, o.shootCD )
+        WriteInt32( bb, o.bulletRadius )
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_Cannon )

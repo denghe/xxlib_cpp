@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "9ff3f1cb029438b3a1eb689d22da336f"; 
+        public const string value = "64695287d0e9ba1112badd2cd998beb0"; 
     }
 
 namespace CatchFish
@@ -2659,6 +2659,10 @@ namespace CatchFish.Configs
         /// 发射间隔帧数
         /// </summary>
         public int shootCD;
+        /// <summary>
+        /// 子弹半径
+        /// </summary>
+        public int bulletRadius;
 
         public override ushort GetPackageId()
         {
@@ -2673,6 +2677,7 @@ namespace CatchFish.Configs
             bb.Write(this.bulletQuantity);
             bb.Write(this.numBulletLimit);
             bb.Write(this.shootCD);
+            bb.Write(this.bulletRadius);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -2683,6 +2688,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.bulletQuantity);
             bb.Read(ref this.numBulletLimit);
             bb.Read(ref this.shootCD);
+            bb.Read(ref this.bulletRadius);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2707,6 +2713,7 @@ namespace CatchFish.Configs
             s.Append(", \"bulletQuantity\":" + bulletQuantity.ToString());
             s.Append(", \"numBulletLimit\":" + numBulletLimit.ToString());
             s.Append(", \"shootCD\":" + shootCD.ToString());
+            s.Append(", \"bulletRadius\":" + bulletRadius.ToString());
         }
         public override string ToString()
         {

@@ -95,6 +95,9 @@ namespace CatchFish
             [Desc("发射间隔帧数")]
             int shootCD;
 
+            [Desc("子弹半径")]
+            int bulletRadius;
+
             // 基类 frames 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
         }
 
