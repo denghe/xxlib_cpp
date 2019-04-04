@@ -8,14 +8,6 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
-/// <summary>
-/// 轨迹分类
-/// </summary>
-public enum WayTypes
-{
-    随机直线, 随机小曲线 // todo: more
-}
-
 public static class Program
 {
     /// <summary>
@@ -71,6 +63,7 @@ public static class Program
         cfg.aimTouchRadius = 20;
 
         Fishs.Fill(cfg);
+        Cannons.Fill(cfg);
         // todo: more fill
 
         // cfg 序列化存盘

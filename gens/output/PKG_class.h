@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "7c01779aedc6919b55badb75546ab8c8";
+		inline static const std::string value = "9ff3f1cb029438b3a1eb689d22da336f";
     };
 
 namespace Generic {

@@ -6,6 +6,18 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
+
+// todo: 这里主要实现曲线的生成填充. 直线已改为运行时及时生成。
+
+
+/// <summary>
+/// 轨迹分类
+/// </summary>
+public enum WayTypes
+{
+    随机直线, 随机小曲线 // todo: more
+}
+
 public static class Ways
 {
     static List<PKG.CatchFish.Way> beelines = new List<PKG.CatchFish.Way>();
