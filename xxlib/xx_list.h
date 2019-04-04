@@ -43,7 +43,7 @@ namespace xx
 			o.len = 0;
 		}
 
-		List& operator=(List&& o) {
+		List& operator=(List&& o) noexcept {
 			std::swap(buf, o.buf);
 			std::swap(len, o.len);
 			std::swap(cap, o.cap);

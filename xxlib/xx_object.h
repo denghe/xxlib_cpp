@@ -577,13 +577,12 @@ namespace xx {
 			};
 		};
 
-		explicit Guid(bool const& gen = false) noexcept {
+		explicit Guid(bool const& gen = false) noexcept
+			: part1(0)
+			, part2(2)
+		{
 			if (gen) {
 				Gen();
-			}
-			else {
-				part1 = 0;
-				part2 = 0;
 			}
 		}
 		Guid(Guid const& o) noexcept = default;
@@ -598,9 +597,9 @@ namespace xx {
 
 		void Gen() noexcept {
 #ifdef _WIN32
-			CoCreateGuid((GUID*)this);
+			(void)CoCreateGuid((GUID*)this);
 #else
-			uuid_generate((unsigned char*)this);
+			(void)uuid_generate((unsigned char*)this);
 #endif
 		}
 		inline void Fill(char const* const& buf) noexcept {
@@ -620,7 +619,7 @@ namespace xx {
 		static inline void WriteTo(std::string& s, Guid const& in) noexcept {
 			auto offset = s.size();
 			s.resize(offset + 37);
-			snprintf((char*)s.data() + offset, 37,
+			(void)snprintf((char*)s.data() + offset, 37,
 				"%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
 				in.data1, in.data2, in.data3,
 				in.data4[0], in.data4[1],
@@ -735,7 +734,7 @@ namespace xx {
 	}
 
 	inline int32_t GetPrime(int32_t const& capacity, int32_t const& dataSize) noexcept {
-		auto memUsage = Round2n(capacity * dataSize);
+		auto memUsage = Round2n((size_t)capacity * (size_t)dataSize);
 		auto maxCapacity = memUsage / dataSize;
 		if (maxCapacity == capacity) {
 			return primes2n[Calc2n(capacity)];

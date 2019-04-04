@@ -453,6 +453,7 @@ namespace xx {
 		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
 			if (!uvTcp) return -1;
 			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + dataLen);
+			if (!req) return -2;
 			memcpy(req + 1, buf, dataLen);
 			req->buf.base = (char*)(req + 1);
 			req->buf.len = decltype(uv_buf_t::len)(dataLen);
@@ -482,7 +483,7 @@ namespace xx {
 		// 4 byte len header. can override for write custom header format
 		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
-			uint32_t offset = 0;
+			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
 				auto len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
 				if (len <= 0 /* || len > maxLimit */) return -1;	// invalid length
@@ -906,6 +907,7 @@ namespace xx {
 		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen, sockaddr const* const& addr = nullptr) noexcept {
 			if (!uvUdp) return -1;
 			auto req = (uv_udp_send_t_ex*)::malloc(sizeof(uv_udp_send_t_ex) + dataLen);
+			if (!req) return -2;
 			memcpy(req + 1, buf, dataLen);
 			req->buf.base = (char*)(req + 1);
 			req->buf.len = decltype(uv_buf_t::len)(dataLen);
@@ -915,7 +917,7 @@ namespace xx {
 	protected:
 		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept {
 			buf.AddRange(recvBuf, recvLen);
-			uint32_t offset = 0;
+			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
 				auto len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
 				if (len <= 0 /* || len > maxLimit */) return -1;	// invalid length
@@ -1078,7 +1080,7 @@ namespace xx {
 		// 4 bytes len header. can override for custom header format.
 		inline virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
-			uint32_t offset = 0;
+			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
 				auto len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
 				if (len <= 0 /* || len > maxLimit */) return -1;	// invalid length

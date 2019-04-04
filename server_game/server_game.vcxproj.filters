@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="xxlib">
+      <UniqueIdentifier>{ea8aea07-5a1a-45d3-8ee7-120a7cdb6a33}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\xxlib\xx_bbuffer.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_coros.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_dict.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_list.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_object.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_pos.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_random.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_uv.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_uv_coros.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_uv_lua.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\fixed_function.hpp">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\ikcp.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Cannon.hpp" />
+    <ClInclude Include="CatchFish.h" />
+    <ClInclude Include="CatchFish.hpp" />
+    <ClInclude Include="CatchFish_Init.hpp" />
+    <ClInclude Include="CatchFish_MakeBeeline.hpp" />
+    <ClInclude Include="CatchFish_MakeRandomFish.hpp" />
+    <ClInclude Include="CatchFish_Update.hpp" />
+    <ClInclude Include="Fish.hpp" />
+    <ClInclude Include="Physics.hpp" />
+    <ClInclude Include="Player.hpp" />
+    <ClInclude Include="Scene.hpp" />
+    <ClInclude Include="SpriteFrame.hpp" />
+    <ClInclude Include="Bullet.hpp" />
+    <ClInclude Include="Peer.hpp" />
+    <ClInclude Include="Listener.hpp" />
+    <ClInclude Include="..\gens\output\PKG_class.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\xxlib\lua.natvis">
+      <Filter>xxlib</Filter>
+    </Natvis>
+    <Natvis Include="..\xxlib\xx.natvis">
+      <Filter>xxlib</Filter>
+    </Natvis>
+  </ItemGroup>
+</Project>

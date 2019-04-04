@@ -11,15 +11,16 @@ namespace xx {
 		Buffer(uint8_t const* const& buf, size_t const& len, size_t const& prefix = 0) {
 			assert(buf && len);
 			this->buf = (uint8_t*)malloc(len + prefix);
+			if (!this->buf) throw - 1;
 			this->len = len + prefix;
 			this->cap = cap + prefix;
 			memcpy(this->buf + prefix, buf, len);
 		}
-		Buffer(Buffer&& o)
+		Buffer(Buffer&& o) noexcept
 			: BaseType(std::move(o)) {
 		}
 
-		Buffer& operator=(Buffer&& o) {
+		Buffer& operator=(Buffer&& o) noexcept {
 			this->BaseType::operator=(std::move(o));
 			return *this;
 		}
@@ -57,13 +58,13 @@ namespace xx {
 		std::unordered_map<size_t, std::shared_ptr<Object>> objIdxs;
 		std::unordered_map<size_t, std::shared_ptr<std::string>> strIdxs;
 
-		using Buffer::Buffer;
-		BBuffer(BBuffer&& o)
+		BBuffer() : Buffer() {}
+		BBuffer(BBuffer&& o) noexcept
 			: Buffer(std::move(o))
 			, offset(o.offset) {
 			o.offset = 0;
 		}
-		inline BBuffer& operator=(BBuffer&& o) {
+		inline BBuffer& operator=(BBuffer&& o) noexcept {
 			this->Buffer::operator=(std::move(o));
 			std::swap(offset, o.offset);
 			// ptrs, objIdxs, strIdxs 因为是临时数据, 不需要处理
@@ -261,7 +262,7 @@ namespace xx {
 			for (int shift = 0; shift < sizeof(T) * 8; shift += 7) {
 				if (offset == len) return -9;
 				auto b = buf[offset++];
-				u |= (b & 0x7Fu) << shift;
+				u |= T(b & 0x7Fu) << shift;
 				if ((b & 0x80) == 0) {
 					if constexpr (std::is_signed_v<T>) {
 						v = ZigZagDecode(u);

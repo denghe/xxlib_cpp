@@ -12,7 +12,25 @@ interface ITypeIdMappings
 
     Generic.Pong _6 { get; }
 
+    CatchFish_Client.EnterSuccess _66 { get; }
+
     CatchFish.Scene _8 { get; }
+
+    List<CatchFish.Player> _67 { get; }
+
+    CatchFish.Player _22 { get; }
+
+    CatchFish_Client.FrameEvents _68 { get; }
+
+    List<CatchFish.Events.Event> _69 { get; }
+
+    CatchFish.Events.Event _28 { get; }
+
+    Client_CatchFish.Enter _70 { get; }
+
+    Client_CatchFish.Shoot _71 { get; }
+
+    Client_CatchFish.Hit _72 { get; }
 
     xx.Random _9 { get; }
 
@@ -34,25 +52,25 @@ interface ITypeIdMappings
 
     List<Weak<CatchFish.Player>> _18 { get; }
 
-    CatchFish.Cannon _19 { get; }
-
-    List<CatchFish.Bullet> _20 { get; }
-
-    CatchFish.Bullet _21 { get; }
-
-    CatchFish.Player _22 { get; }
-
     List<CatchFish.Cannon> _23 { get; }
+
+    CatchFish.Cannon _19 { get; }
 
     List<CatchFish.Weapon> _24 { get; }
 
     CatchFish.Weapon _25 { get; }
 
+    List<CatchFish.Bullet> _20 { get; }
+
+    CatchFish.Bullet _21 { get; }
+
     CatchFish.MoveItem _26 { get; }
+
+    CatchFish.Way _49 { get; }
 
     CatchFish.Timer _27 { get; }
 
-    CatchFish.Events.Event _28 { get; }
+    List<CatchFish.WayPoint> _64 { get; }
 
     CatchFish.Events.Enter _29 { get; }
 
@@ -94,8 +112,6 @@ interface ITypeIdMappings
 
     List<CatchFish.Way> _48 { get; }
 
-    CatchFish.Way _49 { get; }
-
     List<CatchFish.Configs.Fish> _50 { get; }
 
     CatchFish.Configs.Fish _51 { get; }
@@ -125,7 +141,5 @@ interface ITypeIdMappings
     CatchFish.Configs.Physics _65 { get; }
 
     List<List<xx.Pos>> _63 { get; }
-
-    List<CatchFish.WayPoint> _64 { get; }
 
 }

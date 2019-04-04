@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '48c5ab66be157dcf85e5401fe0e28696'
+PKG_PkgGenMd5_Value = 'ee32e37c16bbc567229ca30047ee0f8b'
 
 --[[
 座位列表
@@ -135,6 +135,51 @@ PKG_Generic_Pong = {
 }
 BBuffer.Register( PKG_Generic_Pong )
 --[[
+申请进入游戏 成功
+]]
+PKG_CatchFish_Client_EnterSuccess = {
+    typeName = "PKG_CatchFish_Client_EnterSuccess",
+    typeId = 66,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Client_EnterSuccess
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        完整的游戏场景
+        ]]
+        o.scene = null -- PKG_CatchFish_Scene
+        --[[
+        玩家强引用容器
+        ]]
+        o.players = null -- List_PKG_CatchFish_Player_
+        --[[
+        指向当前玩家
+        ]]
+        o.self = MakeWeak() -- Weak_PKG_CatchFish_Player
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadObject = bb.ReadObject
+        o.scene = ReadObject( bb )
+        o.players = ReadObject( bb )
+        o.self = MakeWeak( ReadObject( bb ) )
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteObject = bb.WriteObject
+        WriteObject( bb, o.scene )
+        WriteObject( bb, o.players )
+        WriteObject( bb, o.self.Lock() )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Client_EnterSuccess )
+--[[
 场景
 ]]
 PKG_CatchFish_Scene = {
@@ -261,6 +306,341 @@ PKG_CatchFish_Scene = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Scene )
+List_PKG_CatchFish_Player_ = {
+    typeName = "List_PKG_CatchFish_Player_",
+    typeId = 67,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFish_Player_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadObject
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteObject
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFish_Player_ )
+--[[
+玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
+]]
+PKG_CatchFish_Player = {
+    typeName = "PKG_CatchFish_Player",
+    typeId = 22,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Player
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        账号id. 用于定位玩家 ( 填充自 db )
+        ]]
+        o.id = 0 -- Int32
+        --[[
+        昵称 用于客户端显示 ( 填充自 db )
+        ]]
+        o.nickname = null -- String
+        --[[
+        头像id 用于客户端显示 ( 填充自 db )
+        ]]
+        o.avatar_id = 0 -- Int32
+        --[[
+        破产标识 ( 每帧检测一次总资产是否为 0, 是就标记之. 总资产包括 coin, 已爆出的 weapons, 已获得的附加炮台, 飞行中的 bullets )
+        ]]
+        o.noMoney = false -- Boolean
+        --[[
+        剩余金币值( 不代表玩家总资产 ). 当玩家进入到游戏时, 该值填充 money * exchangeCoinRatio. 玩家退出时, 做除法还原为 money.
+        ]]
+        o.coin = 0 -- Int64
+        --[[
+        座位
+        ]]
+        o.sit = 0 -- PKG_CatchFish_Sits
+        --[[
+        自动锁定状态
+        ]]
+        o.autoLock = false -- Boolean
+        --[[
+        自动开火状态
+        ]]
+        o.autoFire = false -- Boolean
+        --[[
+        锁定瞄准的鱼
+        ]]
+        o.aimFish = MakeWeak() -- Weak_PKG_CatchFish_Fish
+        --[[
+        自增id ( 从 1 开始, 用于填充 炮台, 子弹 id )
+        ]]
+        o.autoIncId = 0 -- Int32
+        --[[
+        炮台堆栈 ( 例如: 常规炮 打到 钻头, 钻头飞向玩家变为 钻头炮, 覆盖在常规炮上 )
+        ]]
+        o.cannons = null -- List_PKG_CatchFish_Cannon_
+        --[[
+        武器集合 ( 被打死的特殊鱼转为武器对象, 飞向玩家, 变炮消失前都在这里 )
+        ]]
+        o.weapons = null -- List_PKG_CatchFish_Weapon_
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadInt32 = bb.ReadInt32
+        local ReadObject = bb.ReadObject
+        local ReadBoolean = bb.ReadBoolean
+        o.id = ReadInt32( bb )
+        o.nickname = ReadObject( bb )
+        o.avatar_id = ReadInt32( bb )
+        o.noMoney = ReadBoolean( bb )
+        o.coin = bb:ReadInt64()
+        o.sit = ReadInt32( bb )
+        o.autoLock = ReadBoolean( bb )
+        o.autoFire = ReadBoolean( bb )
+        o.aimFish = MakeWeak( ReadObject( bb ) )
+        o.autoIncId = ReadInt32( bb )
+        o.cannons = ReadObject( bb )
+        o.weapons = ReadObject( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteInt32 = bb.WriteInt32
+        local WriteObject = bb.WriteObject
+        local WriteBoolean = bb.WriteBoolean
+        WriteInt32( bb, o.id )
+        WriteObject( bb, o.nickname )
+        WriteInt32( bb, o.avatar_id )
+        WriteBoolean( bb, o.noMoney )
+        bb:WriteInt64( o.coin )
+        WriteInt32( bb, o.sit )
+        WriteBoolean( bb, o.autoLock )
+        WriteBoolean( bb, o.autoFire )
+        WriteObject( bb, o.aimFish.Lock() )
+        WriteInt32( bb, o.autoIncId )
+        WriteObject( bb, o.cannons )
+        WriteObject( bb, o.weapons )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Player )
+--[[
+帧事件同步包
+]]
+PKG_CatchFish_Client_FrameEvents = {
+    typeName = "PKG_CatchFish_Client_FrameEvents",
+    typeId = 68,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Client_FrameEvents
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        帧编号
+        ]]
+        o.frameNumber = 0 -- Int32
+        --[[
+        帧事件集合
+        ]]
+        o.events = null -- List_PKG_CatchFish_Events_Event_
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.frameNumber = bb:ReadInt32()
+        o.events = bb:ReadObject()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteInt32( o.frameNumber )
+        bb:WriteObject( o.events )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Client_FrameEvents )
+List_PKG_CatchFish_Events_Event_ = {
+    typeName = "List_PKG_CatchFish_Events_Event_",
+    typeId = 69,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFish_Events_Event_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadObject
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteObject
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFish_Events_Event_ )
+--[[
+事件基类
+]]
+PKG_CatchFish_Events_Event = {
+    typeName = "PKG_CatchFish_Events_Event",
+    typeId = 28,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Events_Event
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        相关玩家id
+        ]]
+        o.id = 0 -- Int32
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.id = bb:ReadInt32()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteInt32( o.id )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Events_Event )
+--[[
+申请进入游戏. 成功返回 EnterSuccess. 失败直接被 T
+]]
+PKG_Client_CatchFish_Enter = {
+    typeName = "PKG_Client_CatchFish_Enter",
+    typeId = 70,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_CatchFish_Enter
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+    end,
+    ToBBuffer = function( bb, o )
+    end
+}
+BBuffer.Register( PKG_Client_CatchFish_Enter )
+--[[
+开火
+]]
+PKG_Client_CatchFish_Shoot = {
+    typeName = "PKG_Client_CatchFish_Shoot",
+    typeId = 71,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_CatchFish_Shoot
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        o.frameNumber = 0 -- Int32
+        o.cannonId = 0 -- Int32
+        o.bulletId = 0 -- Int32
+        o.pos = null -- _xx_Pos
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadInt32 = bb.ReadInt32
+        o.frameNumber = ReadInt32( bb )
+        o.cannonId = ReadInt32( bb )
+        o.bulletId = ReadInt32( bb )
+        o.pos = bb:ReadObject()
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.frameNumber )
+        WriteInt32( bb, o.cannonId )
+        WriteInt32( bb, o.bulletId )
+        bb:WriteObject( o.pos )
+    end
+}
+BBuffer.Register( PKG_Client_CatchFish_Shoot )
+--[[
+碰撞检测
+]]
+PKG_Client_CatchFish_Hit = {
+    typeName = "PKG_Client_CatchFish_Hit",
+    typeId = 72,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_CatchFish_Hit
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        o.cannonId = 0 -- Int32
+        o.bulletId = 0 -- Int32
+        o.fishId = 0 -- Int32
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local ReadInt32 = bb.ReadInt32
+        o.cannonId = ReadInt32( bb )
+        o.bulletId = ReadInt32( bb )
+        o.fishId = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.cannonId )
+        WriteInt32( bb, o.bulletId )
+        WriteInt32( bb, o.fishId )
+    end
+}
+BBuffer.Register( PKG_Client_CatchFish_Hit )
 _xx_Random = {
     typeName = "_xx_Random",
     typeId = 9,
@@ -669,109 +1049,6 @@ List_Weak_PKG_CatchFish_Player_ = {
     end
 }
 BBuffer.Register( List_Weak_PKG_CatchFish_Player_ )
---[[
-玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
-]]
-PKG_CatchFish_Player = {
-    typeName = "PKG_CatchFish_Player",
-    typeId = 22,
-    Create = function()
-        local o = {}
-        o.__proto = PKG_CatchFish_Player
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-
-        --[[
-        账号id. 用于定位玩家 ( 填充自 db )
-        ]]
-        o.id = 0 -- Int32
-        --[[
-        昵称 用于客户端显示 ( 填充自 db )
-        ]]
-        o.nickname = null -- String
-        --[[
-        头像id 用于客户端显示 ( 填充自 db )
-        ]]
-        o.avatar_id = 0 -- Int32
-        --[[
-        破产标识 ( 每帧检测一次总资产是否为 0, 是就标记之. 总资产包括 coin, 已爆出的 weapons, 已获得的附加炮台, 飞行中的 bullets )
-        ]]
-        o.noMoney = false -- Boolean
-        --[[
-        剩余金币值( 不代表玩家总资产 ). 当玩家进入到游戏时, 该值填充 money * exchangeCoinRatio. 玩家退出时, 做除法还原为 money.
-        ]]
-        o.coin = 0 -- Int64
-        --[[
-        座位
-        ]]
-        o.sit = 0 -- PKG_CatchFish_Sits
-        --[[
-        自动锁定状态
-        ]]
-        o.autoLock = false -- Boolean
-        --[[
-        自动开火状态
-        ]]
-        o.autoFire = false -- Boolean
-        --[[
-        锁定瞄准的鱼
-        ]]
-        o.aimFish = MakeWeak() -- Weak_PKG_CatchFish_Fish
-        --[[
-        自增id ( 从 1 开始, 用于填充 炮台, 子弹 id )
-        ]]
-        o.autoIncId = 0 -- Int32
-        --[[
-        炮台堆栈 ( 例如: 常规炮 打到 钻头, 钻头飞向玩家变为 钻头炮, 覆盖在常规炮上 )
-        ]]
-        o.cannons = null -- List_PKG_CatchFish_Cannon_
-        --[[
-        武器集合 ( 被打死的特殊鱼转为武器对象, 飞向玩家, 变炮消失前都在这里 )
-        ]]
-        o.weapons = null -- List_PKG_CatchFish_Weapon_
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-        local ReadInt32 = bb.ReadInt32
-        local ReadObject = bb.ReadObject
-        local ReadBoolean = bb.ReadBoolean
-        o.id = ReadInt32( bb )
-        o.nickname = ReadObject( bb )
-        o.avatar_id = ReadInt32( bb )
-        o.noMoney = ReadBoolean( bb )
-        o.coin = bb:ReadInt64()
-        o.sit = ReadInt32( bb )
-        o.autoLock = ReadBoolean( bb )
-        o.autoFire = ReadBoolean( bb )
-        o.aimFish = MakeWeak( ReadObject( bb ) )
-        o.autoIncId = ReadInt32( bb )
-        o.cannons = ReadObject( bb )
-        o.weapons = ReadObject( bb )
-    end,
-    ToBBuffer = function( bb, o )
-        local WriteInt32 = bb.WriteInt32
-        local WriteObject = bb.WriteObject
-        local WriteBoolean = bb.WriteBoolean
-        WriteInt32( bb, o.id )
-        WriteObject( bb, o.nickname )
-        WriteInt32( bb, o.avatar_id )
-        WriteBoolean( bb, o.noMoney )
-        bb:WriteInt64( o.coin )
-        WriteInt32( bb, o.sit )
-        WriteBoolean( bb, o.autoLock )
-        WriteBoolean( bb, o.autoFire )
-        WriteObject( bb, o.aimFish.Lock() )
-        WriteInt32( bb, o.autoIncId )
-        WriteObject( bb, o.cannons )
-        WriteObject( bb, o.weapons )
-    end
-}
-BBuffer.Register( PKG_CatchFish_Player )
 List_PKG_CatchFish_Cannon_ = {
     typeName = "List_PKG_CatchFish_Cannon_",
     typeId = 23,
@@ -1156,37 +1433,6 @@ List_PKG_CatchFish_WayPoint_ = {
     end
 }
 BBuffer.Register( List_PKG_CatchFish_WayPoint_ )
---[[
-事件基类
-]]
-PKG_CatchFish_Events_Event = {
-    typeName = "PKG_CatchFish_Events_Event",
-    typeId = 28,
-    Create = function()
-        local o = {}
-        o.__proto = PKG_CatchFish_Events_Event
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-
-        --[[
-        相关玩家id
-        ]]
-        o.id = 0 -- Int32
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-        o.id = bb:ReadInt32()
-    end,
-    ToBBuffer = function( bb, o )
-        bb:WriteInt32( o.id )
-    end
-}
-BBuffer.Register( PKG_CatchFish_Events_Event )
 --[[
 通知: 玩家进入. 大部分字段从 Player 类复制. 添加了部分初始数值, 可还原出玩家类实例.
 ]]

@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{B93032E8-E87B-4A20-88F8-40F4F4B033F5}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>server_game</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(SolutionDir)chipmunk\include\chipmunk</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;chipmunk.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)libuv;$(SolutionDir)chipmunk\lib\win64</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(SolutionDir)chipmunk\include\chipmunk</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;chipmunk.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)libuv;$(SolutionDir)chipmunk\lib\win64</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\gens\output\PKG_class.h" />
+    <ClInclude Include="..\xxlib\fixed_function.hpp" />
+    <ClInclude Include="..\xxlib\ikcp.h" />
+    <ClInclude Include="..\xxlib\xx_bbuffer.h" />
+    <ClInclude Include="..\xxlib\xx_coros.h" />
+    <ClInclude Include="..\xxlib\xx_dict.h" />
+    <ClInclude Include="..\xxlib\xx_list.h" />
+    <ClInclude Include="..\xxlib\xx_object.h" />
+    <ClInclude Include="..\xxlib\xx_pos.h" />
+    <ClInclude Include="..\xxlib\xx_random.h" />
+    <ClInclude Include="..\xxlib\xx_uv.h" />
+    <ClInclude Include="..\xxlib\xx_uv_coros.h" />
+    <ClInclude Include="..\xxlib\xx_uv_lua.h" />
+    <ClInclude Include="Bullet.hpp" />
+    <ClInclude Include="Cannon.hpp" />
+    <ClInclude Include="CatchFish.h" />
+    <ClInclude Include="CatchFish.hpp" />
+    <ClInclude Include="CatchFish_Init.hpp" />
+    <ClInclude Include="CatchFish_MakeBeeline.hpp" />
+    <ClInclude Include="CatchFish_MakeRandomFish.hpp" />
+    <ClInclude Include="CatchFish_Update.hpp" />
+    <ClInclude Include="Fish.hpp" />
+    <ClInclude Include="Listener.hpp" />
+    <ClInclude Include="Peer.hpp" />
+    <ClInclude Include="Physics.hpp" />
+    <ClInclude Include="Player.hpp" />
+    <ClInclude Include="Scene.hpp" />
+    <ClInclude Include="SpriteFrame.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\xxlib\lua.natvis" />
+    <Natvis Include="..\xxlib\xx.natvis" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

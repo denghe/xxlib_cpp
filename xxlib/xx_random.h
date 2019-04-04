@@ -103,7 +103,7 @@ namespace xx {
 			memset(seedArray, 0, sizeof(seedArray));
 			Init(seed);
 		}
-		Random(Random&& o) {
+		Random(Random&& o) noexcept {
 			inext = o.inext;
 			inextp = o.inextp;
 			memcpy(seedArray, o.seedArray, sizeof(seedArray));
