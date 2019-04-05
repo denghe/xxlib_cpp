@@ -76,18 +76,26 @@ using Physics_w = std::weak_ptr<Physics>;
 // Scene
 /**************************************************************************************************/
 
-struct Scene : PKG::CatchFish::Scene {
+struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	using BaseType = PKG::CatchFish::Scene;
 	using BaseType::BaseType;
 
 	// 引用到配置. 由 Scene 创建者于调用 InitCascade 前填充. ( 需确保 cfg 比 Scene 死的晚 )
 	PKG::CatchFish::Configs::Config* cfg = nullptr;
 
+#ifndef CC_TARGET_PLATFORM
 	// 自减id ( 从 -1 开始, 用于服务器下发鱼生成 )
 	int autoDecId = 0;
 
 	// server 下发鱼生成专用
-	xx::Random rnd2;
+	xx::Random serverRnd;
+
+	// 每帧汇集所有事件下发. 如果没有任何事件, 则根据 frameNumber & 15 == 0 的条件下发空包
+	PKG::CatchFish_Client::FrameEvents_s frameEvents;
+
+	// 记录本帧刚进入的新玩家( 帧结束时清空 ) 用以判断是下发完整同步还是帧事件同步
+	xx::List<void*> frameEnters;
+#endif
 
 	// 将 Scene 指针刷到所有子
 	virtual int InitCascade(void* const& o = nullptr) noexcept override;
@@ -278,7 +286,7 @@ struct CatchFish {
 	// 所有玩家的强存储
 	xx::List<Player_s> players;
 
-	// 
+	// 游戏场景实例
 	Scene_s scene;
 
 	int Init(std::string cfgName);
@@ -293,10 +301,17 @@ struct CatchFish {
 using CatchFish_s = std::shared_ptr<CatchFish>;
 
 
+
+
 #ifndef CC_TARGET_PLATFORM
 
+/**************************************************************************************************/
+// Peer
+/**************************************************************************************************/
+
 struct Peer : xx::UvKcpPeer {
-	using xx::UvKcpPeer::UvKcpPeer;
+	using BaseType = xx::UvKcpPeer;
+	using BaseType::BaseType;
 
 	// 所在游戏实例( Listener Accept 时填充 )
 	CatchFish* catchFish = nullptr;
@@ -306,7 +321,12 @@ struct Peer : xx::UvKcpPeer {
 
 	// 处理推送
 	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
+	virtual void Dispose(int const& flag = 1) noexcept override;
 };
+
+/**************************************************************************************************/
+// Listener
+/**************************************************************************************************/
 
 struct Listener : xx::UvKcpListener<Peer> {
 	using BaseType = xx::UvKcpListener<Peer>;
@@ -328,6 +348,7 @@ struct Listener : xx::UvKcpListener<Peer> {
 using Listener_s = std::shared_ptr<Listener>;
 
 #endif
+
 
 
 /**************************************************************************************************/

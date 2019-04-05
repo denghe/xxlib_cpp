@@ -37,16 +37,13 @@ namespace CatchFish
             int avatar_id;
 
             [Desc("破产标识")]
-            bool dead;
+            bool noMoney;
 
             [Desc("剩余金币值")]
             long coin;
 
             [Desc("座位")]
             Sits sit;
-
-            [Desc("炮台id")]
-            int cannonId;
 
             [Desc("炮台配置id")]
             int cannonCfgId;

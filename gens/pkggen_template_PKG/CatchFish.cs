@@ -136,8 +136,11 @@ namespace CatchFish
     }
 
     [Desc("炮台基类. 下列属性适合大多数炮")]
-    class Cannon : Item
+    class Cannon
     {
+        [Desc("自增id ( 服务器实时下发的id为负 )")]
+        int id;
+
         [Desc("配置id")]
         int cfgId;
 

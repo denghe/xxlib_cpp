@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "a4e3ff4603ec3c29710ef6bca5d80afb";
+		inline static const std::string value = "d6e2a66d2488cfd2d05ff41f63f47665";
     };
 
 namespace Generic {
@@ -295,8 +295,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish {
@@ -319,8 +317,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Configs {
@@ -347,8 +343,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish {
@@ -371,8 +365,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 定时器基类
     struct Timer : xx::Object {
@@ -391,8 +383,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Events {
@@ -413,8 +403,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 开启开火锁定
     struct OpenAutoLock : PKG::CatchFish::Events::Event {
@@ -431,8 +419,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 玩家锁定后瞄准某鱼
     struct Aim : PKG::CatchFish::Events::Event {
@@ -451,8 +437,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 玩家开火解除锁定
     struct CloseAutoLock : PKG::CatchFish::Events::Event {
@@ -469,8 +453,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 玩家自动开火
     struct OpenAutoFire : PKG::CatchFish::Events::Event {
@@ -487,8 +469,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 玩家解除自动开火
     struct CloseAutoFire : PKG::CatchFish::Events::Event {
@@ -505,8 +485,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 发子弹( 单次 ). 非特殊子弹, 只可能是 cannons[0] 原始炮台发射
     struct Fire : PKG::CatchFish::Events::Event {
@@ -533,8 +511,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace Generic {
@@ -553,8 +529,6 @@ namespace Generic {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Events {
@@ -575,8 +549,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 转发: 切换炮台倍率
     struct CannonCoinChange : PKG::CatchFish::Events::Event {
@@ -595,8 +567,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Stages {
@@ -623,8 +593,6 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 服务器本地脚本( 关卡元素 )
     struct Script : PKG::CatchFish::Timer {
@@ -642,8 +610,6 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Configs {
@@ -676,8 +642,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 鱼配置基类 ( 派生类中不再包含 sprite frame 相关, 以便于资源加载管理扫描 )
     struct Fish : PKG::CatchFish::Configs::Item {
@@ -714,8 +678,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 炮台 & 子弹配置基类
     struct Cannon : PKG::CatchFish::Configs::Item {
@@ -748,8 +710,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 打爆部分特殊鱼出现的特殊武器配置基类
     struct Weapon : PKG::CatchFish::Configs::Item {
@@ -772,8 +732,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 精灵帧
     struct SpriteFrame : xx::Object {
@@ -794,8 +752,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Events {
@@ -816,8 +772,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 通知: 鱼被打死
     struct FishDead : PKG::CatchFish::Events::Event {
@@ -842,8 +796,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 通知: 玩家离开
     struct Leave : PKG::CatchFish::Events::Event {
@@ -860,8 +812,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 通知: 玩家破产
     struct NoMoney : PKG::CatchFish::Events::Event {
@@ -878,8 +828,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace Generic {
@@ -900,8 +848,6 @@ namespace Generic {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 心跳保持兼延迟测试 -- 请求
     struct Ping : xx::Object {
@@ -919,8 +865,6 @@ namespace Generic {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 心跳保持兼延迟测试 -- 回应
     struct Pong : xx::Object {
@@ -938,8 +882,6 @@ namespace Generic {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish_Client {
@@ -964,8 +906,6 @@ namespace CatchFish_Client {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 帧事件同步包
     struct FrameEvents : xx::Object {
@@ -986,8 +926,6 @@ namespace CatchFish_Client {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace Client_CatchFish {
@@ -1006,8 +944,6 @@ namespace Client_CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 开火
     struct Shoot : xx::Object {
@@ -1028,8 +964,6 @@ namespace Client_CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 碰撞检测
     struct Hit : xx::Object {
@@ -1049,8 +983,6 @@ namespace Client_CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Events {
@@ -1071,8 +1003,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish {
@@ -1123,11 +1053,11 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 炮台基类. 下列属性适合大多数炮
-    struct Cannon : PKG::CatchFish::Item {
+    struct Cannon : xx::Object {
+        // 自增id ( 服务器实时下发的id为负 )
+        int32_t id = 0;
         // 配置id
         int32_t cfgId = 0;
         // 币值 / 倍率 ( 初始填充自 db. 玩家可调整数值. 范围限制为 Scene.minBet ~ maxBet )
@@ -1138,7 +1068,7 @@ namespace CatchFish {
         xx::List_s<PKG::CatchFish::Bullet_s> bullets;
 
         typedef Cannon ThisType;
-        typedef PKG::CatchFish::Item BaseType;
+        typedef xx::Object BaseType;
 	    Cannon() = default;
 		Cannon(Cannon const&) = delete;
 		Cannon& operator=(Cannon const&) = delete;
@@ -1149,8 +1079,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 子弹基类
     struct Bullet : PKG::CatchFish::MoveItem {
@@ -1171,8 +1099,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 鱼基类 ( 下列属性适合大多数鱼, 不一定适合部分 boss )
     struct Fish : PKG::CatchFish::MoveItem {
@@ -1211,8 +1137,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )
     struct Weapon : PKG::CatchFish::MoveItem {
@@ -1233,8 +1157,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 预约出鱼
     struct FishBorn : PKG::CatchFish::Timer {
@@ -1253,8 +1175,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
     // 轨迹. 预约下发安全, 将复制轨迹完整数据
     struct Way : xx::Object {
@@ -1277,8 +1197,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Events {
@@ -1289,13 +1207,11 @@ namespace CatchFish::Events {
         // 头像id
         int32_t avatar_id = 0;
         // 破产标识
-        bool dead = false;
+        bool noMoney = false;
         // 剩余金币值
         int64_t coin = 0;
         // 座位
         PKG::CatchFish::Sits sit = (PKG::CatchFish::Sits)0;
-        // 炮台id
-        int32_t cannonId = 0;
         // 炮台配置id
         int32_t cannonCfgId = 0;
         // 炮台币值
@@ -1313,8 +1229,6 @@ namespace CatchFish::Events {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Configs {
@@ -1335,8 +1249,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish {
@@ -1379,8 +1291,6 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 namespace CatchFish::Configs {
@@ -1409,8 +1319,6 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };
 }
 }
@@ -2035,14 +1943,14 @@ namespace CatchFish {
         return 19;
     }
     inline void Cannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        this->BaseType::ToBBuffer(bb);
+        bb.Write(this->id);
         bb.Write(this->cfgId);
         bb.Write(this->coin);
         bb.Write(this->angle);
         bb.Write(this->bullets);
     }
     inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        if (int r = bb.Read(this->id)) return r;
         if (int r = bb.Read(this->cfgId)) return r;
         if (int r = bb.Read(this->coin)) return r;
         if (int r = bb.Read(this->angle)) return r;
@@ -2051,7 +1959,6 @@ namespace CatchFish {
         return 0;
     }
     inline int Cannon::InitCascade(void* const& o) noexcept {
-        if (int r = this->BaseType::InitCascade(o)) return r;
         if (this->bullets) {
             if (int r = this->bullets->InitCascade(o)) return r;
         }
@@ -2073,6 +1980,7 @@ namespace CatchFish {
     }
     inline void Cannon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"id\":", this->id);
         xx::Append(s, ", \"cfgId\":", this->cfgId);
         xx::Append(s, ", \"coin\":", this->coin);
         xx::Append(s, ", \"angle\":", this->angle);
@@ -2405,10 +2313,9 @@ namespace CatchFish::Events {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->nickname);
         bb.Write(this->avatar_id);
-        bb.Write(this->dead);
+        bb.Write(this->noMoney);
         bb.Write(this->coin);
         bb.Write(this->sit);
-        bb.Write(this->cannonId);
         bb.Write(this->cannonCfgId);
         bb.Write(this->cannonCoin);
     }
@@ -2417,10 +2324,9 @@ namespace CatchFish::Events {
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->nickname)) return r;
         if (int r = bb.Read(this->avatar_id)) return r;
-        if (int r = bb.Read(this->dead)) return r;
+        if (int r = bb.Read(this->noMoney)) return r;
         if (int r = bb.Read(this->coin)) return r;
         if (int r = bb.Read(this->sit)) return r;
-        if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->cannonCfgId)) return r;
         if (int r = bb.Read(this->cannonCoin)) return r;
         return 0;
@@ -2448,10 +2354,9 @@ namespace CatchFish::Events {
         if (this->nickname) xx::Append(s, ", \"nickname\":\"", this->nickname, "\"");
         else xx::Append(s, ", \"nickname\":nil");
         xx::Append(s, ", \"avatar_id\":", this->avatar_id);
-        xx::Append(s, ", \"dead\":", this->dead);
+        xx::Append(s, ", \"noMoney\":", this->noMoney);
         xx::Append(s, ", \"coin\":", this->coin);
         xx::Append(s, ", \"sit\":", this->sit);
-        xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"cannonCfgId\":", this->cannonCfgId);
         xx::Append(s, ", \"cannonCoin\":", this->cannonCoin);
     }

@@ -22,7 +22,47 @@ inline int Scene::Update(int const&) noexcept {
 			}
 		}
 	}
-	// todo: foreach ..... call Update
+	// todo: foreach  items, ..... call Update
+
+#ifndef CC_TARGET_PLATFORM
+	// 存帧序号
+	frameEvents->frameNumber = frameNumber;
+
+	// 完整同步数据包( 先不创建 )
+	PKG::CatchFish_Client::EnterSuccess_s enterSuccess;
+
+	// 将本帧事件推送给已在线未断线玩家
+	for (auto&& plr_w : *players) {
+		auto&& plr = xx::As<Player>(plr_w.lock());
+		// 只给没断线的发
+		if (plr->peer) {
+			// 如果是本帧内进入的玩家, 就下发完整同步
+			if (frameEnters.Find(&*plr) >= 0) {
+				// 如果没创建就创建之
+				if (!enterSuccess) {
+					xx::MakeTo(enterSuccess);
+					xx::MakeTo(enterSuccess->players);
+					for (auto&& plr_w : *players) {
+						enterSuccess->players->Add(plr_w.lock());
+					}
+					enterSuccess->scene = shared_from_this();
+					enterSuccess->self = plr_w;
+				}
+				plr->peer->SendPush(enterSuccess);
+			}
+			// 老玩家直接下发帧事件同步数据
+			else {
+				// 如果有数据就立即下发, 没有就慢发
+				if (frameEvents->events->len || (frameNumber & 0xF == 0)) {
+					plr->peer->SendPush(frameEvents);
+				}
+			}
+		}
+	}
+
+	// 清除本帧内进入的玩家名册
+	frameEnters.Clear();
+#endif
 
 	++frameNumber;
 	return 0;

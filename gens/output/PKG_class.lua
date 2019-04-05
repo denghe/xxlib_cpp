@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'a4e3ff4603ec3c29710ef6bca5d80afb'
+PKG_PkgGenMd5_Value = 'd6e2a66d2488cfd2d05ff41f63f47665'
 
 --[[
 座位列表
@@ -1099,6 +1099,10 @@ PKG_CatchFish_Cannon = {
 
 
         --[[
+        自增id ( 服务器实时下发的id为负 )
+        ]]
+        o.id = 0 -- Int32
+        --[[
         配置id
         ]]
         o.cfgId = 0 -- Int32
@@ -1114,21 +1118,20 @@ PKG_CatchFish_Cannon = {
         所有子弹
         ]]
         o.bullets = null -- List_PKG_CatchFish_Bullet_
-        setmetatable( o, PKG_CatchFish_Item.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local p = getmetatable( o )
-        p.__proto.FromBBuffer( bb, p )
-        o.cfgId = bb:ReadInt32()
+        local ReadInt32 = bb.ReadInt32
+        o.id = ReadInt32( bb )
+        o.cfgId = ReadInt32( bb )
         o.coin = bb:ReadInt64()
         o.angle = bb:ReadSingle()
         o.bullets = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        local p = getmetatable( o )
-        p.__proto.ToBBuffer( bb, p )
-        bb:WriteInt32( o.cfgId )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.id )
+        WriteInt32( bb, o.cfgId )
         bb:WriteInt64( o.coin )
         bb:WriteSingle( o.angle )
         bb:WriteObject( o.bullets )
@@ -1461,7 +1464,7 @@ PKG_CatchFish_Events_Enter = {
         --[[
         破产标识
         ]]
-        o.dead = false -- Boolean
+        o.noMoney = false -- Boolean
         --[[
         剩余金币值
         ]]
@@ -1470,10 +1473,6 @@ PKG_CatchFish_Events_Enter = {
         座位
         ]]
         o.sit = 0 -- PKG_CatchFish_Sits
-        --[[
-        炮台id
-        ]]
-        o.cannonId = 0 -- Int32
         --[[
         炮台配置id
         ]]
@@ -1492,10 +1491,9 @@ PKG_CatchFish_Events_Enter = {
         local ReadInt64 = bb.ReadInt64
         o.nickname = bb:ReadObject()
         o.avatar_id = ReadInt32( bb )
-        o.dead = bb:ReadBoolean()
+        o.noMoney = bb:ReadBoolean()
         o.coin = ReadInt64( bb )
         o.sit = ReadInt32( bb )
-        o.cannonId = ReadInt32( bb )
         o.cannonCfgId = ReadInt32( bb )
         o.cannonCoin = ReadInt64( bb )
     end,
@@ -1506,10 +1504,9 @@ PKG_CatchFish_Events_Enter = {
         local WriteInt64 = bb.WriteInt64
         bb:WriteObject( o.nickname )
         WriteInt32( bb, o.avatar_id )
-        bb:WriteBoolean( o.dead )
+        bb:WriteBoolean( o.noMoney )
         WriteInt64( bb, o.coin )
         WriteInt32( bb, o.sit )
-        WriteInt32( bb, o.cannonId )
         WriteInt32( bb, o.cannonCfgId )
         WriteInt64( bb, o.cannonCoin )
     end

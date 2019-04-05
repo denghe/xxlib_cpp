@@ -38,6 +38,10 @@
 	xx::MakeTo(scene->players);
 	xx::MakeTo(scene->rnd, 123);
 	xx::MakeTo(scene->stage);
+#ifndef CC_TARGET_PLATFORM
+	xx::MakeTo(scene->frameEvents);
+	xx::MakeTo(scene->frameEvents->events);
+#endif
 
 	scene->cfg = &*cfg;
 	if (int r = scene->InitCascade()) return r;

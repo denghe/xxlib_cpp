@@ -1,6 +1,13 @@
-int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
-	// 已绑定连接
+inline void Peer::Dispose(int const& flag = 1) noexcept {
+	if (this->Disposed()) return;
+	// todo: kick player?
+	this->BaseType::Dispose(flag);
+}
+
+inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 	if (auto && player = player_w.lock()) {
+		// 已绑定连接
+		// 将初步判定合法的消息放入分类容器, 待到适当时机读出使用, 模拟输入
 		switch (msg->GetTypeId()) {
 		case xx::TypeId_v<PKG::Client_CatchFish::Shoot>:
 			player->recvShoots.Add(xx::As<PKG::Client_CatchFish::Shoot>(msg));
@@ -13,8 +20,8 @@ int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			return -1;
 		}
 	}
-	// 匿名连接. 只接受 Enter
 	else {
+		// 匿名连接. 只接受 Enter
 		switch (msg->GetTypeId()) {
 		case xx::TypeId_v<PKG::Client_CatchFish::Enter>: {
 			// 引用到公共配置方便使用
@@ -57,7 +64,6 @@ int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 				cannon->cfgId = cannonCfgId;
 				cannon->coin = 1;
 				cannon->id = (int)player->cannons->len;
-				cannon->indexAtContainer = (int)player->cannons->len;
 				cannon->player = &*player;
 				cannon->pos = cfg.sitPositons->At((int)sit);
 				cannon->quantity = cannonCfg->quantity;
@@ -70,8 +76,20 @@ int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 				return -2;
 			}
 
-			// 构造完整同步包下发
-			// todo
+			// 将玩家放入相应容器
+			catchFish->players.Add(player);
+			scene.players->Add(player);
+			scene.frameEnters.Add(&*player);
+
+			// 构建玩家进入通知并放入帧同步下发事件集合待发
+			auto&& enter = xx::Make<PKG::CatchFish::Events::Enter>();
+			enter->avatar_id = player->avatar_id;
+			enter->cannonCfgId = player->cannons->At(0)->cfgId;
+			enter->cannonCoin = player->cannons->At(0)->coin;
+			enter->coin = player->coin;
+			enter->noMoney = player->noMoney;
+			enter->sit = player->sit;
+			scene.frameEvents->events->Add(enter);
 
 			break;
 		}

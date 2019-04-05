@@ -212,8 +212,6 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-
-        inline static std::shared_ptr<ThisType> defaultInstance;
     };");   // class }
 
             // namespace }

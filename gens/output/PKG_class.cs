@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "a4e3ff4603ec3c29710ef6bca5d80afb"; 
+        public const string value = "d6e2a66d2488cfd2d05ff41f63f47665"; 
     }
 
 namespace CatchFish
@@ -903,8 +903,12 @@ namespace CatchFish
     /// <summary>
     /// 炮台基类. 下列属性适合大多数炮
     /// </summary>
-    public partial class Cannon : CatchFish.Item
+    public partial class Cannon : xx.Object
     {
+        /// <summary>
+        /// 自增id ( 服务器实时下发的id为负 )
+        /// </summary>
+        public int id;
         /// <summary>
         /// 配置id
         /// </summary>
@@ -929,7 +933,7 @@ namespace CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            base.ToBBuffer(bb);
+            bb.Write(this.id);
             bb.Write(this.cfgId);
             bb.Write(this.coin);
             bb.Write(this.angle);
@@ -938,7 +942,7 @@ namespace CatchFish
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            base.FromBBuffer(bb);
+            bb.Read(ref this.id);
             bb.Read(ref this.cfgId);
             bb.Read(ref this.coin);
             bb.Read(ref this.angle);
@@ -962,7 +966,7 @@ namespace CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            base.ToStringCore(s);
+            s.Append(", \"id\":" + id.ToString());
             s.Append(", \"cfgId\":" + cfgId.ToString());
             s.Append(", \"coin\":" + coin.ToString());
             s.Append(", \"angle\":" + angle.ToString());
@@ -976,7 +980,6 @@ namespace CatchFish
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
-            base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
     /// <summary>
@@ -1603,7 +1606,7 @@ namespace CatchFish.Events
         /// <summary>
         /// 破产标识
         /// </summary>
-        public bool dead = false;
+        public bool noMoney = false;
         /// <summary>
         /// 剩余金币值
         /// </summary>
@@ -1612,10 +1615,6 @@ namespace CatchFish.Events
         /// 座位
         /// </summary>
         public CatchFish.Sits sit;
-        /// <summary>
-        /// 炮台id
-        /// </summary>
-        public int cannonId;
         /// <summary>
         /// 炮台配置id
         /// </summary>
@@ -1635,10 +1634,9 @@ namespace CatchFish.Events
             base.ToBBuffer(bb);
             bb.Write(this.nickname);
             bb.Write(this.avatar_id);
-            bb.Write(this.dead);
+            bb.Write(this.noMoney);
             bb.Write(this.coin);
             bb.Write((int)this.sit);
-            bb.Write(this.cannonId);
             bb.Write(this.cannonCfgId);
             bb.Write(this.cannonCoin);
         }
@@ -1649,14 +1647,13 @@ namespace CatchFish.Events
             bb.readLengthLimit = 0;
             bb.Read(ref this.nickname);
             bb.Read(ref this.avatar_id);
-            bb.Read(ref this.dead);
+            bb.Read(ref this.noMoney);
             bb.Read(ref this.coin);
             {
                 int tmp = 0;
                 bb.Read(ref tmp);
                 this.sit = (CatchFish.Sits)tmp;
             }
-            bb.Read(ref this.cannonId);
             bb.Read(ref this.cannonCfgId);
             bb.Read(ref this.cannonCoin);
         }
@@ -1681,10 +1678,9 @@ namespace CatchFish.Events
             if (nickname != null) s.Append(", \"nickname\":\"" + nickname.ToString() + "\"");
             else s.Append(", \"nickname\":nil");
             s.Append(", \"avatar_id\":" + avatar_id.ToString());
-            s.Append(", \"dead\":" + dead.ToString());
+            s.Append(", \"noMoney\":" + noMoney.ToString());
             s.Append(", \"coin\":" + coin.ToString());
             s.Append(", \"sit\":" + sit.ToString());
-            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"cannonCfgId\":" + cannonCfgId.ToString());
             s.Append(", \"cannonCoin\":" + cannonCoin.ToString());
         }
