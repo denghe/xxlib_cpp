@@ -61,10 +61,10 @@ namespace CatchFish
         [Desc("通知: 玩家破产")]
         class NoMoney : Event { }
 
-        [Desc("通知: 玩家充值( 解除破产? )")]
-        class Charge : Event
+        [Desc("通知: 退钱( 常见于子弹打空 )")]
+        class Refund : Event
         {
-            [Desc("新增币值")]
+            [Desc("币值")]
             long coin;
         }
 

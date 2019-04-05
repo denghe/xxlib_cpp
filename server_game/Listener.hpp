@@ -1,6 +1,6 @@
 inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
 	auto&& peer = xx::As<Peer>(peer_);
-	peer->scene = &*catchFish.scene;
+	peer->catchFish = &catchFish;
 }
 
 inline Listener::Listener(xx::Uv& uv, std::string const& ip, int const& port)

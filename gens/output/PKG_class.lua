@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'ee32e37c16bbc567229ca30047ee0f8b'
+PKG_PkgGenMd5_Value = 'a4e3ff4603ec3c29710ef6bca5d80afb'
 
 --[[
 座位列表
@@ -1576,14 +1576,14 @@ PKG_CatchFish_Events_NoMoney = {
 }
 BBuffer.Register( PKG_CatchFish_Events_NoMoney )
 --[[
-通知: 玩家充值( 解除破产? )
+通知: 退钱( 常见于子弹打空 )
 ]]
-PKG_CatchFish_Events_Charge = {
-    typeName = "PKG_CatchFish_Events_Charge",
+PKG_CatchFish_Events_Refund = {
+    typeName = "PKG_CatchFish_Events_Refund",
     typeId = 32,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFish_Events_Charge
+        o.__proto = PKG_CatchFish_Events_Refund
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -1593,7 +1593,7 @@ PKG_CatchFish_Events_Charge = {
 
 
         --[[
-        新增币值
+        币值
         ]]
         o.coin = 0 -- Int64
         setmetatable( o, PKG_CatchFish_Events_Event.Create() )
@@ -1610,7 +1610,7 @@ PKG_CatchFish_Events_Charge = {
         bb:WriteInt64( o.coin )
     end
 }
-BBuffer.Register( PKG_CatchFish_Events_Charge )
+BBuffer.Register( PKG_CatchFish_Events_Refund )
 --[[
 通知: 鱼被打死
 ]]

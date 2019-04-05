@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "ee32e37c16bbc567229ca30047ee0f8b";
+		inline static const std::string value = "a4e3ff4603ec3c29710ef6bca5d80afb";
     };
 
 namespace Generic {
@@ -138,10 +138,10 @@ namespace CatchFish::Events {
     using NoMoney_s = std::shared_ptr<NoMoney>;
     using NoMoney_w = std::weak_ptr<NoMoney>;
 
-    // 通知: 玩家充值( 解除破产? )
-    struct Charge;
-    using Charge_s = std::shared_ptr<Charge>;
-    using Charge_w = std::weak_ptr<Charge>;
+    // 通知: 退钱( 常见于子弹打空 )
+    struct Refund;
+    using Refund_s = std::shared_ptr<Refund>;
+    using Refund_w = std::weak_ptr<Refund>;
 
     // 通知: 鱼被打死
     struct FishDead;
@@ -1054,16 +1054,16 @@ namespace Client_CatchFish {
     };
 }
 namespace CatchFish::Events {
-    // 通知: 玩家充值( 解除破产? )
-    struct Charge : PKG::CatchFish::Events::Event {
-        // 新增币值
+    // 通知: 退钱( 常见于子弹打空 )
+    struct Refund : PKG::CatchFish::Events::Event {
+        // 币值
         int64_t coin = 0;
 
-        typedef Charge ThisType;
+        typedef Refund ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
-	    Charge() = default;
-		Charge(Charge const&) = delete;
-		Charge& operator=(Charge const&) = delete;
+	    Refund() = default;
+		Refund(Refund const&) = delete;
+		Refund& operator=(Refund const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1467,7 +1467,7 @@ namespace xx {
     template<> struct TypeId<PKG::CatchFish::Events::Enter> { static const uint16_t value = 29; };
     template<> struct TypeId<PKG::CatchFish::Events::Leave> { static const uint16_t value = 30; };
     template<> struct TypeId<PKG::CatchFish::Events::NoMoney> { static const uint16_t value = 31; };
-    template<> struct TypeId<PKG::CatchFish::Events::Charge> { static const uint16_t value = 32; };
+    template<> struct TypeId<PKG::CatchFish::Events::Refund> { static const uint16_t value = 32; };
     template<> struct TypeId<PKG::CatchFish::Events::FishDead> { static const uint16_t value = 33; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Events::FishDead_s>> { static const uint16_t value = 34; };
     template<> struct TypeId<PKG::CatchFish::Events::PushWeapon> { static const uint16_t value = 35; };
@@ -2517,23 +2517,23 @@ namespace CatchFish::Events {
     inline void NoMoney::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
-    inline uint16_t Charge::GetTypeId() const noexcept {
+    inline uint16_t Refund::GetTypeId() const noexcept {
         return 32;
     }
-    inline void Charge::ToBBuffer(xx::BBuffer& bb) const noexcept {
+    inline void Refund::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->coin);
     }
-    inline int Charge::FromBBuffer(xx::BBuffer& bb) noexcept {
+    inline int Refund::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
         return 0;
     }
-    inline int Charge::InitCascade(void* const& o) noexcept {
+    inline int Refund::InitCascade(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
-    inline void Charge::ToString(std::string& s) const noexcept {
+    inline void Refund::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, "[ \"***** recursived *****\" ]");
@@ -2541,13 +2541,13 @@ namespace CatchFish::Events {
         }
         else this->SetToStringFlag();
 
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Events.Charge\", \"pkgTypeId\":", GetTypeId());
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Events.Refund\", \"pkgTypeId\":", GetTypeId());
         ToStringCore(s);
         xx::Append(s, " }");
         
         this->SetToStringFlag(false);
     }
-    inline void Charge::ToStringCore(std::string& s) const noexcept {
+    inline void Refund::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"coin\":", this->coin);
     }
@@ -3482,7 +3482,7 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Enter>(29);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Leave>(30);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::NoMoney>(31);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Charge>(32);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Refund>(32);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::FishDead>(33);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::FishDead_s>>(34);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::PushWeapon>(35);

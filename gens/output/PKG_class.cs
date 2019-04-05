@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "ee32e37c16bbc567229ca30047ee0f8b"; 
+        public const string value = "a4e3ff4603ec3c29710ef6bca5d80afb"; 
     }
 
 namespace CatchFish
@@ -1800,18 +1800,18 @@ namespace CatchFish.Events
         }
     }
     /// <summary>
-    /// 通知: 玩家充值( 解除破产? )
+    /// 通知: 退钱( 常见于子弹打空 )
     /// </summary>
-    public partial class Charge : CatchFish.Events.Event
+    public partial class Refund : CatchFish.Events.Event
     {
         /// <summary>
-        /// 新增币值
+        /// 币值
         /// </summary>
         public long coin;
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<Charge>.value;
+            return xx.TypeId<Refund>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
@@ -1834,7 +1834,7 @@ namespace CatchFish.Events
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Events.Charge\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Events.Refund\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -3359,7 +3359,7 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Events.Enter>(29);
             xx.Object.Register<CatchFish.Events.Leave>(30);
             xx.Object.Register<CatchFish.Events.NoMoney>(31);
-            xx.Object.Register<CatchFish.Events.Charge>(32);
+            xx.Object.Register<CatchFish.Events.Refund>(32);
             xx.Object.Register<CatchFish.Events.FishDead>(33);
             xx.Object.Register<xx.List<CatchFish.Events.FishDead>>(34);
             xx.Object.Register<CatchFish.Events.PushWeapon>(35);

@@ -260,20 +260,6 @@ using Bullet_w = std::weak_ptr<Bullet>;
 
 
 
-#ifndef CC_TARGET_PLATFORM
-
-struct Peer : xx::UvKcpPeer {
-	using xx::UvKcpPeer::UvKcpPeer;
-
-	// 所在场景( Listener Accept 时填充 )
-	Scene* scene = nullptr;
-
-	Player_w player_w;
-	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
-};
-
-#endif
-
 
 /**************************************************************************************************/
 // CatchFish
@@ -286,8 +272,13 @@ struct CatchFish {
 	CatchFish& operator=(CatchFish&& o) = default;
 	CatchFish& operator=(CatchFish const& o) = delete;
 
+	// 全局公用共享配置单例
 	PKG::CatchFish::Configs::Config_s cfg;
+
+	// 所有玩家的强存储
 	xx::List<Player_s> players;
+
+	// 
 	Scene_s scene;
 
 	int Init(std::string cfgName);
@@ -304,18 +295,35 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 
 #ifndef CC_TARGET_PLATFORM
 
+struct Peer : xx::UvKcpPeer {
+	using xx::UvKcpPeer::UvKcpPeer;
+
+	// 所在游戏实例( Listener Accept 时填充 )
+	CatchFish* catchFish = nullptr;
+
+	// Enter 成功后绑定到玩家
+	Player_w player_w;
+
+	// 处理推送
+	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
+};
+
 struct Listener : xx::UvKcpListener<Peer> {
 	using BaseType = xx::UvKcpListener<Peer>;
 	using BaseType::BaseType;
 
+	// 游戏实例( 此物也可以与 Listener 同级. 为方便先放这 )
 	CatchFish catchFish;
+
+	// 定时器. 模拟一个游戏循环
 	xx::UvTimer_s looper;
 	int64_t ticksPool = 0;
 	int64_t lastTicks = xx::NowEpoch10m();
-	const int64_t ticksPerFrame = (int64_t)10000000 / 60;
+	// 比 60 略快以兼容部分硬件显示刷新不标准, 超过 60 帧的垃圾设备, 例如部分华为高端型号
+	const int64_t ticksPerFrame = int64_t(10000000 / 60.3);	
 
-	virtual void Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept override;
 	Listener(xx::Uv& uv, std::string const& ip, int const& port);
+	virtual void Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept override;
 };
 using Listener_s = std::shared_ptr<Listener>;
 

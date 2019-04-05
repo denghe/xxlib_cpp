@@ -78,7 +78,7 @@ interface ITypeIdMappings
 
     CatchFish.Events.NoMoney _31 { get; }
 
-    CatchFish.Events.Charge _32 { get; }
+    CatchFish.Events.Refund _32 { get; }
 
     CatchFish.Events.FishDead _33 { get; }
 
