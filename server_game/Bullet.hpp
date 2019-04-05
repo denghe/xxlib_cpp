@@ -17,17 +17,21 @@
 	coin = cannon->coin;
 
 	if (int r = this->BaseType::InitCascade(o)) return r;
+#ifdef CC_TARGET_PLATFORM
 	DrawInit();
+#endif
 	return 0;
 }
 
 inline int Bullet::Update(int const& frameNumber) noexcept {
+#ifndef CC_TARGET_PLATFORM
 	pos += moveInc;
 
-	// 先简单实现飞出屏幕就消失
+	// 先简单实现飞出屏幕就消失	// todo: 反弹
 	auto&& w = ::ScreenCenter.x + cfg->maxRadius;
 	auto&& h = ::ScreenCenter.y + cfg->maxRadius;
 	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
+#else
 
 	// 遍历所有鱼
 	auto&& fs = *scene->fishs;
@@ -35,28 +39,31 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
 			if (xx::As<Fish>(fs[i])->HitCheck(this)) {
-				// 删鱼
-				fs[fs.len - 1]->indexAtContainer = (int)i;
-				fs.SwapRemoveAt(i);
-				// todo: 计分?
-				// todo: 播放爆炸特效?
+				// todo: 发包
+
+				//// 删鱼
+				//fs[fs.len - 1]->indexAtContainer = (int)i;
+				//fs.SwapRemoveAt(i);
+				// todo: 播放子弹爆炸特效?
 				return -1;
 			}
 		}
 	}
 
 	DrawUpdate();
+#endif
 	return 0;
 };
 
 inline Bullet::~Bullet() {
+#ifdef CC_TARGET_PLATFORM
 	DrawDispose();
+#endif
 }
 
-#pragma region
 
-inline void Bullet::DrawInit() noexcept {
 #ifdef CC_TARGET_PLATFORM
+inline void Bullet::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->retain();
@@ -67,19 +74,15 @@ inline void Bullet::DrawInit() noexcept {
 	body->setScale(cfg->scale);
 	body->setRotation(-angle);
 	cc_scene->addChild(body);
-#endif
 }
 
 inline void Bullet::DrawUpdate() noexcept {
-#ifdef CC_TARGET_PLATFORM
 	assert(body);
 	body->setRotation(-angle);
 	body->setPosition(pos);
-#endif
 }
 
 inline void Bullet::DrawDispose() noexcept {
-#ifdef CC_TARGET_PLATFORM
 	if (!body) return;
 
 	if (body->getParent()) {
@@ -87,7 +90,5 @@ inline void Bullet::DrawDispose() noexcept {
 	}
 	body->release();
 	body = nullptr;
-#endif
 }
-
-#pragma endregion
+#endif

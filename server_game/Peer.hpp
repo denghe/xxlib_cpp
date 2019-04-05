@@ -1,4 +1,4 @@
-inline void Peer::Dispose(int const& flag = 1) noexcept {
+inline void Peer::Dispose(int const& flag) noexcept {
 	if (this->Disposed()) return;
 	// todo: kick player?
 	this->BaseType::Dispose(flag);
@@ -10,10 +10,12 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 		// 将初步判定合法的消息放入分类容器, 待到适当时机读出使用, 模拟输入
 		switch (msg->GetTypeId()) {
 		case xx::TypeId_v<PKG::Client_CatchFish::Shoot>:
-			player->recvShoots.Add(xx::As<PKG::Client_CatchFish::Shoot>(msg));
+			player->recvShoots.push_back(xx::As<PKG::Client_CatchFish::Shoot>(msg));
+			if (player->recvShoots.size() > 200) return -1;			// 简单包堆积检测
 			break;
 		case xx::TypeId_v<PKG::Client_CatchFish::Hit>:
-			player->recvHits.Add(xx::As<PKG::Client_CatchFish::Hit>(msg));
+			player->recvHits.push_back(xx::As<PKG::Client_CatchFish::Hit>(msg));
+			if (player->recvHits.size() > 200) return -1;			// 简单包堆积检测
 			break;
 		default:
 			player->peer.reset();

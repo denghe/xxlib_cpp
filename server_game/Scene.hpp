@@ -53,7 +53,7 @@ inline int Scene::Update(int const&) noexcept {
 			// 老玩家直接下发帧事件同步数据
 			else {
 				// 如果有数据就立即下发, 没有就慢发
-				if (frameEvents->events->len || (frameNumber & 0xF == 0)) {
+				if (frameEvents->events->len || !(frameNumber & 0xF)) {
 					plr->peer->SendPush(frameEvents);
 				}
 			}

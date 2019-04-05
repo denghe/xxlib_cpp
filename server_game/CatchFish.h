@@ -23,18 +23,6 @@ inline cocos2d::EventListenerTouchAllAtOnce* cc_listener = nullptr;
 #endif
 
 
-/**************************************************************************************************/
-// IDraw
-/**************************************************************************************************/
-
-// 有绘制行为的类需要实现该接口
-struct IDraw {
-	virtual void DrawInit() noexcept = 0;		// 初始化( 通常是显现性质 )
-	virtual void DrawUpdate() noexcept = 0;		// 更新( 通常是移动 / 动画性质 )
-	virtual void DrawDispose() noexcept = 0;	// 销毁( 通常是从图形系统中完全注销对象 )
-	// todo: Show / Hide
-};
-
 
 /**************************************************************************************************/
 // SpriteFrame
@@ -112,7 +100,7 @@ using Scene_w = std::weak_ptr<Scene>;
 /**************************************************************************************************/
 
 struct Bullet;
-struct Fish : PKG::CatchFish::Fish, IDraw {
+struct Fish : PKG::CatchFish::Fish {
 	using BaseType = PKG::CatchFish::Fish;
 	using BaseType::BaseType;
 
@@ -134,10 +122,10 @@ struct Fish : PKG::CatchFish::Fish, IDraw {
 #if DRAW_PHYSICS_POLYGON
 	cocos2d::DrawNode* debugNode = nullptr;
 #endif
+	virtual void DrawInit() noexcept;
+	virtual void DrawUpdate() noexcept;
+	virtual void DrawDispose() noexcept;
 #endif
-	virtual void DrawInit() noexcept override;
-	virtual void DrawUpdate() noexcept override;
-	virtual void DrawDispose() noexcept override;
 };
 using Fish_s = std::shared_ptr<Fish>;
 using Fish_w = std::weak_ptr<Fish>;
@@ -148,7 +136,7 @@ using Fish_w = std::weak_ptr<Fish>;
 /**************************************************************************************************/
 
 struct Peer;
-struct Player : PKG::CatchFish::Player/*, IDraw 绘制金币倍率面板啥的?  */ {
+struct Player : PKG::CatchFish::Player {
 	using BaseType = PKG::CatchFish::Player;
 	using BaseType::BaseType;
 
@@ -166,8 +154,8 @@ struct Player : PKG::CatchFish::Player/*, IDraw 绘制金币倍率面板啥的? 
 	std::shared_ptr<Peer> peer;
 
 	// 分类收包容器( 在适当的生命周期读取并处理 )
-	xx::List<PKG::Client_CatchFish::Shoot_s> recvShoots;
-	xx::List<PKG::Client_CatchFish::Hit_s> recvHits;
+	std::deque<PKG::Client_CatchFish::Shoot_s> recvShoots;
+	std::deque<PKG::Client_CatchFish::Hit_s> recvHits;
 
 	// 解绑, 断开当前 peer 并清空所有收包队列
 	void Disconnect() noexcept;
@@ -185,7 +173,7 @@ using Player_w = std::weak_ptr<Player>;
 // Cannon
 /**************************************************************************************************/
 
-struct Cannon : PKG::CatchFish::Cannon, IDraw {
+struct Cannon : PKG::CatchFish::Cannon {
 	using BaseType = PKG::CatchFish::Cannon;
 	using BaseType::BaseType;
 
@@ -208,7 +196,15 @@ struct Cannon : PKG::CatchFish::Cannon, IDraw {
 	int quantity = -1;
 
 	// 发射子弹. 成功返回 true
-	bool Shoot(int const& frameNumber) noexcept;
+#ifdef CC_TARGET_PLATFORM
+	virtual bool Shoot(int const& frameNumber) noexcept;
+#else
+	// player 在遍历 recvShoots 的时候定位到炮台就 call 这个函数来发射
+	virtual bool Shoot(PKG::Client_CatchFish::Shoot_s& o) noexcept;
+
+	// player 在遍历 recvHits 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
+	virtual bool Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
+#endif
 
 	int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
@@ -216,10 +212,10 @@ struct Cannon : PKG::CatchFish::Cannon, IDraw {
 
 #ifdef CC_TARGET_PLATFORM
 	cocos2d::Sprite* body = nullptr;
+	virtual void DrawInit() noexcept;
+	virtual void DrawUpdate() noexcept;
+	virtual void DrawDispose() noexcept;
 #endif
-	virtual void DrawInit() noexcept override;
-	virtual void DrawUpdate() noexcept override;
-	virtual void DrawDispose() noexcept override;
 };
 using Cannon_s = std::shared_ptr<Cannon>;
 using Cannon_w = std::weak_ptr<Cannon>;
@@ -229,7 +225,7 @@ using Cannon_w = std::weak_ptr<Cannon>;
 // Bullet
 /**************************************************************************************************/
 
-struct Bullet : PKG::CatchFish::Bullet, IDraw {
+struct Bullet : PKG::CatchFish::Bullet {
 	using BaseType = PKG::CatchFish::Bullet;
 	using BaseType::BaseType;
 
@@ -251,10 +247,10 @@ struct Bullet : PKG::CatchFish::Bullet, IDraw {
 
 #ifdef CC_TARGET_PLATFORM
 	cocos2d::Sprite* body = nullptr;
+	virtual void DrawInit() noexcept;
+	virtual void DrawUpdate() noexcept;
+	virtual void DrawDispose() noexcept;
 #endif
-	virtual void DrawInit() noexcept override;
-	virtual void DrawUpdate() noexcept override;
-	virtual void DrawDispose() noexcept override;
 };
 using Bullet_s = std::shared_ptr<Bullet>;
 using Bullet_w = std::weak_ptr<Bullet>;
