@@ -74,12 +74,15 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 
 #ifndef CC_TARGET_PLATFORM
 inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
-	// todo: 合法性判断: 如果 bulletId, fishId 找不到就忽略
+	// 合法性判断: 如果 bulletId, fishId 找不到就忽略
 	for (auto&& bullet : *bullets) {
 		if (bullet->id == o->bulletId) {
 			for (auto&& fish : *scene->fishs) {
 				if (fish->id == o->fishId) {
-					// todo: 是否能打死的计算
+					// todo: 是否能打死的计算. 先根据 coin 来计算死亡比例
+					if (scene->serverRnd.Next(fish->coin) == 0) {
+
+					}
 					return;
 				}
 			}
