@@ -39,12 +39,18 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
 			if (xx::As<Fish>(fs[i])->HitCheck(this)) {
-				// todo: 发包
+				auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
+				o->bulletId = id;
+				o->cannonId = cannon->id;
+				o->fishId = fs[i]->id;
+				// todo: peer->Send(o);
 
 				//// 删鱼
 				//fs[fs.len - 1]->indexAtContainer = (int)i;
 				//fs.SwapRemoveAt(i);
 				// todo: 播放子弹爆炸特效?
+
+				// 子弹自杀
 				return -1;
 			}
 		}

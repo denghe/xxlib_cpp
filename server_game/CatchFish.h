@@ -203,7 +203,7 @@ struct Cannon : PKG::CatchFish::Cannon {
 	virtual bool Shoot(PKG::Client_CatchFish::Shoot_s& o) noexcept;
 
 	// player 在遍历 recvHits 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
-	virtual bool Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
+	virtual void Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
 #endif
 
 	int InitCascade(void* const& o) noexcept override;

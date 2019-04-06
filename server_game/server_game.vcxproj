@@ -15,7 +15,6 @@
     <ProjectGuid>{B93032E8-E87B-4A20-88F8-40F4F4B033F5}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>server_game</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
