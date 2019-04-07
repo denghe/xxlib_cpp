@@ -78,10 +78,16 @@ inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 	for (auto&& bullet : *bullets) {
 		if (bullet->id == o->bulletId) {
 			for (auto&& fish : *scene->fishs) {
+				//if (fish->isDead) continue;
 				if (fish->id == o->fishId) {
-					// todo: 是否能打死的计算. 先根据 coin 来计算死亡比例
+					// 是否能打死的计算. 先根据 coin 来计算死亡比例
 					if (scene->serverRnd.Next(fish->coin) == 0) {
-
+						auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+						fishDead->bulletId = bullet->id;
+						fishDead->coin = bullet->coin * fish->coin;
+						fishDead->fishId = fish->id;
+						fishDead->id = player->id;
+						scene->frameEvents->events->Add(std::move(fishDead));
 					}
 					return;
 				}
