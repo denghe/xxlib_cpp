@@ -1,4 +1,5 @@
-﻿inline void Player::Disconnect() noexcept {
+﻿#ifndef CC_TARGET_PLATFORM
+inline void Player::Disconnect() noexcept {
 	if (peer) {
 		peer->player_w.reset();
 		peer->Dispose();
@@ -7,6 +8,7 @@
 	recvShoots.clear();
 	recvHits.clear();
 }
+#endif
 
 inline int Player::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;

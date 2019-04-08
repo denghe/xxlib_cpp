@@ -365,5 +365,7 @@ using Listener_s = std::shared_ptr<Listener>;
 #include "Cannon.hpp"
 #include "Bullet.hpp"
 
+#ifndef CC_TARGET_PLATFORM
 #include "Peer.hpp"
 #include "Listener.hpp"
+#endif

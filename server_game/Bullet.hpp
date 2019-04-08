@@ -24,15 +24,23 @@
 }
 
 inline int Bullet::Update(int const& frameNumber) noexcept {
-#ifndef CC_TARGET_PLATFORM
 	pos += moveInc;
 
-	// 先简单实现飞出屏幕就消失	// todo: 反弹
+	// 先简单实现飞出屏幕就消失
 	auto&& w = ::ScreenCenter.x + cfg->maxRadius;
 	auto&& h = ::ScreenCenter.y + cfg->maxRadius;
-	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
-#else
+	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
+#ifndef CC_TARGET_PLATFORM
+		// 退钱
+		auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
+		refund->coin = coin;
+		refund->id = player->id;
+		scene->frameEvents->events->Add(std::move(refund));
+#endif
+		return -1;
+	}
 
+#ifdef CC_TARGET_PLATFORM
 	// 遍历所有鱼
 	auto&& fs = *scene->fishs;
 	if (fs.len) {
@@ -55,7 +63,6 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 			}
 		}
 	}
-
 	DrawUpdate();
 #endif
 	return 0;

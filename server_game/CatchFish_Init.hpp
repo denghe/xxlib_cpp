@@ -21,9 +21,18 @@
 
 	// 从文件加载 cfg. 出问题返回非 0
 	{
+#ifndef CC_TARGET_PLATFORM
 		xx::BBuffer bb;
 		if (int r = ReadFile(cfgName.c_str(), bb)) return r;
 		if (int r = bb.ReadRoot(cfg)) return r;
+#else
+		auto&& data = cocos2d::FileUtils::getInstance()->getDataFromFile(cfgName);
+		xx::BBuffer bb;
+		bb.Reset(data.getBytes(), data.getSize());
+		auto&& r = bb.ReadRoot(cfg);
+		bb.Reset();
+		if (r) return r;
+#endif
 	}
 
 	// 初始化派生类的东西

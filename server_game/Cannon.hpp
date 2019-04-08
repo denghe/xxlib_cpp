@@ -26,13 +26,6 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 	if (bs.len) {
 		for (size_t i = bs.len - 1; i != -1; --i) {
 			if (bs[i]->Update(frameNumber)) {
-#ifndef CC_TARGET_PLATFORM
-				// 创建退钱事件
-				auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-				refund->coin = bs[i]->coin;
-				refund->id = player->id;
-				scene->frameEvents->events->Add(std::move(refund));
-#endif
 				bs[bs.len - 1]->indexAtContainer = (int)i;
 				bs.SwapRemoveAt(i);
 			}
@@ -40,7 +33,6 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 	}
 
 #ifdef CC_TARGET_PLATFORM
-
 	// 判断这是不是最上层炮台
 	if (this != &*player->cannons->Top()) {
 		// todo: 隐藏( 多个炮台, 只显示最上面的且只有最上面的能被操控 )
@@ -81,7 +73,7 @@ inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 				//if (fish->isDead) continue;
 				if (fish->id == o->fishId) {
 					// 是否能打死的计算. 先根据 coin 来计算死亡比例
-					if (scene->serverRnd.Next(fish->coin) == 0) {
+					if (scene->serverRnd.Next((int)fish->coin) == 0) {
 						auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
 						fishDead->bulletId = bullet->id;
 						fishDead->coin = bullet->coin * fish->coin;
@@ -101,23 +93,26 @@ inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 
 #ifndef CC_TARGET_PLATFORM
 inline bool Cannon::Shoot(PKG::Client_CatchFish::Shoot_s& o) noexcept {
-	auto&& bs = *this->bullets;
-	if (bs.len) {
-		for (size_t i = bs.len - 1; i != -1; --i) {
-			//if(bs[i])
-		}
+	// 如果金币不足, 失败
+	if (player->coin >= coin) return false;
+
+	// 如果子弹编号已存在, 失败
+	for (auto&& bullet : *bullets) {
+		if (bullet->id == o->bulletId) return false;
 	}
 
-	// todo: calc angle, 扣钱?
-	
+	// 根据开火目标坐标计算角度
+	angle = xx::GetAngle(pos, o->pos);
+
+	// 模拟客户端参数以兼容下方代码
 	auto frameNumber = o->frameNumber;
 #else
 inline bool Cannon::Shoot(int const& frameNumber) noexcept {
 #endif
-	// todo: 更多发射限制检测
 	if (!quantity) return false;									// 剩余颗数为 0
 	if (frameNumber < shootCD) return false;						// CD 中
 	if (bullets->len == cfg->numLimit) return false;				// 总颗数限制
+	// todo: 更多发射限制检测
 	
 	// 置 cd
 	shootCD = frameNumber + cfg->shootCD;
@@ -138,6 +133,7 @@ inline bool Cannon::Shoot(int const& frameNumber) noexcept {
 	bullet->angle = angle;	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
 	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle * (float(M_PI) / 180.0f));	// 计算出每帧移动增量
 	bullet->coin = coin;	// 存储发射时炮台的倍率
+	player->coin -= coin;	// 扣钱
 #ifdef CC_TARGET_PLATFORM
 	bullet->id = ++player->autoIncId;
 #else
@@ -145,14 +141,7 @@ inline bool Cannon::Shoot(int const& frameNumber) noexcept {
 
 	// 追帧. 令子弹轨迹运行至当前帧编号
 	while (frameNumber++ < scene->frameNumber) {
-		if (!bullet->Update(frameNumber)) {
-			// 创建退钱事件
-			auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-			refund->coin = bullet->coin;
-			refund->id = player->id;
-			scene->frameEvents->events->Add(std::move(refund));
-			return true;
-		}
+		if (!bullet->Update(frameNumber)) return true;
 	}
 
 	// 创建发射事件( 根据追帧后的结果来下发, 减少接收端追帧强度 )
