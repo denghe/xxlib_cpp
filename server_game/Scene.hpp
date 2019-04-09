@@ -17,8 +17,10 @@ inline int Scene::Update(int const&) noexcept {
 	auto&& ps = *this->players;
 	if (ps.len) {
 		for (size_t i = ps.len - 1; i != -1; --i) {
-			if (ps[i].lock()->Update(frameNumber)) {
+			auto&& p = xx::As<Player>(ps[i].lock());
+			if (p->Update(frameNumber)) {
 				ps.SwapRemoveAt(i);
+				catchFish->players.Remove(p);
 			}
 		}
 	}
@@ -32,10 +34,6 @@ inline int Scene::Update(int const&) noexcept {
 #ifndef CC_TARGET_PLATFORM
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
-
-	if (frameEvents->events->len) {
-		xx::CoutN(frameEvents->events->len);
-	}
 
 	// 完整同步数据包( 先不创建 )
 	PKG::CatchFish_Client::EnterSuccess_s enterSuccess;

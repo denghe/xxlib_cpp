@@ -73,7 +73,6 @@ inline int CatchFish::Init(std::string const& cfgName) noexcept {
 
 	// 初始化拨号器
 	xx::MakeTo(::dialer, *uv);
-
 #else
 	xx::MakeTo(scene);
 	xx::MakeTo(scene->borns);
@@ -86,30 +85,13 @@ inline int CatchFish::Init(std::string const& cfgName) noexcept {
 	xx::MakeTo(scene->frameEvents);
 	xx::MakeTo(scene->frameEvents->events);
 	scene->cfg = &*cfg;
+	scene->catchFish = this;
 
 	scene->freeSits->Add(PKG::CatchFish::Sits::LeftTop
 		, PKG::CatchFish::Sits::RightTop
 		, PKG::CatchFish::Sits::RightBottom
 		, PKG::CatchFish::Sits::LeftBottom);
 #endif
-
-	//	if (int r = scene->InitCascade()) return r;
-	//
-	//	auto&& plr = xx::Make<Player>();
-	//	players.Add(plr);
-	//	scene->players->Add(plr);
-	//	xx::MakeTo(plr->cannons);
-	//	xx::MakeTo(plr->weapons);
-	//	auto&& cannon = xx::Make<Cannon>();
-	//	plr->cannons->Add(cannon);
-	//	xx::MakeTo(cannon->bullets);
-	//	cannon->id = 123;
-	//	cannon->cfgId = 0;
-	//	cannon->angle = float(cfg->cannons->At(cannon->cfgId)->angle);
-	//	cannon->quantity = cfg->cannons->At(cannon->cfgId)->quantity;
-	//	cannon->coin = 1;
-	//	if (int r = players.InitCascade(&*scene)) return r;
-
 	return 0;
 }
 

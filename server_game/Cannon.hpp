@@ -71,20 +71,42 @@ inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 	for (auto&& bullet : *bullets) {
 		if (bullet->id == o->bulletId) {
 			for (auto&& fish : *scene->fishs) {
-				//if (fish->isDead) continue;
 				if (fish->id == o->fishId) {
-					// 是否能打死的计算. 先根据 coin 来计算死亡比例
-					if (scene->serverRnd.Next((int)fish->coin) == 0) {
-						auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
-						fishDead->bulletId = bullet->id;
-						fishDead->coin = bullet->coin * fish->coin;
-						fishDead->fishId = fish->id;
-						fishDead->playerId = player->id;
-						scene->frameEvents->events->Add(std::move(fishDead));
+					// 计算是否能打死. 
+					if (scene->serverRnd.Next((int)fish->coin) == 0) {	// 先根据 coin 来计算死亡比例
+						// 算 coin
+						auto&& c = bullet->coin * fish->coin;
+						// 构造鱼死事件包
+						{
+							auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+							fishDead->bulletId = bullet->id;
+							fishDead->coin = c;
+							fishDead->fishId = fish->id;
+							fishDead->playerId = player->id;
+							scene->frameEvents->events->Add(std::move(fishDead));
+						}
+						// 加钱
+						player->coin += c;
+						// 删鱼
+						scene->fishs->At(scene->fishs->len - 1)->indexAtContainer = fish->indexAtContainer;
+						scene->fishs->SwapRemoveAt(fish->indexAtContainer);
+						// 删子弹
+						bullets->At(bullets->len - 1)->indexAtContainer = bullet->indexAtContainer;
+						bullets->SwapRemoveAt(bullet->indexAtContainer);
 					}
 					return;
 				}
 			}
+			// 构造退钱事件包
+			{
+				auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
+				refund->coin = bullet->coin;
+				refund->playerId = player->id;
+				scene->frameEvents->events->Add(std::move(refund));
+			}
+			// 删子弹
+			bullets->At(bullets->len - 1)->indexAtContainer = bullet->indexAtContainer;
+			bullets->SwapRemoveAt(bullet->indexAtContainer);
 			return;
 		}
 	}

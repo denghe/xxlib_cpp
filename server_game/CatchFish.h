@@ -73,13 +73,17 @@ using Physics_w = std::weak_ptr<Physics>;
 // Scene
 /**************************************************************************************************/
 
+struct CatchFish;
 struct Fish;
 struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	using BaseType = PKG::CatchFish::Scene;
 	using BaseType::BaseType;
 
-	// 引用到配置. 由 Scene 创建者于调用 InitCascade 前填充. ( 需确保 cfg 比 Scene 死的晚 )
+	// 引用到配置. 由 Scene 创建者或调用 InitCascade 前填充. ( 需确保 cfg 比 Scene 死的晚 )
 	PKG::CatchFish::Configs::Config* cfg = nullptr;
+
+	// 指向所在服务实例. 由 Scene 创建者或调用 InitCascade 前填充.
+	CatchFish* catchFish = nullptr;
 
 #ifndef CC_TARGET_PLATFORM
 	// 自减id ( 从 -1 开始, 用于服务器下发鱼生成 )
@@ -174,9 +178,6 @@ struct Player : PKG::CatchFish::Player {
 	// 分类收包容器( 在适当的生命周期读取并处理 )
 	std::deque<PKG::Client_CatchFish::Fire_s> recvFires;
 	std::deque<PKG::Client_CatchFish::Hit_s> recvHits;
-
-	// 解绑, 断开当前 peer 并清空所有收包队列
-	void Disconnect() noexcept;
 #else
 	// 标识这个玩家是本人
 	bool isSelf = false;

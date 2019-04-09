@@ -1,14 +1,4 @@
 ﻿#ifndef CC_TARGET_PLATFORM
-inline void Player::Disconnect() noexcept {
-	if (peer) {
-		peer->player_w.reset();
-		peer->Dispose();
-		peer.reset();
-	}
-	recvFires.clear();
-	recvHits.clear();
-}
-
 inline Player::~Player() {
 	scene->freeSits->Add(sit);
 }
@@ -51,7 +41,7 @@ inline int Player::Update(int const& frameNumber) noexcept {
 			auto&& c = cannons->At(i);
 			// 找到了就试着射击. 失败直接踢掉
 			if (c->id == o->cannonId) {
-				if (!xx::As<Cannon>(c)->Fire(o)) return -1;
+				if (int r = xx::As<Cannon>(c)->Fire(o)) return r;
 				notFound = false;
 				break;
 			}
