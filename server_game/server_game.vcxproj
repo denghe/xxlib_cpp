@@ -103,6 +103,7 @@
     <ClInclude Include="..\xxlib\xx_object.h" />
     <ClInclude Include="..\xxlib\xx_pos.h" />
     <ClInclude Include="..\xxlib\xx_random.h" />
+    <ClInclude Include="..\xxlib\xx_random.hpp" />
     <ClInclude Include="..\xxlib\xx_uv.h" />
     <ClInclude Include="..\xxlib\xx_uv_coros.h" />
     <ClInclude Include="..\xxlib\xx_uv_lua.h" />
@@ -110,10 +111,6 @@
     <ClInclude Include="Cannon.hpp" />
     <ClInclude Include="CatchFish.h" />
     <ClInclude Include="CatchFish.hpp" />
-    <ClInclude Include="CatchFish_Init.hpp" />
-    <ClInclude Include="CatchFish_MakeBeeline.hpp" />
-    <ClInclude Include="CatchFish_MakeRandomFish.hpp" />
-    <ClInclude Include="CatchFish_Update.hpp" />
     <ClInclude Include="Fish.hpp" />
     <ClInclude Include="Listener.hpp" />
     <ClInclude Include="Peer.hpp" />

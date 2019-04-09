@@ -136,6 +136,7 @@ inline bool Cannon::Shoot(int const& frameNumber) noexcept {
 	player->coin -= coin;	// 扣钱
 #ifdef CC_TARGET_PLATFORM
 	bullet->id = ++player->autoIncId;
+	bullet->DrawInit();
 #else
 	bullet->id = o->bulletId;
 

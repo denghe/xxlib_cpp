@@ -1,8 +1,12 @@
 ﻿#pragma once
+#ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
+#endif
 #include <cmath>
 #include "xx_pos.h"
+#include "xx_random.h"
 #include "PKG_class.h"
+#include "xx_random.hpp"
 #include "chipmunk.h"
 
 /**************************************************************************************************/
@@ -17,6 +21,11 @@ static constexpr float ScreenWidthRatio = float(ScreenWidth) / float(ScreenWidth
 static constexpr xx::Pos ScreenCenter = xx::Pos{ ScreenWidth / 2, ScreenHeight / 2 };
 
 #ifdef CC_TARGET_PLATFORM
+struct Dialer;
+struct CatchFish;
+std::shared_ptr<Dialer> dialer;
+CatchFish* catchFish;
+
 inline cocos2d::Scene* cc_scene = nullptr;
 inline xx::List<cocos2d::Touch*> cc_touchs;
 inline cocos2d::EventListenerTouchAllAtOnce* cc_listener = nullptr;
@@ -64,6 +73,7 @@ using Physics_w = std::weak_ptr<Physics>;
 // Scene
 /**************************************************************************************************/
 
+struct Fish;
 struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	using BaseType = PKG::CatchFish::Scene;
 	using BaseType::BaseType;
@@ -84,6 +94,12 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	// 记录本帧刚进入的新玩家( 帧结束时清空 ) 用以判断是下发完整同步还是帧事件同步
 	xx::List<void*> frameEnters;
 #endif
+
+	// 生成随机直线路径
+	PKG::CatchFish::Way_s MakeBeeline(float const& itemRadius) noexcept;
+
+	// 生成随机鱼
+	std::shared_ptr<Fish> MakeRandomFish() noexcept;
 
 	// 将 Scene 指针刷到所有子
 	virtual int InitCascade(void* const& o = nullptr) noexcept override;
@@ -135,7 +151,9 @@ using Fish_w = std::weak_ptr<Fish>;
 // Player
 /**************************************************************************************************/
 
+#ifndef CC_TARGET_PLATFORM
 struct Peer;
+#endif
 struct Player : PKG::CatchFish::Player {
 	using BaseType = PKG::CatchFish::Player;
 	using BaseType::BaseType;
@@ -159,11 +177,17 @@ struct Player : PKG::CatchFish::Player {
 
 	// 解绑, 断开当前 peer 并清空所有收包队列
 	void Disconnect() noexcept;
+#else
+	// 标识这个玩家是本人
+	bool isSelf = false;
 #endif
 
 	virtual int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
-	// ~Player
+#ifndef CC_TARGET_PLATFORM
+	// 归还座位
+	~Player();
+#endif
 };
 using Player_s = std::shared_ptr<Player>;
 using Player_w = std::weak_ptr<Player>;
@@ -269,6 +293,9 @@ using Bullet_w = std::weak_ptr<Bullet>;
 // CatchFish
 /**************************************************************************************************/
 
+#ifdef CC_TARGET_PLATFORM
+struct Dialer;
+#endif
 struct CatchFish {
 	CatchFish();
 	CatchFish(CatchFish&& o) = default;
@@ -285,16 +312,18 @@ struct CatchFish {
 	// 游戏场景实例
 	Scene_s scene;
 
-	int Init(std::string cfgName);
-	int Update();
-	PKG::CatchFish::Way_s MakeBeeline(float const& itemRadius);
-	Fish_s MakeRandomFish();
+	// 初始化( 加载配置文件, .... )
+	int Init(std::string const& cfgName) noexcept;			// todo: 传递 server ip port 啥的
+
+	// logic. 每帧调用一次. 返回非0 表示退出
+	int Update() noexcept;
 
 	bool disposed = false;
 	void Dispose(int const& flag = 1) noexcept;
 	~CatchFish();
 };
 using CatchFish_s = std::shared_ptr<CatchFish>;
+
 
 
 
@@ -320,13 +349,13 @@ struct Peer : xx::UvKcpPeer {
 	virtual void Dispose(int const& flag = 1) noexcept override;
 };
 
+
 /**************************************************************************************************/
 // Listener
 /**************************************************************************************************/
 
 struct Listener : xx::UvKcpListener<Peer> {
 	using BaseType = xx::UvKcpListener<Peer>;
-	using BaseType::BaseType;
 
 	// 游戏实例( 此物也可以与 Listener 同级. 为方便先放这 )
 	CatchFish catchFish;
@@ -343,6 +372,84 @@ struct Listener : xx::UvKcpListener<Peer> {
 };
 using Listener_s = std::shared_ptr<Listener>;
 
+#else
+
+/**************************************************************************************************/
+// ClientPeer
+/**************************************************************************************************/
+
+struct Dialer;
+struct ClientPeer : xx::UvKcpPeer {
+	using BaseType = xx::UvKcpPeer;
+	using BaseType::BaseType;
+
+	// todo: 状态标志位?
+
+	// 处理推送( 向 dialer.recvs 压入数据 )
+	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
+};
+using ClientPeer_s = std::shared_ptr<ClientPeer>();
+using ClientPeer_w = std::weak_ptr<ClientPeer>();
+
+/**************************************************************************************************/
+// Dialer
+/**************************************************************************************************/
+
+struct Dialer : xx::UvKcpDialer<ClientPeer> {
+	using BaseType = xx::UvKcpDialer<ClientPeer>;
+	using BaseType::BaseType;
+
+	// 收到的数据
+	std::deque<xx::Object_s> recvs;
+
+	// 脚本行号
+	int lineNumber = 0;
+
+	// 脚本用变量
+	bool finished = false;
+	PKG::Client_CatchFish::Enter_s pkgEnter;
+	int r = 0;
+	int64_t waitMS = 0;
+
+	// 处理首包( EnterSuccess || Error )
+	int HandleFirstPackage() noexcept;
+
+	// 处理一般数据包( 总路由 )
+	int HandlePackages() noexcept;
+
+	// 分别处理事件包
+	int Handle(PKG::CatchFish::Events::Enter_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::Leave_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::NoMoney_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::Refund_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::FishDead_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::PushWeapon_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::PushFish_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::OpenAutoLock_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::Aim_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::CloseAutoLock_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::OpenAutoFire_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::CloseAutoFire_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::Fire_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::CannonSwitch_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::CannonCoinChange_s o) noexcept;
+
+
+
+	// 清空 recvs, player, catchFish->players, scene
+	void Reset() noexcept;
+
+	// 脚本实现
+	int UpdateCore(int const& lineNumber) noexcept;
+
+	// 每帧驱动脚本
+	int Update() noexcept;
+
+	// 指向当前玩家
+	Player_s player;
+};
+using Dialer_s = std::shared_ptr<Dialer>;
+
 #endif
 
 
@@ -352,10 +459,6 @@ using Listener_s = std::shared_ptr<Listener>;
 /**************************************************************************************************/
 
 #include "CatchFish.hpp"
-#include "CatchFish_MakeBeeline.hpp"
-#include "CatchFish_Update.hpp"
-#include "CatchFish_Init.hpp"
-#include "CatchFish_MakeRandomFish.hpp"
 
 #include "SpriteFrame.hpp"
 #include "Physics.hpp"
@@ -368,4 +471,7 @@ using Listener_s = std::shared_ptr<Listener>;
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.hpp"
 #include "Listener.hpp"
+#else
+#include "ClientPeer.hpp"
+#include "Dialer.hpp"
 #endif

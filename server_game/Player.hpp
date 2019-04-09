@@ -8,6 +8,10 @@ inline void Player::Disconnect() noexcept {
 	recvShoots.clear();
 	recvHits.clear();
 }
+
+inline Player::~Player() {
+	scene->freeSits->Add(sit);
+}
 #endif
 
 inline int Player::InitCascade(void* const& o) noexcept {

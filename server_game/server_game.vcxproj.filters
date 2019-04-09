@@ -48,10 +48,6 @@
     <ClInclude Include="Cannon.hpp" />
     <ClInclude Include="CatchFish.h" />
     <ClInclude Include="CatchFish.hpp" />
-    <ClInclude Include="CatchFish_Init.hpp" />
-    <ClInclude Include="CatchFish_MakeBeeline.hpp" />
-    <ClInclude Include="CatchFish_MakeRandomFish.hpp" />
-    <ClInclude Include="CatchFish_Update.hpp" />
     <ClInclude Include="Fish.hpp" />
     <ClInclude Include="Physics.hpp" />
     <ClInclude Include="Player.hpp" />
@@ -61,6 +57,9 @@
     <ClInclude Include="Peer.hpp" />
     <ClInclude Include="Listener.hpp" />
     <ClInclude Include="..\gens\output\PKG_class.h" />
+    <ClInclude Include="..\xxlib\xx_random.hpp">
+      <Filter>xxlib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

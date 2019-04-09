@@ -5,6 +5,9 @@ inline void Peer::Dispose(int const& flag) noexcept {
 }
 
 inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
+
+	// todo: 简单状态以识别是否为首包. 启用超时机制
+
 	if (auto && player = player_w.lock()) {
 		// 已绑定连接
 		// 将初步判定合法的消息放入分类容器, 待到适当时机读出使用, 模拟输入
@@ -72,8 +75,9 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 				cannon->scene = &scene;
 				cannon->shootCD = 0;
 				player->cannons->Add(cannon);
+				break;
 			}
-					// todo: more cannon types here
+			// todo: more cannon types here
 			default:
 				return -2;
 			}
@@ -92,7 +96,6 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			enter->noMoney = player->noMoney;
 			enter->sit = player->sit;
 			scene.frameEvents->events->Add(enter);
-
 			break;
 		}
 		default:

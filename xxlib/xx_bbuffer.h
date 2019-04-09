@@ -1,6 +1,5 @@
 #pragma once
 #include "xx_list.h"
-#include "xx_random.h"
 
 namespace xx {
 
@@ -343,22 +342,6 @@ namespace xx {
 		}
 		return 0;
 	}
-
-
-	inline void Random::ToBBuffer(BBuffer& bb) const noexcept {
-		// data len = 2 int + int[56] = 4 * 58 = 232
-		bb.Reserve(bb.len + 232);
-		memcpy(bb.buf + bb.len, &inext, 232);
-		bb.len += 232;
-	}
-
-	inline int Random::FromBBuffer(BBuffer& bb) noexcept {
-		if (bb.offset + 232 > bb.len) return -1;
-		memcpy(&inext, bb.buf + bb.offset, 232);
-		bb.offset += 232;
-		return 0;
-	}
-
 
 	// 适配 1 字节长度的 数值 或 float( 这些类型直接 memcpy )
 	template<typename T>
