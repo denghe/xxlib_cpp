@@ -13,7 +13,7 @@
 // ::
 /**************************************************************************************************/
 
-#define DRAW_PHYSICS_POLYGON 1
+#define DRAW_PHYSICS_POLYGON 0
 
 static constexpr int ScreenWidth = 1280;
 static constexpr int ScreenHeight = 720;
