@@ -84,7 +84,7 @@ namespace CatchFish
         class Cannon : Item
         {
             [Desc("初始角度")]
-            int angle;
+            float angle;
 
             [Desc("炮管长度")]
             float muzzleLen;

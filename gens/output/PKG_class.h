@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "b1525d210b0cbe92cc11b45636397869";
+		inline static const std::string value = "ef6c856004c6a0f1864f73d0e080256a";
     };
 
 namespace Generic {
@@ -682,7 +682,7 @@ namespace CatchFish::Configs {
     // 炮台 & 子弹配置基类
     struct Cannon : PKG::CatchFish::Configs::Item {
         // 初始角度
-        int32_t angle = 0;
+        float angle = 0;
         // 炮管长度
         float muzzleLen = 0;
         // 拥有的数量( -1: 无限 )

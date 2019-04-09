@@ -5,7 +5,7 @@
 	assert(cfg);
 
 	// 计算炮口坐标
-	pos = cannon->pos + xx::Rotate(xx::Pos{ cfg->muzzleLen ,0 }, cannon->angle * (float(M_PI) / 180.0f));
+	pos = cannon->pos + xx::Rotate(xx::Pos{ cfg->muzzleLen ,0 }, cannon->angle);
 
 	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
 	angle = cannon->angle;
@@ -85,13 +85,13 @@ inline void Bullet::DrawInit() noexcept {
 	body->setSpriteFrame(sf);
 	body->setPosition(pos);
 	body->setScale(cfg->scale);
-	body->setRotation(-angle);
+	body->setRotation(-angle * (180.0f / float(M_PI)));
 	cc_scene->addChild(body);
 }
 
 inline void Bullet::DrawUpdate() noexcept {
 	assert(body);
-	body->setRotation(-angle);
+	body->setRotation(-angle * (180.0f / float(M_PI)));
 	body->setPosition(pos);
 }
 

@@ -17,7 +17,7 @@ public static class Cannons
             c.frames.Add(GetSpriteFrame("pao_01"));
             c.frames.Add(GetSpriteFrame("zidan_01"));
             c.frames.Add(GetSpriteFrame("yuwang_1"));
-            c.angle = 90;
+            c.angle = (float)(90.0 * Math.PI / 180.0);
             c.quantity = -1;
             c.muzzleLen = 200;
             c.numLimit = 500;

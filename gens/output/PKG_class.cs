@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "b1525d210b0cbe92cc11b45636397869"; 
+        public const string value = "ef6c856004c6a0f1864f73d0e080256a"; 
     }
 
 namespace CatchFish
@@ -2943,7 +2943,7 @@ namespace CatchFish.Configs
         /// <summary>
         /// 初始角度
         /// </summary>
-        public int angle;
+        public float angle;
         /// <summary>
         /// 炮管长度
         /// </summary>

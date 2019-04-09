@@ -51,10 +51,11 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 		xx::Pos tpos{ tloc.x - ScreenCenter.x, ScreenCenter.y - tloc.y };
 
 		// 算出朝向角度
-		angle = xx::GetAngle(pos, tpos) * (180.0f / float(M_PI));
+		angle = xx::GetAngle(pos, tpos);
 
 		// 试着发射
-		if (Fire(frameNumber)) {
+		int r = Fire(frameNumber);
+		if (!r) {
 			// todo: 开始播放炮台开火特效, 音效
 		}
 	}
@@ -129,9 +130,9 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	bullet->player = player;
 	bullet->cannon = this;
 	bullet->cfg = cfg;
-	bullet->pos = pos + xx::Rotate(xx::Pos{ cfg->muzzleLen ,0 }, angle * (float(M_PI) / 180.0f));		// 计算炮口坐标
+	bullet->pos = pos + xx::Rotate(xx::Pos{ cfg->muzzleLen * cfg->scale ,0 }, angle);			// 计算炮口坐标
 	bullet->angle = angle;	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
-	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle * (float(M_PI) / 180.0f));	// 计算出每帧移动增量
+	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle);							// 计算出每帧移动增量
 	bullet->coin = coin;	// 存储发射时炮台的倍率
 	player->coin -= coin;	// 扣钱
 #ifdef CC_TARGET_PLATFORM
@@ -184,13 +185,13 @@ inline void Cannon::DrawInit() noexcept {
 	body->setSpriteFrame(sf);
 	body->setPosition(pos);
 	body->setScale(cfg->scale);
-	body->setRotation(-angle);
+	body->setRotation(-angle * (180.0f / float(M_PI)));
 	cc_scene->addChild(body);
 }
 
 inline void Cannon::DrawUpdate() noexcept {
 	assert(body);
-	body->setRotation(-angle);
+	body->setRotation(-angle * (180.0f / float(M_PI)));
 }
 
 inline void Cannon::DrawDispose() noexcept {

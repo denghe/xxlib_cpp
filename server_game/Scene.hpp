@@ -80,10 +80,20 @@ inline int Scene::Update(int const&) noexcept {
 
 
 inline Fish_s Scene::MakeRandomFish() noexcept {
+	int cfgId = 0;
+	auto&& fishCfg = cfg->fishs->At(cfgId);
+
 	auto&& fish = xx::Make<Fish>();
+	fish->scene = this;
 	fish->id = ++autoIncId;
-	fish->cfgId = 0;
-	fish->coin = 3;			// if minCoin < maxCoin    rnd->Next(cfg->minCoin, cfg->maxCoin + 1);
+	fish->cfgId = cfgId;
+	fish->cfg = &*fishCfg;
+	if (fishCfg->minCoin < fishCfg->maxCoin) {
+		fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
+	}
+	else {
+		fish->coin = fishCfg->minCoin;			
+	}
 	fish->speedScale = 1;
 	fish->scale = 1;
 	fish->wayIndex = 0;
@@ -92,13 +102,15 @@ inline Fish_s Scene::MakeRandomFish() noexcept {
 	fish->spriteFrameIndex = 0;
 	fish->frameRatio = 1;
 	fish->reverse = false;
-	fish->way = MakeBeeline(cfg->fishs->At(0)->maxDetectRadius);		// 先随便生成一条轨迹
+	fish->way = MakeBeeline(fishCfg->maxDetectRadius * fishCfg->scale);		// 先随便生成一条轨迹
 
 	auto&& p = fish->way->points->At(fish->wayPointIndex);
 	fish->pos = p.pos;
 	fish->angle = p.angle;
 
-	fish->InitCascade(this);
+#ifdef CC_TARGET_PLATFORM
+	fish->DrawInit();
+#endif
 	return fish;
 }
 
@@ -135,7 +147,7 @@ inline PKG::CatchFish::Way_s Scene::MakeBeeline(float const& itemRadius) noexcep
 	}
 	auto && way = xx::Make<PKG::CatchFish::Way>();
 	xx::MakeTo(way->points);
-	way->points->Add(PKG::CatchFish::WayPoint{ p1, xx::GetAngle(p1, p2) * (180.0f / float(M_PI)), p1.distance(p2) });
+	way->points->Add(PKG::CatchFish::WayPoint{ p1, xx::GetAngle(p1, p2), p1.distance(p2) });
 	way->points->Add(PKG::CatchFish::WayPoint{ p2, 0, 0 });	// 非循环轨迹最后个点距离和角度不用计算, 也不做统计
 	way->distance = way->points->At(0).distance;
 	way->loop = false;

@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'b1525d210b0cbe92cc11b45636397869'
+PKG_PkgGenMd5_Value = 'ef6c856004c6a0f1864f73d0e080256a'
 
 --[[
 座位列表
@@ -2404,7 +2404,7 @@ PKG_CatchFish_Configs_Cannon = {
         --[[
         初始角度
         ]]
-        o.angle = 0 -- Int32
+        o.angle = 0 -- Single
         --[[
         炮管长度
         ]]
@@ -2439,9 +2439,9 @@ PKG_CatchFish_Configs_Cannon = {
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
-        local ReadInt32 = bb.ReadInt32
         local ReadSingle = bb.ReadSingle
-        o.angle = ReadInt32( bb )
+        local ReadInt32 = bb.ReadInt32
+        o.angle = ReadSingle( bb )
         o.muzzleLen = ReadSingle( bb )
         o.quantity = ReadInt32( bb )
         o.numLimit = ReadInt32( bb )
@@ -2453,9 +2453,9 @@ PKG_CatchFish_Configs_Cannon = {
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
-        local WriteInt32 = bb.WriteInt32
         local WriteSingle = bb.WriteSingle
-        WriteInt32( bb, o.angle )
+        local WriteInt32 = bb.WriteInt32
+        WriteSingle( bb, o.angle )
         WriteSingle( bb, o.muzzleLen )
         WriteInt32( bb, o.quantity )
         WriteInt32( bb, o.numLimit )
