@@ -19,12 +19,12 @@ public static class Cannons
             c.frames.Add(GetSpriteFrame("yuwang_1"));
             c.angle = 90;
             c.quantity = -1;
-            c.muzzleLen = 100;
+            c.muzzleLen = 200;
             c.numLimit = 500;
-            c.scale = 1;
+            c.scale = 0.5f;
             c.fireCD = 0;
             c.zOrder = 100;
-            c.radius = 15;
+            c.radius = 8;
             c.maxRadius = 200;
             c.distance = 720 / 60;  // 一秒钟上下穿越屏幕?
         }

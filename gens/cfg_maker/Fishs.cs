@@ -16,10 +16,10 @@ public static class Fishs
             f.maxCoin = 3;
             f.minDetectRadius = 20;
             f.maxDetectRadius = 32;
-            f.scale = 1;
+            f.scale = 6;
             f.zOrder = 3;
-            f.shadowOffset = CalcShadowOffset(f.zOrder);
-            f.shadowScale = f.scale;
+            f.shadowOffset = new xx.Pos { x = 5, y = 5 };
+            f.shadowScale = 1;
             FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
         }
     }

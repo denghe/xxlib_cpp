@@ -24,14 +24,18 @@ inline int Scene::Update(int const&) noexcept {
 	}
 	// todo: foreach  items, ..... call Update
 
-	// 模拟关卡 鱼发生器. 每 10 帧生成一条
-	if (frameNumber % 10 == 0) {
+	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
+	if (frameNumber % 64 == 0) {
 		fishs->Add(MakeRandomFish());
 	}
 
 #ifndef CC_TARGET_PLATFORM
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
+
+	if (frameEvents->events->len) {
+		xx::CoutN(frameEvents->events->len);
+	}
 
 	// 完整同步数据包( 先不创建 )
 	PKG::CatchFish_Client::EnterSuccess_s enterSuccess;
