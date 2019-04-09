@@ -24,7 +24,7 @@ namespace CatchFish
         class Event
         {
             [Desc("相关玩家id")]
-            int id;
+            int playerId;
         }
 
         [Desc("通知: 玩家进入. 大部分字段从 Player 类复制. 添加了部分初始数值, 可还原出玩家类实例.")]

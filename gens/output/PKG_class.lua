@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'aca390891ccb0e557f0936eb8d9a69c6'
+PKG_PkgGenMd5_Value = 'b1525d210b0cbe92cc11b45636397869'
 
 --[[
 座位列表
@@ -530,14 +530,14 @@ PKG_CatchFish_Events_Event = {
         --[[
         相关玩家id
         ]]
-        o.id = 0 -- Int32
+        o.playerId = 0 -- Int32
         return o
     end,
     FromBBuffer = function( bb, o )
-        o.id = bb:ReadInt32()
+        o.playerId = bb:ReadInt32()
     end,
     ToBBuffer = function( bb, o )
-        bb:WriteInt32( o.id )
+        bb:WriteInt32( o.playerId )
     end
 }
 BBuffer.Register( PKG_CatchFish_Events_Event )
@@ -569,12 +569,12 @@ BBuffer.Register( PKG_Client_CatchFish_Enter )
 --[[
 开火
 ]]
-PKG_Client_CatchFish_Shoot = {
-    typeName = "PKG_Client_CatchFish_Shoot",
+PKG_Client_CatchFish_Fire = {
+    typeName = "PKG_Client_CatchFish_Fire",
     typeId = 71,
     Create = function()
         local o = {}
-        o.__proto = PKG_Client_CatchFish_Shoot
+        o.__proto = PKG_Client_CatchFish_Fire
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -604,7 +604,7 @@ PKG_Client_CatchFish_Shoot = {
         bb:WriteObject( o.pos )
     end
 }
-BBuffer.Register( PKG_Client_CatchFish_Shoot )
+BBuffer.Register( PKG_Client_CatchFish_Fire )
 --[[
 碰撞检测
 ]]
@@ -2420,7 +2420,7 @@ PKG_CatchFish_Configs_Cannon = {
         --[[
         发射间隔帧数
         ]]
-        o.shootCD = 0 -- Int32
+        o.fireCD = 0 -- Int32
         --[[
         子弹检测半径
         ]]
@@ -2445,7 +2445,7 @@ PKG_CatchFish_Configs_Cannon = {
         o.muzzleLen = ReadSingle( bb )
         o.quantity = ReadInt32( bb )
         o.numLimit = ReadInt32( bb )
-        o.shootCD = ReadInt32( bb )
+        o.fireCD = ReadInt32( bb )
         o.radius = ReadInt32( bb )
         o.maxRadius = ReadInt32( bb )
         o.distance = ReadSingle( bb )
@@ -2459,7 +2459,7 @@ PKG_CatchFish_Configs_Cannon = {
         WriteSingle( bb, o.muzzleLen )
         WriteInt32( bb, o.quantity )
         WriteInt32( bb, o.numLimit )
-        WriteInt32( bb, o.shootCD )
+        WriteInt32( bb, o.fireCD )
         WriteInt32( bb, o.radius )
         WriteInt32( bb, o.maxRadius )
         WriteSingle( bb, o.distance )

@@ -12,9 +12,9 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 		// 已绑定连接
 		// 将初步判定合法的消息放入分类容器, 待到适当时机读出使用, 模拟输入
 		switch (msg->GetTypeId()) {
-		case xx::TypeId_v<PKG::Client_CatchFish::Shoot>:
-			player->recvShoots.push_back(xx::As<PKG::Client_CatchFish::Shoot>(msg));
-			if (player->recvShoots.size() > 200) return -1;			// 简单包堆积检测
+		case xx::TypeId_v<PKG::Client_CatchFish::Fire>:
+			player->recvFires.push_back(xx::As<PKG::Client_CatchFish::Fire>(msg));
+			if (player->recvFires.size() > 200) return -1;			// 简单包堆积检测
 			break;
 		case xx::TypeId_v<PKG::Client_CatchFish::Hit>:
 			player->recvHits.push_back(xx::As<PKG::Client_CatchFish::Hit>(msg));
@@ -52,7 +52,6 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			xx::MakeTo(player->nickname, "player_");
 			player->nickname->append(std::to_string((int)sit));
 			player->noMoney = false;
-			player->peer = xx::As<Peer>(this->shared_from_this());
 			player->scene = &scene;
 			player->sit = sit;
 			xx::MakeTo(player->weapons);
@@ -73,7 +72,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 				cannon->pos = cfg.sitPositons->At((int)sit);
 				cannon->quantity = cannonCfg->quantity;
 				cannon->scene = &scene;
-				cannon->shootCD = 0;
+				cannon->fireCD = 0;
 				player->cannons->Add(cannon);
 				break;
 			}
@@ -86,6 +85,10 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			catchFish->players.Add(player);
 			scene.players->Add(player);
 			scene.frameEnters.Add(&*player);
+
+			// 玩家与连接绑定
+			player_w = player;
+			player->peer = xx::As<Peer>(this->shared_from_this());
 
 			// 构建玩家进入通知并放入帧同步下发事件集合待发
 			auto&& enter = xx::Make<PKG::CatchFish::Events::Enter>();

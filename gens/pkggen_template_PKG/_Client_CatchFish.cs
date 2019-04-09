@@ -10,7 +10,7 @@ namespace Client_CatchFish
     }
 
     [Desc("开火")]
-    class Shoot
+    class Fire
     {
         int frameNumber;
         int cannonId;

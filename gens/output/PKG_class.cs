@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "aca390891ccb0e557f0936eb8d9a69c6"; 
+        public const string value = "b1525d210b0cbe92cc11b45636397869"; 
     }
 
 namespace CatchFish
@@ -419,7 +419,7 @@ namespace Client_CatchFish
     /// <summary>
     /// 开火
     /// </summary>
-    public partial class Shoot : xx.Object
+    public partial class Fire : xx.Object
     {
         public int frameNumber;
         public int cannonId;
@@ -428,7 +428,7 @@ namespace Client_CatchFish
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<Shoot>.value;
+            return xx.TypeId<Fire>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
@@ -455,7 +455,7 @@ namespace Client_CatchFish
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"Client_CatchFish.Shoot\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"Client_CatchFish.Fire\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -1545,7 +1545,7 @@ namespace CatchFish.Events
         /// <summary>
         /// 相关玩家id
         /// </summary>
-        public int id;
+        public int playerId;
 
         public override ushort GetPackageId()
         {
@@ -1554,12 +1554,12 @@ namespace CatchFish.Events
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.id);
+            bb.Write(this.playerId);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            bb.Read(ref this.id);
+            bb.Read(ref this.playerId);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1578,7 +1578,7 @@ namespace CatchFish.Events
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            s.Append(", \"id\":" + id.ToString());
+            s.Append(", \"playerId\":" + playerId.ToString());
         }
         public override string ToString()
         {
@@ -2959,7 +2959,7 @@ namespace CatchFish.Configs
         /// <summary>
         /// 发射间隔帧数
         /// </summary>
-        public int shootCD;
+        public int fireCD;
         /// <summary>
         /// 子弹检测半径
         /// </summary>
@@ -2985,7 +2985,7 @@ namespace CatchFish.Configs
             bb.Write(this.muzzleLen);
             bb.Write(this.quantity);
             bb.Write(this.numLimit);
-            bb.Write(this.shootCD);
+            bb.Write(this.fireCD);
             bb.Write(this.radius);
             bb.Write(this.maxRadius);
             bb.Write(this.distance);
@@ -2998,7 +2998,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.muzzleLen);
             bb.Read(ref this.quantity);
             bb.Read(ref this.numLimit);
-            bb.Read(ref this.shootCD);
+            bb.Read(ref this.fireCD);
             bb.Read(ref this.radius);
             bb.Read(ref this.maxRadius);
             bb.Read(ref this.distance);
@@ -3025,7 +3025,7 @@ namespace CatchFish.Configs
             s.Append(", \"muzzleLen\":" + muzzleLen.ToString());
             s.Append(", \"quantity\":" + quantity.ToString());
             s.Append(", \"numLimit\":" + numLimit.ToString());
-            s.Append(", \"shootCD\":" + shootCD.ToString());
+            s.Append(", \"fireCD\":" + fireCD.ToString());
             s.Append(", \"radius\":" + radius.ToString());
             s.Append(", \"maxRadius\":" + maxRadius.ToString());
             s.Append(", \"distance\":" + distance.ToString());
@@ -3330,7 +3330,7 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Events.Event>>(69);
             xx.Object.Register<CatchFish.Events.Event>(28);
             xx.Object.Register<Client_CatchFish.Enter>(70);
-            xx.Object.Register<Client_CatchFish.Shoot>(71);
+            xx.Object.Register<Client_CatchFish.Fire>(71);
             xx.Object.Register<Client_CatchFish.Hit>(72);
             xx.Object.Register<xx.Random>(9);
             xx.Object.Register<xx.List<CatchFish.Fish>>(10);

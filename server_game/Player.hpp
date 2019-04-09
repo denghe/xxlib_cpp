@@ -5,7 +5,7 @@ inline void Player::Disconnect() noexcept {
 		peer->Dispose();
 		peer.reset();
 	}
-	recvShoots.clear();
+	recvFires.clear();
 	recvHits.clear();
 }
 
@@ -39,8 +39,8 @@ inline int Player::Update(int const& frameNumber) noexcept {
 
 #ifndef CC_TARGET_PLATFORM
 	// 处理玩家的发射请求
-	while (!recvShoots.empty()) {
-		auto&& o = recvShoots.front();
+	while (!recvFires.empty()) {
+		auto&& o = recvFires.front();
 
 		// 如果收到的包比 server 当前帧还要提前, 就等到那帧再处理
 		if (o->frameNumber > frameNumber) break;
@@ -51,7 +51,7 @@ inline int Player::Update(int const& frameNumber) noexcept {
 			auto&& c = cannons->At(i);
 			// 找到了就试着射击. 失败直接踢掉
 			if (c->id == o->cannonId) {
-				if (!xx::As<Cannon>(c)->Shoot(o)) return -1;
+				if (!xx::As<Cannon>(c)->Fire(o)) return -1;
 				notFound = false;
 				break;
 			}
@@ -60,7 +60,7 @@ inline int Player::Update(int const& frameNumber) noexcept {
 		if (notFound) return -1;
 
 		// todo: 操作成功, 就 ResetTimeoutMS
-		recvShoots.pop_front();
+		recvFires.pop_front();
 	}
 
 	// 处理玩家的发射请求

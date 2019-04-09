@@ -65,8 +65,9 @@ inline int Scene::Update(int const&) noexcept {
 		}
 	}
 
-	// 清除本帧内进入的玩家名册
+	// 清除发送过的数据
 	frameEnters.Clear();
+	frameEvents->events->Clear();
 #endif
 
 	++frameNumber;

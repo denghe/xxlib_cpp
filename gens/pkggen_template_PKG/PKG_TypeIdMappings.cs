@@ -28,7 +28,7 @@ interface ITypeIdMappings
 
     Client_CatchFish.Enter _70 { get; }
 
-    Client_CatchFish.Shoot _71 { get; }
+    Client_CatchFish.Fire _71 { get; }
 
     Client_CatchFish.Hit _72 { get; }
 

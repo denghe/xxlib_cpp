@@ -26,7 +26,7 @@
 inline int Bullet::Update(int const& frameNumber) noexcept {
 	pos += moveInc;
 
-	// 先简单实现飞出屏幕就消失
+	// 飞出屏幕就消失
 	auto&& w = ::ScreenCenter.x + cfg->maxRadius;
 	auto&& h = ::ScreenCenter.y + cfg->maxRadius;
 	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
@@ -34,7 +34,7 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 		// 退钱
 		auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
 		refund->coin = coin;
-		refund->id = player->id;
+		refund->playerId = player->id;
 		scene->frameEvents->events->Add(std::move(refund));
 #endif
 		return -1;
@@ -51,7 +51,7 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 				o->bulletId = id;
 				o->cannonId = cannon->id;
 				o->fishId = fs[i]->id;
-				// todo: peer->Send(o);
+				if (int r = ::dialer->peer->SendPush(o)) return -1;
 
 				//// 删鱼
 				//fs[fs.len - 1]->indexAtContainer = (int)i;

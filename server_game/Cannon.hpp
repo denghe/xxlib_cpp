@@ -54,7 +54,7 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 		angle = xx::GetAngle(pos, tpos) * (180.0f / float(M_PI));
 
 		// 试着发射
-		if (Shoot(frameNumber)) {
+		if (Fire(frameNumber)) {
 			// todo: 开始播放炮台开火特效, 音效
 		}
 	}
@@ -78,7 +78,7 @@ inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 						fishDead->bulletId = bullet->id;
 						fishDead->coin = bullet->coin * fish->coin;
 						fishDead->fishId = fish->id;
-						fishDead->id = player->id;
+						fishDead->playerId = player->id;
 						scene->frameEvents->events->Add(std::move(fishDead));
 					}
 					return;
@@ -92,7 +92,7 @@ inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 
 
 #ifndef CC_TARGET_PLATFORM
-inline bool Cannon::Shoot(PKG::Client_CatchFish::Shoot_s& o) noexcept {
+inline bool Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
 	// 如果金币不足, 失败
 	if (player->coin >= coin) return false;
 
@@ -107,15 +107,15 @@ inline bool Cannon::Shoot(PKG::Client_CatchFish::Shoot_s& o) noexcept {
 	// 模拟客户端参数以兼容下方代码
 	auto frameNumber = o->frameNumber;
 #else
-inline bool Cannon::Shoot(int const& frameNumber) noexcept {
+inline bool Cannon::Fire(int const& frameNumber) noexcept {
 #endif
 	if (!quantity) return false;									// 剩余颗数为 0
-	if (frameNumber < shootCD) return false;						// CD 中
+	if (frameNumber < fireCD) return false;						// CD 中
 	if (bullets->len == cfg->numLimit) return false;				// 总颗数限制
 	// todo: 更多发射限制检测
 	
 	// 置 cd
-	shootCD = frameNumber + cfg->shootCD;
+	fireCD = frameNumber + cfg->fireCD;
 
 	// 剩余颗数 -1
 	if (quantity != -1) {
@@ -137,6 +137,15 @@ inline bool Cannon::Shoot(int const& frameNumber) noexcept {
 #ifdef CC_TARGET_PLATFORM
 	bullet->id = ++player->autoIncId;
 	bullet->DrawInit();
+
+	// 发包
+	auto&& o = xx::Make<PKG::Client_CatchFish::Fire>();
+	o->bulletId = bullet->id;
+	o->cannonId = this->id;
+	o->frameNumber = scene->frameNumber;
+	o->pos = bullet->pos;
+	if (int r = ::dialer->peer->SendPush(o)) return false;
+
 #else
 	bullet->id = o->bulletId;
 
@@ -150,7 +159,7 @@ inline bool Cannon::Shoot(int const& frameNumber) noexcept {
 	fire->bulletId = bullet->id;
 	fire->coin = bullet->coin;
 	fire->frameNumber = scene->frameNumber;
-	fire->id = player->id;
+	fire->playerId = player->id;
 	fire->tarAngle = bullet->angle;
 	fire->tarPos = bullet->pos;
 #endif

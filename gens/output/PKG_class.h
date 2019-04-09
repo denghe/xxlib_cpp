@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "d6e2a66d2488cfd2d05ff41f63f47665";
+		inline static const std::string value = "b1525d210b0cbe92cc11b45636397869";
     };
 
 namespace Generic {
@@ -45,9 +45,9 @@ namespace Client_CatchFish {
     using Enter_w = std::weak_ptr<Enter>;
 
     // 开火
-    struct Shoot;
-    using Shoot_s = std::shared_ptr<Shoot>;
-    using Shoot_w = std::weak_ptr<Shoot>;
+    struct Fire;
+    using Fire_s = std::shared_ptr<Fire>;
+    using Fire_w = std::weak_ptr<Fire>;
 
     // 碰撞检测
     struct Hit;
@@ -281,7 +281,7 @@ namespace CatchFish::Events {
     // 事件基类
     struct Event : xx::Object {
         // 相关玩家id
-        int32_t id = 0;
+        int32_t playerId = 0;
 
         typedef Event ThisType;
         typedef xx::Object BaseType;
@@ -690,7 +690,7 @@ namespace CatchFish::Configs {
         // 同屏颗数限制 ( 到达上限就不允许继续发射 )
         int32_t numLimit = 0;
         // 发射间隔帧数
-        int32_t shootCD = 0;
+        int32_t fireCD = 0;
         // 子弹检测半径
         int32_t radius = 0;
         // 子弹最大 / 显示半径
@@ -946,17 +946,17 @@ namespace Client_CatchFish {
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 开火
-    struct Shoot : xx::Object {
+    struct Fire : xx::Object {
         int32_t frameNumber = 0;
         int32_t cannonId = 0;
         int32_t bulletId = 0;
         ::xx::Pos pos;
 
-        typedef Shoot ThisType;
+        typedef Fire ThisType;
         typedef xx::Object BaseType;
-	    Shoot() = default;
-		Shoot(Shoot const&) = delete;
-		Shoot& operator=(Shoot const&) = delete;
+	    Fire() = default;
+		Fire(Fire const&) = delete;
+		Fire& operator=(Fire const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1350,7 +1350,7 @@ namespace xx {
     template<> struct TypeId<xx::List<PKG::CatchFish::Events::Event_s>> { static const uint16_t value = 69; };
     template<> struct TypeId<PKG::CatchFish::Events::Event> { static const uint16_t value = 28; };
     template<> struct TypeId<PKG::Client_CatchFish::Enter> { static const uint16_t value = 70; };
-    template<> struct TypeId<PKG::Client_CatchFish::Shoot> { static const uint16_t value = 71; };
+    template<> struct TypeId<PKG::Client_CatchFish::Fire> { static const uint16_t value = 71; };
     template<> struct TypeId<PKG::Client_CatchFish::Hit> { static const uint16_t value = 72; };
     template<> struct TypeId<::xx::Random> { static const uint16_t value = 9; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Fish_s>> { static const uint16_t value = 10; };
@@ -1650,26 +1650,26 @@ namespace Client_CatchFish {
     inline void Enter::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
-    inline uint16_t Shoot::GetTypeId() const noexcept {
+    inline uint16_t Fire::GetTypeId() const noexcept {
         return 71;
     }
-    inline void Shoot::ToBBuffer(xx::BBuffer& bb) const noexcept {
+    inline void Fire::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->frameNumber);
         bb.Write(this->cannonId);
         bb.Write(this->bulletId);
         bb.Write(this->pos);
     }
-    inline int Shoot::FromBBuffer(xx::BBuffer& bb) noexcept {
+    inline int Fire::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->frameNumber)) return r;
         if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
         if (int r = bb.Read(this->pos)) return r;
         return 0;
     }
-    inline int Shoot::InitCascade(void* const& o) noexcept {
+    inline int Fire::InitCascade(void* const& o) noexcept {
         return 0;
     }
-    inline void Shoot::ToString(std::string& s) const noexcept {
+    inline void Fire::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, "[ \"***** recursived *****\" ]");
@@ -1677,13 +1677,13 @@ namespace Client_CatchFish {
         }
         else this->SetToStringFlag();
 
-        xx::Append(s, "{ \"pkgTypeName\":\"Client_CatchFish.Shoot\", \"pkgTypeId\":", GetTypeId());
+        xx::Append(s, "{ \"pkgTypeName\":\"Client_CatchFish.Fire\", \"pkgTypeId\":", GetTypeId());
         ToStringCore(s);
         xx::Append(s, " }");
         
         this->SetToStringFlag(false);
     }
-    inline void Shoot::ToStringCore(std::string& s) const noexcept {
+    inline void Fire::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
         xx::Append(s, ", \"cannonId\":", this->cannonId);
@@ -2279,10 +2279,10 @@ namespace CatchFish::Events {
         return 28;
     }
     inline void Event::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        bb.Write(this->id);
+        bb.Write(this->playerId);
     }
     inline int Event::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = bb.Read(this->id)) return r;
+        if (int r = bb.Read(this->playerId)) return r;
         return 0;
     }
     inline int Event::InitCascade(void* const& o) noexcept {
@@ -2304,7 +2304,7 @@ namespace CatchFish::Events {
     }
     inline void Event::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
-        xx::Append(s, ", \"id\":", this->id);
+        xx::Append(s, ", \"playerId\":", this->playerId);
     }
     inline uint16_t Enter::GetTypeId() const noexcept {
         return 29;
@@ -3130,7 +3130,7 @@ namespace CatchFish::Configs {
         bb.Write(this->muzzleLen);
         bb.Write(this->quantity);
         bb.Write(this->numLimit);
-        bb.Write(this->shootCD);
+        bb.Write(this->fireCD);
         bb.Write(this->radius);
         bb.Write(this->maxRadius);
         bb.Write(this->distance);
@@ -3141,7 +3141,7 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->muzzleLen)) return r;
         if (int r = bb.Read(this->quantity)) return r;
         if (int r = bb.Read(this->numLimit)) return r;
-        if (int r = bb.Read(this->shootCD)) return r;
+        if (int r = bb.Read(this->fireCD)) return r;
         if (int r = bb.Read(this->radius)) return r;
         if (int r = bb.Read(this->maxRadius)) return r;
         if (int r = bb.Read(this->distance)) return r;
@@ -3171,7 +3171,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"muzzleLen\":", this->muzzleLen);
         xx::Append(s, ", \"quantity\":", this->quantity);
         xx::Append(s, ", \"numLimit\":", this->numLimit);
-        xx::Append(s, ", \"shootCD\":", this->shootCD);
+        xx::Append(s, ", \"fireCD\":", this->fireCD);
         xx::Append(s, ", \"radius\":", this->radius);
         xx::Append(s, ", \"maxRadius\":", this->maxRadius);
         xx::Append(s, ", \"distance\":", this->distance);
@@ -3362,7 +3362,7 @@ namespace PKG {
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::Event_s>>(69);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Event>(28);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Enter>(70);
-	        xx::BBuffer::Register<PKG::Client_CatchFish::Shoot>(71);
+	        xx::BBuffer::Register<PKG::Client_CatchFish::Fire>(71);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Hit>(72);
 	        xx::BBuffer::Register<::xx::Random>(9);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Fish_s>>(10);

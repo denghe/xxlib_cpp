@@ -96,7 +96,7 @@ namespace CatchFish
             int numLimit;
 
             [Desc("发射间隔帧数")]
-            int shootCD;
+            int fireCD;
 
             [Desc("子弹检测半径")]
             int radius;

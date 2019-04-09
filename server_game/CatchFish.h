@@ -172,7 +172,7 @@ struct Player : PKG::CatchFish::Player {
 	std::shared_ptr<Peer> peer;
 
 	// 分类收包容器( 在适当的生命周期读取并处理 )
-	std::deque<PKG::Client_CatchFish::Shoot_s> recvShoots;
+	std::deque<PKG::Client_CatchFish::Fire_s> recvFires;
 	std::deque<PKG::Client_CatchFish::Hit_s> recvHits;
 
 	// 解绑, 断开当前 peer 并清空所有收包队列
@@ -214,17 +214,17 @@ struct Cannon : PKG::CatchFish::Cannon {
 	xx::Pos pos;
 
 	// 存放下次可开火的 frameNumber
-	int shootCD = 0;
+	int fireCD = 0;
 
 	// 剩余子弹数量. 炮台初创时从 cfg 读取填充. ( -1 表示无限, 其余情况每次发射 -1, 到 0 时无法发射 )
 	int quantity = -1;
 
 	// 发射子弹. 成功返回 true
 #ifdef CC_TARGET_PLATFORM
-	virtual bool Shoot(int const& frameNumber) noexcept;
+	virtual bool Fire(int const& frameNumber) noexcept;
 #else
-	// player 在遍历 recvShoots 的时候定位到炮台就 call 这个函数来发射
-	virtual bool Shoot(PKG::Client_CatchFish::Shoot_s& o) noexcept;
+	// player 在遍历 recvFires 的时候定位到炮台就 call 这个函数来发射
+	virtual bool Fire(PKG::Client_CatchFish::Fire_s& o) noexcept;
 
 	// player 在遍历 recvHits 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
 	virtual void Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
