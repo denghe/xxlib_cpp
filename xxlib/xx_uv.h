@@ -963,8 +963,8 @@ namespace xx {
 	struct UvKcpBasePeer;
 	struct UvKcpPeerOwner : UvItem {
 		using UvItem::UvItem;
-		inline virtual std::shared_ptr<UvKcpBasePeer> CreatePeer() noexcept = 0;
-		inline virtual void Accept(std::shared_ptr<UvKcpBasePeer> peer) noexcept = 0;
+		virtual std::shared_ptr<UvKcpBasePeer> CreatePeer() noexcept = 0;
+		virtual void Accept(std::shared_ptr<UvKcpBasePeer> peer) noexcept = 0;
 	};
 
 	struct UvKcpUdp : UvUdp {
@@ -1095,7 +1095,7 @@ namespace xx {
 		}
 
 		// unpack & dispatch
-		inline virtual int HandlePack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept = 0;
+		virtual int HandlePack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept = 0;
 
 	};
 

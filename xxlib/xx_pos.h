@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <cmath>
+#include <math.h>
 
 namespace xx
 {
@@ -31,7 +31,7 @@ namespace xx
 		inline float distance(Pos const& v) const {
 			float dx = v.x - x;
 			float dy = v.y - y;
-			return std::sqrtf(dx * dx + dy * dy);
+			return sqrtf(dx * dx + dy * dy);
 		}
 
 #ifdef CC_TARGET_PLATFORM
@@ -102,14 +102,14 @@ namespace xx
 		if (from == to) return 0.0f;
 		auto&& len_y = to.y - from.y;
 		auto&& len_x = to.x - from.x;
-		return std::atan2f(len_y, len_x);
+		return atan2f(len_y, len_x);
 	}
 
 	// 以 0,0 为中心旋转. a 为弧度( 角度 * (float(M_PI) / 180.0f) )
 	inline Pos Rotate(Pos const& pos, float const& a)
 	{
-		auto&& sinA = std::sinf(a);
-		auto&& cosA = std::cosf(a);
+		auto&& sinA = sinf(a);
+		auto&& cosA = cosf(a);
 		return Pos{ pos.x * cosA - pos.y * sinA, pos.x * sinA + pos.y * cosA };
 	}
 }
