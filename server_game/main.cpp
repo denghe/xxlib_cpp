@@ -17,7 +17,7 @@ inline int ReadFile(const char* fn, xx::BBuffer& bb)
 	bb.Clear();
 	bb.Reserve(flen);			// 申请内存空间
 	fseek(fp, 0L, SEEK_SET);	// 定位到文件开头
-	fread(bb.buf, flen, 1, fp); // 一次性读取全部文件内容
+	if (flen != fread(bb.buf, flen, 1, fp)) return -2; // 一次性读取全部文件内容
 	bb.len = flen;
 	fclose(fp);
 	return 0;
