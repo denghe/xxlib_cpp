@@ -35,6 +35,7 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 		auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
 		refund->coin = coin;
 		refund->playerId = player->id;
+		//xx::CoutN("bullet fly out the screen. ", refund);
 		scene->frameEvents->events->Add(std::move(refund));
 #endif
 		return -1;
@@ -47,18 +48,14 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
 			if (xx::As<Fish>(fs[i])->HitCheck(this)) {
+				// 发命中检查包
 				auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
 				o->bulletId = id;
 				o->cannonId = cannon->id;
 				o->fishId = fs[i]->id;
-				if (int r = ::dialer->peer->SendPush(o)) return -1;
-
-				//// 删鱼
-				//fs[fs.len - 1]->indexAtContainer = (int)i;
-				//fs.SwapRemoveAt(i);
+				::dialer->peer->SendPush(o);
+				::dialer->peer->Flush();
 				// todo: 播放子弹爆炸特效?
-
-				// 子弹自杀
 				return -1;
 			}
 		}

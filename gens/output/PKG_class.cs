@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "ef6c856004c6a0f1864f73d0e080256a"; 
+        public const string value = "c66c073bc61152e7cd42e3c0a697f7fb"; 
     }
 
 namespace CatchFish
@@ -2501,6 +2501,64 @@ namespace CatchFish.Events
             base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
+    /// <summary>
+    /// 调试信息( 开发阶段校验用 )
+    /// </summary>
+    public partial class DebugInfo : CatchFish.Events.Event
+    {
+        /// <summary>
+        /// 鱼id集合
+        /// </summary>
+        public xx.List<int> fishIds;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DebugInfo>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.fishIds);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.fishIds);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Events.DebugInfo\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"fishIds\":" + (fishIds == null ? "nil" : fishIds.ToString()));
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
 }
 namespace CatchFish.Stages
 {
@@ -3322,71 +3380,73 @@ namespace CatchFish.Configs
             xx.Object.Register<Generic.Error>(4);
             xx.Object.Register<Generic.Ping>(5);
             xx.Object.Register<Generic.Pong>(6);
-            xx.Object.Register<CatchFish_Client.EnterSuccess>(66);
+            xx.Object.Register<CatchFish_Client.EnterSuccess>(7);
             xx.Object.Register<CatchFish.Scene>(8);
-            xx.Object.Register<xx.List<CatchFish.Player>>(67);
-            xx.Object.Register<CatchFish.Player>(22);
-            xx.Object.Register<CatchFish_Client.FrameEvents>(68);
-            xx.Object.Register<xx.List<CatchFish.Events.Event>>(69);
-            xx.Object.Register<CatchFish.Events.Event>(28);
-            xx.Object.Register<Client_CatchFish.Enter>(70);
-            xx.Object.Register<Client_CatchFish.Fire>(71);
-            xx.Object.Register<Client_CatchFish.Hit>(72);
-            xx.Object.Register<xx.Random>(9);
-            xx.Object.Register<xx.List<CatchFish.Fish>>(10);
-            xx.Object.Register<CatchFish.Fish>(11);
-            xx.Object.Register<xx.List<CatchFish.Item>>(12);
-            xx.Object.Register<CatchFish.Item>(13);
-            xx.Object.Register<xx.List<CatchFish.FishBorn>>(14);
-            xx.Object.Register<CatchFish.FishBorn>(15);
-            xx.Object.Register<CatchFish.Stages.Stage>(16);
-            xx.Object.Register<xx.List<CatchFish.Sits>>(17);
-            xx.Object.Register<xx.List<xx.Weak<CatchFish.Player>>>(18);
-            xx.Object.Register<xx.List<CatchFish.Cannon>>(23);
-            xx.Object.Register<CatchFish.Cannon>(19);
-            xx.Object.Register<xx.List<CatchFish.Weapon>>(24);
-            xx.Object.Register<CatchFish.Weapon>(25);
-            xx.Object.Register<xx.List<CatchFish.Bullet>>(20);
-            xx.Object.Register<CatchFish.Bullet>(21);
-            xx.Object.Register<CatchFish.MoveItem>(26);
-            xx.Object.Register<CatchFish.Way>(49);
-            xx.Object.Register<CatchFish.Timer>(27);
-            xx.Object.Register<xx.List<CatchFish.WayPoint>>(64);
-            xx.Object.Register<CatchFish.Events.Enter>(29);
-            xx.Object.Register<CatchFish.Events.Leave>(30);
-            xx.Object.Register<CatchFish.Events.NoMoney>(31);
-            xx.Object.Register<CatchFish.Events.Refund>(32);
-            xx.Object.Register<CatchFish.Events.FishDead>(33);
-            xx.Object.Register<xx.List<CatchFish.Events.FishDead>>(34);
-            xx.Object.Register<CatchFish.Events.PushWeapon>(35);
-            xx.Object.Register<CatchFish.Events.PushFish>(36);
-            xx.Object.Register<CatchFish.Events.OpenAutoLock>(37);
-            xx.Object.Register<CatchFish.Events.Aim>(38);
-            xx.Object.Register<CatchFish.Events.CloseAutoLock>(39);
-            xx.Object.Register<CatchFish.Events.OpenAutoFire>(40);
-            xx.Object.Register<CatchFish.Events.CloseAutoFire>(41);
-            xx.Object.Register<CatchFish.Events.Fire>(42);
-            xx.Object.Register<CatchFish.Events.CannonSwitch>(43);
-            xx.Object.Register<CatchFish.Events.CannonCoinChange>(44);
-            xx.Object.Register<xx.List<CatchFish.Timer>>(45);
-            xx.Object.Register<CatchFish.Stages.Script>(46);
-            xx.Object.Register<CatchFish.Configs.Config>(47);
-            xx.Object.Register<xx.List<CatchFish.Way>>(48);
-            xx.Object.Register<xx.List<CatchFish.Configs.Fish>>(50);
-            xx.Object.Register<CatchFish.Configs.Fish>(51);
-            xx.Object.Register<xx.List<CatchFish.Configs.Cannon>>(52);
-            xx.Object.Register<CatchFish.Configs.Cannon>(53);
-            xx.Object.Register<xx.List<CatchFish.Configs.Weapon>>(54);
-            xx.Object.Register<CatchFish.Configs.Weapon>(55);
-            xx.Object.Register<xx.List<CatchFish.Stages.Stage>>(56);
-            xx.Object.Register<xx.List<xx.Pos>>(57);
-            xx.Object.Register<CatchFish.Configs.Item>(58);
-            xx.Object.Register<xx.List<CatchFish.Configs.SpriteFrame>>(59);
-            xx.Object.Register<CatchFish.Configs.SpriteFrame>(60);
-            xx.Object.Register<xx.List<CatchFish.Configs.FishSpriteFrame>>(61);
-            xx.Object.Register<CatchFish.Configs.FishSpriteFrame>(62);
-            xx.Object.Register<CatchFish.Configs.Physics>(65);
-            xx.Object.Register<xx.List<xx.List<xx.Pos>>>(63);
+            xx.Object.Register<xx.List<CatchFish.Player>>(9);
+            xx.Object.Register<CatchFish.Player>(10);
+            xx.Object.Register<CatchFish_Client.FrameEvents>(11);
+            xx.Object.Register<xx.List<CatchFish.Events.Event>>(12);
+            xx.Object.Register<CatchFish.Events.Event>(13);
+            xx.Object.Register<Client_CatchFish.Enter>(14);
+            xx.Object.Register<Client_CatchFish.Fire>(15);
+            xx.Object.Register<Client_CatchFish.Hit>(16);
+            xx.Object.Register<xx.Random>(17);
+            xx.Object.Register<xx.List<CatchFish.Fish>>(18);
+            xx.Object.Register<CatchFish.Fish>(19);
+            xx.Object.Register<xx.List<CatchFish.Item>>(20);
+            xx.Object.Register<CatchFish.Item>(21);
+            xx.Object.Register<xx.List<CatchFish.FishBorn>>(22);
+            xx.Object.Register<CatchFish.FishBorn>(23);
+            xx.Object.Register<CatchFish.Stages.Stage>(24);
+            xx.Object.Register<xx.List<CatchFish.Sits>>(25);
+            xx.Object.Register<xx.List<xx.Weak<CatchFish.Player>>>(26);
+            xx.Object.Register<xx.List<CatchFish.Cannon>>(27);
+            xx.Object.Register<CatchFish.Cannon>(28);
+            xx.Object.Register<xx.List<CatchFish.Weapon>>(29);
+            xx.Object.Register<CatchFish.Weapon>(30);
+            xx.Object.Register<xx.List<CatchFish.Bullet>>(31);
+            xx.Object.Register<CatchFish.Bullet>(32);
+            xx.Object.Register<CatchFish.MoveItem>(33);
+            xx.Object.Register<CatchFish.Way>(34);
+            xx.Object.Register<CatchFish.Timer>(35);
+            xx.Object.Register<xx.List<CatchFish.WayPoint>>(36);
+            xx.Object.Register<CatchFish.Events.Enter>(37);
+            xx.Object.Register<CatchFish.Events.Leave>(38);
+            xx.Object.Register<CatchFish.Events.NoMoney>(39);
+            xx.Object.Register<CatchFish.Events.Refund>(40);
+            xx.Object.Register<CatchFish.Events.FishDead>(41);
+            xx.Object.Register<xx.List<CatchFish.Events.FishDead>>(42);
+            xx.Object.Register<CatchFish.Events.PushWeapon>(43);
+            xx.Object.Register<CatchFish.Events.PushFish>(44);
+            xx.Object.Register<CatchFish.Events.OpenAutoLock>(45);
+            xx.Object.Register<CatchFish.Events.Aim>(46);
+            xx.Object.Register<CatchFish.Events.CloseAutoLock>(47);
+            xx.Object.Register<CatchFish.Events.OpenAutoFire>(48);
+            xx.Object.Register<CatchFish.Events.CloseAutoFire>(49);
+            xx.Object.Register<CatchFish.Events.Fire>(50);
+            xx.Object.Register<CatchFish.Events.CannonSwitch>(51);
+            xx.Object.Register<CatchFish.Events.CannonCoinChange>(52);
+            xx.Object.Register<CatchFish.Events.DebugInfo>(53);
+            xx.Object.Register<xx.List<int>>(54);
+            xx.Object.Register<xx.List<CatchFish.Timer>>(55);
+            xx.Object.Register<CatchFish.Stages.Script>(56);
+            xx.Object.Register<CatchFish.Configs.Config>(57);
+            xx.Object.Register<xx.List<CatchFish.Way>>(58);
+            xx.Object.Register<xx.List<CatchFish.Configs.Fish>>(59);
+            xx.Object.Register<CatchFish.Configs.Fish>(60);
+            xx.Object.Register<xx.List<CatchFish.Configs.Cannon>>(61);
+            xx.Object.Register<CatchFish.Configs.Cannon>(62);
+            xx.Object.Register<xx.List<CatchFish.Configs.Weapon>>(63);
+            xx.Object.Register<CatchFish.Configs.Weapon>(64);
+            xx.Object.Register<xx.List<CatchFish.Stages.Stage>>(65);
+            xx.Object.Register<xx.List<xx.Pos>>(66);
+            xx.Object.Register<CatchFish.Configs.Item>(67);
+            xx.Object.Register<xx.List<CatchFish.Configs.SpriteFrame>>(68);
+            xx.Object.Register<CatchFish.Configs.SpriteFrame>(69);
+            xx.Object.Register<xx.List<CatchFish.Configs.FishSpriteFrame>>(70);
+            xx.Object.Register<CatchFish.Configs.FishSpriteFrame>(71);
+            xx.Object.Register<CatchFish.Configs.Physics>(72);
+            xx.Object.Register<xx.List<xx.List<xx.Pos>>>(73);
         }
     }
 }

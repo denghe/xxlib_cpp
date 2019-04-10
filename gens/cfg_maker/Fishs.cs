@@ -16,9 +16,23 @@ public static class Fishs
             f.maxCoin = 3;
             f.minDetectRadius = 20;
             f.maxDetectRadius = 32;
-            f.scale = 6;
+            f.scale = 1;
             f.zOrder = 3;
             f.shadowOffset = new xx.Pos { x = 5, y = 5 };
+            f.shadowScale = 1;
+            FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
+        }
+        {
+            var f = new PKG.CatchFish.Configs.Fish();
+            f.id = cfg.fishs.dataLen;
+            cfg.fishs.Add(f);
+            f.minCoin = 20;
+            f.maxCoin = 50;
+            f.minDetectRadius = 20;
+            f.maxDetectRadius = 32;
+            f.scale = 6;
+            f.zOrder = 4;
+            f.shadowOffset = new xx.Pos { x = 10, y = 10 };
             f.shadowScale = 1;
             FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
         }

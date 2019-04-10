@@ -63,7 +63,7 @@ inline int Player::Update(int const& frameNumber) noexcept {
 			auto&& c = cannons->At(i);
 			// 找到了就试着检测. 失败直接踢掉
 			if (c->id == o->cannonId) {
-				xx::As<Cannon>(c)->Hit(o);
+				if (int r = xx::As<Cannon>(c)->Hit(o)) return r;
 				notFound = false;
 				break;
 			}

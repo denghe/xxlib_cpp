@@ -6,576 +6,1010 @@
         <dict>
             <key>pao_01</key>
             <dict>
-                <key>frame</key>
-                <string>{{171,2},{183,132}}</string>
-                <key>offset</key>
-                <string>{-3,-6}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{0,50},{183,132}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.201058,0.486364}</string>
+                <key>spriteOffset</key>
+                <string>{-2.5,-4.5}</string>
+                <key>spriteSize</key>
+                <string>{184,141}</string>
+                <key>spriteSourceSize</key>
                 <string>{189,220}</string>
+                <key>textureRect</key>
+                <string>{{0,158},{184,141}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>6 4 5 6 7 4 3 4 7 3 7 8 2 3 8 0 1 2 0 2 8</string>
+                <key>vertices</key>
+                <string>184 92 184 130 128 150 79 153 51 167 50 185 0 175 0 59 20 44</string>
+                <key>verticesUV</key>
+                <string>184 206 184 244 128 264 79 267 51 281 50 299 0 289 0 173 20 158</string>
             </dict>
             <key>xiaochouyu_die (1)</key>
             <dict>
-                <key>frame</key>
-                <string>{{606,118},{50,32}}</string>
-                <key>offset</key>
-                <string>{1,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{6,8},{50,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,0.5}</string>
+                <key>spriteSize</key>
+                <string>{55,37}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{32,460},{55,37}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>57 16 57 41 11 42 2 18 35 5</string>
+                <key>verticesUV</key>
+                <string>87 471 87 496 41 497 32 473 65 460</string>
             </dict>
             <key>xiaochouyu_die (10)</key>
             <dict>
-                <key>frame</key>
-                <string>{{810,110},{52,32}}</string>
-                <key>offset</key>
-                <string>{-2,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{2,8},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,0}</string>
+                <key>spriteSize</key>
+                <string>{59,36}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{208,325},{59,36}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>54 15 59 42 5 41 0 17 32 6</string>
+                <key>verticesUV</key>
+                <string>262 334 267 361 213 360 208 336 240 325</string>
             </dict>
             <key>xiaochouyu_die (2)</key>
             <dict>
-                <key>frame</key>
-                <string>{{572,118},{50,32}}</string>
-                <key>offset</key>
-                <string>{1,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{6,8},{50,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0.5,1}</string>
+                <key>spriteSize</key>
+                <string>{57,38}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{57,358},{57,38}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 4 5 2 3 4 0 1 2 0 2 5</string>
+                <key>vertices</key>
+                <string>55 15 59 33 38 42 8 42 2 18 33 4</string>
+                <key>verticesUV</key>
+                <string>110 369 114 387 93 396 63 396 57 372 88 358</string>
             </dict>
             <key>xiaochouyu_die (3)</key>
             <dict>
-                <key>frame</key>
-                <string>{{776,114},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{4,8},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{1.5,0}</string>
+                <key>spriteSize</key>
+                <string>{55,34}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{87,478},{55,34}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>59 29 47 41 4 41 4 7 53 7</string>
+                <key>verticesUV</key>
+                <string>142 500 130 512 87 512 87 478 136 478</string>
             </dict>
             <key>xiaochouyu_die (4)</key>
             <dict>
-                <key>frame</key>
-                <string>{{742,114},{52,32}}</string>
-                <key>offset</key>
-                <string>{-1,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{3,8},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,-1}</string>
+                <key>spriteSize</key>
+                <string>{53,36}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{200,470},{53,36}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>56 35 32 43 3 32 3 7 56 7</string>
+                <key>verticesUV</key>
+                <string>253 498 229 506 200 495 200 470 253 470</string>
             </dict>
             <key>xiaochouyu_die (5)</key>
             <dict>
-                <key>frame</key>
-                <string>{{708,116},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{4,8},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,-2}</string>
+                <key>spriteSize</key>
+                <string>{57,40}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{99,340},{57,40}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>3 4 5 2 3 5 1 2 5 0 1 5</string>
+                <key>vertices</key>
+                <string>57 14 57 32 35 46 6 32 0 16 28 6</string>
+                <key>verticesUV</key>
+                <string>156 348 156 366 134 380 105 366 99 350 127 340</string>
             </dict>
             <key>xiaochouyu_die (6)</key>
             <dict>
-                <key>frame</key>
-                <string>{{387,122},{46,32}}</string>
-                <key>offset</key>
-                <string>{1,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{8,8},{46,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{1,-0.5}</string>
+                <key>spriteSize</key>
+                <string>{48,33}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{0,497},{48,33}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 2 3 0 1 3</string>
+                <key>vertices</key>
+                <string>55 41 7 41 7 8 55 8</string>
+                <key>verticesUV</key>
+                <string>48 530 0 530 0 497 48 497</string>
             </dict>
             <key>xiaochouyu_die (7)</key>
             <dict>
-                <key>frame</key>
-                <string>{{509,120},{48,32}}</string>
-                <key>offset</key>
-                <string>{2,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{8,8},{48,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{2.5,-3}</string>
+                <key>spriteSize</key>
+                <string>{49,38}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{144,484},{49,38}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>57 32 35 46 8 31 8 8 57 8</string>
+                <key>verticesUV</key>
+                <string>193 508 171 522 144 507 144 484 193 484</string>
             </dict>
             <key>xiaochouyu_die (8)</key>
             <dict>
-                <key>frame</key>
-                <string>{{475,120},{48,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{6,8},{48,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0,2.5}</string>
+                <key>spriteSize</key>
+                <string>{50,43}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{200,427},{50,43}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 4 5 2 3 4 0 1 2 0 2 5</string>
+                <key>vertices</key>
+                <string>55 17 55 34 31 43 5 32 5 15 38 0</string>
+                <key>verticesUV</key>
+                <string>250 444 250 461 226 470 200 459 200 442 233 427</string>
             </dict>
             <key>xiaochouyu_die (9)</key>
             <dict>
-                <key>frame</key>
-                <string>{{674,116},{52,32}}</string>
-                <key>offset</key>
-                <string>{-2,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{2,8},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,-1}</string>
+                <key>spriteSize</key>
+                <string>{59,36}</string>
+                <key>spriteSourceSize</key>
                 <string>{60,48}</string>
+                <key>textureRect</key>
+                <string>{{211,361},{59,36}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 5 6 4 2 3 4 5 2 1 2 6 0 1 6</string>
+                <key>vertices</key>
+                <string>59 22 54 34 32 43 3 34 0 25 6 7 44 7</string>
+                <key>verticesUV</key>
+                <string>270 376 265 388 243 397 214 388 211 379 217 361 255 361</string>
             </dict>
             <key>xiaochouyu_move (1)</key>
             <dict>
-                <key>frame</key>
-                <string>{{797,2},{52,34}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,34}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1,3.5}</string>
+                <key>spriteSize</key>
+                <string>{56,41}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{229,193},{56,41}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 23 58 47 21 47 2 28 24 6</string>
+                <key>verticesUV</key>
+                <string>285 210 285 234 248 234 229 215 251 193</string>
             </dict>
             <key>xiaochouyu_move (10)</key>
             <dict>
-                <key>frame</key>
-                <string>{{680,78},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0.5,3}</string>
+                <key>spriteSize</key>
+                <string>{59,52}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{166,36},{59,52}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>61 31 39 53 12 43 2 33 41 1</string>
+                <key>verticesUV</key>
+                <string>225 66 203 88 176 78 166 68 205 36</string>
             </dict>
             <key>xiaochouyu_move (11)</key>
             <dict>
-                <key>frame</key>
-                <string>{{680,40},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{1.5,3.5}</string>
+                <key>spriteSize</key>
+                <string>{57,49}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{0,297},{57,49}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>61 31 41 51 5 44 4 30 41 2</string>
+                <key>verticesUV</key>
+                <string>57 326 37 346 1 339 0 325 37 297</string>
             </dict>
             <key>xiaochouyu_move (12)</key>
             <dict>
-                <key>frame</key>
-                <string>{{626,78},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,3.5}</string>
+                <key>spriteSize</key>
+                <string>{57,45}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{42,313},{57,45}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 26 58 49 18 49 1 32 36 4</string>
+                <key>verticesUV</key>
+                <string>99 335 99 358 59 358 42 341 77 313</string>
             </dict>
             <key>xiaochouyu_move (13)</key>
             <dict>
-                <key>frame</key>
-                <string>{{626,40},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,1.5}</string>
+                <key>spriteSize</key>
+                <string>{57,41}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{114,257},{57,41}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 24 58 49 18 49 1 32 35 8</string>
+                <key>verticesUV</key>
+                <string>171 273 171 298 131 298 114 281 148 257</string>
             </dict>
             <key>xiaochouyu_move (14)</key>
             <dict>
-                <key>frame</key>
-                <string>{{572,40},{52,38}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,11},{52,38}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1,3}</string>
+                <key>spriteSize</key>
+                <string>{56,46}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{196,66},{56,46}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 24 58 50 19 50 2 33 31 4</string>
+                <key>verticesUV</key>
+                <string>252 86 252 112 213 112 196 95 225 66</string>
             </dict>
             <key>xiaochouyu_move (15)</key>
             <dict>
-                <key>frame</key>
-                <string>{{518,80},{52,38}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,11},{52,38}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0.5,1.5}</string>
+                <key>spriteSize</key>
+                <string>{53,43}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{221,243},{53,43}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>0 1 3 1 2 3 0 3 4</string>
+                <key>vertices</key>
+                <string>58 24 58 50 5 50 5 29 35 7</string>
+                <key>verticesUV</key>
+                <string>274 260 274 286 221 286 221 265 251 243</string>
             </dict>
             <key>xiaochouyu_move (16)</key>
             <dict>
-                <key>frame</key>
-                <string>{{464,38},{52,40}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,10},{52,40}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1,4}</string>
+                <key>spriteSize</key>
+                <string>{56,50}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{124,144},{56,50}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 26 58 51 21 51 2 32 33 1</string>
+                <key>verticesUV</key>
+                <string>180 169 180 194 143 194 124 175 155 144</string>
             </dict>
             <key>xiaochouyu_move (17)</key>
             <dict>
-                <key>frame</key>
-                <string>{{410,80},{52,40}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,10},{52,40}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,0.5}</string>
+                <key>spriteSize</key>
+                <string>{55,45}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{182,163},{55,45}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>0 3 4 0 1 2 0 2 3</string>
+                <key>vertices</key>
+                <string>58 24 58 51 6 52 3 28 35 7</string>
+                <key>verticesUV</key>
+                <string>237 180 237 207 185 208 182 184 214 163</string>
             </dict>
             <key>xiaochouyu_move (18)</key>
             <dict>
-                <key>frame</key>
-                <string>{{410,38},{52,40}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,10},{52,40}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,1}</string>
+                <key>spriteSize</key>
+                <string>{57,44}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{83,296},{57,44}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 24 58 51 22 51 1 30 34 7</string>
+                <key>verticesUV</key>
+                <string>140 313 140 340 104 340 83 319 116 296</string>
             </dict>
             <key>xiaochouyu_move (19)</key>
             <dict>
-                <key>frame</key>
-                <string>{{356,80},{52,40}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,10},{52,40}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,1}</string>
+                <key>spriteSize</key>
+                <string>{55,48}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{51,267},{55,48}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>3 4 5 2 3 5 0 1 2 0 2 5</string>
+                <key>vertices</key>
+                <string>58 26 58 40 33 53 4 33 3 27 37 5</string>
+                <key>verticesUV</key>
+                <string>106 288 106 302 81 315 52 295 51 289 85 267</string>
             </dict>
             <key>xiaochouyu_move (2)</key>
             <dict>
-                <key>frame</key>
-                <string>{{421,122},{52,34}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,34}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1,4.5}</string>
+                <key>spriteSize</key>
+                <string>{56,43}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{184,208},{56,43}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 22 58 47 20 47 2 29 14 4</string>
+                <key>verticesUV</key>
+                <string>240 226 240 251 202 251 184 233 196 208</string>
             </dict>
             <key>xiaochouyu_move (20)</key>
             <dict>
-                <key>frame</key>
-                <string>{{518,40},{52,38}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,11},{52,38}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,1}</string>
+                <key>spriteSize</key>
+                <string>{57,42}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{222,144},{57,42}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 23 58 50 23 50 1 28 32 8</string>
+                <key>verticesUV</key>
+                <string>279 159 279 186 244 186 222 164 253 144</string>
             </dict>
             <key>xiaochouyu_move (21)</key>
             <dict>
-                <key>frame</key>
-                <string>{{356,38},{52,40}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,9},{52,40}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,2.5}</string>
+                <key>spriteSize</key>
+                <string>{57,45}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{153,120},{57,45}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 24 58 50 24 50 1 27 31 5</string>
+                <key>verticesUV</key>
+                <string>210 139 210 165 176 165 153 142 183 120</string>
             </dict>
             <key>xiaochouyu_move (22)</key>
             <dict>
-                <key>frame</key>
-                <string>{{743,2},{52,38}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,10},{52,38}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,1}</string>
+                <key>spriteSize</key>
+                <string>{55,42}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{140,298},{55,42}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>3 4 5 2 3 5 0 1 2 0 2 5</string>
+                <key>vertices</key>
+                <string>58 23 58 45 31 50 3 30 3 25 30 8</string>
+                <key>verticesUV</key>
+                <string>195 313 195 335 168 340 140 320 140 315 167 298</string>
             </dict>
             <key>xiaochouyu_move (23)</key>
             <dict>
-                <key>frame</key>
-                <string>{{572,80},{52,36}}</string>
-                <key>offset</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
                 <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>spriteSize</key>
+                <string>{54,40}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{181,394},{54,40}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 11 58 42 30 50 4 30 7 10</string>
+                <key>verticesUV</key>
+                <string>235 395 235 426 207 434 181 414 184 394</string>
             </dict>
             <key>xiaochouyu_move (24)</key>
             <dict>
-                <key>frame</key>
-                <string>{{734,78},{52,34}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,13},{52,34}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,-1.5}</string>
+                <key>spriteSize</key>
+                <string>{61,41}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{214,36},{61,41}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>57 19 61 38 26 52 0 24 30 11</string>
+                <key>verticesUV</key>
+                <string>271 44 275 63 240 77 214 49 244 36</string>
             </dict>
             <key>xiaochouyu_move (25)</key>
             <dict>
-                <key>frame</key>
-                <string>{{640,116},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{5,14},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteSize</key>
+                <string>{59,43}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{201,112},{59,43}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>57 22 61 37 27 51 2 26 25 8</string>
+                <key>verticesUV</key>
+                <string>256 126 260 141 226 155 201 130 224 112</string>
             </dict>
             <key>xiaochouyu_move (26)</key>
             <dict>
-                <key>frame</key>
-                <string>{{788,56},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{5,13},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,4}</string>
+                <key>spriteSize</key>
+                <string>{55,40}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{126,374},{55,40}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 22 58 46 16 46 3 26 22 6</string>
+                <key>verticesUV</key>
+                <string>181 390 181 414 139 414 126 394 145 374</string>
             </dict>
             <key>xiaochouyu_move (27)</key>
             <dict>
-                <key>frame</key>
-                <string>{{333,136},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,13},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,2}</string>
+                <key>spriteSize</key>
+                <string>{55,38}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{112,412},{55,38}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 15 58 46 29 47 3 30 4 9</string>
+                <key>verticesUV</key>
+                <string>167 418 167 449 138 450 112 433 113 412</string>
             </dict>
             <key>xiaochouyu_move (28)</key>
             <dict>
-                <key>frame</key>
-                <string>{{279,136},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,14},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1.5,3.5}</string>
+                <key>spriteSize</key>
+                <string>{57,43}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{0,343},{57,43}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 23 58 41 32 48 1 28 22 5</string>
+                <key>verticesUV</key>
+                <string>57 361 57 379 31 386 0 366 21 343</string>
             </dict>
             <key>xiaochouyu_move (29)</key>
             <dict>
-                <key>frame</key>
-                <string>{{225,136},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,14},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1,4}</string>
+                <key>spriteSize</key>
+                <string>{56,42}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{165,243},{56,42}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 23 58 47 22 47 2 27 22 5</string>
+                <key>verticesUV</key>
+                <string>221 261 221 285 185 285 165 265 185 243</string>
             </dict>
             <key>xiaochouyu_move (3)</key>
             <dict>
-                <key>frame</key>
-                <string>{{734,42},{52,34}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,13},{52,34}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-2,0}</string>
+                <key>spriteSize</key>
+                <string>{58,36}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{54,396},{58,36}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>58 48 29 48 0 31 19 12 58 12</string>
+                <key>verticesUV</key>
+                <string>112 432 83 432 54 415 73 396 112 396</string>
             </dict>
             <key>xiaochouyu_move (30)</key>
             <dict>
-                <key>frame</key>
-                <string>{{171,136},{52,32}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,14},{52,32}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,1.5}</string>
+                <key>spriteSize</key>
+                <string>{55,37}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{145,447},{55,37}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>58 22 58 47 5 47 3 23 29 10</string>
+                <key>verticesUV</key>
+                <string>200 459 200 484 147 484 145 460 171 447</string>
             </dict>
             <key>xiaochouyu_move (4)</key>
             <dict>
-                <key>frame</key>
-                <string>{{473,2},{52,34}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,13},{52,34}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,1}</string>
+                <key>spriteSize</key>
+                <string>{55,38}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{32,422},{55,38}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>58 22 58 48 4 48 3 26 29 10</string>
+                <key>verticesUV</key>
+                <string>87 434 87 460 33 460 32 438 58 422</string>
             </dict>
             <key>xiaochouyu_move (5)</key>
             <dict>
-                <key>frame</key>
-                <string>{{689,2},{52,36}}</string>
-                <key>offset</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
                 <string>{0,1}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,11},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>spriteSize</key>
+                <string>{54,38}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{87,440},{54,38}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>58 22 58 48 4 48 4 28 30 10</string>
+                <key>verticesUV</key>
+                <string>141 452 141 478 87 478 87 458 113 440</string>
             </dict>
             <key>xiaochouyu_move (6)</key>
             <dict>
-                <key>frame</key>
-                <string>{{635,2},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0,1}</string>
+                <key>spriteSize</key>
+                <string>{54,40}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{0,384},{54,40}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>58 23 58 49 4 49 4 29 30 9</string>
+                <key>verticesUV</key>
+                <string>54 398 54 424 0 424 0 404 26 384</string>
             </dict>
             <key>xiaochouyu_move (7)</key>
             <dict>
-                <key>frame</key>
-                <string>{{581,2},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-1,1}</string>
+                <key>spriteSize</key>
+                <string>{56,40}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{190,285},{56,40}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 0 1 2 0 2 4</string>
+                <key>vertices</key>
+                <string>58 22 58 49 19 49 2 32 29 9</string>
+                <key>verticesUV</key>
+                <string>246 298 246 325 207 325 190 308 217 285</string>
             </dict>
             <key>xiaochouyu_move (8)</key>
             <dict>
-                <key>frame</key>
-                <string>{{527,2},{52,36}}</string>
-                <key>offset</key>
-                <string>{0,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,12},{52,36}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{0,1}</string>
+                <key>spriteSize</key>
+                <string>{54,40}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{235,390},{54,40}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 3 4 1 2 3 0 1 4</string>
+                <key>vertices</key>
+                <string>58 23 58 49 5 49 4 30 30 9</string>
+                <key>verticesUV</key>
+                <string>289 404 289 430 236 430 235 411 261 390</string>
             </dict>
             <key>xiaochouyu_move (9)</key>
             <dict>
-                <key>frame</key>
-                <string>{{464,80},{52,38}}</string>
-                <key>offset</key>
-                <string>{0,1}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{5,10},{52,38}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{-0.5,1.5}</string>
+                <key>spriteSize</key>
+                <string>{55,41}</string>
+                <key>spriteSourceSize</key>
                 <string>{62,60}</string>
+                <key>textureRect</key>
+                <string>{{156,338},{55,41}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>2 3 4 1 2 4 0 1 4</string>
+                <key>vertices</key>
+                <string>58 23 58 49 5 49 3 29 30 8</string>
+                <key>verticesUV</key>
+                <string>211 353 211 379 158 379 156 359 183 338</string>
             </dict>
             <key>yuwang_1</key>
             <dict>
-                <key>frame</key>
-                <string>{{2,2},{166,167}}</string>
-                <key>offset</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.5,0.5}</string>
+                <key>spriteOffset</key>
                 <string>{0,0}</string>
-                <key>rotated</key>
-                <true/>
-                <key>sourceColorRect</key>
-                <string>{{0,0},{166,167}}</string>
-                <key>sourceSize</key>
+                <key>spriteSize</key>
                 <string>{166,167}</string>
+                <key>spriteSourceSize</key>
+                <string>{166,167}</string>
+                <key>textureRect</key>
+                <string>{{0,0},{166,167}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 2 9 7 8 9 7 9 2 5 6 7 4 5 7 2 3 4 7 2 4 1 9 10 0 1 10</string>
+                <key>vertices</key>
+                <string>149 17 166 51 166 115 149 149 113 167 52 167 13 149 0 103 0 20 63 0 115 0</string>
+                <key>verticesUV</key>
+                <string>149 17 166 51 166 115 149 149 113 167 52 167 13 149 0 103 0 20 63 0 115 0</string>
             </dict>
             <key>zidan_01</key>
             <dict>
-                <key>frame</key>
-                <string>{{356,2},{115,34}}</string>
-                <key>offset</key>
-                <string>{23,0}</string>
-                <key>rotated</key>
-                <false/>
-                <key>sourceColorRect</key>
-                <string>{{51,30},{115,34}}</string>
-                <key>sourceSize</key>
+                <key>aliases</key>
+                <array/>
+                <key>anchor</key>
+                <string>{0.877193,0.5}</string>
+                <key>spriteOffset</key>
+                <string>{23.5,0}</string>
+                <key>spriteSize</key>
+                <string>{116,36}</string>
+                <key>spriteSourceSize</key>
                 <string>{171,94}</string>
+                <key>textureRect</key>
+                <string>{{157,0},{116,36}}</string>
+                <key>textureRotated</key>
+                <false/>
+                <key>triangles</key>
+                <string>1 2 3 0 1 3 5 6 7 4 5 7</string>
+                <key>vertices</key>
+                <string>167 65 84 65 84 29 167 29 68 61 51 61 51 40 68 40</string>
+                <key>verticesUV</key>
+                <string>273 36 190 36 190 0 273 0 174 32 157 32 157 11 174 11</string>
             </dict>
         </dict>
         <key>metadata</key>
         <dict>
             <key>format</key>
-            <integer>2</integer>
+            <integer>3</integer>
+            <key>pixelFormat</key>
+            <string>RGBA8888</string>
+            <key>premultiplyAlpha</key>
+            <false/>
             <key>realTextureFileName</key>
-            <string>all.png</string>
+            <string>all.pkm</string>
             <key>size</key>
-            <string>{844,170}</string>
+            <string>{289,530}</string>
             <key>smartupdate</key>
-            <string>$TexturePacker:SmartUpdate:5d13dd7ad671ed194dfeed5df735e53a:96866df7d5963770df1b9c89a92bce47:928a4ce365e7133476de68860937c334$</string>
+            <string>$TexturePacker:SmartUpdate:09b277ec28e98da0e9da7064f4eb8acb:96866df7d5963770df1b9c89a92bce47:928a4ce365e7133476de68860937c334$</string>
             <key>textureFileName</key>
-            <string>all.png</string>
+            <string>all.pkm</string>
         </dict>
     </dict>
 </plist>

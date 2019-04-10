@@ -20,9 +20,9 @@ public static class Cannons
             c.angle = (float)(90.0 * Math.PI / 180.0);
             c.quantity = -1;
             c.muzzleLen = 200;
-            c.numLimit = 500;
+            c.numLimit = 10;
             c.scale = 0.5f;
-            c.fireCD = 0;
+            c.fireCD = 1;
             c.zOrder = 100;
             c.radius = 8;
             c.maxRadius = 200;

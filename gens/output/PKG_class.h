@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "ef6c856004c6a0f1864f73d0e080256a";
+		inline static const std::string value = "c66c073bc61152e7cd42e3c0a697f7fb";
     };
 
 namespace Generic {
@@ -198,6 +198,11 @@ namespace CatchFish::Events {
     using CannonCoinChange_s = std::shared_ptr<CannonCoinChange>;
     using CannonCoinChange_w = std::weak_ptr<CannonCoinChange>;
 
+    // 调试信息( 开发阶段校验用 )
+    struct DebugInfo;
+    using DebugInfo_s = std::shared_ptr<DebugInfo>;
+    using DebugInfo_w = std::weak_ptr<DebugInfo>;
+
 }
 namespace CatchFish::Stages {
     // 游戏关卡. 位于 Stage.timers 中的 timer, 使用 stageFrameNumber 来计算时间. 可弱引用 Stage 本身. 需要可以干净序列化
@@ -385,6 +390,24 @@ namespace CatchFish {
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
+namespace Generic {
+    // 通用返回
+    struct Success : xx::Object {
+
+        typedef Success ThisType;
+        typedef xx::Object BaseType;
+	    Success() = default;
+		Success(Success const&) = delete;
+		Success& operator=(Success const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
+}
 namespace CatchFish::Events {
     // 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列
     struct PushFish : PKG::CatchFish::Events::Event {
@@ -512,26 +535,6 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-}
-namespace Generic {
-    // 通用返回
-    struct Success : xx::Object {
-
-        typedef Success ThisType;
-        typedef xx::Object BaseType;
-	    Success() = default;
-		Success(Success const&) = delete;
-		Success& operator=(Success const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
-}
-namespace CatchFish::Events {
     // 转发: 切换炮台
     struct CannonSwitch : PKG::CatchFish::Events::Event {
         // 炮台配置id
@@ -560,6 +563,24 @@ namespace CatchFish::Events {
 	    CannonCoinChange() = default;
 		CannonCoinChange(CannonCoinChange const&) = delete;
 		CannonCoinChange& operator=(CannonCoinChange const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
+    // 调试信息( 开发阶段校验用 )
+    struct DebugInfo : PKG::CatchFish::Events::Event {
+        // 鱼id集合
+        xx::List_s<int32_t> fishIds;
+
+        typedef DebugInfo ThisType;
+        typedef PKG::CatchFish::Events::Event BaseType;
+	    DebugInfo() = default;
+		DebugInfo(DebugInfo const&) = delete;
+		DebugInfo& operator=(DebugInfo const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -797,22 +818,6 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 通知: 玩家离开
-    struct Leave : PKG::CatchFish::Events::Event {
-
-        typedef Leave ThisType;
-        typedef PKG::CatchFish::Events::Event BaseType;
-	    Leave() = default;
-		Leave(Leave const&) = delete;
-		Leave& operator=(Leave const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
     // 通知: 玩家破产
     struct NoMoney : PKG::CatchFish::Events::Event {
 
@@ -821,6 +826,26 @@ namespace CatchFish::Events {
 	    NoMoney() = default;
 		NoMoney(NoMoney const&) = delete;
 		NoMoney& operator=(NoMoney const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
+}
+namespace CatchFish::Configs {
+    // 物理建模 for 鱼与子弹碰撞检测
+    struct Physics : xx::Object {
+        // 基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
+        xx::List_s<xx::List_s<::xx::Pos>> polygons;
+
+        typedef Physics ThisType;
+        typedef xx::Object BaseType;
+	    Physics() = default;
+		Physics(Physics const&) = delete;
+		Physics& operator=(Physics const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1230,18 +1255,14 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-}
-namespace CatchFish::Configs {
-    // 物理建模 for 鱼与子弹碰撞检测
-    struct Physics : xx::Object {
-        // 基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )
-        xx::List_s<xx::List_s<::xx::Pos>> polygons;
+    // 通知: 玩家离开
+    struct Leave : PKG::CatchFish::Events::Event {
 
-        typedef Physics ThisType;
-        typedef xx::Object BaseType;
-	    Physics() = default;
-		Physics(Physics const&) = delete;
-		Physics& operator=(Physics const&) = delete;
+        typedef Leave ThisType;
+        typedef PKG::CatchFish::Events::Event BaseType;
+	    Leave() = default;
+		Leave(Leave const&) = delete;
+		Leave& operator=(Leave const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1342,71 +1363,73 @@ namespace xx {
     template<> struct TypeId<PKG::Generic::Error> { static const uint16_t value = 4; };
     template<> struct TypeId<PKG::Generic::Ping> { static const uint16_t value = 5; };
     template<> struct TypeId<PKG::Generic::Pong> { static const uint16_t value = 6; };
-    template<> struct TypeId<PKG::CatchFish_Client::EnterSuccess> { static const uint16_t value = 66; };
+    template<> struct TypeId<PKG::CatchFish_Client::EnterSuccess> { static const uint16_t value = 7; };
     template<> struct TypeId<PKG::CatchFish::Scene> { static const uint16_t value = 8; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Player_s>> { static const uint16_t value = 67; };
-    template<> struct TypeId<PKG::CatchFish::Player> { static const uint16_t value = 22; };
-    template<> struct TypeId<PKG::CatchFish_Client::FrameEvents> { static const uint16_t value = 68; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Events::Event_s>> { static const uint16_t value = 69; };
-    template<> struct TypeId<PKG::CatchFish::Events::Event> { static const uint16_t value = 28; };
-    template<> struct TypeId<PKG::Client_CatchFish::Enter> { static const uint16_t value = 70; };
-    template<> struct TypeId<PKG::Client_CatchFish::Fire> { static const uint16_t value = 71; };
-    template<> struct TypeId<PKG::Client_CatchFish::Hit> { static const uint16_t value = 72; };
-    template<> struct TypeId<::xx::Random> { static const uint16_t value = 9; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Fish_s>> { static const uint16_t value = 10; };
-    template<> struct TypeId<PKG::CatchFish::Fish> { static const uint16_t value = 11; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Item_s>> { static const uint16_t value = 12; };
-    template<> struct TypeId<PKG::CatchFish::Item> { static const uint16_t value = 13; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::FishBorn_s>> { static const uint16_t value = 14; };
-    template<> struct TypeId<PKG::CatchFish::FishBorn> { static const uint16_t value = 15; };
-    template<> struct TypeId<PKG::CatchFish::Stages::Stage> { static const uint16_t value = 16; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Sits>> { static const uint16_t value = 17; };
-    template<> struct TypeId<xx::List<std::weak_ptr<PKG::CatchFish::Player>>> { static const uint16_t value = 18; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Cannon_s>> { static const uint16_t value = 23; };
-    template<> struct TypeId<PKG::CatchFish::Cannon> { static const uint16_t value = 19; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Weapon_s>> { static const uint16_t value = 24; };
-    template<> struct TypeId<PKG::CatchFish::Weapon> { static const uint16_t value = 25; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Bullet_s>> { static const uint16_t value = 20; };
-    template<> struct TypeId<PKG::CatchFish::Bullet> { static const uint16_t value = 21; };
-    template<> struct TypeId<PKG::CatchFish::MoveItem> { static const uint16_t value = 26; };
-    template<> struct TypeId<PKG::CatchFish::Way> { static const uint16_t value = 49; };
-    template<> struct TypeId<PKG::CatchFish::Timer> { static const uint16_t value = 27; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::WayPoint>> { static const uint16_t value = 64; };
-    template<> struct TypeId<PKG::CatchFish::Events::Enter> { static const uint16_t value = 29; };
-    template<> struct TypeId<PKG::CatchFish::Events::Leave> { static const uint16_t value = 30; };
-    template<> struct TypeId<PKG::CatchFish::Events::NoMoney> { static const uint16_t value = 31; };
-    template<> struct TypeId<PKG::CatchFish::Events::Refund> { static const uint16_t value = 32; };
-    template<> struct TypeId<PKG::CatchFish::Events::FishDead> { static const uint16_t value = 33; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Events::FishDead_s>> { static const uint16_t value = 34; };
-    template<> struct TypeId<PKG::CatchFish::Events::PushWeapon> { static const uint16_t value = 35; };
-    template<> struct TypeId<PKG::CatchFish::Events::PushFish> { static const uint16_t value = 36; };
-    template<> struct TypeId<PKG::CatchFish::Events::OpenAutoLock> { static const uint16_t value = 37; };
-    template<> struct TypeId<PKG::CatchFish::Events::Aim> { static const uint16_t value = 38; };
-    template<> struct TypeId<PKG::CatchFish::Events::CloseAutoLock> { static const uint16_t value = 39; };
-    template<> struct TypeId<PKG::CatchFish::Events::OpenAutoFire> { static const uint16_t value = 40; };
-    template<> struct TypeId<PKG::CatchFish::Events::CloseAutoFire> { static const uint16_t value = 41; };
-    template<> struct TypeId<PKG::CatchFish::Events::Fire> { static const uint16_t value = 42; };
-    template<> struct TypeId<PKG::CatchFish::Events::CannonSwitch> { static const uint16_t value = 43; };
-    template<> struct TypeId<PKG::CatchFish::Events::CannonCoinChange> { static const uint16_t value = 44; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Timer_s>> { static const uint16_t value = 45; };
-    template<> struct TypeId<PKG::CatchFish::Stages::Script> { static const uint16_t value = 46; };
-    template<> struct TypeId<PKG::CatchFish::Configs::Config> { static const uint16_t value = 47; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Way_s>> { static const uint16_t value = 48; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::Fish_s>> { static const uint16_t value = 50; };
-    template<> struct TypeId<PKG::CatchFish::Configs::Fish> { static const uint16_t value = 51; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::Cannon_s>> { static const uint16_t value = 52; };
-    template<> struct TypeId<PKG::CatchFish::Configs::Cannon> { static const uint16_t value = 53; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::Weapon_s>> { static const uint16_t value = 54; };
-    template<> struct TypeId<PKG::CatchFish::Configs::Weapon> { static const uint16_t value = 55; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Stages::Stage_s>> { static const uint16_t value = 56; };
-    template<> struct TypeId<xx::List<::xx::Pos>> { static const uint16_t value = 57; };
-    template<> struct TypeId<PKG::CatchFish::Configs::Item> { static const uint16_t value = 58; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::SpriteFrame_s>> { static const uint16_t value = 59; };
-    template<> struct TypeId<PKG::CatchFish::Configs::SpriteFrame> { static const uint16_t value = 60; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::FishSpriteFrame_s>> { static const uint16_t value = 61; };
-    template<> struct TypeId<PKG::CatchFish::Configs::FishSpriteFrame> { static const uint16_t value = 62; };
-    template<> struct TypeId<PKG::CatchFish::Configs::Physics> { static const uint16_t value = 65; };
-    template<> struct TypeId<xx::List<xx::List_s<::xx::Pos>>> { static const uint16_t value = 63; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Player_s>> { static const uint16_t value = 9; };
+    template<> struct TypeId<PKG::CatchFish::Player> { static const uint16_t value = 10; };
+    template<> struct TypeId<PKG::CatchFish_Client::FrameEvents> { static const uint16_t value = 11; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Events::Event_s>> { static const uint16_t value = 12; };
+    template<> struct TypeId<PKG::CatchFish::Events::Event> { static const uint16_t value = 13; };
+    template<> struct TypeId<PKG::Client_CatchFish::Enter> { static const uint16_t value = 14; };
+    template<> struct TypeId<PKG::Client_CatchFish::Fire> { static const uint16_t value = 15; };
+    template<> struct TypeId<PKG::Client_CatchFish::Hit> { static const uint16_t value = 16; };
+    template<> struct TypeId<::xx::Random> { static const uint16_t value = 17; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Fish_s>> { static const uint16_t value = 18; };
+    template<> struct TypeId<PKG::CatchFish::Fish> { static const uint16_t value = 19; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Item_s>> { static const uint16_t value = 20; };
+    template<> struct TypeId<PKG::CatchFish::Item> { static const uint16_t value = 21; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::FishBorn_s>> { static const uint16_t value = 22; };
+    template<> struct TypeId<PKG::CatchFish::FishBorn> { static const uint16_t value = 23; };
+    template<> struct TypeId<PKG::CatchFish::Stages::Stage> { static const uint16_t value = 24; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Sits>> { static const uint16_t value = 25; };
+    template<> struct TypeId<xx::List<std::weak_ptr<PKG::CatchFish::Player>>> { static const uint16_t value = 26; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Cannon_s>> { static const uint16_t value = 27; };
+    template<> struct TypeId<PKG::CatchFish::Cannon> { static const uint16_t value = 28; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Weapon_s>> { static const uint16_t value = 29; };
+    template<> struct TypeId<PKG::CatchFish::Weapon> { static const uint16_t value = 30; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Bullet_s>> { static const uint16_t value = 31; };
+    template<> struct TypeId<PKG::CatchFish::Bullet> { static const uint16_t value = 32; };
+    template<> struct TypeId<PKG::CatchFish::MoveItem> { static const uint16_t value = 33; };
+    template<> struct TypeId<PKG::CatchFish::Way> { static const uint16_t value = 34; };
+    template<> struct TypeId<PKG::CatchFish::Timer> { static const uint16_t value = 35; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::WayPoint>> { static const uint16_t value = 36; };
+    template<> struct TypeId<PKG::CatchFish::Events::Enter> { static const uint16_t value = 37; };
+    template<> struct TypeId<PKG::CatchFish::Events::Leave> { static const uint16_t value = 38; };
+    template<> struct TypeId<PKG::CatchFish::Events::NoMoney> { static const uint16_t value = 39; };
+    template<> struct TypeId<PKG::CatchFish::Events::Refund> { static const uint16_t value = 40; };
+    template<> struct TypeId<PKG::CatchFish::Events::FishDead> { static const uint16_t value = 41; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Events::FishDead_s>> { static const uint16_t value = 42; };
+    template<> struct TypeId<PKG::CatchFish::Events::PushWeapon> { static const uint16_t value = 43; };
+    template<> struct TypeId<PKG::CatchFish::Events::PushFish> { static const uint16_t value = 44; };
+    template<> struct TypeId<PKG::CatchFish::Events::OpenAutoLock> { static const uint16_t value = 45; };
+    template<> struct TypeId<PKG::CatchFish::Events::Aim> { static const uint16_t value = 46; };
+    template<> struct TypeId<PKG::CatchFish::Events::CloseAutoLock> { static const uint16_t value = 47; };
+    template<> struct TypeId<PKG::CatchFish::Events::OpenAutoFire> { static const uint16_t value = 48; };
+    template<> struct TypeId<PKG::CatchFish::Events::CloseAutoFire> { static const uint16_t value = 49; };
+    template<> struct TypeId<PKG::CatchFish::Events::Fire> { static const uint16_t value = 50; };
+    template<> struct TypeId<PKG::CatchFish::Events::CannonSwitch> { static const uint16_t value = 51; };
+    template<> struct TypeId<PKG::CatchFish::Events::CannonCoinChange> { static const uint16_t value = 52; };
+    template<> struct TypeId<PKG::CatchFish::Events::DebugInfo> { static const uint16_t value = 53; };
+    template<> struct TypeId<xx::List<int32_t>> { static const uint16_t value = 54; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Timer_s>> { static const uint16_t value = 55; };
+    template<> struct TypeId<PKG::CatchFish::Stages::Script> { static const uint16_t value = 56; };
+    template<> struct TypeId<PKG::CatchFish::Configs::Config> { static const uint16_t value = 57; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Way_s>> { static const uint16_t value = 58; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::Fish_s>> { static const uint16_t value = 59; };
+    template<> struct TypeId<PKG::CatchFish::Configs::Fish> { static const uint16_t value = 60; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::Cannon_s>> { static const uint16_t value = 61; };
+    template<> struct TypeId<PKG::CatchFish::Configs::Cannon> { static const uint16_t value = 62; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::Weapon_s>> { static const uint16_t value = 63; };
+    template<> struct TypeId<PKG::CatchFish::Configs::Weapon> { static const uint16_t value = 64; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Stages::Stage_s>> { static const uint16_t value = 65; };
+    template<> struct TypeId<xx::List<::xx::Pos>> { static const uint16_t value = 66; };
+    template<> struct TypeId<PKG::CatchFish::Configs::Item> { static const uint16_t value = 67; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::SpriteFrame_s>> { static const uint16_t value = 68; };
+    template<> struct TypeId<PKG::CatchFish::Configs::SpriteFrame> { static const uint16_t value = 69; };
+    template<> struct TypeId<xx::List<PKG::CatchFish::Configs::FishSpriteFrame_s>> { static const uint16_t value = 70; };
+    template<> struct TypeId<PKG::CatchFish::Configs::FishSpriteFrame> { static const uint16_t value = 71; };
+    template<> struct TypeId<PKG::CatchFish::Configs::Physics> { static const uint16_t value = 72; };
+    template<> struct TypeId<xx::List<xx::List_s<::xx::Pos>>> { static const uint16_t value = 73; };
 }
 namespace PKG {
 namespace Generic {
@@ -1539,7 +1562,7 @@ namespace Generic {
 }
 namespace CatchFish_Client {
     inline uint16_t EnterSuccess::GetTypeId() const noexcept {
-        return 66;
+        return 7;
     }
     inline void EnterSuccess::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->scene);
@@ -1583,7 +1606,7 @@ namespace CatchFish_Client {
         xx::Append(s, ", \"self\":", this->self);
     }
     inline uint16_t FrameEvents::GetTypeId() const noexcept {
-        return 68;
+        return 11;
     }
     inline void FrameEvents::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->frameNumber);
@@ -1623,7 +1646,7 @@ namespace CatchFish_Client {
 }
 namespace Client_CatchFish {
     inline uint16_t Enter::GetTypeId() const noexcept {
-        return 70;
+        return 14;
     }
     inline void Enter::ToBBuffer(xx::BBuffer& bb) const noexcept {
     }
@@ -1651,7 +1674,7 @@ namespace Client_CatchFish {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t Fire::GetTypeId() const noexcept {
-        return 71;
+        return 15;
     }
     inline void Fire::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->frameNumber);
@@ -1691,7 +1714,7 @@ namespace Client_CatchFish {
         xx::Append(s, ", \"pos\":", this->pos);
     }
     inline uint16_t Hit::GetTypeId() const noexcept {
-        return 72;
+        return 16;
     }
     inline void Hit::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->cannonId);
@@ -1832,7 +1855,7 @@ namespace CatchFish {
         xx::Append(s, ", \"players\":", this->players);
     }
     inline uint16_t Player::GetTypeId() const noexcept {
-        return 22;
+        return 10;
     }
     inline void Player::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->id);
@@ -1906,7 +1929,7 @@ namespace CatchFish {
         xx::Append(s, ", \"weapons\":", this->weapons);
     }
     inline uint16_t Item::GetTypeId() const noexcept {
-        return 13;
+        return 21;
     }
     inline void Item::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->id);
@@ -1940,7 +1963,7 @@ namespace CatchFish {
         xx::Append(s, ", \"indexAtContainer\":", this->indexAtContainer);
     }
     inline uint16_t Cannon::GetTypeId() const noexcept {
-        return 19;
+        return 28;
     }
     inline void Cannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->id);
@@ -1987,7 +2010,7 @@ namespace CatchFish {
         xx::Append(s, ", \"bullets\":", this->bullets);
     }
     inline uint16_t MoveItem::GetTypeId() const noexcept {
-        return 26;
+        return 33;
     }
     inline void MoveItem::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2024,7 +2047,7 @@ namespace CatchFish {
         xx::Append(s, ", \"angle\":", this->angle);
     }
     inline uint16_t Bullet::GetTypeId() const noexcept {
-        return 21;
+        return 32;
     }
     inline void Bullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2061,7 +2084,7 @@ namespace CatchFish {
         xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t Fish::GetTypeId() const noexcept {
-        return 11;
+        return 19;
     }
     inline void Fish::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2128,7 +2151,7 @@ namespace CatchFish {
         xx::Append(s, ", \"reverse\":", this->reverse);
     }
     inline uint16_t Weapon::GetTypeId() const noexcept {
-        return 25;
+        return 30;
     }
     inline void Weapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2165,7 +2188,7 @@ namespace CatchFish {
         xx::Append(s, ", \"flyFrameNumber\":", this->flyFrameNumber);
     }
     inline uint16_t Timer::GetTypeId() const noexcept {
-        return 27;
+        return 35;
     }
     inline void Timer::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->beginFrameNumber);
@@ -2196,7 +2219,7 @@ namespace CatchFish {
         xx::Append(s, ", \"beginFrameNumber\":", this->beginFrameNumber);
     }
     inline uint16_t FishBorn::GetTypeId() const noexcept {
-        return 15;
+        return 23;
     }
     inline void FishBorn::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2233,7 +2256,7 @@ namespace CatchFish {
         xx::Append(s, ", \"fish\":", this->fish);
     }
     inline uint16_t Way::GetTypeId() const noexcept {
-        return 49;
+        return 34;
     }
     inline void Way::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->points);
@@ -2276,7 +2299,7 @@ namespace CatchFish {
 }
 namespace CatchFish::Events {
     inline uint16_t Event::GetTypeId() const noexcept {
-        return 28;
+        return 13;
     }
     inline void Event::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->playerId);
@@ -2307,7 +2330,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"playerId\":", this->playerId);
     }
     inline uint16_t Enter::GetTypeId() const noexcept {
-        return 29;
+        return 37;
     }
     inline void Enter::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2361,7 +2384,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"cannonCoin\":", this->cannonCoin);
     }
     inline uint16_t Leave::GetTypeId() const noexcept {
-        return 30;
+        return 38;
     }
     inline void Leave::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2392,7 +2415,7 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t NoMoney::GetTypeId() const noexcept {
-        return 31;
+        return 39;
     }
     inline void NoMoney::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2423,7 +2446,7 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t Refund::GetTypeId() const noexcept {
-        return 32;
+        return 40;
     }
     inline void Refund::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2457,7 +2480,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t FishDead::GetTypeId() const noexcept {
-        return 33;
+        return 41;
     }
     inline void FishDead::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2504,7 +2527,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"fishDeads\":", this->fishDeads);
     }
     inline uint16_t PushWeapon::GetTypeId() const noexcept {
-        return 35;
+        return 43;
     }
     inline void PushWeapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2541,7 +2564,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"weapon\":", this->weapon);
     }
     inline uint16_t PushFish::GetTypeId() const noexcept {
-        return 36;
+        return 44;
     }
     inline void PushFish::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2578,7 +2601,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"born\":", this->born);
     }
     inline uint16_t OpenAutoLock::GetTypeId() const noexcept {
-        return 37;
+        return 45;
     }
     inline void OpenAutoLock::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2609,7 +2632,7 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t Aim::GetTypeId() const noexcept {
-        return 38;
+        return 46;
     }
     inline void Aim::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2643,7 +2666,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"fishId\":", this->fishId);
     }
     inline uint16_t CloseAutoLock::GetTypeId() const noexcept {
-        return 39;
+        return 47;
     }
     inline void CloseAutoLock::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2674,7 +2697,7 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t OpenAutoFire::GetTypeId() const noexcept {
-        return 40;
+        return 48;
     }
     inline void OpenAutoFire::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2705,7 +2728,7 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t CloseAutoFire::GetTypeId() const noexcept {
-        return 41;
+        return 49;
     }
     inline void CloseAutoFire::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2736,7 +2759,7 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t Fire::GetTypeId() const noexcept {
-        return 42;
+        return 50;
     }
     inline void Fire::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2782,7 +2805,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t CannonSwitch::GetTypeId() const noexcept {
-        return 43;
+        return 51;
     }
     inline void CannonSwitch::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2816,7 +2839,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"cfgId\":", this->cfgId);
     }
     inline uint16_t CannonCoinChange::GetTypeId() const noexcept {
-        return 44;
+        return 52;
     }
     inline void CannonCoinChange::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2849,10 +2872,48 @@ namespace CatchFish::Events {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"coin\":", this->coin);
     }
+    inline uint16_t DebugInfo::GetTypeId() const noexcept {
+        return 53;
+    }
+    inline void DebugInfo::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        this->BaseType::ToBBuffer(bb);
+        bb.Write(this->fishIds);
+    }
+    inline int DebugInfo::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->fishIds)) return r;
+        return 0;
+    }
+    inline int DebugInfo::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->fishIds) {
+            if (int r = this->fishIds->InitCascade(o)) return r;
+        }
+        return 0;
+    }
+    inline void DebugInfo::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Events.DebugInfo\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void DebugInfo::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"fishIds\":", this->fishIds);
+    }
 }
 namespace CatchFish::Stages {
     inline uint16_t Stage::GetTypeId() const noexcept {
-        return 16;
+        return 24;
     }
     inline void Stage::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->id);
@@ -2896,7 +2957,7 @@ namespace CatchFish::Stages {
         xx::Append(s, ", \"timers\":", this->timers);
     }
     inline uint16_t Script::GetTypeId() const noexcept {
-        return 46;
+        return 56;
     }
     inline void Script::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -2932,7 +2993,7 @@ namespace CatchFish::Stages {
 }
 namespace CatchFish::Configs {
     inline uint16_t Config::GetTypeId() const noexcept {
-        return 47;
+        return 57;
     }
     inline void Config::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->ways);
@@ -3005,7 +3066,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"aimTouchRadius\":", this->aimTouchRadius);
     }
     inline uint16_t Item::GetTypeId() const noexcept {
-        return 58;
+        return 67;
     }
     inline void Item::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->id);
@@ -3049,7 +3110,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"frames\":", this->frames);
     }
     inline uint16_t Fish::GetTypeId() const noexcept {
-        return 51;
+        return 60;
     }
     inline void Fish::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -3122,7 +3183,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"shadowOffset\":", this->shadowOffset);
     }
     inline uint16_t Cannon::GetTypeId() const noexcept {
-        return 53;
+        return 62;
     }
     inline void Cannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -3177,7 +3238,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"distance\":", this->distance);
     }
     inline uint16_t Weapon::GetTypeId() const noexcept {
-        return 55;
+        return 64;
     }
     inline void Weapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
@@ -3220,7 +3281,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"cannon\":", this->cannon);
     }
     inline uint16_t SpriteFrame::GetTypeId() const noexcept {
-        return 60;
+        return 69;
     }
     inline void SpriteFrame::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->plistName);
@@ -3258,7 +3319,7 @@ namespace CatchFish::Configs {
         else xx::Append(s, ", \"frameName\":nil");
     }
     inline uint16_t Physics::GetTypeId() const noexcept {
-        return 65;
+        return 72;
     }
     inline void Physics::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->polygons);
@@ -3293,7 +3354,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"polygons\":", this->polygons);
     }
     inline uint16_t FishSpriteFrame::GetTypeId() const noexcept {
-        return 62;
+        return 71;
     }
     inline void FishSpriteFrame::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->frame);
@@ -3354,71 +3415,73 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::Generic::Error>(4);
 	        xx::BBuffer::Register<PKG::Generic::Ping>(5);
 	        xx::BBuffer::Register<PKG::Generic::Pong>(6);
-	        xx::BBuffer::Register<PKG::CatchFish_Client::EnterSuccess>(66);
+	        xx::BBuffer::Register<PKG::CatchFish_Client::EnterSuccess>(7);
 	        xx::BBuffer::Register<PKG::CatchFish::Scene>(8);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Player_s>>(67);
-	        xx::BBuffer::Register<PKG::CatchFish::Player>(22);
-	        xx::BBuffer::Register<PKG::CatchFish_Client::FrameEvents>(68);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::Event_s>>(69);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Event>(28);
-	        xx::BBuffer::Register<PKG::Client_CatchFish::Enter>(70);
-	        xx::BBuffer::Register<PKG::Client_CatchFish::Fire>(71);
-	        xx::BBuffer::Register<PKG::Client_CatchFish::Hit>(72);
-	        xx::BBuffer::Register<::xx::Random>(9);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Fish_s>>(10);
-	        xx::BBuffer::Register<PKG::CatchFish::Fish>(11);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Item_s>>(12);
-	        xx::BBuffer::Register<PKG::CatchFish::Item>(13);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::FishBorn_s>>(14);
-	        xx::BBuffer::Register<PKG::CatchFish::FishBorn>(15);
-	        xx::BBuffer::Register<PKG::CatchFish::Stages::Stage>(16);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Sits>>(17);
-	        xx::BBuffer::Register<xx::List<std::weak_ptr<PKG::CatchFish::Player>>>(18);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Cannon_s>>(23);
-	        xx::BBuffer::Register<PKG::CatchFish::Cannon>(19);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Weapon_s>>(24);
-	        xx::BBuffer::Register<PKG::CatchFish::Weapon>(25);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Bullet_s>>(20);
-	        xx::BBuffer::Register<PKG::CatchFish::Bullet>(21);
-	        xx::BBuffer::Register<PKG::CatchFish::MoveItem>(26);
-	        xx::BBuffer::Register<PKG::CatchFish::Way>(49);
-	        xx::BBuffer::Register<PKG::CatchFish::Timer>(27);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::WayPoint>>(64);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Enter>(29);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Leave>(30);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::NoMoney>(31);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Refund>(32);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::FishDead>(33);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::FishDead_s>>(34);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::PushWeapon>(35);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::PushFish>(36);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::OpenAutoLock>(37);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Aim>(38);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::CloseAutoLock>(39);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::OpenAutoFire>(40);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::CloseAutoFire>(41);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::Fire>(42);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::CannonSwitch>(43);
-	        xx::BBuffer::Register<PKG::CatchFish::Events::CannonCoinChange>(44);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Timer_s>>(45);
-	        xx::BBuffer::Register<PKG::CatchFish::Stages::Script>(46);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::Config>(47);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Way_s>>(48);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::Fish_s>>(50);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::Fish>(51);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::Cannon_s>>(52);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::Cannon>(53);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::Weapon_s>>(54);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::Weapon>(55);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Stages::Stage_s>>(56);
-	        xx::BBuffer::Register<xx::List<::xx::Pos>>(57);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::Item>(58);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::SpriteFrame_s>>(59);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::SpriteFrame>(60);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::FishSpriteFrame_s>>(61);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::FishSpriteFrame>(62);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::Physics>(65);
-	        xx::BBuffer::Register<xx::List<xx::List_s<::xx::Pos>>>(63);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Player_s>>(9);
+	        xx::BBuffer::Register<PKG::CatchFish::Player>(10);
+	        xx::BBuffer::Register<PKG::CatchFish_Client::FrameEvents>(11);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::Event_s>>(12);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Event>(13);
+	        xx::BBuffer::Register<PKG::Client_CatchFish::Enter>(14);
+	        xx::BBuffer::Register<PKG::Client_CatchFish::Fire>(15);
+	        xx::BBuffer::Register<PKG::Client_CatchFish::Hit>(16);
+	        xx::BBuffer::Register<::xx::Random>(17);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Fish_s>>(18);
+	        xx::BBuffer::Register<PKG::CatchFish::Fish>(19);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Item_s>>(20);
+	        xx::BBuffer::Register<PKG::CatchFish::Item>(21);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::FishBorn_s>>(22);
+	        xx::BBuffer::Register<PKG::CatchFish::FishBorn>(23);
+	        xx::BBuffer::Register<PKG::CatchFish::Stages::Stage>(24);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Sits>>(25);
+	        xx::BBuffer::Register<xx::List<std::weak_ptr<PKG::CatchFish::Player>>>(26);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Cannon_s>>(27);
+	        xx::BBuffer::Register<PKG::CatchFish::Cannon>(28);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Weapon_s>>(29);
+	        xx::BBuffer::Register<PKG::CatchFish::Weapon>(30);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Bullet_s>>(31);
+	        xx::BBuffer::Register<PKG::CatchFish::Bullet>(32);
+	        xx::BBuffer::Register<PKG::CatchFish::MoveItem>(33);
+	        xx::BBuffer::Register<PKG::CatchFish::Way>(34);
+	        xx::BBuffer::Register<PKG::CatchFish::Timer>(35);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::WayPoint>>(36);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Enter>(37);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Leave>(38);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::NoMoney>(39);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Refund>(40);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::FishDead>(41);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::FishDead_s>>(42);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::PushWeapon>(43);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::PushFish>(44);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::OpenAutoLock>(45);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Aim>(46);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::CloseAutoLock>(47);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::OpenAutoFire>(48);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::CloseAutoFire>(49);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::Fire>(50);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::CannonSwitch>(51);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::CannonCoinChange>(52);
+	        xx::BBuffer::Register<PKG::CatchFish::Events::DebugInfo>(53);
+	        xx::BBuffer::Register<xx::List<int32_t>>(54);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Timer_s>>(55);
+	        xx::BBuffer::Register<PKG::CatchFish::Stages::Script>(56);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::Config>(57);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Way_s>>(58);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::Fish_s>>(59);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::Fish>(60);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::Cannon_s>>(61);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::Cannon>(62);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::Weapon_s>>(63);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::Weapon>(64);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Stages::Stage_s>>(65);
+	        xx::BBuffer::Register<xx::List<::xx::Pos>>(66);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::Item>(67);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::SpriteFrame_s>>(68);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::SpriteFrame>(69);
+	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Configs::FishSpriteFrame_s>>(70);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::FishSpriteFrame>(71);
+	        xx::BBuffer::Register<PKG::CatchFish::Configs::Physics>(72);
+	        xx::BBuffer::Register<xx::List<xx::List_s<::xx::Pos>>>(73);
         }
 	};
 	inline AllTypesRegister AllTypesRegisterInstance;   // for auto register at program startup

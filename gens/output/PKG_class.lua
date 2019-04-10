@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'ef6c856004c6a0f1864f73d0e080256a'
+PKG_PkgGenMd5_Value = 'c66c073bc61152e7cd42e3c0a697f7fb'
 
 --[[
 座位列表
@@ -139,7 +139,7 @@ BBuffer.Register( PKG_Generic_Pong )
 ]]
 PKG_CatchFish_Client_EnterSuccess = {
     typeName = "PKG_CatchFish_Client_EnterSuccess",
-    typeId = 66,
+    typeId = 7,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Client_EnterSuccess
@@ -308,7 +308,7 @@ PKG_CatchFish_Scene = {
 BBuffer.Register( PKG_CatchFish_Scene )
 List_PKG_CatchFish_Player_ = {
     typeName = "List_PKG_CatchFish_Player_",
-    typeId = 67,
+    typeId = 9,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Player_
@@ -343,7 +343,7 @@ BBuffer.Register( List_PKG_CatchFish_Player_ )
 ]]
 PKG_CatchFish_Player = {
     typeName = "PKG_CatchFish_Player",
-    typeId = 22,
+    typeId = 10,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Player
@@ -446,7 +446,7 @@ BBuffer.Register( PKG_CatchFish_Player )
 ]]
 PKG_CatchFish_Client_FrameEvents = {
     typeName = "PKG_CatchFish_Client_FrameEvents",
-    typeId = 68,
+    typeId = 11,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Client_FrameEvents
@@ -480,7 +480,7 @@ PKG_CatchFish_Client_FrameEvents = {
 BBuffer.Register( PKG_CatchFish_Client_FrameEvents )
 List_PKG_CatchFish_Events_Event_ = {
     typeName = "List_PKG_CatchFish_Events_Event_",
-    typeId = 69,
+    typeId = 12,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Events_Event_
@@ -515,7 +515,7 @@ BBuffer.Register( List_PKG_CatchFish_Events_Event_ )
 ]]
 PKG_CatchFish_Events_Event = {
     typeName = "PKG_CatchFish_Events_Event",
-    typeId = 28,
+    typeId = 13,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_Event
@@ -546,7 +546,7 @@ BBuffer.Register( PKG_CatchFish_Events_Event )
 ]]
 PKG_Client_CatchFish_Enter = {
     typeName = "PKG_Client_CatchFish_Enter",
-    typeId = 70,
+    typeId = 14,
     Create = function()
         local o = {}
         o.__proto = PKG_Client_CatchFish_Enter
@@ -571,7 +571,7 @@ BBuffer.Register( PKG_Client_CatchFish_Enter )
 ]]
 PKG_Client_CatchFish_Fire = {
     typeName = "PKG_Client_CatchFish_Fire",
-    typeId = 71,
+    typeId = 15,
     Create = function()
         local o = {}
         o.__proto = PKG_Client_CatchFish_Fire
@@ -610,7 +610,7 @@ BBuffer.Register( PKG_Client_CatchFish_Fire )
 ]]
 PKG_Client_CatchFish_Hit = {
     typeName = "PKG_Client_CatchFish_Hit",
-    typeId = 72,
+    typeId = 16,
     Create = function()
         local o = {}
         o.__proto = PKG_Client_CatchFish_Hit
@@ -643,7 +643,7 @@ PKG_Client_CatchFish_Hit = {
 BBuffer.Register( PKG_Client_CatchFish_Hit )
 _xx_Random = {
     typeName = "_xx_Random",
-    typeId = 9,
+    typeId = 17,
     Create = function()
         local o = {}
         o.__proto = _xx_Random
@@ -665,7 +665,7 @@ _xx_Random = {
 BBuffer.Register( _xx_Random )
 List_PKG_CatchFish_Fish_ = {
     typeName = "List_PKG_CatchFish_Fish_",
-    typeId = 10,
+    typeId = 18,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Fish_
@@ -700,7 +700,7 @@ BBuffer.Register( List_PKG_CatchFish_Fish_ )
 ]]
 PKG_CatchFish_Fish = {
     typeName = "PKG_CatchFish_Fish",
-    typeId = 11,
+    typeId = 19,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Fish
@@ -797,7 +797,7 @@ PKG_CatchFish_Fish = {
 BBuffer.Register( PKG_CatchFish_Fish )
 List_PKG_CatchFish_Item_ = {
     typeName = "List_PKG_CatchFish_Item_",
-    typeId = 12,
+    typeId = 20,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Item_
@@ -832,7 +832,7 @@ BBuffer.Register( List_PKG_CatchFish_Item_ )
 ]]
 PKG_CatchFish_Item = {
     typeName = "PKG_CatchFish_Item",
-    typeId = 13,
+    typeId = 21,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Item
@@ -868,7 +868,7 @@ PKG_CatchFish_Item = {
 BBuffer.Register( PKG_CatchFish_Item )
 List_PKG_CatchFish_FishBorn_ = {
     typeName = "List_PKG_CatchFish_FishBorn_",
-    typeId = 14,
+    typeId = 22,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_FishBorn_
@@ -903,7 +903,7 @@ BBuffer.Register( List_PKG_CatchFish_FishBorn_ )
 ]]
 PKG_CatchFish_FishBorn = {
     typeName = "PKG_CatchFish_FishBorn",
-    typeId = 15,
+    typeId = 23,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_FishBorn
@@ -939,7 +939,7 @@ BBuffer.Register( PKG_CatchFish_FishBorn )
 ]]
 PKG_CatchFish_Stages_Stage = {
     typeName = "PKG_CatchFish_Stages_Stage",
-    typeId = 16,
+    typeId = 24,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Stages_Stage
@@ -987,7 +987,7 @@ PKG_CatchFish_Stages_Stage = {
 BBuffer.Register( PKG_CatchFish_Stages_Stage )
 List_PKG_CatchFish_Sits_ = {
     typeName = "List_PKG_CatchFish_Sits_",
-    typeId = 17,
+    typeId = 25,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Sits_
@@ -1019,7 +1019,7 @@ List_PKG_CatchFish_Sits_ = {
 BBuffer.Register( List_PKG_CatchFish_Sits_ )
 List_Weak_PKG_CatchFish_Player_ = {
     typeName = "List_Weak_PKG_CatchFish_Player_",
-    typeId = 18,
+    typeId = 26,
     Create = function()
         local o = {}
         o.__proto = List_Weak_PKG_CatchFish_Player_
@@ -1051,7 +1051,7 @@ List_Weak_PKG_CatchFish_Player_ = {
 BBuffer.Register( List_Weak_PKG_CatchFish_Player_ )
 List_PKG_CatchFish_Cannon_ = {
     typeName = "List_PKG_CatchFish_Cannon_",
-    typeId = 23,
+    typeId = 27,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Cannon_
@@ -1086,7 +1086,7 @@ BBuffer.Register( List_PKG_CatchFish_Cannon_ )
 ]]
 PKG_CatchFish_Cannon = {
     typeName = "PKG_CatchFish_Cannon",
-    typeId = 19,
+    typeId = 28,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Cannon
@@ -1140,7 +1140,7 @@ PKG_CatchFish_Cannon = {
 BBuffer.Register( PKG_CatchFish_Cannon )
 List_PKG_CatchFish_Weapon_ = {
     typeName = "List_PKG_CatchFish_Weapon_",
-    typeId = 24,
+    typeId = 29,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Weapon_
@@ -1175,7 +1175,7 @@ BBuffer.Register( List_PKG_CatchFish_Weapon_ )
 ]]
 PKG_CatchFish_Weapon = {
     typeName = "PKG_CatchFish_Weapon",
-    typeId = 25,
+    typeId = 30,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Weapon
@@ -1216,7 +1216,7 @@ PKG_CatchFish_Weapon = {
 BBuffer.Register( PKG_CatchFish_Weapon )
 List_PKG_CatchFish_Bullet_ = {
     typeName = "List_PKG_CatchFish_Bullet_",
-    typeId = 20,
+    typeId = 31,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Bullet_
@@ -1251,7 +1251,7 @@ BBuffer.Register( List_PKG_CatchFish_Bullet_ )
 ]]
 PKG_CatchFish_Bullet = {
     typeName = "PKG_CatchFish_Bullet",
-    typeId = 21,
+    typeId = 32,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Bullet
@@ -1293,7 +1293,7 @@ BBuffer.Register( PKG_CatchFish_Bullet )
 ]]
 PKG_CatchFish_MoveItem = {
     typeName = "PKG_CatchFish_MoveItem",
-    typeId = 26,
+    typeId = 33,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_MoveItem
@@ -1335,7 +1335,7 @@ BBuffer.Register( PKG_CatchFish_MoveItem )
 ]]
 PKG_CatchFish_Way = {
     typeName = "PKG_CatchFish_Way",
-    typeId = 49,
+    typeId = 34,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Way
@@ -1378,7 +1378,7 @@ BBuffer.Register( PKG_CatchFish_Way )
 ]]
 PKG_CatchFish_Timer = {
     typeName = "PKG_CatchFish_Timer",
-    typeId = 27,
+    typeId = 35,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Timer
@@ -1406,7 +1406,7 @@ PKG_CatchFish_Timer = {
 BBuffer.Register( PKG_CatchFish_Timer )
 List_PKG_CatchFish_WayPoint_ = {
     typeName = "List_PKG_CatchFish_WayPoint_",
-    typeId = 64,
+    typeId = 36,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_WayPoint_
@@ -1441,7 +1441,7 @@ BBuffer.Register( List_PKG_CatchFish_WayPoint_ )
 ]]
 PKG_CatchFish_Events_Enter = {
     typeName = "PKG_CatchFish_Events_Enter",
-    typeId = 29,
+    typeId = 37,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_Enter
@@ -1517,7 +1517,7 @@ BBuffer.Register( PKG_CatchFish_Events_Enter )
 ]]
 PKG_CatchFish_Events_Leave = {
     typeName = "PKG_CatchFish_Events_Leave",
-    typeId = 30,
+    typeId = 38,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_Leave
@@ -1547,7 +1547,7 @@ BBuffer.Register( PKG_CatchFish_Events_Leave )
 ]]
 PKG_CatchFish_Events_NoMoney = {
     typeName = "PKG_CatchFish_Events_NoMoney",
-    typeId = 31,
+    typeId = 39,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_NoMoney
@@ -1577,7 +1577,7 @@ BBuffer.Register( PKG_CatchFish_Events_NoMoney )
 ]]
 PKG_CatchFish_Events_Refund = {
     typeName = "PKG_CatchFish_Events_Refund",
-    typeId = 32,
+    typeId = 40,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_Refund
@@ -1613,7 +1613,7 @@ BBuffer.Register( PKG_CatchFish_Events_Refund )
 ]]
 PKG_CatchFish_Events_FishDead = {
     typeName = "PKG_CatchFish_Events_FishDead",
-    typeId = 33,
+    typeId = 41,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_FishDead
@@ -1666,7 +1666,7 @@ PKG_CatchFish_Events_FishDead = {
 BBuffer.Register( PKG_CatchFish_Events_FishDead )
 List_PKG_CatchFish_Events_FishDead_ = {
     typeName = "List_PKG_CatchFish_Events_FishDead_",
-    typeId = 34,
+    typeId = 42,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Events_FishDead_
@@ -1701,7 +1701,7 @@ BBuffer.Register( List_PKG_CatchFish_Events_FishDead_ )
 ]]
 PKG_CatchFish_Events_PushWeapon = {
     typeName = "PKG_CatchFish_Events_PushWeapon",
-    typeId = 35,
+    typeId = 43,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_PushWeapon
@@ -1737,7 +1737,7 @@ BBuffer.Register( PKG_CatchFish_Events_PushWeapon )
 ]]
 PKG_CatchFish_Events_PushFish = {
     typeName = "PKG_CatchFish_Events_PushFish",
-    typeId = 36,
+    typeId = 44,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_PushFish
@@ -1773,7 +1773,7 @@ BBuffer.Register( PKG_CatchFish_Events_PushFish )
 ]]
 PKG_CatchFish_Events_OpenAutoLock = {
     typeName = "PKG_CatchFish_Events_OpenAutoLock",
-    typeId = 37,
+    typeId = 45,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_OpenAutoLock
@@ -1803,7 +1803,7 @@ BBuffer.Register( PKG_CatchFish_Events_OpenAutoLock )
 ]]
 PKG_CatchFish_Events_Aim = {
     typeName = "PKG_CatchFish_Events_Aim",
-    typeId = 38,
+    typeId = 46,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_Aim
@@ -1839,7 +1839,7 @@ BBuffer.Register( PKG_CatchFish_Events_Aim )
 ]]
 PKG_CatchFish_Events_CloseAutoLock = {
     typeName = "PKG_CatchFish_Events_CloseAutoLock",
-    typeId = 39,
+    typeId = 47,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_CloseAutoLock
@@ -1869,7 +1869,7 @@ BBuffer.Register( PKG_CatchFish_Events_CloseAutoLock )
 ]]
 PKG_CatchFish_Events_OpenAutoFire = {
     typeName = "PKG_CatchFish_Events_OpenAutoFire",
-    typeId = 40,
+    typeId = 48,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_OpenAutoFire
@@ -1899,7 +1899,7 @@ BBuffer.Register( PKG_CatchFish_Events_OpenAutoFire )
 ]]
 PKG_CatchFish_Events_CloseAutoFire = {
     typeName = "PKG_CatchFish_Events_CloseAutoFire",
-    typeId = 41,
+    typeId = 49,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_CloseAutoFire
@@ -1929,7 +1929,7 @@ BBuffer.Register( PKG_CatchFish_Events_CloseAutoFire )
 ]]
 PKG_CatchFish_Events_Fire = {
     typeName = "PKG_CatchFish_Events_Fire",
-    typeId = 42,
+    typeId = 50,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_Fire
@@ -1991,7 +1991,7 @@ BBuffer.Register( PKG_CatchFish_Events_Fire )
 ]]
 PKG_CatchFish_Events_CannonSwitch = {
     typeName = "PKG_CatchFish_Events_CannonSwitch",
-    typeId = 43,
+    typeId = 51,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_CannonSwitch
@@ -2027,7 +2027,7 @@ BBuffer.Register( PKG_CatchFish_Events_CannonSwitch )
 ]]
 PKG_CatchFish_Events_CannonCoinChange = {
     typeName = "PKG_CatchFish_Events_CannonCoinChange",
-    typeId = 44,
+    typeId = 52,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Events_CannonCoinChange
@@ -2058,9 +2058,77 @@ PKG_CatchFish_Events_CannonCoinChange = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Events_CannonCoinChange )
+--[[
+调试信息( 开发阶段校验用 )
+]]
+PKG_CatchFish_Events_DebugInfo = {
+    typeName = "PKG_CatchFish_Events_DebugInfo",
+    typeId = 53,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Events_DebugInfo
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        鱼id集合
+        ]]
+        o.fishIds = null -- List_Int32_
+        setmetatable( o, PKG_CatchFish_Events_Event.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        o.fishIds = bb:ReadObject()
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        bb:WriteObject( o.fishIds )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Events_DebugInfo )
+List_Int32_ = {
+    typeName = "List_Int32_",
+    typeId = 54,
+    Create = function()
+        local o = {}
+        o.__proto = List_Int32_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadInt32
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteInt32
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_Int32_ )
 List_PKG_CatchFish_Timer_ = {
     typeName = "List_PKG_CatchFish_Timer_",
-    typeId = 45,
+    typeId = 55,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Timer_
@@ -2095,7 +2163,7 @@ BBuffer.Register( List_PKG_CatchFish_Timer_ )
 ]]
 PKG_CatchFish_Stages_Script = {
     typeName = "PKG_CatchFish_Stages_Script",
-    typeId = 46,
+    typeId = 56,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Stages_Script
@@ -2128,7 +2196,7 @@ BBuffer.Register( PKG_CatchFish_Stages_Script )
 ]]
 PKG_CatchFish_Configs_Config = {
     typeName = "PKG_CatchFish_Configs_Config",
-    typeId = 47,
+    typeId = 57,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_Config
@@ -2194,7 +2262,7 @@ PKG_CatchFish_Configs_Config = {
 BBuffer.Register( PKG_CatchFish_Configs_Config )
 List_PKG_CatchFish_Way_ = {
     typeName = "List_PKG_CatchFish_Way_",
-    typeId = 48,
+    typeId = 58,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Way_
@@ -2226,7 +2294,7 @@ List_PKG_CatchFish_Way_ = {
 BBuffer.Register( List_PKG_CatchFish_Way_ )
 List_PKG_CatchFish_Configs_Fish_ = {
     typeName = "List_PKG_CatchFish_Configs_Fish_",
-    typeId = 50,
+    typeId = 59,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Configs_Fish_
@@ -2261,7 +2329,7 @@ BBuffer.Register( List_PKG_CatchFish_Configs_Fish_ )
 ]]
 PKG_CatchFish_Configs_Fish = {
     typeName = "PKG_CatchFish_Configs_Fish",
-    typeId = 51,
+    typeId = 60,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_Fish
@@ -2354,7 +2422,7 @@ PKG_CatchFish_Configs_Fish = {
 BBuffer.Register( PKG_CatchFish_Configs_Fish )
 List_PKG_CatchFish_Configs_Cannon_ = {
     typeName = "List_PKG_CatchFish_Configs_Cannon_",
-    typeId = 52,
+    typeId = 61,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Configs_Cannon_
@@ -2389,7 +2457,7 @@ BBuffer.Register( List_PKG_CatchFish_Configs_Cannon_ )
 ]]
 PKG_CatchFish_Configs_Cannon = {
     typeName = "PKG_CatchFish_Configs_Cannon",
-    typeId = 53,
+    typeId = 62,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_Cannon
@@ -2468,7 +2536,7 @@ PKG_CatchFish_Configs_Cannon = {
 BBuffer.Register( PKG_CatchFish_Configs_Cannon )
 List_PKG_CatchFish_Configs_Weapon_ = {
     typeName = "List_PKG_CatchFish_Configs_Weapon_",
-    typeId = 54,
+    typeId = 63,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Configs_Weapon_
@@ -2503,7 +2571,7 @@ BBuffer.Register( List_PKG_CatchFish_Configs_Weapon_ )
 ]]
 PKG_CatchFish_Configs_Weapon = {
     typeName = "PKG_CatchFish_Configs_Weapon",
-    typeId = 55,
+    typeId = 64,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_Weapon
@@ -2550,7 +2618,7 @@ PKG_CatchFish_Configs_Weapon = {
 BBuffer.Register( PKG_CatchFish_Configs_Weapon )
 List_PKG_CatchFish_Stages_Stage_ = {
     typeName = "List_PKG_CatchFish_Stages_Stage_",
-    typeId = 56,
+    typeId = 65,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Stages_Stage_
@@ -2582,7 +2650,7 @@ List_PKG_CatchFish_Stages_Stage_ = {
 BBuffer.Register( List_PKG_CatchFish_Stages_Stage_ )
 List__xx_Pos_ = {
     typeName = "List__xx_Pos_",
-    typeId = 57,
+    typeId = 66,
     Create = function()
         local o = {}
         o.__proto = List__xx_Pos_
@@ -2617,7 +2685,7 @@ BBuffer.Register( List__xx_Pos_ )
 ]]
 PKG_CatchFish_Configs_Item = {
     typeName = "PKG_CatchFish_Configs_Item",
-    typeId = 58,
+    typeId = 67,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_Item
@@ -2665,7 +2733,7 @@ PKG_CatchFish_Configs_Item = {
 BBuffer.Register( PKG_CatchFish_Configs_Item )
 List_PKG_CatchFish_Configs_SpriteFrame_ = {
     typeName = "List_PKG_CatchFish_Configs_SpriteFrame_",
-    typeId = 59,
+    typeId = 68,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Configs_SpriteFrame_
@@ -2700,7 +2768,7 @@ BBuffer.Register( List_PKG_CatchFish_Configs_SpriteFrame_ )
 ]]
 PKG_CatchFish_Configs_SpriteFrame = {
     typeName = "PKG_CatchFish_Configs_SpriteFrame",
-    typeId = 60,
+    typeId = 69,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_SpriteFrame
@@ -2736,7 +2804,7 @@ PKG_CatchFish_Configs_SpriteFrame = {
 BBuffer.Register( PKG_CatchFish_Configs_SpriteFrame )
 List_PKG_CatchFish_Configs_FishSpriteFrame_ = {
     typeName = "List_PKG_CatchFish_Configs_FishSpriteFrame_",
-    typeId = 61,
+    typeId = 70,
     Create = function()
         local o = {}
         o.__proto = List_PKG_CatchFish_Configs_FishSpriteFrame_
@@ -2771,7 +2839,7 @@ BBuffer.Register( List_PKG_CatchFish_Configs_FishSpriteFrame_ )
 ]]
 PKG_CatchFish_Configs_FishSpriteFrame = {
     typeName = "PKG_CatchFish_Configs_FishSpriteFrame",
-    typeId = 62,
+    typeId = 71,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_FishSpriteFrame
@@ -2828,7 +2896,7 @@ BBuffer.Register( PKG_CatchFish_Configs_FishSpriteFrame )
 ]]
 PKG_CatchFish_Configs_Physics = {
     typeName = "PKG_CatchFish_Configs_Physics",
-    typeId = 65,
+    typeId = 72,
     Create = function()
         local o = {}
         o.__proto = PKG_CatchFish_Configs_Physics
@@ -2856,7 +2924,7 @@ PKG_CatchFish_Configs_Physics = {
 BBuffer.Register( PKG_CatchFish_Configs_Physics )
 List_List__xx_Pos__ = {
     typeName = "List_List__xx_Pos__",
-    typeId = 63,
+    typeId = 73,
     Create = function()
         local o = {}
         o.__proto = List_List__xx_Pos__

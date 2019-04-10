@@ -103,13 +103,20 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	PKG::CatchFish::Way_s MakeBeeline(float const& itemRadius) noexcept;
 
 	// 生成随机鱼
-	std::shared_ptr<Fish> MakeRandomFish() noexcept;
+	void MakeRandomFish() noexcept;
 
 	// 将 Scene 指针刷到所有子
 	virtual int InitCascade(void* const& o = nullptr) noexcept override;
 
 	// 帧逻辑更新
 	virtual int Update(int const& frameNumber = 0) noexcept override;
+
+
+
+	// 调试专用。记录最近 120 fps 的鱼 id 列表, 以便在收到 server 下发的列表之后找出这帧的数据来对比
+	std::unordered_map<int, xx::List<int>> fishIdss;
+
+
 };
 using Scene_s = std::shared_ptr<Scene>;
 using Scene_w = std::weak_ptr<Scene>;
@@ -228,7 +235,7 @@ struct Cannon : PKG::CatchFish::Cannon {
 	virtual int Fire(PKG::Client_CatchFish::Fire_s& o) noexcept;
 
 	// player 在遍历 recvHits 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
-	virtual void Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
+	virtual int Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
 #endif
 
 	int InitCascade(void* const& o) noexcept override;
@@ -416,7 +423,7 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	int HandleFirstPackage() noexcept;
 
 	// 处理一般数据包( 总路由 )
-	int HandlePackages() noexcept;
+	int HandlePackagesOrUpdateScene() noexcept;
 
 	// 分别处理事件包
 	int Handle(PKG::CatchFish::Events::Enter_s o) noexcept;
@@ -434,6 +441,7 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	int Handle(PKG::CatchFish::Events::Fire_s o) noexcept;
 	int Handle(PKG::CatchFish::Events::CannonSwitch_s o) noexcept;
 	int Handle(PKG::CatchFish::Events::CannonCoinChange_s o) noexcept;
+	int Handle(PKG::CatchFish::Events::DebugInfo_s o, int const& frameNumber) noexcept;
 
 
 

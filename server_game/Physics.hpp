@@ -1,5 +1,5 @@
 ﻿inline int Physics::InitCascade(void* const& o) noexcept {
-	assert(!space);
+	if (space) return 0;											// 多鱼共图
 	static_assert(sizeof(cpVect) == sizeof(xx::Pos));
 	if (polygons) {
 		space = cpSpaceNew();

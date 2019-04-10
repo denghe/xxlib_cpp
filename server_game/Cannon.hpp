@@ -25,6 +25,7 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 	auto&& bs = *this->bullets;
 	if (bs.len) {
 		for (size_t i = bs.len - 1; i != -1; --i) {
+			assert(bs[i]->indexAtContainer == (int)i);
 			if (bs[i]->Update(frameNumber)) {
 				bs[bs.len - 1]->indexAtContainer = (int)i;
 				bs.SwapRemoveAt(i);
@@ -42,21 +43,24 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 		// todo: 显示
 	}
 
-	// 输入检测. 炮台角度对准首个 touch 点( 暂定方案 )
-	if (cc_touchs.len) {
-		// 世界坐标
-		auto tloc = cc_touchs[0]->getLocationInView();
+	// 玩家本人的炮可射击
+	if (player == &*::dialer->player) {
+		// 输入检测. 炮台角度对准首个 touch 点( 暂定方案 )
+		if (cc_touchs.len) {
+			// 世界坐标
+			auto tloc = cc_touchs[0]->getLocationInView();
 
-		// 转为游戏坐标系
-		xx::Pos tpos{ tloc.x - ScreenCenter.x, ScreenCenter.y - tloc.y };
+			// 转为游戏坐标系
+			xx::Pos tpos{ tloc.x - ScreenCenter.x, ScreenCenter.y - tloc.y };
 
-		// 算出朝向角度
-		angle = xx::GetAngle(pos, tpos);
+			// 算出朝向角度
+			angle = xx::GetAngle(pos, tpos);
 
-		// 试着发射
-		int r = Fire(frameNumber);
-		if (!r) {
-			// todo: 开始播放炮台开火特效, 音效
+			// 试着发射
+			int r = Fire(frameNumber);
+			if (!r) {
+				// todo: 开始播放炮台开火特效, 音效
+			}
 		}
 	}
 	DrawUpdate();
@@ -66,50 +70,68 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 };
 
 #ifndef CC_TARGET_PLATFORM
-inline void Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
-	// 合法性判断: 如果 bulletId, fishId 找不到就忽略
-	for (auto&& bullet : *bullets) {
-		if (bullet->id == o->bulletId) {
-			for (auto&& fish : *scene->fishs) {
-				if (fish->id == o->fishId) {
-					// 计算是否能打死. 
-					if (scene->serverRnd.Next((int)fish->coin) == 0) {	// 先根据 coin 来计算死亡比例
-						// 算 coin
-						auto&& c = bullet->coin * fish->coin;
-						// 构造鱼死事件包
-						{
-							auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
-							fishDead->bulletId = bullet->id;
-							fishDead->coin = c;
-							fishDead->fishId = fish->id;
-							fishDead->playerId = player->id;
-							scene->frameEvents->events->Add(std::move(fishDead));
+inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
+	// 合法性判断: 如果 bulletId / fishId 找不到就忽略
+	auto&& bs = *this->bullets;
+	if (bs.len) {
+		auto&& fs = *scene->fishs;
+		for (size_t i = bs.len - 1; i != -1; --i) {
+			auto&& b = bs[i];
+			assert(b->indexAtContainer == i);
+			if (b->id == o->bulletId) {
+				if (o->fishId) {
+					bool notFound = true;
+					for (size_t j = fs.len - 1; j != -1; --j) {
+						auto&& f = fs[j];
+						assert(f->indexAtContainer == j);
+						if (f->id == o->fishId) {
+							notFound = false;
+							// 先根据 1/coin 死亡比例 来判断是否打死
+							if (scene->serverRnd.Next((int)f->coin) == 0) {
+								// 算钱
+								auto&& c = b->coin * f->coin;
+								// 构造鱼死事件包
+								{
+									auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+									fishDead->bulletId = b->id;
+									fishDead->coin = c;
+									fishDead->fishId = f->id;
+									fishDead->playerId = player->id;
+									scene->frameEvents->events->Add(std::move(fishDead));
+								}
+								// 加钱
+								player->coin += c;
+								// 删鱼
+								fs[fs.len - 1]->indexAtContainer = (int)j;
+								fs.SwapRemoveAt(j);
+								//xx::CoutN("hit fish dead. ", o);
+							}
+							else {
+								//xx::CoutN("hit fish not dead. ", o);
+							}
+							break;
 						}
-						// 加钱
-						player->coin += c;
-						// 删鱼
-						scene->fishs->At(scene->fishs->len - 1)->indexAtContainer = fish->indexAtContainer;
-						scene->fishs->SwapRemoveAt(fish->indexAtContainer);
-						// 删子弹
-						bullets->At(bullets->len - 1)->indexAtContainer = bullet->indexAtContainer;
-						bullets->SwapRemoveAt(bullet->indexAtContainer);
 					}
-					return;
+					// 打空：构造退钱事件包
+					if (notFound)
+					{
+						auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
+						refund->coin = b->coin;
+						refund->playerId = player->id;
+						scene->frameEvents->events->Add(std::move(refund));
+						//xx::CoutN("hit miss. ", o);
+					}
 				}
+				// 删子弹
+				bs[bs.len - 1]->indexAtContainer = (int)i;
+				bs.SwapRemoveAt(i);
+				return 0;
 			}
-			// 构造退钱事件包
-			{
-				auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-				refund->coin = bullet->coin;
-				refund->playerId = player->id;
-				scene->frameEvents->events->Add(std::move(refund));
-			}
-			// 删子弹
-			bullets->At(bullets->len - 1)->indexAtContainer = bullet->indexAtContainer;
-			bullets->SwapRemoveAt(bullet->indexAtContainer);
-			return;
 		}
 	}
+
+	//xx::CoutN("hit bullet not found. ", o);
+	return 0;
 }
 #endif
 
@@ -131,10 +153,11 @@ inline int Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
 	auto frameNumber = o->frameNumber;
 #else
 inline int Cannon::Fire(int const& frameNumber) noexcept {
+	if (player != &*::dialer->player) return -8;				// 非玩家本人不射击
 #endif
 	if (!quantity) return -3;									// 剩余颗数为 0
 	if (frameNumber < fireCD) return -4;						// CD 中
-	if (bullets->len == cfg->numLimit) return -5;				// 总颗数限制
+	if (bullets->len == cfg->numLimit) return 0;				// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
 	// todo: 更多发射限制检测
 	
 	// 置 cd
@@ -145,7 +168,8 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 		--quantity;
 	}
 
-	auto&& bullet = xx::Make<Bullet>();
+	auto&& bullet = xx::TryMake<Bullet>();
+	if (!bullet) return -6;
 	bullet->indexAtContainer = (int)bullets->len;
 	bullets->Add(bullet);
 	bullet->scene = scene;
@@ -162,12 +186,14 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	bullet->DrawInit();
 
 	// 发包
-	auto&& pkg = xx::Make<PKG::Client_CatchFish::Fire>();
+	auto&& pkg = xx::TryMake<PKG::Client_CatchFish::Fire>();
+	if (!pkg) return -9;
 	pkg->bulletId = bullet->id;
 	pkg->cannonId = this->id;
 	pkg->frameNumber = scene->frameNumber;
 	pkg->pos = bullet->pos;
-	if (int r = ::dialer->peer->SendPush(pkg)) return -6;
+	::dialer->peer->SendPush(pkg);
+	::dialer->peer->Flush();
 
 #else
 	bullet->id = o->bulletId;
@@ -186,6 +212,8 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	fire->tarAngle = bullet->angle;
 	fire->tarPos = bullet->pos;
 	scene->frameEvents->events->Add(std::move(fire));
+
+	//xx::CoutN("fire. ", o);
 #endif
 
 	return 0;

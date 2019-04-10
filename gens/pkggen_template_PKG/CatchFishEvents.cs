@@ -150,5 +150,17 @@ namespace CatchFish
             long coin;
         }
 
+
+
+
+        [Desc("调试信息( 开发阶段校验用 )")]
+        class DebugInfo : Event
+        {
+            [Desc("鱼id集合")]
+            List<int> fishIds;
+
+            // todo: more
+        }
+
     }
 }

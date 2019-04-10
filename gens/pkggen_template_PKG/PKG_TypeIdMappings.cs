@@ -12,134 +12,138 @@ interface ITypeIdMappings
 
     Generic.Pong _6 { get; }
 
-    CatchFish_Client.EnterSuccess _66 { get; }
+    CatchFish_Client.EnterSuccess _7 { get; }
 
     CatchFish.Scene _8 { get; }
 
-    List<CatchFish.Player> _67 { get; }
+    List<CatchFish.Player> _9 { get; }
 
-    CatchFish.Player _22 { get; }
+    CatchFish.Player _10 { get; }
 
-    CatchFish_Client.FrameEvents _68 { get; }
+    CatchFish_Client.FrameEvents _11 { get; }
 
-    List<CatchFish.Events.Event> _69 { get; }
+    List<CatchFish.Events.Event> _12 { get; }
 
-    CatchFish.Events.Event _28 { get; }
+    CatchFish.Events.Event _13 { get; }
 
-    Client_CatchFish.Enter _70 { get; }
+    Client_CatchFish.Enter _14 { get; }
 
-    Client_CatchFish.Fire _71 { get; }
+    Client_CatchFish.Fire _15 { get; }
 
-    Client_CatchFish.Hit _72 { get; }
+    Client_CatchFish.Hit _16 { get; }
 
-    xx.Random _9 { get; }
+    xx.Random _17 { get; }
 
-    List<CatchFish.Fish> _10 { get; }
+    List<CatchFish.Fish> _18 { get; }
 
-    CatchFish.Fish _11 { get; }
+    CatchFish.Fish _19 { get; }
 
-    List<CatchFish.Item> _12 { get; }
+    List<CatchFish.Item> _20 { get; }
 
-    CatchFish.Item _13 { get; }
+    CatchFish.Item _21 { get; }
 
-    List<CatchFish.FishBorn> _14 { get; }
+    List<CatchFish.FishBorn> _22 { get; }
 
-    CatchFish.FishBorn _15 { get; }
+    CatchFish.FishBorn _23 { get; }
 
-    CatchFish.Stages.Stage _16 { get; }
+    CatchFish.Stages.Stage _24 { get; }
 
-    List<CatchFish.Sits> _17 { get; }
+    List<CatchFish.Sits> _25 { get; }
 
-    List<Weak<CatchFish.Player>> _18 { get; }
+    List<Weak<CatchFish.Player>> _26 { get; }
 
-    List<CatchFish.Cannon> _23 { get; }
+    List<CatchFish.Cannon> _27 { get; }
 
-    CatchFish.Cannon _19 { get; }
+    CatchFish.Cannon _28 { get; }
 
-    List<CatchFish.Weapon> _24 { get; }
+    List<CatchFish.Weapon> _29 { get; }
 
-    CatchFish.Weapon _25 { get; }
+    CatchFish.Weapon _30 { get; }
 
-    List<CatchFish.Bullet> _20 { get; }
+    List<CatchFish.Bullet> _31 { get; }
 
-    CatchFish.Bullet _21 { get; }
+    CatchFish.Bullet _32 { get; }
 
-    CatchFish.MoveItem _26 { get; }
+    CatchFish.MoveItem _33 { get; }
 
-    CatchFish.Way _49 { get; }
+    CatchFish.Way _34 { get; }
 
-    CatchFish.Timer _27 { get; }
+    CatchFish.Timer _35 { get; }
 
-    List<CatchFish.WayPoint> _64 { get; }
+    List<CatchFish.WayPoint> _36 { get; }
 
-    CatchFish.Events.Enter _29 { get; }
+    CatchFish.Events.Enter _37 { get; }
 
-    CatchFish.Events.Leave _30 { get; }
+    CatchFish.Events.Leave _38 { get; }
 
-    CatchFish.Events.NoMoney _31 { get; }
+    CatchFish.Events.NoMoney _39 { get; }
 
-    CatchFish.Events.Refund _32 { get; }
+    CatchFish.Events.Refund _40 { get; }
 
-    CatchFish.Events.FishDead _33 { get; }
+    CatchFish.Events.FishDead _41 { get; }
 
-    List<CatchFish.Events.FishDead> _34 { get; }
+    List<CatchFish.Events.FishDead> _42 { get; }
 
-    CatchFish.Events.PushWeapon _35 { get; }
+    CatchFish.Events.PushWeapon _43 { get; }
 
-    CatchFish.Events.PushFish _36 { get; }
+    CatchFish.Events.PushFish _44 { get; }
 
-    CatchFish.Events.OpenAutoLock _37 { get; }
+    CatchFish.Events.OpenAutoLock _45 { get; }
 
-    CatchFish.Events.Aim _38 { get; }
+    CatchFish.Events.Aim _46 { get; }
 
-    CatchFish.Events.CloseAutoLock _39 { get; }
+    CatchFish.Events.CloseAutoLock _47 { get; }
 
-    CatchFish.Events.OpenAutoFire _40 { get; }
+    CatchFish.Events.OpenAutoFire _48 { get; }
 
-    CatchFish.Events.CloseAutoFire _41 { get; }
+    CatchFish.Events.CloseAutoFire _49 { get; }
 
-    CatchFish.Events.Fire _42 { get; }
+    CatchFish.Events.Fire _50 { get; }
 
-    CatchFish.Events.CannonSwitch _43 { get; }
+    CatchFish.Events.CannonSwitch _51 { get; }
 
-    CatchFish.Events.CannonCoinChange _44 { get; }
+    CatchFish.Events.CannonCoinChange _52 { get; }
 
-    List<CatchFish.Timer> _45 { get; }
+    CatchFish.Events.DebugInfo _53 { get; }
 
-    CatchFish.Stages.Script _46 { get; }
+    List<int> _54 { get; }
 
-    CatchFish.Configs.Config _47 { get; }
+    List<CatchFish.Timer> _55 { get; }
 
-    List<CatchFish.Way> _48 { get; }
+    CatchFish.Stages.Script _56 { get; }
 
-    List<CatchFish.Configs.Fish> _50 { get; }
+    CatchFish.Configs.Config _57 { get; }
 
-    CatchFish.Configs.Fish _51 { get; }
+    List<CatchFish.Way> _58 { get; }
 
-    List<CatchFish.Configs.Cannon> _52 { get; }
+    List<CatchFish.Configs.Fish> _59 { get; }
 
-    CatchFish.Configs.Cannon _53 { get; }
+    CatchFish.Configs.Fish _60 { get; }
 
-    List<CatchFish.Configs.Weapon> _54 { get; }
+    List<CatchFish.Configs.Cannon> _61 { get; }
 
-    CatchFish.Configs.Weapon _55 { get; }
+    CatchFish.Configs.Cannon _62 { get; }
 
-    List<CatchFish.Stages.Stage> _56 { get; }
+    List<CatchFish.Configs.Weapon> _63 { get; }
 
-    List<xx.Pos> _57 { get; }
+    CatchFish.Configs.Weapon _64 { get; }
 
-    CatchFish.Configs.Item _58 { get; }
+    List<CatchFish.Stages.Stage> _65 { get; }
 
-    List<CatchFish.Configs.SpriteFrame> _59 { get; }
+    List<xx.Pos> _66 { get; }
 
-    CatchFish.Configs.SpriteFrame _60 { get; }
+    CatchFish.Configs.Item _67 { get; }
 
-    List<CatchFish.Configs.FishSpriteFrame> _61 { get; }
+    List<CatchFish.Configs.SpriteFrame> _68 { get; }
 
-    CatchFish.Configs.FishSpriteFrame _62 { get; }
+    CatchFish.Configs.SpriteFrame _69 { get; }
 
-    CatchFish.Configs.Physics _65 { get; }
+    List<CatchFish.Configs.FishSpriteFrame> _70 { get; }
 
-    List<List<xx.Pos>> _63 { get; }
+    CatchFish.Configs.FishSpriteFrame _71 { get; }
+
+    CatchFish.Configs.Physics _72 { get; }
+
+    List<List<xx.Pos>> _73 { get; }
 
 }

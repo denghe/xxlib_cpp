@@ -4,10 +4,13 @@
 }
 
 inline int Scene::Update(int const&) noexcept {
+	++frameNumber;
+
 	// 遍历更新. 倒序扫描, 交换删除. 如果存在内部乱序删除的情况, 则需要 名单机制 或 标记机制 在更新结束之后挨个删掉
 	auto&& fs = *this->fishs;
 	if (fs.len) {
 		for (size_t i = fs.len - 1; i != -1; --i) {
+			assert(fs[i]->indexAtContainer == (int)i);
 			if (fs[i]->Update(frameNumber)) {
 				fs[fs.len - 1]->indexAtContainer = (int)i;
 				fs.SwapRemoveAt(i);
@@ -28,12 +31,22 @@ inline int Scene::Update(int const&) noexcept {
 
 	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
 	if (frameNumber % 64 == 0) {
-		fishs->Add(MakeRandomFish());
+		MakeRandomFish();
 	}
 
 #ifndef CC_TARGET_PLATFORM
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
+
+	//// 下发调试信息
+	//{
+	//	auto&& di = xx::Make<PKG::CatchFish::Events::DebugInfo>();
+	//	xx::MakeTo(di->fishIds);
+	//	for (auto&& f : fs) {
+	//		di->fishIds->Add(f->id);
+	//	}
+	//	frameEvents->events->Add(std::move(di));
+	//}
 
 	// 完整同步数据包( 先不创建 )
 	PKG::CatchFish_Client::EnterSuccess_s enterSuccess;
@@ -42,7 +55,7 @@ inline int Scene::Update(int const&) noexcept {
 	for (auto&& plr_w : *players) {
 		auto&& plr = xx::As<Player>(plr_w.lock());
 		// 只给没断线的发
-		if (plr->peer) {
+		if (plr->peer && !plr->peer->Disposed()) {
 			// 如果是本帧内进入的玩家, 就下发完整同步
 			if (frameEnters.Find(&*plr) != -1) {
 				// 如果没创建就创建之
@@ -56,12 +69,14 @@ inline int Scene::Update(int const&) noexcept {
 					enterSuccess->self = plr_w;
 				}
 				plr->peer->SendPush(enterSuccess);
+				plr->peer->Flush();
 			}
 			// 老玩家直接下发帧事件同步数据
 			else {
 				// 如果有数据就立即下发, 没有就慢发
 				if (frameEvents->events->len || !(frameNumber & 0xF)) {
 					plr->peer->SendPush(frameEvents);
+					plr->peer->Flush();
 				}
 			}
 		}
@@ -72,19 +87,27 @@ inline int Scene::Update(int const&) noexcept {
 	frameEvents->events->Clear();
 #endif
 
-	++frameNumber;
+	//// 调试: 存储 fishIds
+	//{
+	//	xx::List<int> fishIds;
+	//	for (auto&& f : fs) {
+	//		fishIds.Add(f->id);
+	//	}
+	//	fishIdss[frameNumber] = std::move(fishIds);
+	//	fishIdss.erase(frameNumber - 120);
+	//}
+
 	return 0;
 };
 
 
-inline Fish_s Scene::MakeRandomFish() noexcept {
-	int cfgId = 0;
-	auto&& fishCfg = cfg->fishs->At(cfgId);
+inline void Scene::MakeRandomFish() noexcept {
+	auto&& fishCfg = cfg->fishs->At(rnd->Next((int)cfg->fishs->len));
 
 	auto&& fish = xx::Make<Fish>();
 	fish->scene = this;
 	fish->id = ++autoIncId;
-	fish->cfgId = cfgId;
+	fish->cfgId = fishCfg->id;
 	fish->cfg = &*fishCfg;
 	if (fishCfg->minCoin < fishCfg->maxCoin) {
 		fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
@@ -109,7 +132,8 @@ inline Fish_s Scene::MakeRandomFish() noexcept {
 #ifdef CC_TARGET_PLATFORM
 	fish->DrawInit();
 #endif
-	return fish;
+	fish->indexAtContainer = (int)fishs->len;
+	fishs->Add(std::move(fish));
 }
 
 // 填充随机生成的有限角度的能立即出现在屏幕上的线段路径
