@@ -8,12 +8,10 @@ inline int Peer::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept 
 	switch (msg->GetTypeId()) {
 	case xx::TypeId_v<PKG::Generic::Ping>: {
 		pkgPong->ticks = xx::As<PKG::Generic::Ping>(msg)->ticks;
-		SendResponse(serial, pkgPong);
-		break;
+		return SendResponse(serial, pkgPong);
 	}
 	default:
 		return -1;
-		break;
 	}
 }
 
