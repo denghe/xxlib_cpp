@@ -31,7 +31,7 @@ namespace xx
 		inline float distance(Pos const& v) const noexcept {
 			float dx = v.x - x;
 			float dy = v.y - y;
-			return std::sqrtf(dx * dx + dy * dy);
+			return sqrtf(dx * dx + dy * dy);
 		}
 
 #ifdef CC_TARGET_PLATFORM
