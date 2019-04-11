@@ -102,7 +102,7 @@ namespace xx
 		if (from == to) return 0.0f;
 		auto&& len_y = to.y - from.y;
 		auto&& len_x = to.x - from.x;
-		return std::atan2f(len_y, len_x);
+		return atan2f(len_y, len_x);
 	}
 
 	// 以 0,0 为中心旋转. a 为弧度( 角度 * (float(M_PI) / 180.0f) )
