@@ -1,6 +1,29 @@
 inline void Peer::Dispose(int const& flag) noexcept {
 	if (this->Disposed()) return;
-	// todo: kick player?
+	// kick player, if bind
+	if (auto&& p = player_w.lock()) {
+		// unbind
+		player_w.reset();
+		p->peer.reset();
+
+		// remove from all players cross all scene
+		catchFish->players.Remove(p);
+
+		// remove from container scene
+		auto&& ps = *p->scene->players;
+		assert(ps.len);
+		for (size_t i = ps.len - 1; i != -1; --i) {
+			if (ps[i].lock() == p) {
+				ps.SwapRemoveAt(i);
+			}
+		}
+		// �뿪֪ͨ
+		{
+			auto&& leave = xx::Make<PKG::CatchFish::Events::Leave>();
+			leave->playerId = p->id;
+			p->scene->frameEvents->events->Add(std::move(leave));
+		}
+	}
 	this->BaseType::Dispose(flag);
 }
 
@@ -8,6 +31,7 @@ inline int Peer::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept 
 	switch (msg->GetTypeId()) {
 	case xx::TypeId_v<PKG::Generic::Ping>: {
 		pkgPong->ticks = xx::As<PKG::Generic::Ping>(msg)->ticks;
+		this->ResetTimeoutMS(5000);
 		return SendResponse(serial, pkgPong);
 	}
 	default:
