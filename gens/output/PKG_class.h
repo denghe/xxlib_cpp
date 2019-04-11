@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "c66c073bc61152e7cd42e3c0a697f7fb";
+		inline static const std::string value = "c1870a3484db15cf6c9a05c72010db3a";
     };
 
 namespace Generic {
@@ -513,10 +513,10 @@ namespace CatchFish::Events {
     struct Fire : PKG::CatchFish::Events::Event {
         // 起始帧编号 ( 来自客户端 )
         int32_t frameNumber = 0;
+        // 炮台id
+        int32_t cannonId = 0;
         // 子弹id
         int32_t bulletId = 0;
-        // 子弹的发射目标坐标
-        ::xx::Pos tarPos;
         // 子弹的发射角度
         float tarAngle = 0;
         // 币值 / 倍率
@@ -2764,16 +2764,16 @@ namespace CatchFish::Events {
     inline void Fire::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->frameNumber);
+        bb.Write(this->cannonId);
         bb.Write(this->bulletId);
-        bb.Write(this->tarPos);
         bb.Write(this->tarAngle);
         bb.Write(this->coin);
     }
     inline int Fire::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->frameNumber)) return r;
+        if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
-        if (int r = bb.Read(this->tarPos)) return r;
         if (int r = bb.Read(this->tarAngle)) return r;
         if (int r = bb.Read(this->coin)) return r;
         return 0;
@@ -2799,8 +2799,8 @@ namespace CatchFish::Events {
     inline void Fire::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
+        xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"bulletId\":", this->bulletId);
-        xx::Append(s, ", \"tarPos\":", this->tarPos);
         xx::Append(s, ", \"tarAngle\":", this->tarAngle);
         xx::Append(s, ", \"coin\":", this->coin);
     }

@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "c66c073bc61152e7cd42e3c0a697f7fb"; 
+        public const string value = "c1870a3484db15cf6c9a05c72010db3a"; 
     }
 
 namespace CatchFish
@@ -2312,13 +2312,13 @@ namespace CatchFish.Events
         /// </summary>
         public int frameNumber;
         /// <summary>
+        /// 炮台id
+        /// </summary>
+        public int cannonId;
+        /// <summary>
         /// 子弹id
         /// </summary>
         public int bulletId;
-        /// <summary>
-        /// 子弹的发射目标坐标
-        /// </summary>
-        public xx.Pos tarPos;
         /// <summary>
         /// 子弹的发射角度
         /// </summary>
@@ -2337,8 +2337,8 @@ namespace CatchFish.Events
         {
             base.ToBBuffer(bb);
             bb.Write(this.frameNumber);
+            bb.Write(this.cannonId);
             bb.Write(this.bulletId);
-            ((xx.IObject)this.tarPos).ToBBuffer(bb);
             bb.Write(this.tarAngle);
             bb.Write(this.coin);
         }
@@ -2347,8 +2347,8 @@ namespace CatchFish.Events
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.frameNumber);
+            bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
-            ((xx.IObject)this.tarPos).FromBBuffer(bb);
             bb.Read(ref this.tarAngle);
             bb.Read(ref this.coin);
         }
@@ -2371,8 +2371,8 @@ namespace CatchFish.Events
         {
             base.ToStringCore(s);
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
+            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
-            s.Append(", \"tarPos\":" + tarPos.ToString());
             s.Append(", \"tarAngle\":" + tarAngle.ToString());
             s.Append(", \"coin\":" + coin.ToString());
         }

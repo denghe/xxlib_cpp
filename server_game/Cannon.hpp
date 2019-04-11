@@ -10,6 +10,7 @@
 		auto&& b = xx::As<Bullet>(bullet);
 		b->player = player;
 		b->cannon = this;
+		b->cfg = cfg;
 	}
 
 	if (int r = this->BaseType::InitCascade(o)) return r;
@@ -44,7 +45,7 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 	}
 
 	// 玩家本人的炮可射击
-	if (player == &*::dialer->player) {
+	if (player->isSelf) {
 		// 输入检测. 炮台角度对准首个 touch 点( 暂定方案 )
 		if (cc_touchs.len) {
 			// 世界坐标
@@ -153,20 +154,23 @@ inline int Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
 	auto frameNumber = o->frameNumber;
 #else
 inline int Cannon::Fire(int const& frameNumber) noexcept {
-	if (player != &*::dialer->player) return -8;				// 非玩家本人不射击
+	if (player->isSelf) {
 #endif
-	if (!quantity) return -3;									// 剩余颗数为 0
-	if (frameNumber < fireCD) return -4;						// CD 中
-	if (bullets->len == cfg->numLimit) return 0;				// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
-	// todo: 更多发射限制检测
-	
-	// 置 cd
-	fireCD = frameNumber + cfg->fireCD;
+		if (!quantity) return -3;									// 剩余颗数为 0
+		if (frameNumber < fireCD) return -4;						// CD 中
+		if (bullets->len == cfg->numLimit) return 0;				// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
+		// todo: 更多发射限制检测
 
-	// 剩余颗数 -1
-	if (quantity != -1) {
-		--quantity;
+		// 置 cd
+		fireCD = frameNumber + cfg->fireCD;
+
+		// 剩余颗数 -1
+		if (quantity != -1) {
+			--quantity;
+		}
+#ifdef CC_TARGET_PLATFORM
 	}
+#endif
 
 	auto&& bullet = xx::TryMake<Bullet>();
 	if (!bullet) return -6;
@@ -182,25 +186,35 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	bullet->coin = coin;	// 存储发射时炮台的倍率
 	player->coin -= coin;	// 扣钱
 #ifdef CC_TARGET_PLATFORM
-	bullet->id = ++player->autoIncId;
-	bullet->DrawInit();
+	if (player->isSelf) {
+		// 如果是玩家本人就生成子弹id, 直接绘制并发包
+		bullet->id = ++player->autoIncId;
+		bullet->DrawInit();
 
-	// 发包
-	auto&& pkg = xx::TryMake<PKG::Client_CatchFish::Fire>();
-	if (!pkg) return -9;
-	pkg->bulletId = bullet->id;
-	pkg->cannonId = this->id;
-	pkg->frameNumber = scene->frameNumber;
-	pkg->pos = bullet->pos;
-	::dialer->peer->SendPush(pkg);
-	::dialer->peer->Flush();
-
+		auto&& pkg = xx::TryMake<PKG::Client_CatchFish::Fire>();
+		if (!pkg) return -9;
+		pkg->bulletId = bullet->id;
+		pkg->cannonId = this->id;
+		pkg->frameNumber = scene->frameNumber;
+		pkg->pos = bullet->pos;
+		::dialer->peer->SendPush(pkg);
+		::dialer->peer->Flush();
+	}
+	else {
+		// 其他玩家: 子弹追帧并绘制
+		auto&& times = scene->frameNumber - frameNumber;
+		assert(times >= 0);
+		while (--times > 0) {
+			if (int r = bullet->Move()) return 0;
+		}
+		bullet->DrawInit();
+	}
 #else
 	bullet->id = o->bulletId;
 
 	// 追帧. 令子弹轨迹运行至当前帧编号
 	while (frameNumber++ < scene->frameNumber) {
-		if (int r = bullet->Update(frameNumber)) return 0;
+		if (int r = bullet->Move()) return 0;
 	}
 
 	// 创建发射事件( 根据追帧后的结果来下发, 减少接收端追帧强度 )
@@ -209,8 +223,8 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	fire->coin = bullet->coin;
 	fire->frameNumber = scene->frameNumber;
 	fire->playerId = player->id;
+	fire->cannonId = id;
 	fire->tarAngle = bullet->angle;
-	fire->tarPos = bullet->pos;
 	scene->frameEvents->events->Add(std::move(fire));
 
 	//xx::CoutN("fire. ", o);

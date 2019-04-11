@@ -77,6 +77,7 @@ inline int Scene::Update(int const&) noexcept {
 				if (frameEvents->events->len || !(frameNumber & 0xF)) {
 					plr->peer->SendPush(frameEvents);
 					plr->peer->Flush();
+					//xx::CoutN(frameEvents->events->len);
 				}
 			}
 		}

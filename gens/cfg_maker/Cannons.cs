@@ -22,7 +22,7 @@ public static class Cannons
             c.muzzleLen = 200;
             c.numLimit = 10;
             c.scale = 0.5f;
-            c.fireCD = 1;
+            c.fireCD = 6;
             c.zOrder = 100;
             c.radius = 8;
             c.maxRadius = 200;

@@ -536,13 +536,13 @@ namespace xx {
 		std::function<int(int const& serial, Object_s&& msg)> OnReceiveRequest;
 		inline virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept { return OnReceiveRequest ? OnReceiveRequest(serial, std::move(msg)) : 0; };
 
-		inline int SendPush(Object_s const& data) {
+		inline int SendPush(Object_s const& data) noexcept {
 			return this->SendPackage(data);
 		}
-		inline int SendResponse(int32_t const& serial, Object_s const& data, int const& tar = 0) {
+		inline int SendResponse(int32_t const& serial, Object_s const& data, int const& tar = 0) noexcept {
 			return this->SendPackage(data, serial);
 		}
-		inline int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS = 0) {
+		inline int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS = 0) noexcept {
 			if (this->Disposed()) return -1;
 			std::pair<std::function<int(Object_s&& msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use

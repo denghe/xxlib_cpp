@@ -96,7 +96,9 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			enter->cannonCfgId = player->cannons->At(0)->cfgId;
 			enter->cannonCoin = player->cannons->At(0)->coin;
 			enter->coin = player->coin;
+			enter->nickname = player->nickname;
 			enter->noMoney = player->noMoney;
+			enter->playerId = player->id;
 			enter->sit = player->sit;
 			scene.frameEvents->events->Add(enter);
 			break;

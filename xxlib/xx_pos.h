@@ -8,34 +8,34 @@ namespace xx
 	{
 		float x = 0, y = 0;
 
-		inline bool operator==(const Pos& v) const {
+		inline bool operator==(const Pos& v) const noexcept {
 			return x == v.x && y == v.y;
 		}
-		inline Pos& operator+=(Pos const& v) {
+		inline Pos& operator+=(Pos const& v) noexcept {
 			x += v.x;
 			y += v.y;
 			return *this;
 		}
-		inline Pos operator+(Pos const& v) const {
+		inline Pos operator+(Pos const& v) const noexcept {
 			return Pos{ x + v.x, y + v.y };
 		}
-		inline Pos operator-(Pos const& v) const {
+		inline Pos operator-(Pos const& v) const noexcept {
 			return Pos{ x - v.x, y - v.y };
 		}
-		inline Pos operator*(float const& s) const {
+		inline Pos operator*(float const& s) const noexcept {
 			return Pos{ x * s, y * s };
 		}
-		inline Pos operator/(float const& s) const {
+		inline Pos operator/(float const& s) const noexcept {
 			return Pos{ x / s, y / s };
 		}
-		inline float distance(Pos const& v) const {
+		inline float distance(Pos const& v) const noexcept {
 			float dx = v.x - x;
 			float dy = v.y - y;
-			return sqrtf(dx * dx + dy * dy);
+			return std::sqrtf(dx * dx + dy * dy);
 		}
 
 #ifdef CC_TARGET_PLATFORM
-		inline operator cocos2d::Vec2() const {
+		inline operator cocos2d::Vec2() const noexcept {
 			return *(cocos2d::Vec2*)this;
 		}
 #endif
@@ -66,7 +66,7 @@ namespace xx
 	};
 
 	// 判断两线段( p0-p1, p2-p3 )是否相交, 并且往 p 填充交点
-	inline bool GetSegmentIntersection(Pos const& p0, Pos const& p1, Pos const& p2, Pos const& p3, Pos* const& p = nullptr) {
+	inline bool GetSegmentIntersection(Pos const& p0, Pos const& p1, Pos const& p2, Pos const& p3, Pos* const& p = nullptr) noexcept {
 		Pos s02, s10, s32;
 		float s_numer, t_numer, denom, t;
 		s10.x = p1.x - p0.x;
@@ -97,16 +97,16 @@ namespace xx
 	}
 
 	// 计算直线的弧度( 转为角度还要  * (180.0f / float(M_PI) )
-	inline float GetAngle(Pos const& from, Pos const& to)
+	inline float GetAngle(Pos const& from, Pos const& to) noexcept
 	{
 		if (from == to) return 0.0f;
 		auto&& len_y = to.y - from.y;
 		auto&& len_x = to.x - from.x;
-		return atan2f(len_y, len_x);
+		return std::atan2f(len_y, len_x);
 	}
 
 	// 以 0,0 为中心旋转. a 为弧度( 角度 * (float(M_PI) / 180.0f) )
-	inline Pos Rotate(Pos const& pos, float const& a)
+	inline Pos Rotate(Pos const& pos, float const& a) noexcept
 	{
 		auto&& sinA = sinf(a);
 		auto&& cosA = cosf(a);

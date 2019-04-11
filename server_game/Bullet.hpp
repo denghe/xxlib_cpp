@@ -23,7 +23,7 @@
 	return 0;
 }
 
-inline int Bullet::Update(int const& frameNumber) noexcept {
+inline int Bullet::Move() noexcept {
 	pos += moveInc;
 
 	// 飞出屏幕就消失
@@ -40,7 +40,11 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 #endif
 		return -1;
 	}
+	return 0;
+}
 
+inline int Bullet::Update(int const& frameNumber) noexcept {
+	if (int r = Move()) return r;
 #ifdef CC_TARGET_PLATFORM
 	// 遍历所有鱼
 	auto&& fs = *scene->fishs;

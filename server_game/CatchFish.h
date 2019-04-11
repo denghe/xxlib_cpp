@@ -172,13 +172,13 @@ struct Player : PKG::CatchFish::Player {
 	// 所在场景
 	Scene* scene = nullptr;
 
+#ifndef CC_TARGET_PLATFORM
 	//// 令牌
 	//std::string token;
 
 	// 开炮等行为花掉的金币数汇总 ( 统计 )
 	int64_t consumeCoin = 0;
 
-#ifndef CC_TARGET_PLATFORM
 	// 绑定的网络连接
 	std::shared_ptr<Peer> peer;
 
@@ -276,6 +276,9 @@ struct Bullet : PKG::CatchFish::Bullet {
 	int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
 	~Bullet();
+
+	// 移动子弹。如果生命周期结束将返回非 0
+	int Move() noexcept;
 
 #ifdef CC_TARGET_PLATFORM
 	cocos2d::Sprite* body = nullptr;

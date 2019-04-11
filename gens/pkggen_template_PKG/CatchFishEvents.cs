@@ -123,11 +123,11 @@ namespace CatchFish
             [Desc("起始帧编号 ( 来自客户端 )")]
             int frameNumber;
 
+            [Desc("炮台id")]
+            int cannonId;
+
             [Desc("子弹id")]
             int bulletId;
-
-            [Desc("子弹的发射目标坐标")]
-            xx.Pos tarPos;
 
             [Desc("子弹的发射角度")]
             float tarAngle;

@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'c66c073bc61152e7cd42e3c0a697f7fb'
+PKG_PkgGenMd5_Value = 'c1870a3484db15cf6c9a05c72010db3a'
 
 --[[
 座位列表
@@ -1946,13 +1946,13 @@ PKG_CatchFish_Events_Fire = {
         ]]
         o.frameNumber = 0 -- Int32
         --[[
+        炮台id
+        ]]
+        o.cannonId = 0 -- Int32
+        --[[
         子弹id
         ]]
         o.bulletId = 0 -- Int32
-        --[[
-        子弹的发射目标坐标
-        ]]
-        o.tarPos = null -- _xx_Pos
         --[[
         子弹的发射角度
         ]]
@@ -1969,8 +1969,8 @@ PKG_CatchFish_Events_Fire = {
         p.__proto.FromBBuffer( bb, p )
         local ReadInt32 = bb.ReadInt32
         o.frameNumber = ReadInt32( bb )
+        o.cannonId = ReadInt32( bb )
         o.bulletId = ReadInt32( bb )
-        o.tarPos = bb:ReadObject()
         o.tarAngle = bb:ReadSingle()
         o.coin = bb:ReadInt64()
     end,
@@ -1979,8 +1979,8 @@ PKG_CatchFish_Events_Fire = {
         p.__proto.ToBBuffer( bb, p )
         local WriteInt32 = bb.WriteInt32
         WriteInt32( bb, o.frameNumber )
+        WriteInt32( bb, o.cannonId )
         WriteInt32( bb, o.bulletId )
-        bb:WriteObject( o.tarPos )
         bb:WriteSingle( o.tarAngle )
         bb:WriteInt64( o.coin )
     end
