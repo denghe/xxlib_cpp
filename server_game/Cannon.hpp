@@ -217,11 +217,11 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 		if (int r = bullet->Move()) return 0;
 	}
 
-	// 创建发射事件( 根据追帧后的结果来下发, 减少接收端追帧强度 )
+	// 创建发射事件
 	auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
 	fire->bulletId = bullet->id;
 	fire->coin = bullet->coin;
-	fire->frameNumber = o->frameNumber;
+	fire->frameNumber = o->frameNumber;				// 有些子弹不信任 client 帧编号, 下发 scene->frameNumber
 	fire->playerId = player->id;
 	fire->cannonId = id;
 	fire->tarAngle = bullet->angle;

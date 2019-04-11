@@ -176,8 +176,8 @@ struct Player : PKG::CatchFish::Player {
 	//// 令牌
 	//std::string token;
 
-	// 开炮等行为花掉的金币数汇总 ( 统计 )
-	int64_t consumeCoin = 0;
+	//// 开炮等行为花掉的金币数汇总 ( 统计 )
+	//int64_t consumeCoin = 0;
 
 	// 绑定的网络连接
 	std::shared_ptr<Peer> peer;
@@ -355,8 +355,14 @@ struct Peer : xx::UvKcpPeer {
 	// Enter 成功后绑定到玩家
 	Player_w player_w;
 
+	// pong package cache for send
+	inline static PKG::Generic::Pong_s pkgPong = xx::Make<PKG::Generic::Pong>();
+
 	// 处理推送
 	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
+
+	virtual int ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept override;
+
 	virtual void Dispose(int const& flag = 1) noexcept override;
 };
 

@@ -26,7 +26,7 @@ public static class Cannons
             c.zOrder = 100;
             c.radius = 8;
             c.maxRadius = 200;
-            c.distance = 720 / 60;  // 一秒钟上下穿越屏幕?
+            c.distance = 720 / 120;  // 2秒钟上下穿越屏幕?
         }
     }
 

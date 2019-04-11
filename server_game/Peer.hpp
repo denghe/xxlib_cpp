@@ -4,6 +4,19 @@ inline void Peer::Dispose(int const& flag) noexcept {
 	this->BaseType::Dispose(flag);
 }
 
+inline int Peer::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept {
+	switch (msg->GetTypeId()) {
+	case xx::TypeId_v<PKG::Generic::Ping>: {
+		pkgPong->ticks = xx::As<PKG::Generic::Ping>(msg)->ticks;
+		SendResponse(serial, pkgPong);
+		break;
+	}
+	default:
+		return -1;
+		break;
+	}
+}
+
 inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 
 	// todo: 简单状态以识别是否为首包. 启用超时机制
@@ -47,7 +60,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			player->avatar_id = 0;
 			xx::MakeTo(player->cannons);
 			player->coin = 1000;
-			player->consumeCoin = 0;
+			//player->consumeCoin = 0;
 			player->id = (int)sit;
 			xx::MakeTo(player->nickname, "player_");
 			player->nickname->append(std::to_string((int)sit));
