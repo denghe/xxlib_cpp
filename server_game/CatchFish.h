@@ -13,6 +13,7 @@
 // ::
 /**************************************************************************************************/
 
+// 是否显示物理碰撞检测线
 #define DRAW_PHYSICS_POLYGON 0
 
 static constexpr int ScreenWidth = 1280;
@@ -323,8 +324,16 @@ struct CatchFish {
 	// 游戏场景实例
 	Scene_s scene;
 
+	// server info( Init 时填充 )
+	std::string serverIp;
+	int serverPort;
+
 	// 初始化( 加载配置文件, .... )
-	int Init(std::string const& cfgName) noexcept;			// todo: 传递 server ip port 啥的
+#ifdef CC_TARGET_PLATFORM
+	int Init(std::string const& ip, int const& port, std::string const& cfgName) noexcept;
+#else
+	int Init(std::string const& cfgName) noexcept;
+#endif
 
 	// logic. 每帧调用一次. 返回非0 表示退出
 	int Update() noexcept;
@@ -400,8 +409,6 @@ struct ClientPeer : xx::UvKcpPeer {
 	using BaseType = xx::UvKcpPeer;
 	using BaseType::BaseType;
 
-	// todo: 状态标志位?
-
 	// 处理推送( 向 dialer.recvs 压入数据 )
 	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
 };
@@ -465,6 +472,11 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 
 	// 指向当前玩家
 	Player_s player;
+
+
+	// ping package cache for send
+	inline static PKG::Generic::Ping_s pkgPing = xx::Make<PKG::Generic::Ping>();
+
 };
 using Dialer_s = std::shared_ptr<Dialer>;
 

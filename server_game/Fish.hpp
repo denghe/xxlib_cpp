@@ -82,16 +82,16 @@ int Fish::HitCheck(Bullet* const& bullet) noexcept {
 	auto d = pos - bullet->pos;
 	auto&& d2 = d.x * d.x + d.y * d.y;
 
-	//// 1 判: 如果有配置最小半径, 即位于圆心的这个半径内 非空心, 一定命中, 如果距离小于两半径和， 则判定成立
-	//if (cfg->minDetectRadius > 0) {
-	//	auto&& r2 = cfg->minDetectRadius * cfg->scale * this->scale + bullet->cfg->radius * bullet->cfg->scale;
-	//	if (r2 * r2 > d2) return 1;
-	//}
-	//// 2 判: 如果有配置最大半径, 即只要进入这个范围, 就可以进一步物理判断, 如果距离超过, 则判定失败
-	//if (cfg->maxDetectRadius > 0) {
-	//	auto&& r2 = cfg->maxDetectRadius * cfg->scale * this->scale + bullet->cfg->radius * bullet->cfg->scale;
-	//	if (r2 * r2 < d2) return 0;
-	//}
+	// 1 判: 如果有配置最小半径, 即位于圆心的这个半径内 非空心, 一定命中, 如果距离小于两半径和， 则判定成立
+	if (cfg->minDetectRadius > 0) {
+		auto&& r2 = cfg->minDetectRadius * cfg->scale * this->scale + bullet->cfg->radius * bullet->cfg->scale;
+		if (r2 * r2 > d2) return 1;
+	}
+	// 2 判: 如果有配置最大半径, 即只要进入这个范围, 就可以进一步物理判断, 如果距离超过, 则判定失败
+	if (cfg->maxDetectRadius > 0) {
+		auto&& r2 = cfg->maxDetectRadius * cfg->scale * this->scale + bullet->cfg->radius * bullet->cfg->scale;
+		if (r2 * r2 < d2) return 0;
+	}
 	// 3 判: 物理检测. 用子弹半径经过坐标转换, 去物理 space 选取 shapes. 如果有选到, 则判定成功
 	auto&& space = xx::As<Physics>(cfg->moveFrames->At(spriteFrameIndex)->physics)->space;
 	auto&& s = cfg->scale * this->scale;

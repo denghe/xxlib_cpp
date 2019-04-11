@@ -186,11 +186,11 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	bullet->coin = coin;	// 存储发射时炮台的倍率
 	player->coin -= coin;	// 扣钱
 #ifdef CC_TARGET_PLATFORM
-	if (player->isSelf) {
-		// 如果是玩家本人就生成子弹id, 直接绘制并发包
-		bullet->id = ++player->autoIncId;
-		bullet->DrawInit();
+	bullet->id = ++player->autoIncId;
+	bullet->DrawInit();
 
+	if (player->isSelf) {
+		// 如果是玩家本人就发包
 		auto&& pkg = xx::TryMake<PKG::Client_CatchFish::Fire>();
 		if (!pkg) return -9;
 		pkg->bulletId = bullet->id;
@@ -201,13 +201,12 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 		::dialer->peer->Flush();
 	}
 	else {
-		// 其他玩家: 子弹追帧并绘制
+		// 其他玩家: 子弹追帧并绘制( 追或不追, 这是个选项 )
 		auto&& times = scene->frameNumber - frameNumber;
 		assert(times >= 0);
 		while (--times > 0) {
 			if (int r = bullet->Move()) return 0;
 		}
-		bullet->DrawInit();
 	}
 #else
 	bullet->id = o->bulletId;

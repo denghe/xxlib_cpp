@@ -574,7 +574,7 @@ namespace xx {
 			else {
 				auto&& iter = callbacks.find(serial);
 				if (iter == callbacks.end()) return 0;
-				auto&& a = std::move(iter->second.first);
+				auto a = std::move(iter->second.first);
 				callbacks.erase(iter);
 				return a(std::move(msg));
 			}
@@ -589,7 +589,7 @@ namespace xx {
 			for (auto&& iter_ = this->callbacks.begin(); iter_ != this->callbacks.end();) {
 				auto&& iter = iter_++;
 				if (iter->second.second < nowMS) {
-					auto&& a = std::move(iter->second.first);
+					auto a = std::move(iter->second.first);
 					this->callbacks.erase(iter);
 					a(nullptr);
 				}

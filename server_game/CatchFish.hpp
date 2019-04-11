@@ -26,54 +26,18 @@ inline CatchFish::~CatchFish() {
 }
 
 
+#ifndef CC_TARGET_PLATFORM
 inline int CatchFish::Init(std::string const& cfgName) noexcept {
-#ifdef CC_TARGET_PLATFORM
-	assert(!cc_scene);
-	// 初始化 cocos 相关
-	cc_scene = cocos2d::Director::getInstance()->getRunningScene();
-	cc_listener = cocos2d::EventListenerTouchAllAtOnce::create();
-	cc_listener->retain();
-	cc_listener->onTouchesBegan = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
-		cc_touchs.AddRange(ts.data(), ts.size());
-	};
-	cc_listener->onTouchesMoved = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
-	};
-	cc_listener->onTouchesEnded = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
-		for (auto&& t : ts) {
-			cc_touchs.Remove(t);
-		}
-	};
-	cc_listener->onTouchesCancelled = cc_listener->onTouchesEnded;
-	cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(cc_listener, cc_scene);
-#endif
-
 	// 从文件加载 cfg. 出问题返回非 0
 	{
-#ifndef CC_TARGET_PLATFORM
 		xx::BBuffer bb;
 		if (int r = ReadFile(cfgName.c_str(), bb)) return r;
 		if (int r = bb.ReadRoot(cfg)) return r;
-#else
-		auto && data = cocos2d::FileUtils::getInstance()->getDataFromFile(cfgName);
-		xx::BBuffer bb;
-		bb.Reset(data.getBytes(), data.getSize());
-		auto && r = bb.ReadRoot(cfg);
-		bb.Reset();
-		if (r) return r;
-#endif
 	}
-
 	// 初始化派生类的东西
 	if (int r = cfg->InitCascade()) return r;
 
-
-#ifdef CC_TARGET_PLATFORM
-	// 存易用单例
-	::catchFish = this;
-
-	// 初始化拨号器
-	xx::MakeTo(::dialer, *uv);
-#else
+	// 场景初始化
 	xx::MakeTo(scene);
 	xx::MakeTo(scene->borns);
 	xx::MakeTo(scene->fishs);
@@ -91,7 +55,50 @@ inline int CatchFish::Init(std::string const& cfgName) noexcept {
 		, PKG::CatchFish::Sits::RightTop
 		, PKG::CatchFish::Sits::RightBottom
 		, PKG::CatchFish::Sits::LeftBottom);
+#else
+inline int CatchFish::Init(std::string const& ip, int const& port, std::string const& cfgName) noexcept {
+	// 暂存 ip, port
+	serverIp = ip;
+	serverPort = port;
+
+	assert(!cc_scene);
+	// 初始化 cocos 相关
+	cc_scene = cocos2d::Director::getInstance()->getRunningScene();
+	cc_listener = cocos2d::EventListenerTouchAllAtOnce::create();
+	cc_listener->retain();
+	cc_listener->onTouchesBegan = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
+		cc_touchs.AddRange(ts.data(), ts.size());
+	};
+	cc_listener->onTouchesMoved = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
+	};
+	cc_listener->onTouchesEnded = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
+		for (auto&& t : ts) {
+			cc_touchs.Remove(t);
+		}
+	};
+	cc_listener->onTouchesCancelled = cc_listener->onTouchesEnded;
+	cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(cc_listener, cc_scene);
+
+	// 从文件加载 cfg. 出问题返回非 0
+	{
+		auto&& data = cocos2d::FileUtils::getInstance()->getDataFromFile(cfgName);
+		xx::BBuffer bb;
+		bb.Reset(data.getBytes(), data.getSize());
+		auto&& r = bb.ReadRoot(cfg);
+		bb.Reset();
+		if (r) return r;
+	}
+
+	// 初始化派生类的东西
+	if (int r = cfg->InitCascade()) return r;
+
+	// 存易用单例
+	::catchFish = this;
+
+	// 初始化拨号器
+	xx::MakeTo(::dialer, *uv);
 #endif
+
 	return 0;
 }
 
