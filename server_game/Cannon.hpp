@@ -221,7 +221,7 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
 	fire->bulletId = bullet->id;
 	fire->coin = bullet->coin;
-	fire->frameNumber = scene->frameNumber;
+	fire->frameNumber = o->frameNumber;
 	fire->playerId = player->id;
 	fire->cannonId = id;
 	fire->tarAngle = bullet->angle;
