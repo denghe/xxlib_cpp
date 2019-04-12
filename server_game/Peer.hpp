@@ -32,7 +32,9 @@ inline int Peer::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept 
 	case xx::TypeId_v<PKG::Generic::Ping>: {
 		pkgPong->ticks = xx::As<PKG::Generic::Ping>(msg)->ticks;
 		this->ResetTimeoutMS(5000);
-		return SendResponse(serial, pkgPong);
+		auto r = SendResponse(serial, pkgPong);
+		Flush();
+		return r;
 	}
 	default:
 		return -1;

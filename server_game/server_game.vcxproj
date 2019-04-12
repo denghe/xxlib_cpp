@@ -90,6 +90,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\xxlib\ikcp.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

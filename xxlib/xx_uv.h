@@ -971,13 +971,13 @@ namespace xx {
 		using UvUdp::UvUdp;
 		UvKcpPeerOwner* owner = nullptr;			// fill by owner
 		int port = 0;								// fill by owner. dict's key. port > 0: listener  < 0: dialer fill by --uv.udpId
-		virtual void Remove(Guid const& g) noexcept = 0;
+		virtual void Remove(uint32_t const& conv) noexcept = 0;
 	};
 
 	struct UvKcpBasePeer : UvUpdate {
 		using UvUpdate::UvUpdate;
 		std::shared_ptr<UvKcpUdp> udp;				// fill by creater
-		Guid guid;									// fill by creater
+		uint32_t conv = 0;							// fill by creater
 		int64_t createMS = 0;						// fill by creater
 		ikcpcb* kcp = nullptr;
 		uint32_t nextUpdateMS = 0;					// for kcp update interval control. reduce cpu usage
@@ -992,10 +992,11 @@ namespace xx {
 			return ip;
 		}
 
-		// require: fill udp, guid, createMS, addr
+		// require: fill udp, conv, createMS, addr
 		inline int InitKcp() {
 			if (kcp) return -1;
-			kcp = ikcp_create(guid, this);
+			assert(conv);
+			kcp = ikcp_create(conv, this);
 			if (!kcp) return -1;
 			ScopeGuard sgKcp([&] { ikcp_release(kcp); kcp = nullptr; });
 			if (int r = ikcp_wndsize(kcp, 128, 128)) return r;
@@ -1017,7 +1018,7 @@ namespace xx {
 			RemoveFromUpdates();
 			ikcp_release(kcp);
 			kcp = nullptr;
-			udp->Remove(guid);						// remove self from container
+			udp->Remove(conv);						// remove self from container
 			udp.reset();							// unbind
 			if (flag) {
 				auto holder = shared_from_this();
@@ -1137,7 +1138,7 @@ namespace xx {
 			this->RemoveFromUpdates();
 			ikcp_release(kcp);
 			this->kcp = nullptr;
-			this->udp->Remove(guid);					// remove self from container
+			this->udp->Remove(conv);					// remove self from container
 			this->udp.reset();							// unbind
 			for (auto&& kv : this->callbacks) {
 				kv.second.first(nullptr);
@@ -1155,8 +1156,9 @@ namespace xx {
 
 	struct UvKcpListenerUdp : UvKcpUdp {
 		using UvKcpUdp::UvKcpUdp;
-		std::unordered_map<Guid, std::weak_ptr<UvKcpBasePeer>> peers;
-		std::unordered_map<std::string, std::pair<Guid, int64_t>> shakes;	// key: ip:port   value: guid,nowMS
+		std::unordered_map<uint32_t, std::weak_ptr<UvKcpBasePeer>> peers;
+		std::unordered_map<std::string, std::pair<uint32_t, int64_t>> shakes;	// key: ip:port   value: conv, nowMS
+		uint32_t convId = 0;
 		int handShakeTimeoutMS = 3000;
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
@@ -1187,8 +1189,8 @@ namespace xx {
 			}
 		}
 
-		inline virtual void Remove(Guid const& g) noexcept override {
-			peers.erase(g);
+		inline virtual void Remove(uint32_t const& conv) noexcept override {
+			peers.erase(conv);
 		}
 
 	protected:
@@ -1197,41 +1199,41 @@ namespace xx {
 			// ensure hand shake, and udp peer owner still alive
 			if (recvLen == 4 && owner) {						// hand shake contain 4 bytes auto inc serial
 				auto&& ipAndPort = Uv::ToIpPortString(addr);
-				// ip_port : guid, createMS
+				// ip_port : <conv, createMS>
 				auto&& iter = shakes.find(ipAndPort);
 				if (iter == shakes.end()) {
-					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(Guid(true), uv.nowMS + handShakeTimeoutMS))).first;
+					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(++convId, uv.nowMS + handShakeTimeoutMS))).first;
 				}
-				memcpy(recvBuf + 4, &iter->second.first, 16);	// return serial + guid( temp write to recvBuf is safe )
-				return this->Send(recvBuf, 20, addr);
+				memcpy(recvBuf + 4, &iter->second.first, 4);	// return serial + conv( temp write to recvBuf is safe )
+				return this->Send(recvBuf, 8, addr);
 			}
 
 			// header size limit IKCP_OVERHEAD ( kcp header ) check. ignore non kcp or hand shake pkgs.
-			if (recvLen < IKCP_OVERHEAD) {
+			if (recvLen < 24) {
 				return 0;
 			}
 
-			// read Guid header
-			Guid g;
-			g.Fill(recvBuf);
+			// read conv header
+			uint32_t conv;
+			memcpy(&conv, recvBuf, sizeof(conv));
 			std::shared_ptr<UvKcpBasePeer> peer;
 
 			// find at peers. if does not exists, find addr at shakes. if exists, create peer
-			auto&& peerIter = peers.find(g);
-			if (peerIter == peers.end()) {						// guid not found: scan shakes
+			auto&& peerIter = peers.find(conv);
+			if (peerIter == peers.end()) {						// conv not found: scan shakes
 				if (!owner || owner->Disposed()) return 0;		// listener disposed: ignore
 				auto&& ipAndPort = Uv::ToIpPortString(addr);
 				auto&& iter = shakes.find(ipAndPort);			// find by addr
-				if (iter == shakes.end() || iter->second.first != g) return 0;	// not found or bad guid: ignore
+				if (iter == shakes.end() || iter->second.first != conv) return 0;	// not found or bad conv: ignore
 				shakes.erase(iter);								// remove from shakes
 				peer = owner->CreatePeer();						// create kcp peer and init
 				if (!peer) return 0;
 				peer->udp = As<UvKcpUdp>(shared_from_this());
-				peer->guid = g;
+				peer->conv = conv;
 				peer->createMS = uv.nowMS;
 				memcpy(&peer->addr, addr, sizeof(sockaddr_in6));// upgrade peer's tar addr( maybe accept callback need it )
 				if (peer->InitKcp()) return 0;					// init failed: ignore
-				peers[g] = peer;								// store
+				peers[conv] = peer;								// store
 				peer->AddToUpdates();							// register to updates
 				owner->Accept(peer);							// accept callback
 			}
@@ -1283,7 +1285,7 @@ namespace xx {
 				}
 			}
 		}
-		inline virtual void Remove(Guid const& g) noexcept override {
+		inline virtual void Remove(uint32_t const& conv) noexcept override {
 			Dispose();
 		}
 
@@ -1292,12 +1294,12 @@ namespace xx {
 			assert(owner || peer_w.lock());
 
 			// ensure hand shake result data
-			if (recvLen == 20 && owner) {						// 4 bytes serial + 16 bytes guid
+			if (recvLen == 8 && owner) {						// 4 bytes serial + 4 bytes conv
 				if (memcmp(recvBuf, &port, 4)) return 0;		// bad serial: ignore
 				auto&& p = owner->CreatePeer();
 				peer_w = p;										// bind
 				p->udp = As<UvKcpUdp>(shared_from_this());
-				memcpy(&p->guid, recvBuf + 4, 16);
+				memcpy(&p->conv, recvBuf + 4, 4);
 				memcpy(&p->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 				p->createMS = uv.nowMS;
 				if (p->InitKcp()) return 0;						// init kcp fail: ignore
@@ -1307,16 +1309,16 @@ namespace xx {
 				return 0;
 			}
 
-			if (recvLen < IKCP_OVERHEAD) {						// ignore non kcp data
+			if (recvLen < 24) {									// ignore non kcp data
 				return 0;
 			}
 
 			auto&& peer = peer_w.lock();
 			if (!peer) return 0;								// hand shake not finish: ignore
 
-			Guid g;
-			g.Fill(recvBuf);									// read guid
-			if (peer->guid != g) return 0;						// bad guid: ignore
+			uint32_t conv;
+			memcpy(&conv, recvBuf, sizeof(conv));
+			if (peer->conv != conv) return 0;					// bad conv: ignore
 
 			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 			if (peer->Input(recvBuf, recvLen)) {				// input data to kcp
