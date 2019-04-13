@@ -74,19 +74,18 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 	// 合法性判断: 如果 bulletId / fishId 找不到就忽略
 	auto&& bs = *this->bullets;
+	auto&& fs = *scene->fishs;
 	if (bs.len) {
-		auto&& fs = *scene->fishs;
 		for (size_t i = bs.len - 1; i != -1; --i) {
 			auto&& b = bs[i];
 			assert(b->indexAtContainer == i);
 			if (b->id == o->bulletId) {
-				if (o->fishId) {
-					bool notFound = true;
-					for (size_t j = fs.len - 1; j != -1; --j) {
+				if (o->fishId && fs.len) {
+					size_t j = fs.len - 1;
+					for (; j != -1; --j) {
 						auto&& f = fs[j];
 						assert(f->indexAtContainer == j);
 						if (f->id == o->fishId) {
-							notFound = false;
 							// 先根据 1/coin 死亡比例 来判断是否打死
 							if (scene->serverRnd.Next((int)f->coin) == 0) {
 								// 算钱
@@ -114,7 +113,7 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 						}
 					}
 					// 打空：构造退钱事件包
-					if (notFound)
+					if (j == -1)
 					{
 						auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
 						refund->coin = b->coin;

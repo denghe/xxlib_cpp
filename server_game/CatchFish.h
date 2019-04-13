@@ -25,7 +25,7 @@ static constexpr xx::Pos ScreenCenter = xx::Pos{ ScreenWidth / 2, ScreenHeight /
 struct Dialer;
 struct CatchFish;
 std::shared_ptr<Dialer> dialer;
-CatchFish* catchFish;
+CatchFish* catchFish = nullptr;
 
 inline cocos2d::Scene* cc_scene = nullptr;
 inline xx::List<cocos2d::Touch*> cc_touchs;
@@ -326,13 +326,17 @@ struct CatchFish {
 
 	// server info( Init 时填充 )
 	std::string serverIp;
-	int serverPort;
+	int serverPort = 0;
 
 	// 初始化( 加载配置文件, .... )
-#ifdef CC_TARGET_PLATFORM
-	int Init(std::string const& ip, int const& port, std::string const& cfgName) noexcept;
-#else
+#ifndef CC_TARGET_PLATFORM
 	int Init(std::string const& cfgName) noexcept;
+#else
+	int Init(std::string const& ip, int const& port, std::string const& cfgName) noexcept;
+
+	// 显示面板相关
+	cocos2d::Label* labelPing = nullptr;
+	void SetLabelPingText(std::string const& txt) noexcept;
 #endif
 
 	// logic. 每帧调用一次. 返回非0 表示退出
@@ -434,6 +438,8 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	PKG::Client_CatchFish::Enter_s pkgEnter;
 	int r = 0;
 	int64_t waitMS = 0;
+	std::vector<std::string> ips;
+	xx::UvResolver_s resolver;
 
 	// 处理首包( EnterSuccess || Error )
 	int HandleFirstPackage() noexcept;

@@ -6,6 +6,7 @@
 	xx::BBuffer::Register<Player>(xx::TypeId_v<PKG::CatchFish::Player>);
 	xx::BBuffer::Register<Fish>(xx::TypeId_v<PKG::CatchFish::Fish>);
 	xx::BBuffer::Register<Cannon>(xx::TypeId_v<PKG::CatchFish::Cannon>);
+	xx::BBuffer::Register<Bullet>(xx::TypeId_v<PKG::CatchFish::Bullet>);
 	// todo: more
 }
 
@@ -23,6 +24,16 @@ inline void CatchFish::Dispose(int const& flag) noexcept {
 
 inline CatchFish::~CatchFish() {
 	Dispose(0);
+#ifdef CC_TARGET_PLATFORM
+	// 删除面板显示元素
+	if (labelPing) {
+		if (labelPing->getParent()) {
+			labelPing->removeFromParent();
+		}
+		labelPing->release();
+		labelPing = nullptr;
+	}
+#endif
 }
 
 
@@ -97,10 +108,27 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 
 	// 初始化拨号器
 	xx::MakeTo(::dialer, *uv);
+
+	// 初始面板显示元素
+	labelPing = cocos2d::Label::createWithSystemFont("ping: 0000ms", "", 32);
+	labelPing->retain();
+	labelPing->setPosition(10 - ScreenCenter.x, 100 - ScreenCenter.y);
+	labelPing->setAnchorPoint({ 0, 0.5 });
+	labelPing->setGlobalZOrder(1000);
+	cc_scene->addChild(labelPing);
+
 #endif
 
 	return 0;
 }
+
+#ifdef CC_TARGET_PLATFORM
+inline void CatchFish::SetLabelPingText(std::string const& txt) noexcept {
+	if (labelPing) {
+		labelPing->setString(txt);
+	}
+}
+#endif
 
 inline int CatchFish::Update() noexcept {
 #ifdef CC_TARGET_PLATFORM
