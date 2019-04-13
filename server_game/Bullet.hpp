@@ -4,18 +4,6 @@
 	assert(cannon);
 	assert(cfg);
 
-	// 计算炮口坐标
-	pos = cannon->pos + xx::Rotate(xx::Pos{ cfg->muzzleLen ,0 }, cannon->angle);
-
-	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
-	angle = cannon->angle;
-
-	// 计算出每帧移动增量
-	moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle * (float(M_PI) / 180.0f));
-
-	// 存储发射时炮台的倍率
-	coin = cannon->coin;
-
 	if (int r = this->BaseType::InitCascade(o)) return r;
 #ifdef CC_TARGET_PLATFORM
 	DrawInit();

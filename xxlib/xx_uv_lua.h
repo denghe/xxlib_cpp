@@ -155,7 +155,7 @@ namespace xx {
 			RemoveFromUpdates();
 			ikcp_release(kcp);
 			kcp = nullptr;
-			udp->Remove(guid);						// remove self from container
+			udp->Remove(conv);						// remove self from container
 			udp.reset();							// unbind
 			for (auto&& kv : callbacks) {
 				kv.second.first(nullptr);
