@@ -30,9 +30,9 @@ inline int Scene::Update(int const&) noexcept {
 	// todo: foreach  items, ..... call Update
 
 	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
-	if (frameNumber % 64 == 0) {
+	//if (frameNumber % 64 == 0) {
 		MakeRandomFish();
-	}
+	//}
 
 #ifndef CC_TARGET_PLATFORM
 	// 存帧序号

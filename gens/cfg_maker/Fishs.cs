@@ -12,7 +12,7 @@ public static class Fishs
             var f = new PKG.CatchFish.Configs.Fish();
             f.id = cfg.fishs.dataLen;
             cfg.fishs.Add(f);
-            f.minCoin = 3;
+            f.minCoin = 1;
             f.maxCoin = 3;
             f.minDetectRadius = 6;
             f.maxDetectRadius = 32;
@@ -26,8 +26,8 @@ public static class Fishs
             var f = new PKG.CatchFish.Configs.Fish();
             f.id = cfg.fishs.dataLen;
             cfg.fishs.Add(f);
-            f.minCoin = 20;
-            f.maxCoin = 50;
+            f.minCoin = 3;
+            f.maxCoin = 6;
             f.minDetectRadius = 6;
             f.maxDetectRadius = 32;
             f.scale = 6;
