@@ -1,5 +1,5 @@
 Linux 推荐 ubuntu 16 18+
-apt-get install g++, uuid-dev
+apt-get -y install g++ uuid-dev
 git clone https://github.com/denghe/xxlib_cpp
 cd xxlib_cpp/server_game
 cp ../gens/output/cfg.bin .
