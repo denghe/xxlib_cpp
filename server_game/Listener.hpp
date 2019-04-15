@@ -8,8 +8,8 @@ inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept 
 		xx::CoutN(peer->GetIP(), " disconnected.");
 	};
 
-	// 启用超时检测. 5秒没收到包就 Disconnect. 收到 Ping 会再次重置
-	peer->ResetTimeoutMS(5000);
+	// 启用超时检测. xx ms 没收到包就 Disconnect. 收到 Ping 会再次重置
+	peer->ResetTimeoutMS(10000);
 }
 
 inline Listener::Listener(xx::Uv& uv, std::string const& ip, int const& port)

@@ -22,6 +22,9 @@ namespace xx {
 		std::array<char, 65536> recvBuf;	// shared receive buf for kcp
 		std::unordered_map<int, std::weak_ptr<UvUpdate>> udps;	// key: port( dialer peer port = autoId )
 		std::shared_ptr<UvTimer> kcpUpdater;// call kcp update & udp hand shake. interval: 10ms
+
+		void UpdateKcp() noexcept;
+		uv_run_mode runMode = UV_RUN_DEFAULT;
 #endif
 
 		Uv();
@@ -40,9 +43,7 @@ namespace xx {
 			assert(!r);
 		}
 
-		inline int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
-			return uv_run(&uvLoop, mode);
-		}
+		int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept;
 
 		inline void Stop() {
 			uv_stop(&uvLoop);
@@ -1050,10 +1051,12 @@ namespace xx {
 			if (!kcp) return;
 
 			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: uint32 limit. connect only alive 50+ days
-			if (nextUpdateMS > currentMS) return;						// reduce cpu usage
+			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return;						// reduce cpu usage
 			ikcp_update(kcp, currentMS);
 			if (!kcp) return;
-			nextUpdateMS = ikcp_check(kcp, currentMS);
+			if (uv.runMode == UV_RUN_DEFAULT) {
+				nextUpdateMS = ikcp_check(kcp, currentMS);
+			}
 
 			do {
 				int recvLen = ikcp_recv(kcp, uv.recvBuf.data(), (int)uv.recvBuf.size());
@@ -1480,14 +1483,28 @@ namespace xx {
 			}
 		});
 		updater->Unref();
+	}
+
 #if ENABLE_KCP
-		MakeTo(kcpUpdater, *this, 10, 10, [this] {
-			nowMS = NowSteadyEpochMS();
-			for (auto&& iter = udps.begin(); iter != udps.end();) {
-				(iter++)->second.lock()->Update(nowMS);
-			}
-		});
-		kcpUpdater->Unref();
+	inline void Uv::UpdateKcp() noexcept {
+		nowMS = NowSteadyEpochMS();
+		for (auto&& iter = udps.begin(); iter != udps.end();) {
+			(iter++)->second.lock()->Update(nowMS);
+		}
+	}
 #endif
+
+	inline int Uv::Run(uv_run_mode const& mode) noexcept {
+		runMode = mode;
+#if ENABLE_KCP
+		if (mode == UV_RUN_DEFAULT && !kcpUpdater) {
+			MakeTo(kcpUpdater, *this, 10, 10, [this] { UpdateKcp(); });
+			kcpUpdater->Unref();
+		}
+		else {
+			UpdateKcp();
+		}
+#endif
+		return uv_run(&uvLoop, mode);
 	}
 }
