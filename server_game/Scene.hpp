@@ -30,7 +30,7 @@ inline int Scene::Update(int const&) noexcept {
 	// todo: foreach  items, ..... call Update
 
 	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
-	if (frameNumber % 5 == 0) {
+	if (frameNumber % 8 == 0) {
 		MakeRandomFish();
 	}
 
@@ -103,7 +103,7 @@ inline int Scene::Update(int const&) noexcept {
 
 
 inline void Scene::MakeRandomFish() noexcept {
-	auto&& fishCfg = cfg->fishs->At(rnd->Next((int)cfg->fishs->len));
+	auto&& fishCfg = cfg->fishs->At(0);//rnd->Next((int)cfg->fishs->len));
 
 	auto&& fish = xx::Make<Fish>();
 	fish->scene = this;
@@ -114,17 +114,23 @@ inline void Scene::MakeRandomFish() noexcept {
 		fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
 	}
 	else {
-		fish->coin = fishCfg->minCoin;			
+		fish->coin = fishCfg->minCoin;
 	}
-	fish->speedScale = 1;
-	fish->scale = 1;
+	fish->speedScale = 1 + rnd->Next(3);
+	fish->scale = 1 + rnd->Next(3);
 	fish->wayIndex = 0;
 	fish->wayPointIndex = 0;
 	fish->wayPointDistance = 0;
 	fish->spriteFrameIndex = 0;
 	fish->frameRatio = 1;
 	fish->reverse = false;
-	fish->way = MakeBeeline(fishCfg->maxDetectRadius * fishCfg->scale);		// 先随便生成一条轨迹
+
+	//if (rnd->Next(2)) {
+	//	fish->way = MakeBeeline(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale));
+	//}
+	//else {
+	fish->way = MakeCurve(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale), 0.2, { 50, 30 });
+	//}
 
 	auto&& p = fish->way->points->At(fish->wayPointIndex);
 	fish->pos = p.pos;
@@ -137,10 +143,10 @@ inline void Scene::MakeRandomFish() noexcept {
 	fishs->Add(std::move(fish));
 }
 
-// 填充随机生成的有限角度的能立即出现在屏幕上的线段路径
 // -45 ~ 45, 135 ~ 225 在这两段角度之间随机一个角度值,  + 180 之后的 45 度范围内再次随机一个角度, 用旋转函数转为两个坐标点. 连为1根直线, 最后找出安全出生框与直线的交点
 // 由于最终计算出两个交点之后, 可以通过交换顺序的方式反向, 故只需要一段角度作为起始角度即可. 简化起见, 直接 135 ~ 225 ( 不考虑开区间误差 )
-inline PKG::CatchFish::Way_s Scene::MakeBeeline(float const& itemRadius) noexcept {
+inline std::pair<xx::Pos, xx::Pos> Scene::MakeRandomInOutPoint(float const& itemRadius) noexcept {
+	std::pair<xx::Pos, xx::Pos> rtv;
 	auto&& w = (ScreenWidth + itemRadius) / 2.0f;
 	auto && h = (ScreenHeight + itemRadius) / 2.0f;
 	auto && a = rnd->Next(180);
@@ -150,29 +156,53 @@ inline PKG::CatchFish::Way_s Scene::MakeBeeline(float const& itemRadius) noexcep
 	else {
 		a = a - 90 + 135;
 	}
-	auto&& p1 = xx::Rotate(xx::Pos{ 1, 0 }, a * (float(M_PI) / 180.0f));
-	xx::Pos abs{ std::fabs(p1.x), std::fabs(p1.y) };
+	rtv.first = xx::Rotate(xx::Pos{ 1, 0 }, a * (float(M_PI) / 180.0f));
+	xx::Pos abs{ std::fabs(rtv.first.x), std::fabs(rtv.first.y) };
 	if (abs.x / (abs.x + abs.y) > ScreenWidthRatio) {
-		p1 = p1 * (w / abs.x);
+		rtv.first = rtv.first * (w / abs.x);
 	}
 	else {
-		p1 = p1 * (h / abs.y);
+		rtv.first = rtv.first * (h / abs.y);
 	}
 	a = a + 180 - 23 + rnd->Next(46);
-	auto&& p2 = xx::Rotate(xx::Pos{ 1, 0 }, a * (float(M_PI) / 180.0f));
-	abs.x = std::fabs(p2.x);
-	abs.y = std::fabs(p2.y);
+	rtv.second = xx::Rotate(xx::Pos{ 1, 0 }, a * (float(M_PI) / 180.0f));
+	abs.x = std::fabs(rtv.second.x);
+	abs.y = std::fabs(rtv.second.y);
 	if (abs.x / (abs.x + abs.y) > ScreenWidthRatio) {
-		p2 = p2 * (w / abs.x);
+		rtv.second = rtv.second * (w / abs.x);
 	}
 	else {
-		p2 = p2 * (h / abs.y);
+		rtv.second = rtv.second * (h / abs.y);
 	}
-	auto && way = xx::Make<PKG::CatchFish::Way>();
+	return rtv;
+}
+
+inline PKG::CatchFish::Way_s Scene::MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept {
+	auto&& way = xx::Make<PKG::CatchFish::Way>();
 	xx::MakeTo(way->points);
-	way->points->Add(PKG::CatchFish::WayPoint{ p1, xx::GetAngle(p1, p2), p1.distance(p2) });
-	way->points->Add(PKG::CatchFish::WayPoint{ p2, 0, 0 });	// 非循环轨迹最后个点距离和角度不用计算, 也不做统计
+	way->points->Add(PKG::CatchFish::WayPoint{ inOutPos.first, xx::GetAngle(inOutPos), xx::GetDistance(inOutPos) });
+	way->points->Add(PKG::CatchFish::WayPoint{ inOutPos.second, 0, 0 });	// 非循环轨迹最后个点距离和角度不用计算, 也不做统计
 	way->distance = way->points->At(0).distance;
+	way->loop = false;
+	return way;
+}
+
+inline PKG::CatchFish::Way_s Scene::MakeCurve(std::pair<xx::Pos, xx::Pos> const& inOutPos, float const& xStep, xx::Pos const& ratio) noexcept {
+	auto&& way = xx::Make<PKG::CatchFish::Way>();
+	auto&& wps = *xx::MakeTo(way->points);
+
+	auto&& d = xx::GetDistance(inOutPos) / ratio.x;
+	wps.Reserve((int)(d / xStep));
+	auto&& a = xx::GetAngle(inOutPos);
+	for (float x = 0; x < d; x += xStep) {
+		auto&& wp = wps.Emplace();
+		wp.pos = inOutPos.first + xx::Rotate(xx::Pos{ x * ratio.x, sinf(x) * ratio.y }, a);
+	}
+	for (size_t i = 0; i < wps.len - 1; ++i) {
+		wps[i].angle = xx::GetAngle(wps[i].pos, wps[i + 1].pos);
+		wps[i].distance = xx::GetDistance(wps[i].pos, wps[i + 1].pos);
+	}
+
 	way->loop = false;
 	return way;
 }

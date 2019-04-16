@@ -28,11 +28,6 @@ namespace xx
 		inline Pos operator/(float const& s) const noexcept {
 			return Pos{ x / s, y / s };
 		}
-		inline float distance(Pos const& v) const noexcept {
-			float dx = v.x - x;
-			float dy = v.y - y;
-			return sqrtf(dx * dx + dy * dy);
-		}
 
 #ifdef CC_TARGET_PLATFORM
 		inline operator cocos2d::Vec2() const noexcept {
@@ -103,6 +98,20 @@ namespace xx
 		auto&& len_y = to.y - from.y;
 		auto&& len_x = to.x - from.x;
 		return atan2f(len_y, len_x);
+	}
+	inline float GetAngle(std::pair<Pos, Pos> const& fromTo) noexcept {
+		return GetAngle(fromTo.first, fromTo.second);
+	}
+
+	// 计算距离
+	inline float GetDistance(Pos const& a, Pos const& b) noexcept
+	{
+		float dx = a.x - b.x;
+		float dy = a.y - b.y;
+		return sqrtf(dx * dx + dy * dy);
+	}
+	inline float GetDistance(std::pair<Pos, Pos> const& fromTo) noexcept {
+		return GetDistance(fromTo.first, fromTo.second);
 	}
 
 	// 以 0,0 为中心旋转. a 为弧度( 角度 * (float(M_PI) / 180.0f) )

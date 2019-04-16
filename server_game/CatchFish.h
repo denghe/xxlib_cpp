@@ -100,8 +100,14 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	xx::List<void*> frameEnters;
 #endif
 
-	// 生成随机直线路径
-	PKG::CatchFish::Way_s MakeBeeline(float const& itemRadius) noexcept;
+	// 随机生成一对具备合理显示效果的进出屏幕的关键点
+	std::pair<xx::Pos, xx::Pos> MakeRandomInOutPoint(float const& itemRadius) noexcept;
+
+	// 用直线连接进出屏幕的两个点, 返回轨迹
+	PKG::CatchFish::Way_s MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept;
+
+	// 用曲线连接进出屏幕的两个点( sin 曲线, x 轴穿过两点, 按x轴步进结合最小变化角度合并轨迹点, y 值 * ratio ), 返回轨迹
+	PKG::CatchFish::Way_s MakeCurve(std::pair<xx::Pos, xx::Pos> const& inOutPos, float const& xStep, xx::Pos const& ratio) noexcept;
 
 	// 生成随机鱼
 	void MakeRandomFish() noexcept;
