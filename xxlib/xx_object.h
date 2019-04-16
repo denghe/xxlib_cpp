@@ -20,6 +20,10 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
 
 #include "fixed_function.hpp"
 
@@ -325,27 +329,6 @@ namespace xx {
 	// time_point <--> .net DateTime.Now.ToUniversalTime().Ticks converts
 	/************************************************************************************/
 
-	/*
-
-	// some example for output:
-
-	#include <ctime>
-	#include <iomanip>
-
-	std::time_t t = std::time(nullptr);
-	std::tm tm;
-	localtime_s(&tm, &t);
-	std::cout << std::put_time(&tm, "%Y-%m-%d %X") << std::endl;
-
-	auto tp = xx::Epoch10mToTimePoint(15xxxxxxxxxxxxxxxxxxx);
-	t = std::chrono::system_clock::to_time_t(tp);
-	localtime_s(&tm, &t);
-	std::cout << std::put_time(&tm, "%Y-%m-%d %X") << std::endl;
-
-	// todo: epoch to string
-
-	*/
-
 	// 经历时间精度: 秒后 7 个 0( 这是 windows 下最高精度. android/ios 会低1个0的精度 )
 	typedef std::chrono::duration<long long, std::ratio<1LL, 10000000LL>> duration_10m;
 
@@ -412,6 +395,18 @@ namespace xx {
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 	}
 
+	inline void NowToString(std::string& s) noexcept {
+		auto&& t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		std::tm tm;
+#ifdef _WIN32
+		localtime_s(&tm, &t);
+#else
+		localtime_r(&t, &tm);
+#endif
+		std::stringstream ss;
+		ss << std::put_time(&tm, "%Y-%m-%d %X");
+		s += ss.str();
+	}
 
 
 
@@ -437,15 +432,28 @@ namespace xx {
 	//	return os << *o;
 	//}
 
+	// 替代 std::cout. 支持实现了 SFuncs 模板适配的类型
 	template<typename...Args>
 	inline void Cout(Args const&...args) {
 		std::string s;
 		Append(s, args...);
 		fputs(s.c_str(), stdout);				// std::cout 似乎会受 fcontext 切换影响 输出不能
 	}
+
+	// 在 Cout 基础上添加了换行
 	template<typename...Args>
 	inline void CoutN(Args const&...args) {
 		std::string s;
+		Append(s, args...);
+		puts(s.c_str());
+	}
+
+	// 在 CoutN 基础上于头部添加了时间
+	template<typename...Args>
+	inline void CoutTN(Args const& ...args) {
+		std::string s = "[";
+		NowToString(s);
+		s += "] ";
 		Append(s, args...);
 		puts(s.c_str());
 	}
@@ -511,8 +519,6 @@ namespace xx {
 
 	template<typename T, typename U>
 	std::shared_ptr<T> As(std::shared_ptr<U> const& v) noexcept {
-		//assert(!v || v && std::dynamic_pointer_cast<T>(v));
-		//return *(std::shared_ptr<T>*)&v;
 		return std::dynamic_pointer_cast<T>(v);
 	}
 	template<typename T, typename U>

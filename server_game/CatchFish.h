@@ -440,6 +440,7 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	int64_t waitMS = 0;
 	std::vector<std::string> ips;
 	xx::UvResolver_s resolver;
+	int timeoutFrameNumber = 0;
 
 	// 处理首包( EnterSuccess || Error )
 	int HandleFirstPackage() noexcept;
