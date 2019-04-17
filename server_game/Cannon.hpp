@@ -46,14 +46,25 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 
 	// 玩家本人的炮可射击
 	if (player->isSelf) {
-		// 输入检测. 炮台角度对准首个 touch 点( 暂定方案 )
-		if (cc_touchs.len) {
-			// 世界坐标
-			auto tloc = cc_touchs[0]->getLocationInView();
+		bool fire = false;
+		xx::Pos tpos;
 
-			// 转为游戏坐标系
-			xx::Pos tpos{ tloc.x - ScreenCenter.x, ScreenCenter.y - tloc.y };
-
+		// 自动射击。直接在屏幕上随机一个坐标来用
+		if (::dialer->autoFire) {
+			tpos = { ::dialer->rnd.Next(ScreenWidth) - ScreenCenter.x, ::dialer->rnd.Next(ScreenHeight) - ScreenCenter.y };
+			fire = true;
+		}
+		else {
+			// 输入检测. 炮台角度对准首个 touch 点( 暂定方案 )
+			if (cc_touchs.len) {
+				// 世界坐标
+				auto tloc = cc_touchs[0]->getLocationInView();
+				// 转为游戏坐标系
+				tpos = { tloc.x - ScreenCenter.x, ScreenCenter.y - tloc.y };
+				fire = true;
+			}
+		}
+		if(fire) {
 			// 算出朝向角度
 			angle = xx::GetAngle(pos, tpos);
 

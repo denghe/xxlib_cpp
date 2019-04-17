@@ -108,17 +108,27 @@
     <ClInclude Include="..\xxlib\xx_uv.h" />
     <ClInclude Include="..\xxlib\xx_uv_coros.h" />
     <ClInclude Include="..\xxlib\xx_uv_lua.h" />
+    <ClInclude Include="Bullet.h" />
     <ClInclude Include="Bullet.hpp" />
+    <ClInclude Include="Cannon.h" />
     <ClInclude Include="Cannon.hpp" />
     <ClInclude Include="CatchFish.h" />
     <ClInclude Include="CatchFish.hpp" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="Config.hpp" />
+    <ClInclude Include="Fish.h" />
     <ClInclude Include="Fish.hpp" />
+    <ClInclude Include="Listener.h" />
     <ClInclude Include="Listener.hpp" />
+    <ClInclude Include="Peer.h" />
     <ClInclude Include="Peer.hpp" />
+    <ClInclude Include="Physics.h" />
     <ClInclude Include="Physics.hpp" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="Player.hpp" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="Scene.hpp" />
+    <ClInclude Include="SpriteFrame.h" />
     <ClInclude Include="SpriteFrame.hpp" />
   </ItemGroup>
   <ItemGroup>

@@ -64,6 +64,16 @@
       <Filter>xxlib</Filter>
     </ClInclude>
     <ClInclude Include="Config.hpp" />
+    <ClInclude Include="Bullet.h" />
+    <ClInclude Include="Cannon.h" />
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="Fish.h" />
+    <ClInclude Include="Listener.h" />
+    <ClInclude Include="Peer.h" />
+    <ClInclude Include="Physics.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SpriteFrame.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

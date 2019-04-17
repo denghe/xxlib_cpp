@@ -37,7 +37,7 @@
 
 	// 预填充一些随机曲线
 	for (auto&& io : ios_100) {
-		this->ways->Add(MakeCurve({ io.first, io.second }, 0.1, { 50, 30 }));
+		this->ways->Add(MakeCurve({ io.first, io.second }, 0.1f, { 50, 30 }));
 	}
 
 	// 预填充一些随机直线

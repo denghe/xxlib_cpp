@@ -76,8 +76,6 @@ inline int Scene::Update(int const&) noexcept {
 	// 清除发送过的数据
 	frameEnters.Clear();
 	frameEvents->events->Clear();
-#else
-	::catchFish->SetText_NumFishs(fishs->len);
 #endif
 
 	return 0;
@@ -98,8 +96,8 @@ inline void Scene::MakeRandomFish() noexcept {
 	else {
 		fish->coin = fishCfg->minCoin;
 	}
-	fish->speedScale = 1 + rnd->Next(3);
-	fish->scale = 1 + rnd->Next(3);
+	fish->speedScale = 1 + (float)rnd->Next(3);
+	fish->scale = 1 + (float)rnd->Next(3);
 	fish->wayIndex = 0;
 	fish->wayPointIndex = 0;
 	fish->wayPointDistance = 0;
@@ -108,7 +106,7 @@ inline void Scene::MakeRandomFish() noexcept {
 	fish->reverse = false;
 
 	//fish->way = MakeBeeline(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale));
-	fish->wayIndex = rnd->Next(cfg->ways->len);
+	fish->wayIndex = rnd->Next((int)cfg->ways->len);
 
 	auto&& p = cfg->ways->At(fish->wayIndex)->points->At(fish->wayPointIndex);
 	fish->pos = p.pos;
