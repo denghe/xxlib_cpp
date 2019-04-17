@@ -30,23 +30,13 @@ inline int Scene::Update(int const&) noexcept {
 	// todo: foreach  items, ..... call Update
 
 	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
-	if (frameNumber % 8 == 0) {
+	if (frameNumber % 7 > 2) {
 		MakeRandomFish();
 	}
 
 #ifndef CC_TARGET_PLATFORM
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
-
-	//// 下发调试信息
-	//{
-	//	auto&& di = xx::Make<PKG::CatchFish::Events::DebugInfo>();
-	//	xx::MakeTo(di->fishIds);
-	//	for (auto&& f : fs) {
-	//		di->fishIds->Add(f->id);
-	//	}
-	//	frameEvents->events->Add(std::move(di));
-	//}
 
 	// 完整同步数据包( 先不创建 )
 	PKG::CatchFish_Client::EnterSuccess_s enterSuccess;
@@ -86,17 +76,9 @@ inline int Scene::Update(int const&) noexcept {
 	// 清除发送过的数据
 	frameEnters.Clear();
 	frameEvents->events->Clear();
+#else
+	::catchFish->SetText_NumFishs(fishs->len);
 #endif
-
-	//// 调试: 存储 fishIds
-	//{
-	//	xx::List<int> fishIds;
-	//	for (auto&& f : fs) {
-	//		fishIds.Add(f->id);
-	//	}
-	//	fishIdss[frameNumber] = std::move(fishIds);
-	//	fishIdss.erase(frameNumber - 120);
-	//}
 
 	return 0;
 };
@@ -125,14 +107,10 @@ inline void Scene::MakeRandomFish() noexcept {
 	fish->frameRatio = 1;
 	fish->reverse = false;
 
-	//if (rnd->Next(2)) {
-	//	fish->way = MakeBeeline(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale));
-	//}
-	//else {
-	fish->way = MakeCurve(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale), 0.2, { 50, 30 });
-	//}
+	//fish->way = MakeBeeline(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale));
+	fish->wayIndex = rnd->Next(cfg->ways->len);
 
-	auto&& p = fish->way->points->At(fish->wayPointIndex);
+	auto&& p = cfg->ways->At(fish->wayIndex)->points->At(fish->wayPointIndex);
 	fish->pos = p.pos;
 	fish->angle = p.angle;
 
@@ -177,32 +155,3 @@ inline std::pair<xx::Pos, xx::Pos> Scene::MakeRandomInOutPoint(float const& item
 	return rtv;
 }
 
-inline PKG::CatchFish::Way_s Scene::MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept {
-	auto&& way = xx::Make<PKG::CatchFish::Way>();
-	xx::MakeTo(way->points);
-	way->points->Add(PKG::CatchFish::WayPoint{ inOutPos.first, xx::GetAngle(inOutPos), xx::GetDistance(inOutPos) });
-	way->points->Add(PKG::CatchFish::WayPoint{ inOutPos.second, 0, 0 });	// 非循环轨迹最后个点距离和角度不用计算, 也不做统计
-	way->distance = way->points->At(0).distance;
-	way->loop = false;
-	return way;
-}
-
-inline PKG::CatchFish::Way_s Scene::MakeCurve(std::pair<xx::Pos, xx::Pos> const& inOutPos, float const& xStep, xx::Pos const& ratio) noexcept {
-	auto&& way = xx::Make<PKG::CatchFish::Way>();
-	auto&& wps = *xx::MakeTo(way->points);
-
-	auto&& d = xx::GetDistance(inOutPos) / ratio.x;
-	wps.Reserve((int)(d / xStep));
-	auto&& a = xx::GetAngle(inOutPos);
-	for (float x = 0; x < d; x += xStep) {
-		auto&& wp = wps.Emplace();
-		wp.pos = inOutPos.first + xx::Rotate(xx::Pos{ x * ratio.x, sinf(x) * ratio.y }, a);
-	}
-	for (size_t i = 0; i < wps.len - 1; ++i) {
-		wps[i].angle = xx::GetAngle(wps[i].pos, wps[i + 1].pos);
-		wps[i].distance = xx::GetDistance(wps[i].pos, wps[i + 1].pos);
-	}
-
-	way->loop = false;
-	return way;
-}

@@ -30,8 +30,71 @@ CatchFish* catchFish = nullptr;
 inline cocos2d::Scene* cc_scene = nullptr;
 inline xx::List<cocos2d::Touch*> cc_touchs;
 inline cocos2d::EventListenerTouchAllAtOnce* cc_listener = nullptr;
+
+template<typename T, typename ENABLED = std::enable_if_t<std::is_base_of_v<cocos2d::Ref, T>>>
+struct RefHolder {
+	T* t = nullptr;
+	RefHolder(T* const& t = nullptr) {
+		this->operator=(t);
+	}
+	RefHolder& operator=(T* const& t) {
+		if (this->t == t) return *this;
+		Reset();
+		this->t = t;
+		if (t) {
+			t->retain();
+		}
+		return *this;
+	}
+	RefHolder(RefHolder const& o) = delete;
+	RefHolder(RefHolder&& o) {
+		std::swap(t, o.t);
+	}
+	RefHolder& operator=(RefHolder&& o) {
+		std::swap(t, o.t);
+	}
+	T* operator->() {
+		return t;
+	}
+	operator T* () {
+		return t;
+	}
+	void Reset() {
+		if (t) {
+			if constexpr (std::is_base_of_v<cocos2d::Node, T>) {
+				if (t->getParent()) {
+					t->removeFromParent();
+				}
+			}
+			t->release();
+			t = nullptr;
+		}
+	}
+	~RefHolder() {
+		Reset();
+	}
+};
 #endif
 
+
+
+/**************************************************************************************************/
+// Config
+/**************************************************************************************************/
+
+struct Config : PKG::CatchFish::Configs::Config {
+	using BaseType = PKG::CatchFish::Configs::Config;
+	using BaseType::BaseType;
+
+	// 用直线连接进出屏幕的两个点, 返回轨迹
+	static PKG::CatchFish::Way_s MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept;
+
+	// 用曲线连接进出屏幕的两个点( sin 曲线, x 轴穿过两点, 按x轴步进结合最小变化角度合并轨迹点, y 值 * ratio ), 返回轨迹
+	static PKG::CatchFish::Way_s MakeCurve(std::pair<xx::Pos, xx::Pos> const& inOutPos, float const& xStep, xx::Pos const& ratio) noexcept;
+
+	// 预生成一些东西( ways, ... )
+	virtual int InitCascade(void* const& o = nullptr) noexcept override;
+};
 
 
 /**************************************************************************************************/
@@ -103,12 +166,6 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	// 随机生成一对具备合理显示效果的进出屏幕的关键点
 	std::pair<xx::Pos, xx::Pos> MakeRandomInOutPoint(float const& itemRadius) noexcept;
 
-	// 用直线连接进出屏幕的两个点, 返回轨迹
-	PKG::CatchFish::Way_s MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept;
-
-	// 用曲线连接进出屏幕的两个点( sin 曲线, x 轴穿过两点, 按x轴步进结合最小变化角度合并轨迹点, y 值 * ratio ), 返回轨迹
-	PKG::CatchFish::Way_s MakeCurve(std::pair<xx::Pos, xx::Pos> const& inOutPos, float const& xStep, xx::Pos const& ratio) noexcept;
-
 	// 生成随机鱼
 	void MakeRandomFish() noexcept;
 
@@ -117,13 +174,6 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 
 	// 帧逻辑更新
 	virtual int Update(int const& frameNumber = 0) noexcept override;
-
-
-
-	// 调试专用。记录最近 120 fps 的鱼 id 列表, 以便在收到 server 下发的列表之后找出这帧的数据来对比
-	std::unordered_map<int, xx::List<int>> fishIdss;
-
-
 };
 using Scene_s = std::shared_ptr<Scene>;
 using Scene_w = std::weak_ptr<Scene>;
@@ -146,19 +196,17 @@ struct Fish : PKG::CatchFish::Fish {
 
 	virtual int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
-	~Fish();
 
 	virtual int HitCheck(Bullet* const& bullet) noexcept;
 
 #ifdef CC_TARGET_PLATFORM
-	cocos2d::Sprite* body = nullptr;
-	cocos2d::Sprite* shadow = nullptr;
+	RefHolder<cocos2d::Sprite> body;
+	RefHolder<cocos2d::Sprite> shadow;
 #if DRAW_PHYSICS_POLYGON
-	cocos2d::DrawNode* debugNode = nullptr;
+	RefHolder<cocos2d::DrawNode> debugNode;
 #endif
 	virtual void DrawInit() noexcept;
 	virtual void DrawUpdate() noexcept;
-	virtual void DrawDispose() noexcept;
 #endif
 };
 using Fish_s = std::shared_ptr<Fish>;
@@ -247,13 +295,11 @@ struct Cannon : PKG::CatchFish::Cannon {
 
 	int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
-	~Cannon();
 
 #ifdef CC_TARGET_PLATFORM
-	cocos2d::Sprite* body = nullptr;
+	RefHolder<cocos2d::Sprite> body;
 	virtual void DrawInit() noexcept;
 	virtual void DrawUpdate() noexcept;
-	virtual void DrawDispose() noexcept;
 #endif
 };
 using Cannon_s = std::shared_ptr<Cannon>;
@@ -282,16 +328,14 @@ struct Bullet : PKG::CatchFish::Bullet {
 
 	int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
-	~Bullet();
 
 	// 移动子弹。如果生命周期结束将返回非 0
 	int Move() noexcept;
 
 #ifdef CC_TARGET_PLATFORM
-	cocos2d::Sprite* body = nullptr;
+	RefHolder<cocos2d::Sprite> body;
 	virtual void DrawInit() noexcept;
 	virtual void DrawUpdate() noexcept;
-	virtual void DrawDispose() noexcept;
 #endif
 };
 using Bullet_s = std::shared_ptr<Bullet>;
@@ -341,8 +385,12 @@ struct CatchFish {
 	int Init(std::string const& ip, int const& port, std::string const& cfgName) noexcept;
 
 	// 显示面板相关
-	cocos2d::Label* labelPing = nullptr;
-	void SetLabelPingText(std::string const& txt) noexcept;
+	RefHolder<cocos2d::Label> labelNumDialTimes;
+	RefHolder<cocos2d::Label> labelPing;
+	RefHolder<cocos2d::Label> labelNumFishs;
+	void SetText_NumDialTimes(int64_t const& value) noexcept;
+	void SetText_Ping(int64_t const& value) noexcept;
+	void SetText_NumFishs(size_t const& value) noexcept;
 #endif
 
 	// logic. 每帧调用一次. 返回非0 表示退出
@@ -447,6 +495,7 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	std::vector<std::string> ips;
 	xx::UvResolver_s resolver;
 	int timeoutFrameNumber = 0;
+	int numDialTImes = 0;
 
 	// 处理首包( EnterSuccess || Error )
 	int HandleFirstPackage() noexcept;
@@ -470,8 +519,6 @@ struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	int Handle(PKG::CatchFish::Events::Fire_s o) noexcept;
 	int Handle(PKG::CatchFish::Events::CannonSwitch_s o) noexcept;
 	int Handle(PKG::CatchFish::Events::CannonCoinChange_s o) noexcept;
-	int Handle(PKG::CatchFish::Events::DebugInfo_s o, int const& frameNumber) noexcept;
-
 
 
 	// 清空 recvs, player, catchFish->players, scene
@@ -503,6 +550,7 @@ using Dialer_s = std::shared_ptr<Dialer>;
 
 #include "CatchFish.hpp"
 
+#include "Config.hpp"
 #include "SpriteFrame.hpp"
 #include "Physics.hpp"
 #include "Scene.hpp"

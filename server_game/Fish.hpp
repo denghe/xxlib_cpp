@@ -19,7 +19,7 @@ inline int Fish::Update(int const& frameNumber) noexcept {
 	}
 
 	// 定位到轨迹
-	auto&& way = this->way ? this->way : cfg->ways->At(wayIndex);
+	auto&& way = this->way ? this->way : ((cfg->ways && cfg->ways->len) ? cfg->ways->At(wayIndex) : scene->cfg->ways->At(wayIndex));
 
 LabKeepMoving:
 	// 试累加鱼当前鱼点移动距离. 如果跨点, 则用多个点的距离来凑够
@@ -102,28 +102,19 @@ int Fish::HitCheck(Bullet* const& bullet) noexcept {
 	return 0;
 }
 
-inline Fish::~Fish() {
-#ifdef CC_TARGET_PLATFORM
-	DrawDispose();
-#endif
-}
-
 #ifdef CC_TARGET_PLATFORM
 inline void Fish::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->setGlobalZOrder(cfg->zOrder);
-	body->retain();
 
 	shadow = cocos2d::Sprite::create();
 	shadow->setGlobalZOrder(cfg->zOrder);
 	shadow->setColor(cocos2d::Color3B::BLACK);
 	shadow->setOpacity(125);
-	shadow->retain();
 #if DRAW_PHYSICS_POLYGON
 	debugNode = cocos2d::DrawNode::create();
 	debugNode->setGlobalZOrder(cfg->zOrder);
-	debugNode->retain();
 #endif
 	DrawUpdate();
 	cc_scene->addChild(shadow);
@@ -168,27 +159,4 @@ inline void Fish::DrawUpdate() noexcept {
 #endif
 }
 
-inline void Fish::DrawDispose() noexcept {
-	if (!body) return;
-
-	if (body->getParent()) {
-		body->removeFromParent();
-	}
-	body->release();
-	body = nullptr;
-
-	if (shadow->getParent()) {
-		shadow->removeFromParent();
-	}
-	shadow->release();
-	shadow = nullptr;
-
-#if DRAW_PHYSICS_POLYGON
-	if (debugNode->getParent()) {
-		debugNode->removeFromParent();
-	}
-	debugNode->release();
-	debugNode = nullptr;
-#endif
-}
 #endif

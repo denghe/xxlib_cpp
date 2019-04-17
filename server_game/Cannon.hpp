@@ -231,17 +231,10 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	return 0;
 }
 
-inline Cannon::~Cannon() {
-#ifdef CC_TARGET_PLATFORM
-	DrawDispose();
-#endif
-}
-
 #ifdef CC_TARGET_PLATFORM
 inline void Cannon::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
-	body->retain();
 	body->setGlobalZOrder(cfg->zOrder);
 	auto&& sf = xx::As<SpriteFrame>(cfg->frames->At(0))->spriteFrame;
 	body->setSpriteFrame(sf);
@@ -254,15 +247,5 @@ inline void Cannon::DrawInit() noexcept {
 inline void Cannon::DrawUpdate() noexcept {
 	assert(body);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
-}
-
-inline void Cannon::DrawDispose() noexcept {
-	if (!body) return;
-
-	if (body->getParent()) {
-		body->removeFromParent();
-	}
-	body->release();
-	body = nullptr;
 }
 #endif

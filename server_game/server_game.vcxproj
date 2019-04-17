@@ -112,6 +112,7 @@
     <ClInclude Include="Cannon.hpp" />
     <ClInclude Include="CatchFish.h" />
     <ClInclude Include="CatchFish.hpp" />
+    <ClInclude Include="Config.hpp" />
     <ClInclude Include="Fish.hpp" />
     <ClInclude Include="Listener.hpp" />
     <ClInclude Include="Peer.hpp" />

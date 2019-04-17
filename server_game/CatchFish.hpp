@@ -1,5 +1,6 @@
 ﻿inline CatchFish::CatchFish() {
 	// 注册替代类型
+	xx::BBuffer::Register<Config>(xx::TypeId_v<PKG::CatchFish::Configs::Config>);
 	xx::BBuffer::Register<SpriteFrame>(xx::TypeId_v<PKG::CatchFish::Configs::SpriteFrame>);
 	xx::BBuffer::Register<Physics>(xx::TypeId_v<PKG::CatchFish::Configs::Physics>);
 	xx::BBuffer::Register<Scene>(xx::TypeId_v<PKG::CatchFish::Scene>);
@@ -24,18 +25,15 @@ inline void CatchFish::Dispose(int const& flag) noexcept {
 
 inline CatchFish::~CatchFish() {
 	Dispose(0);
-#ifdef CC_TARGET_PLATFORM
-	// 删除面板显示元素
-	if (labelPing) {
-		if (labelPing->getParent()) {
-			labelPing->removeFromParent();
-		}
-		labelPing->release();
-		labelPing = nullptr;
-	}
-#endif
 }
 
+inline int CatchFish::Update() noexcept {
+#ifdef CC_TARGET_PLATFORM
+	return dialer->Update();
+#else
+	return scene->Update();
+#endif
+}
 
 #ifndef CC_TARGET_PLATFORM
 inline int CatchFish::Init(std::string const& cfgName) noexcept {
@@ -109,31 +107,52 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 	// 初始化拨号器
 	xx::MakeTo(::dialer, *uv);
 
+
+
 	// 初始面板显示元素
-	labelPing = cocos2d::Label::createWithSystemFont("ping: 0000ms", "", 32);
-	labelPing->retain();
-	labelPing->setPosition(10 - ScreenCenter.x, 100 - ScreenCenter.y);
+
+	labelNumDialTimes = cocos2d::Label::createWithSystemFont("", "", 32);
+	labelNumDialTimes->setPosition(10 - ScreenCenter.x, 150 - ScreenCenter.y);
+	labelNumDialTimes->setAnchorPoint({ 0, 0.5 });
+	labelNumDialTimes->setGlobalZOrder(1000);
+	cc_scene->addChild(labelNumDialTimes);
+
+	labelNumFishs = cocos2d::Label::createWithSystemFont("", "", 32);
+	labelNumFishs->setPosition(10 - ScreenCenter.x, 120 - ScreenCenter.y);
+	labelNumFishs->setAnchorPoint({ 0, 0.5 });
+	labelNumFishs->setGlobalZOrder(1000);
+	cc_scene->addChild(labelNumFishs);
+
+	labelPing = cocos2d::Label::createWithSystemFont("", "", 32);
+	labelPing->setPosition(10 - ScreenCenter.x, 90 - ScreenCenter.y);
 	labelPing->setAnchorPoint({ 0, 0.5 });
 	labelPing->setGlobalZOrder(1000);
 	cc_scene->addChild(labelPing);
-
 #endif
-
 	return 0;
 }
 
+
 #ifdef CC_TARGET_PLATFORM
-inline void CatchFish::SetLabelPingText(std::string const& txt) noexcept {
+inline void CatchFish::SetText_NumDialTimes(int64_t const& value) noexcept {
+	if (labelNumDialTimes) {
+		labelNumDialTimes->setString("reconnect times: " + std::to_string(value));
+	}
+}
+inline void CatchFish::SetText_Ping(int64_t const& value) noexcept {
 	if (labelPing) {
-		labelPing->setString(txt);
+		if (value < 0) {
+			labelPing->setString("ping: timeout");
+		} else {
+			std::string s;
+			xx::Append(s, "ping: ", value, "ms");
+			labelPing->setString(s);
+		}
+	}
+}
+inline void CatchFish::SetText_NumFishs(size_t const& value) noexcept {
+	if (labelNumFishs) {
+		labelNumFishs->setString("num fishs: " + std::to_string(value));
 	}
 }
 #endif
-
-inline int CatchFish::Update() noexcept {
-#ifdef CC_TARGET_PLATFORM
-	return dialer->Update();
-#else
-	return scene->Update();
-#endif
-}

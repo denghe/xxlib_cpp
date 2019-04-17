@@ -57,18 +57,10 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 	return 0;
 };
 
-inline Bullet::~Bullet() {
-#ifdef CC_TARGET_PLATFORM
-	DrawDispose();
-#endif
-}
-
-
 #ifdef CC_TARGET_PLATFORM
 inline void Bullet::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
-	body->retain();
 	body->setGlobalZOrder(cfg->zOrder);
 	auto&& sf = xx::As<SpriteFrame>(cfg->frames->At(1))->spriteFrame;
 	body->setSpriteFrame(sf);
@@ -82,15 +74,5 @@ inline void Bullet::DrawUpdate() noexcept {
 	assert(body);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
 	body->setPosition(pos);
-}
-
-inline void Bullet::DrawDispose() noexcept {
-	if (!body) return;
-
-	if (body->getParent()) {
-		body->removeFromParent();
-	}
-	body->release();
-	body = nullptr;
 }
 #endif
