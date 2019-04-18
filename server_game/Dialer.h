@@ -10,13 +10,12 @@
 
 	// 脚本用变量
 	bool finished = false;
-	PKG::Client_CatchFish::Enter_s pkgEnter;
 	int r = 0;
 	int64_t waitMS = 0;
 	std::vector<std::string> ips;
 	xx::UvResolver_s resolver;
 	int timeoutFrameNumber = 0;
-	int numDialTImes = 0;
+	int numDialTimes = 0;
 	bool autoFire = false;
 	xx::Random rnd;
 	int playerId = 0;			// 保存当前玩家 id
@@ -57,7 +56,8 @@
 	// 每帧驱动脚本
 	int Update() noexcept;
 
-	// ping package cache for send
+	// packages cache
+	inline static PKG::Client_CatchFish::Enter_s pkgEnter = xx::Make<PKG::Client_CatchFish::Enter>();
 	inline static PKG::Generic::Ping_s pkgPing = xx::Make<PKG::Generic::Ping>();
 };
 using Dialer_s = std::shared_ptr<Dialer>;

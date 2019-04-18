@@ -90,8 +90,6 @@ struct CatchFish {
 	// 清掉某玩家
 	void Cleanup(Player_s const& p) noexcept;
 
-	bool disposed = false;
-	void Dispose(int const& flag = 1) noexcept;
 	~CatchFish();
 };
 using CatchFish_s = std::shared_ptr<CatchFish>;

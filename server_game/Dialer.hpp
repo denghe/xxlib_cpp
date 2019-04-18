@@ -20,6 +20,7 @@ inline int Dialer::HandleFirstPackage() noexcept {
 
 		// store current player
 		player = xx::As<Player>(es->self.lock());
+		playerId = player->id;
 
 		// set current player's flag
 		player->isSelf = true;
@@ -126,7 +127,6 @@ inline void Dialer::Reset() noexcept {
 	::catchFish->scene.reset();
 }
 
-
 inline int Dialer::Handle(PKG::CatchFish::Events::Enter_s o) noexcept {
 	if (o->playerId == player->id) return 0;		// 忽略自己进入游戏的消息
 
@@ -157,9 +157,6 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Enter_s o) noexcept {
 		cannon->cfgId = o->cannonCfgId;
 		cannon->coin = o->cannonCoin;
 		cannon->id = (int)player->cannons->len;
-		//cannon->player = &*player;
-		//cannon->cfg = &*cannonCfg;
-		//cannon->pos = catchFish->cfg->sitPositons->At((int)o->sit);
 		cannon->quantity = cannonCfg->quantity;
 		cannon->scene = &*catchFish->scene;
 		cannon->fireCD = 0;
@@ -178,6 +175,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Enter_s o) noexcept {
 	// 进一步初始化
 	return player->InitCascade(&*catchFish->scene);
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::Leave_s o) noexcept {
 	assert(player && player->id != o->playerId);
 	auto&& ps = *catchFish->scene->players;
@@ -194,13 +192,16 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Leave_s o) noexcept {
 	assert(i != -1);
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::NoMoney_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::Refund_s o) noexcept {
 	player->coin += o->coin;
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
 	auto&& fs = *player->scene->fishs;
 	for (auto&& f : fs) {
@@ -215,27 +216,35 @@ inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
 	}
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::PushWeapon_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::PushFish_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::OpenAutoLock_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::Aim_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::CloseAutoLock_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::OpenAutoFire_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::CloseAutoFire_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 	// 如果是自己发射的就忽略绘制
 	if (o->playerId == player->id) return 0;
@@ -253,9 +262,11 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 	}
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::CannonSwitch_s o) noexcept {
 	return 0;
 }
+
 inline int Dialer::Handle(PKG::CatchFish::Events::CannonCoinChange_s o) noexcept {
 	return 0;
 }

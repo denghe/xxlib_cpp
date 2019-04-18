@@ -26,6 +26,9 @@ struct RefHolder {
 	operator T* () {
 		return t;
 	}
+	operator bool() {
+		return (bool)t;
+	}
 	void Reset() {
 		if (t) {
 			if constexpr (std::is_base_of_v<cocos2d::Node, T>) {

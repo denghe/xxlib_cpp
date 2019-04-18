@@ -11,19 +11,12 @@
 	// todo: more
 }
 
-inline void CatchFish::Dispose(int const& flag) noexcept {
-	if (disposed) return;
-
-	// todo: release all
+inline CatchFish::~CatchFish() {
+	// todo: more release
 #ifdef CC_TARGET_PLATFORM
 	dialer.reset();
-
 	cc_listener.Reset();
 #endif
-}
-
-inline CatchFish::~CatchFish() {
-	Dispose(0);
 }
 
 inline int CatchFish::Update() noexcept {
