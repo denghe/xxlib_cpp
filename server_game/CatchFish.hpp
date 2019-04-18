@@ -108,3 +108,54 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 #endif
 	return 0;
 }
+
+
+inline void CatchFish::Cleanup(Player_s const& p) noexcept {
+	assert(p);
+
+	// 网络解绑
+	if (p->peer) {
+		assert(p->peer->player_w.lock() == p);
+		p->peer->Dispose();
+		p->peer.reset();
+	}
+
+	// 从玩家总容器移除
+	assert(players.Find(p) != -1);
+	players.Remove(p);
+
+	// 从玩家所在场景移除
+	auto && ps = *p->scene->players;
+	assert(ps.len);
+	size_t i = ps.len - 1;
+	for (; i != -1; --i) {
+		if (ps[i].lock() == p) {
+			ps.SwapRemoveAt(i);
+			break;
+		}
+	}
+	assert(i != -1);
+
+	// 归还座位
+	assert(p->scene->freeSits->Find(p->sit) == -1);
+	p->scene->freeSits->Add(p->sit);
+
+	// 清理该玩家已产生的事件
+	auto && es = *p->scene->frameEvents->events;
+	if (es.len) {
+		for (i = es.len - 1; i != -1; --i) {
+			if (es[i]->playerId == p->id) {
+				es.SwapRemoveAt(i);
+			}
+		}
+	}
+
+	// 生成离开事件
+	{
+		auto&& e = xx::Make<PKG::CatchFish::Events::Leave>();
+		e->playerId = p->id;
+		p->scene->frameEvents->events->Add(std::move(e));
+	}
+
+	xx::CoutTN("cleanup player: id = ", p->id);
+}

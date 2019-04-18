@@ -8,6 +8,9 @@
 	// Enter 成功后绑定到玩家
 	Player_w player_w;
 
+	// 首包判断 flag
+	bool isFirstPackage = true;
+
 	// pong package cache for send
 	inline static PKG::Generic::Pong_s pkgPong = xx::Make<PKG::Generic::Pong>();
 

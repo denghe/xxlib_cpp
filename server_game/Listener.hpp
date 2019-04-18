@@ -1,11 +1,11 @@
 inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
 	auto&& peer = xx::As<Peer>(peer_);
-	xx::CoutN(peer->GetIP(), " connected.");
+	xx::CoutTN(peer->GetIP(), " connected.");
 	peer->catchFish = &catchFish;
 
 	// 用这个事件回调来持有 peer 指针
 	peer->OnDisconnect = [peer] {
-		xx::CoutN(peer->GetIP(), " disconnected.");
+		xx::CoutTN(peer->GetIP(), " disconnected.");
 	};
 
 	// 启用超时检测. xx ms 没收到包就 Disconnect. 收到 Ping 会再次重置

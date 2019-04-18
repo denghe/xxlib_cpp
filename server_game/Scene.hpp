@@ -17,22 +17,29 @@ inline int Scene::Update(int const&) noexcept {
 			}
 		}
 	}
+
 	auto&& ps = *this->players;
 	if (ps.len) {
 		for (size_t i = ps.len - 1; i != -1; --i) {
-			auto&& p = xx::As<Player>(ps[i].lock());
-			if (p->Update(frameNumber)) {
-				ps.SwapRemoveAt(i);
-				catchFish->players.Remove(p);
+			auto w = ps[i];								// 后面要用. 中途可能被删掉. 不存 && 引用
+			int r = 0;
+			{
+				auto&& p = xx::As<Player>(w.lock());
+				if (r = p->Update(frameNumber)) {
+					catchFish->Cleanup(p);
+				}
 			}
+			assert(r && !w.lock());
 		}
 	}
-	// todo: foreach  items, ..... call Update
+
+	// todo: foreach  items, stages..... call Update
 
 	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
 	if (frameNumber % 7 > 2) {
 		MakeRandomFish();
 	}
+
 
 #ifndef CC_TARGET_PLATFORM
 	// 存帧序号
@@ -119,6 +126,7 @@ inline void Scene::MakeRandomFish() noexcept {
 	fishs->Add(std::move(fish));
 }
 
+// 生成一条随机角度的进出口( 主用于体积大于 cfg ways 设定的移动对象 )
 // -45 ~ 45, 135 ~ 225 在这两段角度之间随机一个角度值,  + 180 之后的 45 度范围内再次随机一个角度, 用旋转函数转为两个坐标点. 连为1根直线, 最后找出安全出生框与直线的交点
 // 由于最终计算出两个交点之后, 可以通过交换顺序的方式反向, 故只需要一段角度作为起始角度即可. 简化起见, 直接 135 ~ 225 ( 不考虑开区间误差 )
 inline std::pair<xx::Pos, xx::Pos> Scene::MakeRandomInOutPoint(float const& itemRadius) noexcept {

@@ -70,6 +70,9 @@ struct CatchFish {
 	// 所有玩家的强存储
 	xx::List<Player_s> players;
 
+	// 用于自增产生玩家 id
+	int playerAutoId = 0;
+
 	// 游戏场景实例
 	Scene_s scene;
 
@@ -86,6 +89,9 @@ struct CatchFish {
 
 	// logic. 每帧调用一次. 返回非0 表示退出
 	int Update() noexcept;
+
+	// 清掉某玩家
+	void Cleanup(Player_s const& p) noexcept;
 
 	bool disposed = false;
 	void Dispose(int const& flag = 1) noexcept;

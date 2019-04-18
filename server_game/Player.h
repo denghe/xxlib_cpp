@@ -9,14 +9,18 @@ struct Player : PKG::CatchFish::Player {
 	Scene* scene = nullptr;
 
 #ifndef CC_TARGET_PLATFORM
-	//// 令牌
-	//std::string token;
-
-	//// 开炮等行为花掉的金币数汇总 ( 统计 )
-	//int64_t consumeCoin = 0;
+	// 超时 Cleanup 帧. 创建玩家时令其 = scene.frameNumber + 60 * N. 收到合法指令时重置.
+	int timeoutFrameNumber = 0;
 
 	// 绑定的网络连接
 	std::shared_ptr<Peer> peer;
+
+	// 重置超时判断变量
+	void ResetTimeoutFrameNumber() noexcept;
+
+	// 踢下线( 将清除各种接收队列 )
+	template<typename ...Args>
+	int Kick(Args const& ... reason) noexcept;
 
 	// 分类收包容器( 在适当的生命周期读取并处理 )
 	std::deque<PKG::Client_CatchFish::Fire_s> recvFires;
@@ -28,10 +32,8 @@ struct Player : PKG::CatchFish::Player {
 
 	virtual int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
-#ifndef CC_TARGET_PLATFORM
-	// 归还座位
-	~Player();
-#endif
+
+
 };
 using Player_s = std::shared_ptr<Player>;
 using Player_w = std::weak_ptr<Player>;

@@ -130,7 +130,7 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	xx::CoutTN("step 3");
 
 	// 记录 / 计算收到的 last frame number 用于接收超时判断( 暂定 5 秒 )
-	timeoutFrameNumber = ::catchFish->scene->frameNumber + 60 * 5;
+	timeoutFrameNumber = ::catchFish->scene->frameNumber + 60 * 10;
 
 	// peer keeper
 	while (!peer->Disposed()) {
@@ -222,7 +222,7 @@ inline int Dialer::HandlePackagesOrUpdateScene() noexcept {
 		case xx::TypeId_v<PKG::CatchFish_Client::FrameEvents>: {
 			auto&& fe = xx::As<PKG::CatchFish_Client::FrameEvents>(recvs.front());
 			// 记录 / 计算收到的 last frame number 用于接收超时判断( 暂定 5 秒 )
-			timeoutFrameNumber = fe->frameNumber + 60 * 5;
+			timeoutFrameNumber = fe->frameNumber + 60 * 10;
 			// 如果收到的数据比本地晚太多就重连
 			if (timeoutFrameNumber < ::catchFish->scene->frameNumber) return -1;
 			// 如果本地帧编号慢于 server 则追帧
