@@ -58,7 +58,7 @@ inline int Dialer::HandlePackagesOrUpdateScene() noexcept {
 		case xx::TypeId_v<PKG::CatchFish_Client::FrameEvents>: {
 			auto&& fe = xx::As<PKG::CatchFish_Client::FrameEvents>(recvs.front());
 			// 记录 / 计算收到的 last frame number 用于接收超时判断( 暂定 5 秒 )
-			timeoutFrameNumber = fe->frameNumber + 60 * 10;
+			timeoutFrameNumber = fe->frameNumber + 60 * 5;
 			// 如果收到的数据比本地晚太多就重连
 			if (timeoutFrameNumber < ::catchFish->scene->frameNumber) return -1;
 			// 如果本地帧编号慢于 server 则追帧
@@ -178,18 +178,12 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Enter_s o) noexcept {
 
 inline int Dialer::Handle(PKG::CatchFish::Events::Leave_s o) noexcept {
 	assert(player && player->id != o->playerId);
-	auto&& ps = *catchFish->scene->players;
-	assert(ps.len);
-	size_t i = ps.len - 1;
-	for (; i != -1; --i) {
-		auto&& p = xx::As<Player>(ps[i].lock());
+	for (auto&& p : catchFish->players) {
 		if (p->id == o->playerId) {
-			ps.SwapRemoveAt(i);
-			catchFish->players.Remove(p);
+			catchFish->Cleanup(p);
 			break;
 		}
 	}
-	assert(i != -1);
 	return 0;
 }
 

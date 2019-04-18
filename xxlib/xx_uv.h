@@ -1000,9 +1000,9 @@ namespace xx {
 			kcp = ikcp_create(conv, this);
 			if (!kcp) return -1;
 			ScopeGuard sgKcp([&] { ikcp_release(kcp); kcp = nullptr; });
-			if (int r = ikcp_wndsize(kcp, 128, 128)) return r;
-			if (int r = ikcp_nodelay(kcp, 1, 20, 2, 1)) return r;
-			//kcp->rx_minrto = 10;
+			if (int r = ikcp_wndsize(kcp, 1024, 1024)) return r;
+			if (int r = ikcp_nodelay(kcp, 1, 10, 2, 1)) return r;
+			kcp->rx_minrto = 10;
 			kcp->stream = 1;
 			ikcp_setoutput(kcp, [](const char *inBuf, int len, ikcpcb *kcp, void *user)->int {
 				auto self = ((UvKcpBasePeer*)user);

@@ -71,31 +71,31 @@ inline Panel::Panel(Dialer* dialer)
 }
 
 inline void Panel::SetText_AutoFire(bool const& value) noexcept {
-	if (btnAutoFire) {
-		std::string s = "auto fire: ";
-		s += value ? "ON" : "OFF";
-		btnAutoFire->setString(s);
-	}
+	assert(!::catchFish->disposed);
+	if (!btnAutoFire) return;
+	std::string s = "auto fire: ";
+	s += value ? "ON" : "OFF";
+	btnAutoFire->setString(s);
 }
 inline void Panel::SetText_NumDialTimes(int64_t const& value) noexcept {
-	if (labelNumDialTimes) {
-		labelNumDialTimes->setString("reconnect times: " + std::to_string(value));
-	}
+	assert(!::catchFish->disposed);
+	if (!labelNumDialTimes) return;
+	labelNumDialTimes->setString("reconnect times: " + std::to_string(value));
 }
 inline void Panel::SetText_Ping(int64_t const& value) noexcept {
-	if (labelPing) {
-		if (value < 0) {
-			labelPing->setString("ping: timeout");
-		}
-		else {
-			std::string s;
-			xx::Append(s, "ping: ", value, "ms");
-			labelPing->setString(s);
-		}
+	assert(!::catchFish->disposed);
+	if (!labelPing) return;
+	if (value < 0) {
+		labelPing->setString("ping: timeout");
+	}
+	else {
+		std::string s;
+		xx::Append(s, "ping: ", value, "ms");
+		labelPing->setString(s);
 	}
 }
 inline void Panel::SetText_NumFishs(size_t const& value) noexcept {
-	if (labelNumFishs) {
-		labelNumFishs->setString("num fishs: " + std::to_string(value));
-	}
+	assert(!::catchFish->disposed);
+	if (!labelNumFishs) return;
+	labelNumFishs->setString("num fishs: " + std::to_string(value));
 }

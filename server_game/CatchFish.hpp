@@ -12,6 +12,7 @@
 }
 
 inline CatchFish::~CatchFish() {
+	disposed = true;
 	// todo: more release
 #ifdef CC_TARGET_PLATFORM
 	dialer.reset();
@@ -102,7 +103,7 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 	return 0;
 }
 
-inline void CatchFish::Cleanup(Player_s const& p) noexcept {
+inline void CatchFish::Cleanup(Player_s p) noexcept {
 	assert(p);
 #ifndef CC_TARGET_PLATFORM
 	// 网络解绑

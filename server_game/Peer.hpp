@@ -82,7 +82,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 						scene.frameEnters.Add(&*p);
 						// 设置超时
 						this->ResetTimeoutMS(10000);
-						player->ResetTimeoutFrameNumber();
+						p->ResetTimeoutFrameNumber();
 						// 返回成功
 						return 0;
 					}

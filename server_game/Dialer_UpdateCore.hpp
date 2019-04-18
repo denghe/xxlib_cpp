@@ -15,8 +15,8 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	xx::MakeTo(panel, this);
 
 
-		// begin resolve domain to iplist
-		LabResolveDomain:
+	// begin resolve domain to iplist
+LabResolveDomain:
 
 	// clear flag
 	finished = false;
@@ -36,7 +36,7 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	}
 
 	// ip list -> connected peer
-		LabDial :
+LabDial:
 	// clear flag
 	finished = false;
 
@@ -84,7 +84,7 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	xx::CoutTN("step 3");
 
 	// 记录 / 计算收到的 last frame number 用于接收超时判断( 暂定 5 秒 )
-	timeoutFrameNumber = ::catchFish->scene->frameNumber + 60 * 10;
+	timeoutFrameNumber = ::catchFish->scene->frameNumber + 60 * 5;
 
 	// peer keeper
 	while (!peer->Disposed()) {
@@ -106,13 +106,17 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 		if (::catchFish->scene->frameNumber % 30 == 0) {
 			pkgPing->ticks = xx::NowSteadyEpochMS();
 			peer->SendRequest(pkgPing, [this](xx::Object_s && msg) {
-				int64_t ms = -1;
-				if (auto&& pong = xx::As<PKG::Generic::Pong>(msg)) {
-					ms = xx::NowSteadyEpochMS() - pong->ticks;
+				// 防止 catchFish 析构造成的 msg 为空
+				if (!msg && !::catchFish->disposed) {
+					panel->SetText_Ping(-1);
 				}
-				panel->SetText_Ping(ms);
+				else {
+					if (auto && pong = xx::As<PKG::Generic::Pong>(msg)) {
+						panel->SetText_Ping(xx::NowSteadyEpochMS() - pong->ticks);
+					}
+				}
 				return 0;
-			}, 2000);
+				}, 2000);
 			peer->Flush();
 		}
 
@@ -121,5 +125,12 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 
 		COR_YIELD
 	}
+
+	xx::CoutTN("redial by user. redial after 10 secs");
+	waitMS = xx::NowSteadyEpochMS() + 10000;	// 等 10 秒再重连
+	while (xx::NowSteadyEpochMS() < waitMS) {
+		COR_YIELD
+	}
+	goto LabDial;
 	COR_END
 }

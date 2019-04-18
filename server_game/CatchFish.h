@@ -87,9 +87,13 @@ struct CatchFish {
 	// logic. 每帧调用一次. 返回非0 表示退出
 	int Update() noexcept;
 
-	// 清掉某玩家
-	void Cleanup(Player_s const& p) noexcept;
+	// 清掉某玩家( 复制传入以避免引用到容器内的地址造成无法正常删除 )
+	void Cleanup(Player_s p) noexcept;
 
+	// 被用于部分调用中检测是否正在发生析构
+	bool disposed = false;
+
+	// 析构全局对象
 	~CatchFish();
 };
 using CatchFish_s = std::shared_ptr<CatchFish>;
