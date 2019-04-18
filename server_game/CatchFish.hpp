@@ -109,16 +109,16 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 	return 0;
 }
 
-
 inline void CatchFish::Cleanup(Player_s const& p) noexcept {
 	assert(p);
-
+#ifndef CC_TARGET_PLATFORM
 	// 网络解绑
 	if (p->peer) {
 		assert(p->peer->player_w.lock() == p);
 		p->peer->Dispose();
 		p->peer.reset();
 	}
+#endif
 
 	// 从玩家总容器移除
 	assert(players.Find(p) != -1);
@@ -136,6 +136,7 @@ inline void CatchFish::Cleanup(Player_s const& p) noexcept {
 	}
 	assert(i != -1);
 
+#ifndef CC_TARGET_PLATFORM
 	// 归还座位
 	assert(p->scene->freeSits->Find(p->sit) == -1);
 	p->scene->freeSits->Add(p->sit);
@@ -156,6 +157,7 @@ inline void CatchFish::Cleanup(Player_s const& p) noexcept {
 		e->playerId = p->id;
 		p->scene->frameEvents->events->Add(std::move(e));
 	}
+#endif
 
 	xx::CoutTN("cleanup player: id = ", p->id);
 }

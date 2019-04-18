@@ -11,6 +11,10 @@
 }
 
 inline int Player::Update(int const& frameNumber) noexcept {
+#ifndef CC_TARGET_PLATFORM
+	if (timeoutFrameNumber < scene->frameNumber) return -1;
+#endif
+
 	auto&& cs = *this->cannons;
 	if (cs.len) {
 		for (size_t i = cs.len - 1; i != -1; --i) {
@@ -95,7 +99,7 @@ inline int Player::Update(int const& frameNumber) noexcept {
 #ifndef CC_TARGET_PLATFORM
 
 inline void Player::ResetTimeoutFrameNumber() noexcept {
-	timeoutFrameNumber = scene->frameNumber + 60 * 60;		// todo: 从配置拿时长
+	timeoutFrameNumber = scene->frameNumber + 60 * 20;		// todo: 从配置拿时长
 }
 
 template<typename ...Args>

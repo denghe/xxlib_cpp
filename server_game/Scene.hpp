@@ -29,7 +29,7 @@ inline int Scene::Update(int const&) noexcept {
 					catchFish->Cleanup(p);
 				}
 			}
-			assert(r && !w.lock());
+			assert(!r || r && !w.lock());
 		}
 	}
 

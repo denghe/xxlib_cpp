@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "c1870a3484db15cf6c9a05c72010db3a";
+		inline static const std::string value = "d649139cddf7eb07e346be293fab0bcf";
     };
 
 namespace Generic {
@@ -956,6 +956,8 @@ namespace CatchFish_Client {
 namespace Client_CatchFish {
     // 申请进入游戏. 成功返回 EnterSuccess. 失败直接被 T
     struct Enter : xx::Object {
+        // 传递先前保存的玩家id以便断线重连. 没有传 0
+        int32_t playerId = 0;
 
         typedef Enter ThisType;
         typedef xx::Object BaseType;
@@ -1649,8 +1651,10 @@ namespace Client_CatchFish {
         return 14;
     }
     inline void Enter::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        bb.Write(this->playerId);
     }
     inline int Enter::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = bb.Read(this->playerId)) return r;
         return 0;
     }
     inline int Enter::InitCascade(void* const& o) noexcept {
@@ -1672,6 +1676,7 @@ namespace Client_CatchFish {
     }
     inline void Enter::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"playerId\":", this->playerId);
     }
     inline uint16_t Fire::GetTypeId() const noexcept {
         return 15;

@@ -4,6 +4,9 @@
 	// 游戏实例( 此物也可以与 Listener 同级. 为方便先放这 )
 	CatchFish catchFish;
 
+	// 用于自增产生玩家 id
+	int playerAutoId = 0;
+
 	// 定时器. 模拟一个游戏循环
 	xx::UvTimer_s looper;
 	int64_t ticksPool = 0;

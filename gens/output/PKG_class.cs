@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "c1870a3484db15cf6c9a05c72010db3a"; 
+        public const string value = "d649139cddf7eb07e346be293fab0bcf"; 
     }
 
 namespace CatchFish
@@ -375,6 +375,10 @@ namespace Client_CatchFish
     /// </summary>
     public partial class Enter : xx.Object
     {
+        /// <summary>
+        /// 传递先前保存的玩家id以便断线重连. 没有传 0
+        /// </summary>
+        public int playerId;
 
         public override ushort GetPackageId()
         {
@@ -383,10 +387,12 @@ namespace Client_CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
+            bb.Write(this.playerId);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
+            bb.Read(ref this.playerId);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -405,6 +411,7 @@ namespace Client_CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
+            s.Append(", \"playerId\":" + playerId.ToString());
         }
         public override string ToString()
         {

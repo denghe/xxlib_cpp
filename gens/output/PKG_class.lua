@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'c1870a3484db15cf6c9a05c72010db3a'
+PKG_PkgGenMd5_Value = 'd649139cddf7eb07e346be293fab0bcf'
 
 --[[
 座位列表
@@ -558,11 +558,17 @@ PKG_Client_CatchFish_Enter = {
 		end
 
 
+        --[[
+        传递先前保存的玩家id以便断线重连. 没有传 0
+        ]]
+        o.playerId = 0 -- Int32
         return o
     end,
     FromBBuffer = function( bb, o )
+        o.playerId = bb:ReadInt32()
     end,
     ToBBuffer = function( bb, o )
+        bb:WriteInt32( o.playerId )
     end
 }
 BBuffer.Register( PKG_Client_CatchFish_Enter )

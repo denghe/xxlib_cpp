@@ -1,6 +1,7 @@
 inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
 	auto&& peer = xx::As<Peer>(peer_);
 	xx::CoutTN(peer->GetIP(), " connected.");
+	peer->listener = this;
 	peer->catchFish = &catchFish;
 
 	// 用这个事件回调来持有 peer 指针

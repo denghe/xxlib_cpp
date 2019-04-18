@@ -70,9 +70,6 @@ struct CatchFish {
 	// 所有玩家的强存储
 	xx::List<Player_s> players;
 
-	// 用于自增产生玩家 id
-	int playerAutoId = 0;
-
 	// 游戏场景实例
 	Scene_s scene;
 
@@ -104,6 +101,7 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "Peer.h"
 #include "Listener.h"
 #else
+#include "Panel.h"
 #include "ClientPeer.h"
 #include "Dialer.h"
 #endif
@@ -126,6 +124,7 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "Peer.hpp"
 #include "Listener.hpp"
 #else
+#include "Panel.hpp"
 #include "ClientPeer.hpp"
 #include "Dialer.hpp"
 #endif
