@@ -205,7 +205,7 @@
     <RemotePostBuildEvent>
       <AdditionalSourcesToCopyMapping>
       </AdditionalSourcesToCopyMapping>
-      <Command>cp ~/projects/linux_server_game/gens/output/cfg.bin ~/projects/linux_server_game/bin/x64/Debug/</Command>
+      <Command>cp $(RemoteRootDir)/$(ProjectName)/gens/output/cfg.bin $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin/x64/Debug/</Command>
     </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -218,7 +218,7 @@
     <RemotePostBuildEvent>
       <AdditionalSourcesToCopyMapping>
       </AdditionalSourcesToCopyMapping>
-      <Command>cp ~/projects/linux_server_game/gens/output/cfg.bin ~/projects/linux_server_game/bin/x64/Debug/</Command>
+      <Command>cp $(RemoteRootDir)/$(ProjectName)/gens/output/cfg.bin $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin/x64/Release/</Command>
     </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
