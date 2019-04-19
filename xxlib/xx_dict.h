@@ -104,7 +104,7 @@ namespace xx
 
 
 		// for (auto&& data : dict) {
-		// for (auto&& iter = dict.begin(); iter != dict.end(); ++iter) {	if ... dict.RemoveAt( iter.i )
+		// for (auto&& iter = dict.begin(); iter != dict.end(); ++iter) {	if (iter->value...... iter.Remove()
 		struct Iter {
 			Dict& hs;
 			int i;
@@ -116,6 +116,11 @@ namespace xx
 				return *this;
 			}
 			Data& operator*() { return hs.items[i]; }
+			Data* operator->() { return &hs.items[i]; }
+			operator int() const {
+				return i;
+			}
+			void Remove() { hs.RemoveAt(i); }
 		};
 		Iter begin() noexcept {
 			if (Empty()) return end();
@@ -125,9 +130,6 @@ namespace xx
 			return end();
 		}
 		Iter end() noexcept { return Iter{ *this, count }; }
-
-		// 根据 iter 移除一条数据
-		void RemoveAt(Iter const& iter) noexcept { RemoveAt(iter.i); }
 
 	protected:
 		// 用于 析构, Clear

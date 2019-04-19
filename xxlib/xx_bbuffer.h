@@ -258,7 +258,7 @@ namespace xx {
 		template<typename T>
 		inline int ReadVarInteger(T& v) {
 			std::make_unsigned_t<T> u(0);
-			for (int shift = 0; shift < sizeof(T) * 8; shift += 7) {
+			for (size_t shift = 0; shift < sizeof(T) * 8; shift += 7) {
 				if (offset == len) return -9;
 				auto b = buf[offset++];
 				u |= T(b & 0x7Fu) << shift;

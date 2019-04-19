@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "uv.h"
 #include "xx_bbuffer.h"
+#include "xx_dict.h"
+
 #define ENABLE_KCP 1
 #if ENABLE_KCP
 #include "ikcp.h"
@@ -13,14 +15,14 @@ namespace xx {
 		uv_loop_t uvLoop;
 		BBuffer recvBB;						// shared deserialization for package receive. direct replace buf when using
 		BBuffer sendBB;						// shared serialization for package send
-		std::unordered_map<int, std::weak_ptr<UvUpdate>> updates;	// key: autoId
+		Dict<int, std::weak_ptr<UvUpdate>> updates;	// key: autoId
 		std::shared_ptr<UvTimer> updater;	// for live or rpc timeout check. interval: 200ms 
 		int64_t nowMS = 0;					// NowSteadyEpochMS cache
 		int autoId = 0;						// updater key, udp dialer port gen: --autoId
 
 #if ENABLE_KCP
 		std::array<char, 65536> recvBuf;	// shared receive buf for kcp
-		std::unordered_map<int, std::weak_ptr<UvUpdate>> udps;	// key: port( dialer peer port = autoId )
+		Dict<int, std::weak_ptr<UvUpdate>> udps;	// key: port( dialer peer port = autoId )
 		std::shared_ptr<UvTimer> kcpUpdater;// call kcp update & udp hand shake. interval: 10ms
 
 		void UpdateKcp() noexcept;
@@ -391,7 +393,7 @@ namespace xx {
 		};
 
 		inline void RemoveFromUpdates() {
-			uv.updates.erase(this->autoId);
+			uv.updates.Remove(this->autoId);
 		}
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
@@ -530,7 +532,7 @@ namespace xx {
 	template<typename BaseType>
 	struct UvRpcBase : BaseType {
 		using BaseType::BaseType;
-		std::unordered_map<int, std::pair<std::function<int(Object_s&& msg)>, int64_t>> callbacks;
+		Dict<int, std::pair<std::function<int(Object_s&& msg)>, int64_t>> callbacks;
 		int serial = 0;
 		std::function<int(Object_s&& msg)> OnReceivePush;
 		inline virtual int ReceivePush(Object_s&& msg) noexcept { return OnReceivePush ? OnReceivePush(std::move(msg)) : 0; };
@@ -573,10 +575,10 @@ namespace xx {
 				return ReceiveRequest(-serial, std::move(msg));
 			}
 			else {
-				auto&& iter = callbacks.find(serial);
-				if (iter == callbacks.end()) return 0;
-				auto a = std::move(iter->second.first);
-				callbacks.erase(iter);
+				auto&& idx = callbacks.Find(serial);
+				if (idx == -1) return 0;
+				auto a = std::move(callbacks.ValueAt(idx).first);
+				callbacks.RemoveAt(idx);
 				return a(std::move(msg));
 			}
 		}
@@ -587,11 +589,12 @@ namespace xx {
 				this->Dispose();
 				return;
 			}
-			for (auto&& iter_ = this->callbacks.begin(); iter_ != this->callbacks.end();) {
-				auto&& iter = iter_++;
-				if (iter->second.second < nowMS) {
-					auto a = std::move(iter->second.first);
-					this->callbacks.erase(iter);
+
+			for (auto&& iter = this->callbacks.begin(); iter != this->callbacks.end(); ++iter) {
+				auto&& v = iter->value;
+				if (v.second < nowMS) {
+					auto a = std::move(v.first);
+					iter.Remove();
 					a(nullptr);
 				}
 			}
@@ -634,9 +637,9 @@ namespace xx {
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (this->Disposed()) return;
 			for (auto&& kv : this->callbacks) {
-				kv.second.first(nullptr);
+				kv.value.first(nullptr);
 			}
-			this->callbacks.clear();
+			this->callbacks.Clear();
 			this->BaseType::Dispose(flag);
 			if (flag) {
 				auto holder = shared_from_this();
@@ -1145,9 +1148,9 @@ namespace xx {
 			this->udp->Remove(conv);					// remove self from container
 			this->udp.reset();							// unbind
 			for (auto&& kv : this->callbacks) {
-				kv.second.first(nullptr);
+				kv.value.first(nullptr);
 			}
-			this->callbacks.clear();
+			this->callbacks.Clear();
 			if (flag) {
 				auto holder = shared_from_this();
 				this->Disconnect();
@@ -1160,21 +1163,21 @@ namespace xx {
 
 	struct UvKcpListenerUdp : UvKcpUdp {
 		using UvKcpUdp::UvKcpUdp;
-		std::unordered_map<uint32_t, std::weak_ptr<UvKcpBasePeer>> peers;
-		std::unordered_map<std::string, std::pair<uint32_t, int64_t>> shakes;	// key: ip:port   value: conv, nowMS
+		Dict<uint32_t, std::weak_ptr<UvKcpBasePeer>> peers;
+		Dict<std::string, std::pair<uint32_t, int64_t>> shakes;	// key: ip:port   value: conv, nowMS
 		uint32_t convId = 0;
 		int handShakeTimeoutMS = 3000;
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (!this->uvUdp) return;
 			this->UvUdp::Dispose(flag);
-			for (auto&& iter = peers.begin(); iter != peers.end();) {
-				if (auto&& peer = (iter++)->second.lock()) {
+			for (auto&& kv : peers) {
+				if (auto && peer = kv.value.lock()) {
 					peer->Dispose(flag);
 				}
 			}
-			peers.clear();
-			uv.udps.erase(port);
+			peers.Clear();
+			uv.udps.Remove(port);
 		}
 
 		~UvKcpListenerUdp() {
@@ -1182,19 +1185,18 @@ namespace xx {
 		}
 
 		inline virtual void Update(int64_t const& nowMS) noexcept override {
-			for (auto&& iter = peers.begin(); iter != peers.end();) {
-				(iter++)->second.lock()->UpdateKcp(nowMS);
+			for (auto&& kv : peers) {
+				kv.value.lock()->UpdateKcp(nowMS);
 			}
-			for (auto&& iter = shakes.begin(); iter != shakes.end();) {
-				auto currIter = iter++;
-				if (currIter->second.second < nowMS) {
-					shakes.erase(currIter);
+			for (auto&& iter = shakes.begin(); iter != shakes.end(); ++iter) {
+				if (iter->value.second < nowMS) {
+					iter.Remove();
 				}
 			}
 		}
 
 		inline virtual void Remove(uint32_t const& conv) noexcept override {
-			peers.erase(conv);
+			peers.Remove(conv);
 		}
 
 	protected:
@@ -1204,11 +1206,11 @@ namespace xx {
 			if (recvLen == 4 && owner) {						// hand shake contain 4 bytes auto inc serial
 				auto&& ipAndPort = Uv::ToIpPortString(addr);
 				// ip_port : <conv, createMS>
-				auto&& iter = shakes.find(ipAndPort);
-				if (iter == shakes.end()) {
-					iter = shakes.insert(std::make_pair(ipAndPort, std::make_pair(++convId, uv.nowMS + handShakeTimeoutMS))).first;
+				auto&& idx = shakes.Find(ipAndPort);
+				if (idx == -1) {
+					idx = shakes.Add(ipAndPort, std::make_pair(++convId, uv.nowMS + handShakeTimeoutMS)).index;
 				}
-				memcpy(recvBuf + 4, &iter->second.first, 4);	// return serial + conv( temp write to recvBuf is safe )
+				memcpy(recvBuf + 4, &shakes.ValueAt(idx).first, 4);	// return serial + conv( temp write to recvBuf is safe )
 				return this->Send(recvBuf, 8, addr);
 			}
 
@@ -1223,13 +1225,13 @@ namespace xx {
 			std::shared_ptr<UvKcpBasePeer> peer;
 
 			// find at peers. if does not exists, find addr at shakes. if exists, create peer
-			auto&& peerIter = peers.find(conv);
-			if (peerIter == peers.end()) {						// conv not found: scan shakes
+			auto&& peerIter = peers.Find(conv);
+			if (peerIter == -1) {								// conv not found: scan shakes
 				if (!owner || owner->Disposed()) return 0;		// listener disposed: ignore
 				auto&& ipAndPort = Uv::ToIpPortString(addr);
-				auto&& iter = shakes.find(ipAndPort);			// find by addr
-				if (iter == shakes.end() || iter->second.first != conv) return 0;	// not found or bad conv: ignore
-				shakes.erase(iter);								// remove from shakes
+				auto&& idx = shakes.Find(ipAndPort);			// find by addr
+				if (idx == -1 || shakes.ValueAt(idx).first != conv) return 0;	// not found or bad conv: ignore
+				shakes.RemoveAt(idx);							// remove from shakes
 				peer = owner->CreatePeer();						// create kcp peer and init
 				if (!peer) return 0;
 				peer->udp = As<UvKcpUdp>(shared_from_this());
@@ -1242,7 +1244,7 @@ namespace xx {
 				owner->Accept(peer);							// accept callback
 			}
 			else {
-				peer = peerIter->second.lock();
+				peer = peers.ValueAt(peerIter).lock();
 				if (!peer || peer->Disposed()) return 0;		// disposed: ignore
 			}
 
@@ -1266,7 +1268,7 @@ namespace xx {
 			if (auto&& peer = peer_w.lock()) {
 				peer->Dispose(flag);
 			}
-			uv.udps.erase(port);
+			uv.udps.Remove(port);
 		}
 		~UvKcpDialerUdp() {
 			this->Dispose(0);
@@ -1344,9 +1346,9 @@ namespace xx {
 		UvKcpListener(Uv& uv, std::string const& ip, int const& port)
 			: UvKcpPeerOwner(uv) {
 			auto&& udps = uv.udps;
-			auto iter = udps.find(port);
-			if (iter != udps.end()) {
-				udp = As<UvKcpListenerUdp>(iter->second.lock());
+			auto&& idx = udps.Find(port);
+			if (idx != -1) {
+				udp = As<UvKcpListenerUdp>(udps.ValueAt(idx).lock());
 				if (udp->owner) throw - 1;			// same port listener already exists?
 			}
 			else {
@@ -1376,7 +1378,7 @@ namespace xx {
 	template<typename PeerType = UvKcpPeer, typename ENABLED = std::enable_if_t<std::is_base_of_v<UvKcpBasePeer, PeerType>>>
 	struct UvKcpDialer : UvKcpPeerOwner {
 		using UvKcpPeerOwner::UvKcpPeerOwner;
-		std::unordered_map<int, std::shared_ptr<UvKcpDialerUdp>> reqs;		// key: port
+		Dict<int, std::shared_ptr<UvKcpDialerUdp>> reqs;		// key: port
 		UvTimer_s timeouter;
 		bool disposed = false;
 		std::shared_ptr<PeerType> peer;
@@ -1393,7 +1395,7 @@ namespace xx {
 				auto&& udp = As<UvKcpDialerUdp>(peer->udp);
 				udp->owner = nullptr;
 				this->peer = std::move(peer);
-				reqs.clear();
+				reqs.Clear();
 			}
 			if (this->OnAccept) {
 				this->OnAccept(this->peer);
@@ -1455,7 +1457,7 @@ namespace xx {
 			if (resetPeer) {
 				peer.reset();
 			}
-			reqs.clear();
+			reqs.Clear();
 		}
 
 	protected:
@@ -1479,8 +1481,8 @@ namespace xx {
 		nowMS = NowSteadyEpochMS();
 		MakeTo(updater, *this, 10, 200, [this] {
 			nowMS = NowSteadyEpochMS();
-			for (auto&& iter = updates.begin(); iter != updates.end();) {
-				(iter++)->second.lock()->Update(nowMS);
+			for (auto&& kv : updates) {
+				kv.value.lock()->Update(nowMS);
 			}
 		});
 		updater->Unref();
@@ -1489,8 +1491,8 @@ namespace xx {
 #if ENABLE_KCP
 	inline void Uv::UpdateKcp() noexcept {
 		nowMS = NowSteadyEpochMS();
-		for (auto&& iter = udps.begin(); iter != udps.end();) {
-			(iter++)->second.lock()->Update(nowMS);
+		for (auto&& kv : udps) {
+			kv.value.lock()->Update(nowMS);
 		}
 	}
 #endif
