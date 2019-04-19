@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="xxlib">
+      <UniqueIdentifier>{1a91db09-9590-400a-b62a-c1f7c825da09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libuv">
+      <UniqueIdentifier>{150bb32a-0479-42e1-b3b7-4435abc01868}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="chipmunk">
+      <UniqueIdentifier>{94256747-9cce-426a-a082-212455a747f0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\xxlib\ikcp.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\ikcp2.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_bbuffer.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_coros.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_dict.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_list.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_object.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_pos.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_random.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_random.hpp">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_uv.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_uv_coros.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\xx_uv_lua.h">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\xxlib\fixed_function.hpp">
+      <Filter>xxlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\server_game\Cannon.h" />
+    <ClInclude Include="..\server_game\Cannon.hpp" />
+    <ClInclude Include="..\server_game\CatchFish.h" />
+    <ClInclude Include="..\server_game\CatchFish.hpp" />
+    <ClInclude Include="..\server_game\ClientPeer.h" />
+    <ClInclude Include="..\server_game\ClientPeer.hpp" />
+    <ClInclude Include="..\server_game\Config.h" />
+    <ClInclude Include="..\server_game\Config.hpp" />
+    <ClInclude Include="..\server_game\Dialer.h" />
+    <ClInclude Include="..\server_game\Dialer.hpp" />
+    <ClInclude Include="..\server_game\Dialer_UpdateCore.hpp" />
+    <ClInclude Include="..\server_game\Fish.h" />
+    <ClInclude Include="..\server_game\Fish.hpp" />
+    <ClInclude Include="..\server_game\Listener.h" />
+    <ClInclude Include="..\server_game\Listener.hpp" />
+    <ClInclude Include="..\server_game\Panel.h" />
+    <ClInclude Include="..\server_game\Panel.hpp" />
+    <ClInclude Include="..\server_game\Peer.h" />
+    <ClInclude Include="..\server_game\Peer.hpp" />
+    <ClInclude Include="..\server_game\Physics.h" />
+    <ClInclude Include="..\server_game\Physics.hpp" />
+    <ClInclude Include="..\server_game\Player.h" />
+    <ClInclude Include="..\server_game\Player.hpp" />
+    <ClInclude Include="..\server_game\RefHolder.h" />
+    <ClInclude Include="..\server_game\Scene.h" />
+    <ClInclude Include="..\server_game\Scene.hpp" />
+    <ClInclude Include="..\server_game\SpriteFrame.h" />
+    <ClInclude Include="..\server_game\SpriteFrame.hpp" />
+    <ClInclude Include="..\server_game\Bullet.h" />
+    <ClInclude Include="..\server_game\Bullet.hpp" />
+    <ClInclude Include="..\libuv\include\uv\aix.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\android-ifaddrs.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\bsd.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\darwin.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\errno.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\linux.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\os390.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\posix.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\stdint-msvc2008.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\sunos.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\threadpool.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\tree.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\unix.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\version.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv\win.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libuv\include\uv.h">
+      <Filter>libuv</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gens\output\PKG_class.h" />
+    <ClInclude Include="..\chipmunk\include\chipmunk\chipmunk.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\chipmunk_ffi.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\chipmunk_private.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\chipmunk_types.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\chipmunk_unsafe.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpArbiter.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpBB.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpBody.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpConstraint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpDampedRotarySpring.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpDampedSpring.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpGearJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpGrooveJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpHastySpace.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpMarch.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpPinJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpPivotJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpPolyline.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpPolyShape.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpRatchetJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpRobust.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpRotaryLimitJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpShape.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpSimpleMotor.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpSlideJoint.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpSpace.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpSpatialIndex.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpTransform.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\chipmunk\include\chipmunk\cpVect.h">
+      <Filter>chipmunk</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\xxlib\ikcp.c">
+      <Filter>xxlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\server_game\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\libuv\libuv.a">
+      <Filter>libuv</Filter>
+    </Library>
+    <Library Include="..\chipmunk\lib\lin64\libchipmunk.a">
+      <Filter>chipmunk</Filter>
+    </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\gens\output\cfg.bin" />
+  </ItemGroup>
+</Project>
