@@ -205,7 +205,8 @@
     <RemotePostBuildEvent>
       <AdditionalSourcesToCopyMapping>
       </AdditionalSourcesToCopyMapping>
-      <Command>cp $(RemoteRootDir)/$(ProjectName)/gens/output/cfg.bin $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin/x64/Debug/</Command>
+      <Command>ln -s $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin $(RemoteRootDir)/$(ProjectName)/;cp $(RemoteRootDir)/$(ProjectName)/gens/output/cfg.bin $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin/x64/Debug/</Command>
+      <Message>fix vs gen path bug. copy depends</Message>
     </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -218,7 +219,8 @@
     <RemotePostBuildEvent>
       <AdditionalSourcesToCopyMapping>
       </AdditionalSourcesToCopyMapping>
-      <Command>cp $(RemoteRootDir)/$(ProjectName)/gens/output/cfg.bin $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin/x64/Release/</Command>
+      <Command>ln -s $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin $(RemoteRootDir)/$(ProjectName)/;cp $(RemoteRootDir)/$(ProjectName)/gens/output/cfg.bin $(RemoteRootDir)/$(ProjectName)/$(ProjectName)/bin/x64/Release/</Command>
+      <Message>fix vs gen path bug. copy depends</Message>
     </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
