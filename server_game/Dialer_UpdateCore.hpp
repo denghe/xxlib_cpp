@@ -62,7 +62,12 @@ LabDial:
 	xx::CoutTN("step 2");
 
 	// send enter package
-	pkgEnter->playerId = playerId;
+	if (token.size()) {
+		xx::MakeTo(pkgEnter->token, token);
+	}
+	else {
+		pkgEnter->token.reset();
+	}
 	if (r = peer->SendPush(pkgEnter)) {
 		// todo: log?
 		goto LabDial;

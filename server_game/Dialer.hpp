@@ -20,7 +20,7 @@ inline int Dialer::HandleFirstPackage() noexcept {
 
 		// store current player
 		player = xx::As<Player>(es->self.lock());
-		playerId = player->id;
+		token = *es->token;
 
 		// set current player's flag
 		player->isSelf = true;

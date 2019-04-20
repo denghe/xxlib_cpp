@@ -69,7 +69,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 
 			// 如果有传入玩家 id, 就试着定位, 走断线重连逻辑
 			while (o->token) {
-				// 用 id 查找玩家
+				// 用 token 查找玩家
 				for(auto&& p : catchFish->players) {
 					if (p->token == *o->token) {
 						assert(p->peer != this->shared_from_this());

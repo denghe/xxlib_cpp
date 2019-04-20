@@ -18,7 +18,7 @@
 	int numDialTimes = 0;
 	bool autoFire = false;
 	xx::Random rnd;
-	int playerId = 0;			// 保存当前玩家 id
+	std::string token;			// 保存当前玩家 token
 	Player_s player;			// 指向当前玩家
 	Panel_s panel;				// 持有操作面板
 
