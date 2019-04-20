@@ -15,6 +15,9 @@ namespace CatchFish_Client
 
         [Desc("指向当前玩家")]
         Weak<CatchFish.Player> self;
+
+        [Desc("当前 token( 为简化设计先放这. 正常情况下是前置服务告知 )")]
+        string token;
     }
 
     [Desc("帧事件同步包")]

@@ -7,8 +7,8 @@ namespace Client_CatchFish
     [Desc("申请进入游戏. 成功返回 EnterSuccess. 失败直接被 T")]
     class Enter
     {
-        [Desc("传递先前保存的玩家id以便断线重连. 没有传 0")]
-        int playerId;
+        [Desc("传递先前保存的 token 以便断线重连. 没有传空")]
+        string token;
     }
 
     [Desc("开火")]

@@ -68,10 +68,10 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			auto&& scene = *catchFish->scene;
 
 			// 如果有传入玩家 id, 就试着定位, 走断线重连逻辑
-			while (o->playerId) {
+			while (o->token) {
 				// 用 id 查找玩家
 				for(auto&& p : catchFish->players) {
-					if (p->id == o->playerId) {
+					if (p->token == *o->token) {
 						assert(p->peer != this->shared_from_this());
 						// 踢掉原有连接( 可能性: 客户端很久没收到推送, 自己 redial, 而 server 并没发现断线 )
 						p->Kick(this->GetIP(), " reconnect");
@@ -102,6 +102,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			xx::MakeTo(player->cannons);
 			player->scene = &scene;
 			player->id = ++listener->playerAutoId;
+			xx::Append(player->token, xx::Guid(true));
 			player->sit = sit;
 			player->coin = 100000;
 			xx::MakeTo(player->nickname, "player_" + std::to_string(player->id));

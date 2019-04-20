@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "d649139cddf7eb07e346be293fab0bcf"; 
+        public const string value = "21170de92ecc4bb316e313173e7e8954"; 
     }
 
 namespace CatchFish
@@ -255,6 +255,10 @@ namespace CatchFish_Client
         /// 指向当前玩家
         /// </summary>
         public xx.Weak<CatchFish.Player> self;
+        /// <summary>
+        /// 当前 token( 为简化设计先放这. 正常情况下是前置服务告知 )
+        /// </summary>
+        public string token;
 
         public override ushort GetPackageId()
         {
@@ -266,6 +270,7 @@ namespace CatchFish_Client
             bb.Write(this.scene);
             bb.Write(this.players);
             bb.Write(this.self);
+            bb.Write(this.token);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -274,6 +279,8 @@ namespace CatchFish_Client
             bb.readLengthLimit = 0;
             bb.Read(ref this.players);
             bb.Read(ref this.self);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.token);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -295,6 +302,8 @@ namespace CatchFish_Client
             s.Append(", \"scene\":" + (scene == null ? "nil" : scene.ToString()));
             s.Append(", \"players\":" + (players == null ? "nil" : players.ToString()));
             s.Append(", \"self\":" + self.ToString());
+            if (token != null) s.Append(", \"token\":\"" + token.ToString() + "\"");
+            else s.Append(", \"token\":nil");
         }
         public override string ToString()
         {
@@ -376,9 +385,9 @@ namespace Client_CatchFish
     public partial class Enter : xx.Object
     {
         /// <summary>
-        /// 传递先前保存的玩家id以便断线重连. 没有传 0
+        /// 传递先前保存的 token 以便断线重连. 没有传空
         /// </summary>
-        public int playerId;
+        public string token;
 
         public override ushort GetPackageId()
         {
@@ -387,12 +396,13 @@ namespace Client_CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.playerId);
+            bb.Write(this.token);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            bb.Read(ref this.playerId);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.token);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -411,7 +421,8 @@ namespace Client_CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            s.Append(", \"playerId\":" + playerId.ToString());
+            if (token != null) s.Append(", \"token\":\"" + token.ToString() + "\"");
+            else s.Append(", \"token\":nil");
         }
         public override string ToString()
         {
@@ -612,7 +623,7 @@ namespace CatchFish
         /// </summary>
         public xx.List<CatchFish.Sits> freeSits;
         /// <summary>
-        /// 所有玩家
+        /// 所有玩家( 弱引用. 具体容器在 Scene 之外 )
         /// </summary>
         public xx.List<xx.Weak<CatchFish.Player>> players;
 

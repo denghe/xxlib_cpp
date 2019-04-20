@@ -64,6 +64,7 @@ inline int Scene::Update(int const&) noexcept {
 					}
 					enterSuccess->scene = shared_from_this();
 					enterSuccess->self = plr_w;
+					xx::MakeTo(enterSuccess->token, plr->token);
 				}
 				plr->peer->SendPush(enterSuccess);
 				plr->peer->Flush();

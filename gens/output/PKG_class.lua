@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'd649139cddf7eb07e346be293fab0bcf'
+PKG_PkgGenMd5_Value = '21170de92ecc4bb316e313173e7e8954'
 
 --[[
 座位列表
@@ -163,6 +163,10 @@ PKG_CatchFish_Client_EnterSuccess = {
         指向当前玩家
         ]]
         o.self = MakeWeak() -- Weak_PKG_CatchFish_Player
+        --[[
+        当前 token( 为简化设计先放这. 正常情况下是前置服务告知 )
+        ]]
+        o.token = null -- String
         return o
     end,
     FromBBuffer = function( bb, o )
@@ -170,12 +174,14 @@ PKG_CatchFish_Client_EnterSuccess = {
         o.scene = ReadObject( bb )
         o.players = ReadObject( bb )
         o.self = MakeWeak( ReadObject( bb ) )
+        o.token = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
         WriteObject( bb, o.scene )
         WriteObject( bb, o.players )
         WriteObject( bb, o.self.Lock() )
+        WriteObject( bb, o.token )
     end
 }
 BBuffer.Register( PKG_CatchFish_Client_EnterSuccess )
@@ -257,7 +263,7 @@ PKG_CatchFish_Scene = {
         ]]
         o.freeSits = null -- List_PKG_CatchFish_Sits_
         --[[
-        所有玩家
+        所有玩家( 弱引用. 具体容器在 Scene 之外 )
         ]]
         o.players = null -- List_Weak_PKG_CatchFish_Player_
         return o
@@ -559,16 +565,16 @@ PKG_Client_CatchFish_Enter = {
 
 
         --[[
-        传递先前保存的玩家id以便断线重连. 没有传 0
+        传递先前保存的 token 以便断线重连. 没有传空
         ]]
-        o.playerId = 0 -- Int32
+        o.token = null -- String
         return o
     end,
     FromBBuffer = function( bb, o )
-        o.playerId = bb:ReadInt32()
+        o.token = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        bb:WriteInt32( o.playerId )
+        bb:WriteObject( o.token )
     end
 }
 BBuffer.Register( PKG_Client_CatchFish_Enter )

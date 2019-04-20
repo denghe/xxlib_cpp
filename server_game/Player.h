@@ -9,6 +9,8 @@ struct Player : PKG::CatchFish::Player {
 	Scene* scene = nullptr;
 
 #ifndef CC_TARGET_PLATFORM
+	std::string token;
+
 	// 超时 Cleanup 帧. 创建玩家时令其 = scene.frameNumber + 60 * N. 收到合法指令时重置.
 	int timeoutFrameNumber = 0;
 

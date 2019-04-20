@@ -38,8 +38,6 @@ namespace CatchFish
         [Desc("自增id ( 从 1 开始, 用于填充 本地鱼 id )")]
         int autoIncId;
 
-        //[Desc("自减id ( 从 -1 开始, 用于服务器下发鱼生成 )")]
-        //int autoDecId;
 
         [Desc("所有活鱼 ( 乱序 )")]
         List<Fish> fishs;
@@ -56,7 +54,7 @@ namespace CatchFish
         [Desc("空闲座位下标( 初始时填入 Sits.LeftBottom RightBottom LeftTop RightTop )")]
         List<Sits> freeSits;
 
-        [Desc("所有玩家")]
+        [Desc("所有玩家( 弱引用. 具体容器在 Scene 之外 )")]
         List<Weak<Player>> players;
     }
 
@@ -79,9 +77,6 @@ namespace CatchFish
     [Desc("玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )")]
     class Player
     {
-        //[Desc("所在场景")]
-        //Weak<Scene> scene;
-
         [Desc("账号id. 用于定位玩家 ( 填充自 db )")]
         int id;
 
@@ -91,11 +86,6 @@ namespace CatchFish
         [Desc("头像id 用于客户端显示 ( 填充自 db )")]
         int avatar_id;
 
-        //[Desc("当 Client 通过 Lobby 服务到 Game 发 Enter 时, Game 需要生成一个 token 以便 Client Enter 时传入以校验身份")]
-        //string token;
-
-        //[Desc("开炮等行为花掉的金币数汇总 ( 统计 )")]
-        //long consumeCoin;
 
         [Desc("破产标识 ( 每帧检测一次总资产是否为 0, 是就标记之. 总资产包括 coin, 已爆出的 weapons, 已获得的附加炮台, 飞行中的 bullets )")]
         bool noMoney;

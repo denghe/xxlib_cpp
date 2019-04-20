@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "d649139cddf7eb07e346be293fab0bcf";
+		inline static const std::string value = "21170de92ecc4bb316e313173e7e8954";
     };
 
 namespace Generic {
@@ -918,6 +918,8 @@ namespace CatchFish_Client {
         xx::List_s<PKG::CatchFish::Player_s> players;
         // 指向当前玩家
         std::weak_ptr<PKG::CatchFish::Player> self;
+        // 当前 token( 为简化设计先放这. 正常情况下是前置服务告知 )
+        std::string_s token;
 
         typedef EnterSuccess ThisType;
         typedef xx::Object BaseType;
@@ -956,8 +958,8 @@ namespace CatchFish_Client {
 namespace Client_CatchFish {
     // 申请进入游戏. 成功返回 EnterSuccess. 失败直接被 T
     struct Enter : xx::Object {
-        // 传递先前保存的玩家id以便断线重连. 没有传 0
-        int32_t playerId = 0;
+        // 传递先前保存的 token 以便断线重连. 没有传空
+        std::string_s token;
 
         typedef Enter ThisType;
         typedef xx::Object BaseType;
@@ -1065,7 +1067,7 @@ namespace CatchFish {
         PKG::CatchFish::Stages::Stage_s stage;
         // 空闲座位下标( 初始时填入 Sits.LeftBottom RightBottom LeftTop RightTop )
         xx::List_s<PKG::CatchFish::Sits> freeSits;
-        // 所有玩家
+        // 所有玩家( 弱引用. 具体容器在 Scene 之外 )
         xx::List_s<std::weak_ptr<PKG::CatchFish::Player>> players;
 
         typedef Scene ThisType;
@@ -1570,12 +1572,15 @@ namespace CatchFish_Client {
         bb.Write(this->scene);
         bb.Write(this->players);
         bb.Write(this->self);
+        bb.Write(this->token);
     }
     inline int EnterSuccess::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->scene)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->players)) return r;
         if (int r = bb.Read(this->self)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->token)) return r;
         return 0;
     }
     inline int EnterSuccess::InitCascade(void* const& o) noexcept {
@@ -1606,6 +1611,8 @@ namespace CatchFish_Client {
         xx::Append(s, ", \"scene\":", this->scene);
         xx::Append(s, ", \"players\":", this->players);
         xx::Append(s, ", \"self\":", this->self);
+        if (this->token) xx::Append(s, ", \"token\":\"", this->token, "\"");
+        else xx::Append(s, ", \"token\":nil");
     }
     inline uint16_t FrameEvents::GetTypeId() const noexcept {
         return 11;
@@ -1651,10 +1658,11 @@ namespace Client_CatchFish {
         return 14;
     }
     inline void Enter::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        bb.Write(this->playerId);
+        bb.Write(this->token);
     }
     inline int Enter::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = bb.Read(this->playerId)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->token)) return r;
         return 0;
     }
     inline int Enter::InitCascade(void* const& o) noexcept {
@@ -1676,7 +1684,8 @@ namespace Client_CatchFish {
     }
     inline void Enter::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
-        xx::Append(s, ", \"playerId\":", this->playerId);
+        if (this->token) xx::Append(s, ", \"token\":\"", this->token, "\"");
+        else xx::Append(s, ", \"token\":nil");
     }
     inline uint16_t Fire::GetTypeId() const noexcept {
         return 15;
