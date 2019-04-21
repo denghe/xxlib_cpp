@@ -45,9 +45,6 @@ inline int Scene::Update(int const&) noexcept {
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
 
-	// 完整同步数据包( 先不创建 )
-	PKG::CatchFish_Client::EnterSuccess_s enterSuccess;
-
 	// 将本帧事件推送给已在线未断线玩家
 	for (auto&& plr_w : *players) {
 		auto&& plr = xx::As<Player>(plr_w.lock());
@@ -55,17 +52,15 @@ inline int Scene::Update(int const&) noexcept {
 		if (plr->peer && !plr->peer->Disposed()) {
 			// 如果是本帧内进入的玩家, 就下发完整同步
 			if (frameEnters.Find(&*plr) != -1) {
-				// 如果没创建就创建之
-				if (!enterSuccess) {
-					xx::MakeTo(enterSuccess);
-					xx::MakeTo(enterSuccess->players);
-					for (auto&& plr_w : *players) {
-						enterSuccess->players->Add(plr_w.lock());
-					}
-					enterSuccess->scene = shared_from_this();
-					enterSuccess->self = plr_w;
-					xx::MakeTo(enterSuccess->token, plr->token);
+				auto&& enterSuccess = xx::Make<PKG::CatchFish_Client::EnterSuccess>();
+				xx::MakeTo(enterSuccess->players);
+				for (auto&& plr_w : *players) {
+					enterSuccess->players->Add(plr_w.lock());
 				}
+				enterSuccess->scene = shared_from_this();
+				enterSuccess->self = plr_w;
+				xx::MakeTo(enterSuccess->token, plr->token);
+
 				plr->peer->SendPush(enterSuccess);
 				plr->peer->Flush();
 			}

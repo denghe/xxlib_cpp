@@ -167,7 +167,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			player->ResetTimeoutFrameNumber();
 
 			// ³É¹¦ÍË³ö
-			xx::CoutTN(GetIP(), " player enter. id = ", player->id);
+			xx::CoutTN(GetIP(), " player enter. ", player);
 			break;
 		}
 		default:

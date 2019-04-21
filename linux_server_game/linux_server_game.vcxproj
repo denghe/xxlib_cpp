@@ -200,7 +200,7 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
-      <LibraryDependencies>uv;pthread</LibraryDependencies>
+      <LibraryDependencies>uv;pthread;uuid</LibraryDependencies>
     </Link>
     <RemotePostBuildEvent>
       <AdditionalSourcesToCopyMapping>
