@@ -14,6 +14,8 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	// 初始面板显示元素
 	xx::MakeTo(panel, this);
 
+	// 显示目标服务器 ip:port
+	panel->SetText_Server(catchFish->serverIp + ":" + std::to_string(catchFish->serverPort));
 
 	// begin resolve domain to iplist
 LabResolveDomain:

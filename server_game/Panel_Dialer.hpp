@@ -2,8 +2,15 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 	: dialer(dialer)
 {
 	{
+		labelServer = cocos2d::Label::createWithSystemFont("", "", 24);
+		labelServer->setPosition(10 - ScreenCenter.x, 240 - ScreenCenter.y);
+		labelServer->setAnchorPoint({ 0, 0.5 });
+		labelServer->setGlobalZOrder(1000);
+		cc_scene->addChild(labelServer);
+	}
+	{
 		btnRedial = cocos2d::Label::createWithSystemFont("Redial", "", 32);
-		btnRedial->setPosition(10 - ScreenCenter.x, 210 - ScreenCenter.y);
+		btnRedial->setPosition(10 - ScreenCenter.x, 90 - ScreenCenter.y);
 		btnRedial->setAnchorPoint({ 0, 0.5 });
 		btnRedial->setGlobalZOrder(1000);
 		cc_scene->addChild(btnRedial);
@@ -63,7 +70,7 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 	}
 	{
 		labelPing = cocos2d::Label::createWithSystemFont("", "", 32);
-		labelPing->setPosition(10 - ScreenCenter.x, 90 - ScreenCenter.y);
+		labelPing->setPosition(10 - ScreenCenter.x, 210 - ScreenCenter.y);
 		labelPing->setAnchorPoint({ 0, 0.5 });
 		labelPing->setGlobalZOrder(1000);
 		cc_scene->addChild(labelPing);
@@ -98,4 +105,9 @@ inline void Panel_Dialer::SetText_NumFishs(size_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelNumFishs) return;
 	labelNumFishs->setString("num fishs: " + std::to_string(value));
+}
+inline void Panel_Dialer::SetText_Server(std::string const& value) noexcept {
+	assert(!::catchFish->disposed);
+	if (!labelServer) return;
+	labelServer->setString(value);
 }
