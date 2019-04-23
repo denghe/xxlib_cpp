@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "21170de92ecc4bb316e313173e7e8954"; 
+        public const string value = "b37ff6d0dd3a65609ec9ddccc9367f42"; 
     }
 
 namespace CatchFish
@@ -328,6 +328,10 @@ namespace CatchFish_Client
         /// 帧事件集合
         /// </summary>
         public xx.List<CatchFish.Events.Event> events;
+        /// <summary>
+        /// 私有帧事件集合( 发送时会临时等于 player.events )
+        /// </summary>
+        public xx.List<CatchFish.Events.Event> persionalEvents;
 
         public override ushort GetPackageId()
         {
@@ -338,6 +342,7 @@ namespace CatchFish_Client
         {
             bb.Write(this.frameNumber);
             bb.Write(this.events);
+            bb.Write(this.persionalEvents);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -345,6 +350,8 @@ namespace CatchFish_Client
             bb.Read(ref this.frameNumber);
             bb.readLengthLimit = 0;
             bb.Read(ref this.events);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.persionalEvents);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -365,6 +372,7 @@ namespace CatchFish_Client
         {
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
             s.Append(", \"events\":" + (events == null ? "nil" : events.ToString()));
+            s.Append(", \"persionalEvents\":" + (persionalEvents == null ? "nil" : persionalEvents.ToString()));
         }
         public override string ToString()
         {
@@ -587,6 +595,10 @@ namespace CatchFish
         /// </summary>
         public long maxBet;
         /// <summary>
+        /// 加减炮注跨度( coin )( 针对普通炮台 )
+        /// </summary>
+        public long stepBet;
+        /// <summary>
         /// 进出游戏时 money 自动兑换成 coin 要 乘除 的系数
         /// </summary>
         public int exchangeCoinRatio;
@@ -640,6 +652,7 @@ namespace CatchFish
             bb.Write(this.minMoney);
             bb.Write(this.minBet);
             bb.Write(this.maxBet);
+            bb.Write(this.stepBet);
             bb.Write(this.exchangeCoinRatio);
             bb.Write(this.frameNumber);
             bb.Write(this.rnd);
@@ -660,6 +673,7 @@ namespace CatchFish
             bb.Read(ref this.minMoney);
             bb.Read(ref this.minBet);
             bb.Read(ref this.maxBet);
+            bb.Read(ref this.stepBet);
             bb.Read(ref this.exchangeCoinRatio);
             bb.Read(ref this.frameNumber);
             bb.Read(ref this.rnd);
@@ -699,6 +713,7 @@ namespace CatchFish
             s.Append(", \"minMoney\":" + minMoney.ToString());
             s.Append(", \"minBet\":" + minBet.ToString());
             s.Append(", \"maxBet\":" + maxBet.ToString());
+            s.Append(", \"stepBet\":" + stepBet.ToString());
             s.Append(", \"exchangeCoinRatio\":" + exchangeCoinRatio.ToString());
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
             s.Append(", \"rnd\":" + (rnd == null ? "nil" : rnd.ToString()));

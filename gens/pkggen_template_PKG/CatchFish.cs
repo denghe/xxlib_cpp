@@ -24,6 +24,9 @@ namespace CatchFish
         [Desc("最高炮注( coin )( 针对普通炮台 )")]
         long maxBet;
 
+        [Desc("加减炮注跨度( coin )( 针对普通炮台 )")]
+        long stepBet;
+
         [Desc("进出游戏时 money 自动兑换成 coin 要 乘除 的系数")]
         int exchangeCoinRatio;
 

@@ -67,20 +67,19 @@ inline int Scene::Update(int const&) noexcept {
 			// 老玩家直接下发帧事件同步数据
 			else {
 				// 如果有数据就立即下发, 没有就慢发
-				if (frameEvents->events->len || !(frameNumber & 0xF)) {
+				if (frameEvents->events->len || plr->events->len || !(frameNumber & 0xF)) {
+					frameEvents->persionalEvents = plr->events;
 					plr->peer->SendPush(frameEvents);
 					plr->peer->Flush();
-					//xx::CoutN(frameEvents->events->len);
 				}
 			}
 		}
+		plr->events->Clear();			// 清除发送过的数据
 	}
-
-	// 清除发送过的数据
-	frameEnters.Clear();
-	frameEvents->events->Clear();
+	frameEvents->events->Clear();		// 清除发送过的数据
+	frameEvents->persionalEvents.reset();
+	frameEnters.Clear();				// 清除发送过的数据
 #endif
-
 	return 0;
 };
 

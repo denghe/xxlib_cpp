@@ -3,7 +3,7 @@
 	assert(player);
 	assert(!cfg);
 	cfg = &*scene->cfg->cannons->At(cfgId);
-	pos = scene->cfg->sitPositons->At((int)player->sit);
+	pos = player->pos;
 
 	// 前置填充
 	for (auto&& bullet : *bullets) {
@@ -20,6 +20,20 @@
 	return 0;
 }
 
+#ifndef CC_TARGET_PLATFORM
+inline void Cannon::MakeRefundEvent(int64_t const& coin, bool isPersional) noexcept {
+	auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
+	refund->coin = coin;
+	refund->playerId = player->id;
+	if (isPersional) {
+		player->events->Add(std::move(refund));
+	}
+	else {
+		scene->frameEvents->events->Add(std::move(refund));
+	}
+}
+#endif
+
 inline int Cannon::Update(int const& frameNumber) noexcept {
 
 	// 驱动子弹
@@ -28,6 +42,13 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 		for (size_t i = bs.len - 1; i != -1; --i) {
 			assert(bs[i]->indexAtContainer == (int)i);
 			if (bs[i]->Update(frameNumber)) {
+#ifndef CC_TARGET_PLATFORM
+				auto&& coin = bs[i]->coin;
+				// 退钱 & 构造退钱事件包
+				player->coin += coin;
+				MakeRefundEvent(coin);
+				//xx::CoutN("bullet fly out the screen. refund " + coin);
+#endif
 				bs[bs.len - 1]->indexAtContainer = (int)i;
 				bs.SwapRemoveAt(i);
 			}
@@ -87,15 +108,19 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 	auto&& bs = *this->bullets;
 	auto&& fs = *scene->fishs;
 	if (bs.len) {
+		// 从子弹队列定位子弹
 		for (size_t i = bs.len - 1; i != -1; --i) {
 			auto&& b = bs[i];
 			assert(b->indexAtContainer == i);
+			// 定位到子弹
 			if (b->id == o->bulletId) {
 				if (o->fishId && fs.len) {
+					// 从鱼队列定位鱼
 					size_t j = fs.len - 1;
 					for (; j != -1; --j) {
 						auto&& f = fs[j];
 						assert(f->indexAtContainer == j);
+						// 定位到鱼
 						if (f->id == o->fishId) {
 							// 先根据 1/coin 死亡比例 来判断是否打死
 							if (scene->serverRnd.Next((int)f->coin) == 0) {
@@ -123,20 +148,18 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 							break;
 						}
 					}
-					// 打空：构造退钱事件包
+					// 未找到鱼：退钱 & 构造退钱事件包
 					if (j == -1)
 					{
-						auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-						refund->coin = b->coin;
-						refund->playerId = player->id;
-						scene->frameEvents->events->Add(std::move(refund));
-						//xx::CoutN("hit miss. ", o);
+						player->coin += b->coin;
+						MakeRefundEvent(b->coin);
+						//xx::CoutN("hit miss. refund = ", b->coin);
 					}
 				}
 				// 删子弹
 				bs[bs.len - 1]->indexAtContainer = (int)i;
 				bs.SwapRemoveAt(i);
-				return 0;
+				break;
 			}
 		}
 	}
@@ -164,23 +187,28 @@ inline int Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
 	auto frameNumber = o->frameNumber;
 #else
 inline int Cannon::Fire(int const& frameNumber) noexcept {
+	// 只有玩家本人发射行为受限
 	if (player->isSelf) {
 #endif
 		if (!quantity) return -3;									// 剩余颗数为 0
 		if (frameNumber < fireCD) return -4;						// CD 中
-		if (bullets->len == cfg->numLimit) return 0;				// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
+		if (bullets->len == cfg->numLimit) {						// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
+#ifndef CC_TARGET_PLATFORM
+			MakeRefundEvent(coin, true);							// 生成专有发射取消事件通知( 没必要发送给其他玩家 )
+#endif
+			return 0;
+		}
 		// todo: 更多发射限制检测
 
 		// 置 cd
 		fireCD = frameNumber + cfg->fireCD;
-
-		// 剩余颗数 -1
-		if (quantity != -1) {
-			--quantity;
-		}
 #ifdef CC_TARGET_PLATFORM
 	}
 #endif
+	// 剩余颗数 -1
+	if (quantity != -1) {
+		--quantity;
+	}
 
 	auto&& bullet = xx::TryMake<Bullet>();
 	if (!bullet) return -6;

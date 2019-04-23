@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '21170de92ecc4bb316e313173e7e8954'
+PKG_PkgGenMd5_Value = 'b37ff6d0dd3a65609ec9ddccc9367f42'
 
 --[[
 座位列表
@@ -227,6 +227,10 @@ PKG_CatchFish_Scene = {
         ]]
         o.maxBet = 0 -- Int64
         --[[
+        加减炮注跨度( coin )( 针对普通炮台 )
+        ]]
+        o.stepBet = 0 -- Int64
+        --[[
         进出游戏时 money 自动兑换成 coin 要 乘除 的系数
         ]]
         o.exchangeCoinRatio = 0 -- Int32
@@ -278,6 +282,7 @@ PKG_CatchFish_Scene = {
         o.minMoney = bb:ReadDouble()
         o.minBet = ReadInt64( bb )
         o.maxBet = ReadInt64( bb )
+        o.stepBet = ReadInt64( bb )
         o.exchangeCoinRatio = ReadInt32( bb )
         o.frameNumber = ReadInt32( bb )
         o.rnd = ReadObject( bb )
@@ -299,6 +304,7 @@ PKG_CatchFish_Scene = {
         bb:WriteDouble( o.minMoney )
         WriteInt64( bb, o.minBet )
         WriteInt64( bb, o.maxBet )
+        WriteInt64( bb, o.stepBet )
         WriteInt32( bb, o.exchangeCoinRatio )
         WriteInt32( bb, o.frameNumber )
         WriteObject( bb, o.rnd )
@@ -472,15 +478,23 @@ PKG_CatchFish_Client_FrameEvents = {
         帧事件集合
         ]]
         o.events = null -- List_PKG_CatchFish_Events_Event_
+        --[[
+        私有帧事件集合( 发送时会临时等于 player.events )
+        ]]
+        o.persionalEvents = null -- List_PKG_CatchFish_Events_Event_
         return o
     end,
     FromBBuffer = function( bb, o )
+        local ReadObject = bb.ReadObject
         o.frameNumber = bb:ReadInt32()
-        o.events = bb:ReadObject()
+        o.events = ReadObject( bb )
+        o.persionalEvents = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
+        local WriteObject = bb.WriteObject
         bb:WriteInt32( o.frameNumber )
-        bb:WriteObject( o.events )
+        WriteObject( bb, o.events )
+        WriteObject( bb, o.persionalEvents )
     end
 }
 BBuffer.Register( PKG_CatchFish_Client_FrameEvents )

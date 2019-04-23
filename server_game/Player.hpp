@@ -1,6 +1,14 @@
 ﻿inline int Player::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 
+	// 填充玩家对应的位置的坐标
+	this->pos = scene->cfg->sitPositons->At((int)this->sit);
+
+#ifdef CC_TARGET_PLATFORM
+	// 初始面板显示元素
+	xx::MakeTo(panel, this);
+#endif
+
 	// 前置填充
 	for (auto&& cannon : *cannons) {
 		xx::As<Cannon>(cannon)->player = this;
@@ -25,7 +33,11 @@ inline int Player::Update(int const& frameNumber) noexcept {
 		}
 	}
 
-#ifndef CC_TARGET_PLATFORM
+#ifdef CC_TARGET_PLATFORM
+	// 更新金币显示
+	panel->SetText_Coin(this->coin);
+
+#else
 	// 简单包堆积检测
 	if (recvFires.size() > 200) return Kick("recvFires.size() > 200");
 	if (recvHits.size() > 200) return Kick("recvHits.size() > 200");

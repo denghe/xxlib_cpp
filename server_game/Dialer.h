@@ -20,7 +20,7 @@
 	xx::Random rnd;
 	std::string token;			// 保存当前玩家 token
 	Player_s player;			// 指向当前玩家
-	Panel_s panel;				// 持有操作面板
+	Panel_Dialer_s panel;		// 持有操作面板
 
 
 	// 处理首包( EnterSuccess || Error )
@@ -28,6 +28,9 @@
 
 	// 处理一般数据包( 总路由 )
 	int HandlePackagesOrUpdateScene() noexcept;
+
+	// 处理事件包
+	int HandleEvents(PKG::CatchFish::Events::Event_s const& e) noexcept;
 
 	// 分别处理事件包
 	int Handle(PKG::CatchFish::Events::Enter_s o) noexcept;

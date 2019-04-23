@@ -18,14 +18,6 @@ inline int Bullet::Move() noexcept {
 	auto&& w = ::ScreenCenter.x + cfg->maxRadius;
 	auto&& h = ::ScreenCenter.y + cfg->maxRadius;
 	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
-#ifndef CC_TARGET_PLATFORM
-		// 退钱
-		auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-		refund->coin = coin;
-		refund->playerId = player->id;
-		//xx::CoutN("bullet fly out the screen. ", refund);
-		scene->frameEvents->events->Add(std::move(refund));
-#endif
 		return -1;
 	}
 	return 0;

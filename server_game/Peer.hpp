@@ -100,10 +100,12 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			// 构建玩家上下文( 模拟已从db读到了数据 )
 			auto&& player = xx::Make<Player>();
 			xx::MakeTo(player->cannons);
+			xx::MakeTo(player->events);
 			player->scene = &scene;
 			player->id = ++listener->playerAutoId;
 			xx::Append(player->token, xx::Guid(true));
 			player->sit = sit;
+			player->pos = scene.cfg->sitPositons->At((int)sit);
 			player->coin = 100000;
 			xx::MakeTo(player->nickname, "player_" + std::to_string(player->id));
 			player->autoFire = false;

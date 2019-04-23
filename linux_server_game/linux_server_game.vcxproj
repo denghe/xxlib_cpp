@@ -98,8 +98,6 @@
     <ClInclude Include="..\server_game\Fish.hpp" />
     <ClInclude Include="..\server_game\Listener.h" />
     <ClInclude Include="..\server_game\Listener.hpp" />
-    <ClInclude Include="..\server_game\Panel.h" />
-    <ClInclude Include="..\server_game\Panel.hpp" />
     <ClInclude Include="..\server_game\Peer.h" />
     <ClInclude Include="..\server_game\Peer.hpp" />
     <ClInclude Include="..\server_game\Physics.h" />

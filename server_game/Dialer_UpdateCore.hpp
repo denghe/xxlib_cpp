@@ -131,8 +131,8 @@ LabDial:
 		COR_YIELD
 	}
 
-	xx::CoutTN("redial by user. redial after 10 secs");
-	waitMS = xx::NowSteadyEpochMS() + 10000;	// 等 10 秒再重连
+	xx::CoutTN("redial by user. redial after 2 secs");
+	waitMS = xx::NowSteadyEpochMS() + 2000;	// 等 2 秒再重连
 	while (xx::NowSteadyEpochMS() < waitMS) {
 		COR_YIELD
 	}

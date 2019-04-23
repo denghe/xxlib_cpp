@@ -29,6 +29,9 @@
 
 	// player 在遍历 recvHits 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
 	virtual int Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
+
+	// 生成退钱事件
+	void MakeRefundEvent(int64_t const& coin, bool isPersional = false) noexcept;
 #endif
 
 	int InitCascade(void* const& o) noexcept override;

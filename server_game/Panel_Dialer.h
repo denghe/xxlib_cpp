@@ -1,8 +1,8 @@
 ﻿struct Dialer;
-struct Panel {
+struct Panel_Dialer {
 	// 指向 dialer( 由 dialer 填充 )
 	Dialer* dialer = nullptr;
-	Panel(Dialer* dialer);
+	Panel_Dialer(Dialer* dialer);
 
 	RefHolder<cocos2d::Label> btnRedial;
 	RefHolder<cocos2d::EventListenerTouchOneByOne> listenerRedial;
@@ -18,7 +18,5 @@ struct Panel {
 	void SetText_NumDialTimes(int64_t const& value) noexcept;
 	void SetText_Ping(int64_t const& value) noexcept;
 	void SetText_NumFishs(size_t const& value) noexcept;
-
-	static void CreateButton(RefHolder<cocos2d::Label>& label, RefHolder<cocos2d::EventListenerTouchOneByOne>& listener) noexcept;
 };
-using Panel_s = std::shared_ptr<Panel>;
+using Panel_Dialer_s = std::shared_ptr<Panel_Dialer>;

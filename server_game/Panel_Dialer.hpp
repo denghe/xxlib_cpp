@@ -1,4 +1,4 @@
-inline Panel::Panel(Dialer* dialer)
+inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 	: dialer(dialer)
 {
 	{
@@ -70,19 +70,19 @@ inline Panel::Panel(Dialer* dialer)
 	}
 }
 
-inline void Panel::SetText_AutoFire(bool const& value) noexcept {
+inline void Panel_Dialer::SetText_AutoFire(bool const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!btnAutoFire) return;
 	std::string s = "auto fire: ";
 	s += value ? "ON" : "OFF";
 	btnAutoFire->setString(s);
 }
-inline void Panel::SetText_NumDialTimes(int64_t const& value) noexcept {
+inline void Panel_Dialer::SetText_NumDialTimes(int64_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelNumDialTimes) return;
 	labelNumDialTimes->setString("reconnect times: " + std::to_string(value));
 }
-inline void Panel::SetText_Ping(int64_t const& value) noexcept {
+inline void Panel_Dialer::SetText_Ping(int64_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelPing) return;
 	if (value < 0) {
@@ -94,7 +94,7 @@ inline void Panel::SetText_Ping(int64_t const& value) noexcept {
 		labelPing->setString(s);
 	}
 }
-inline void Panel::SetText_NumFishs(size_t const& value) noexcept {
+inline void Panel_Dialer::SetText_NumFishs(size_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelNumFishs) return;
 	labelNumFishs->setString("num fishs: " + std::to_string(value));

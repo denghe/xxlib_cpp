@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "21170de92ecc4bb316e313173e7e8954";
+		inline static const std::string value = "b37ff6d0dd3a65609ec9ddccc9367f42";
     };
 
 namespace Generic {
@@ -940,6 +940,8 @@ namespace CatchFish_Client {
         int32_t frameNumber = 0;
         // 帧事件集合
         xx::List_s<PKG::CatchFish::Events::Event_s> events;
+        // 私有帧事件集合( 发送时会临时等于 player.events )
+        xx::List_s<PKG::CatchFish::Events::Event_s> persionalEvents;
 
         typedef FrameEvents ThisType;
         typedef xx::Object BaseType;
@@ -1049,6 +1051,8 @@ namespace CatchFish {
         int64_t minBet = 0;
         // 最高炮注( coin )( 针对普通炮台 )
         int64_t maxBet = 0;
+        // 加减炮注跨度( coin )( 针对普通炮台 )
+        int64_t stepBet = 0;
         // 进出游戏时 money 自动兑换成 coin 要 乘除 的系数
         int32_t exchangeCoinRatio = 0;
         // 帧编号, 每帧 + 1. 用于同步
@@ -1620,16 +1624,22 @@ namespace CatchFish_Client {
     inline void FrameEvents::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->frameNumber);
         bb.Write(this->events);
+        bb.Write(this->persionalEvents);
     }
     inline int FrameEvents::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->frameNumber)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->events)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->persionalEvents)) return r;
         return 0;
     }
     inline int FrameEvents::InitCascade(void* const& o) noexcept {
         if (this->events) {
             if (int r = this->events->InitCascade(o)) return r;
+        }
+        if (this->persionalEvents) {
+            if (int r = this->persionalEvents->InitCascade(o)) return r;
         }
         return 0;
     }
@@ -1651,6 +1661,7 @@ namespace CatchFish_Client {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
         xx::Append(s, ", \"events\":", this->events);
+        xx::Append(s, ", \"persionalEvents\":", this->persionalEvents);
     }
 }
 namespace Client_CatchFish {
@@ -1776,6 +1787,7 @@ namespace CatchFish {
         bb.Write(this->minMoney);
         bb.Write(this->minBet);
         bb.Write(this->maxBet);
+        bb.Write(this->stepBet);
         bb.Write(this->exchangeCoinRatio);
         bb.Write(this->frameNumber);
         bb.Write(this->rnd);
@@ -1794,6 +1806,7 @@ namespace CatchFish {
         if (int r = bb.Read(this->minMoney)) return r;
         if (int r = bb.Read(this->minBet)) return r;
         if (int r = bb.Read(this->maxBet)) return r;
+        if (int r = bb.Read(this->stepBet)) return r;
         if (int r = bb.Read(this->exchangeCoinRatio)) return r;
         if (int r = bb.Read(this->frameNumber)) return r;
         if (int r = bb.Read(this->rnd)) return r;
@@ -1857,6 +1870,7 @@ namespace CatchFish {
         xx::Append(s, ", \"minMoney\":", this->minMoney);
         xx::Append(s, ", \"minBet\":", this->minBet);
         xx::Append(s, ", \"maxBet\":", this->maxBet);
+        xx::Append(s, ", \"stepBet\":", this->stepBet);
         xx::Append(s, ", \"exchangeCoinRatio\":", this->exchangeCoinRatio);
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
         xx::Append(s, ", \"rnd\":", this->rnd);
