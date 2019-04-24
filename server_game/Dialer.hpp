@@ -218,22 +218,22 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Refund_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
-	auto&& fs = *player->scene->fishs;
-	for (auto&& f : fs) {
-		if (f->id == o->fishId) {
-			fs[fs.len - 1]->indexAtContainer = f->indexAtContainer;
-			fs.SwapRemoveAt(f->indexAtContainer);
+	for (auto&& p : catchFish->players) {
+		if (p->id == o->playerId) {
+			// 加钱
+			p->coin += o->coin;
+			auto&& fs = *player->scene->fishs;
+			for (auto&& f : fs) {
+				if (f->id == o->fishId) {
+					fs[fs.len - 1]->indexAtContainer = f->indexAtContainer;
+					fs.SwapRemoveAt(f->indexAtContainer);
 
-			for (auto&& p : catchFish->players) {
-				if (p->id == o->playerId) {
-					// 加钱
-					p->coin += o->coin;
+					// todo: 判断如果 o->fishDeads 有数据，还要进一步处理
+					// todo: 特效
 					break;
 				}
 			}
-			// todo: 判断如果 o->fishDeads 有数据，还要进一步处理
-			// todo: 特效
-			return 0;
+			break;
 		}
 	}
 	return 0;

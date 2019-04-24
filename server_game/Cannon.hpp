@@ -122,8 +122,8 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 						assert(f->indexAtContainer == j);
 						// 定位到鱼
 						if (f->id == o->fishId) {
-				//			// 先根据 1/coin 死亡比例 来判断是否打死
-				//			if (scene->serverRnd.Next((int)f->coin) == 0) {
+							// 先根据 1/coin 死亡比例 来判断是否打死
+							if (scene->serverRnd.Next((int)f->coin) == 0) {
 								// 算钱
 								auto&& c = b->coin * f->coin;
 								// 构造鱼死事件包
@@ -141,10 +141,10 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 								fs[fs.len - 1]->indexAtContainer = (int)j;
 								fs.SwapRemoveAt(j);
 								//xx::CoutN("hit fish dead. ", o);
-				//			}
-				//			else {
-				//				//xx::CoutN("hit fish not dead. ", o);
-				//			}
+							}
+							else {
+								//xx::CoutN("hit fish not dead. ", o);
+							}
 							break;
 						}
 					}
