@@ -92,12 +92,13 @@ inline void Scene::MakeRandomFish() noexcept {
 	fish->id = ++autoIncId;
 	fish->cfgId = fishCfg->id;
 	fish->cfg = &*fishCfg;
-	if (fishCfg->minCoin < fishCfg->maxCoin) {
-		fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
-	}
-	else {
-		fish->coin = fishCfg->minCoin;
-	}
+	//if (fishCfg->minCoin < fishCfg->maxCoin) {
+	//	fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
+	//}
+	//else {
+	//	fish->coin = fishCfg->minCoin;
+	//}
+	fish->coin = 1;	// for test
 	fish->speedScale = 1 + (float)rnd->Next(3);
 	fish->scale = 1 + (float)rnd->Next(3);
 	fish->wayIndex = 0;
