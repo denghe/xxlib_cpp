@@ -221,8 +221,8 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	bullet->pos = pos + xx::Rotate(xx::Pos{ cfg->muzzleLen * cfg->scale ,0 }, angle);			// 计算炮口坐标
 	bullet->angle = angle;	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
 	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle);							// 计算出每帧移动增量
-	bullet->coin = coin;	// 存储发射时炮台的倍率
-	player->coin -= coin;	// 扣钱
+	bullet->coin = coin;											// 存储发射时炮台的倍率
+	player->coin -= coin;											// 扣钱
 #ifdef CC_TARGET_PLATFORM
 	bullet->id = ++player->autoIncId;
 	bullet->DrawInit();
@@ -253,6 +253,7 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 	while (frameNumber++ < scene->frameNumber) {
 		// 如果子弹生命周期已经到了
 		if (int r = bullet->Move()) {
+			player->coin += coin;									// 退钱
 			MakeRefundEvent(coin, true);							// 生成专有退款事件通知( 没必要发送给其他玩家 )
 			return 0;
 		}
@@ -263,7 +264,7 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 		auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
 		fire->bulletId = bullet->id;
 		fire->coin = bullet->coin;
-		fire->frameNumber = o->frameNumber;				// 有些子弹不信任 client 帧编号, 下发 scene->frameNumber
+		fire->frameNumber = o->frameNumber;
 		fire->playerId = player->id;
 		fire->cannonId = id;
 		fire->tarAngle = bullet->angle;

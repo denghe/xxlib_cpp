@@ -35,10 +35,10 @@ inline int Scene::Update(int const&) noexcept {
 
 	// todo: foreach  items, stages..... call Update
 
-	// 模拟关卡 鱼发生器. 每 xx 帧生成一条
-	if (frameNumber % 7 > 2) {
-		MakeRandomFish();
-	}
+	//// 模拟关卡 鱼发生器. 每 xx 帧生成一条
+	//if (frameNumber % 7 > 2) {
+	//	MakeRandomFish();
+	//}
 
 
 #ifndef CC_TARGET_PLATFORM

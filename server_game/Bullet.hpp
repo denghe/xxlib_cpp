@@ -17,9 +17,7 @@ inline int Bullet::Move() noexcept {
 	// 飞出屏幕就消失
 	auto&& w = ::ScreenCenter.x + cfg->maxRadius;
 	auto&& h = ::ScreenCenter.y + cfg->maxRadius;
-	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
-		return -1;
-	}
+	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
 	return 0;
 }
 
