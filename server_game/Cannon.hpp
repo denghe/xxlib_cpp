@@ -251,18 +251,24 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 
 	// 追帧. 令子弹轨迹运行至当前帧编号
 	while (frameNumber++ < scene->frameNumber) {
-		if (int r = bullet->Move()) return 0;
+		// 如果子弹生命周期已经到了
+		if (int r = bullet->Move()) {
+			MakeRefundEvent(coin, true);							// 生成专有退款事件通知( 没必要发送给其他玩家 )
+			return 0;
+		}
 	}
 
 	// 创建发射事件
-	auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
-	fire->bulletId = bullet->id;
-	fire->coin = bullet->coin;
-	fire->frameNumber = o->frameNumber;				// 有些子弹不信任 client 帧编号, 下发 scene->frameNumber
-	fire->playerId = player->id;
-	fire->cannonId = id;
-	fire->tarAngle = bullet->angle;
-	scene->frameEvents->events->Add(std::move(fire));
+	{
+		auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
+		fire->bulletId = bullet->id;
+		fire->coin = bullet->coin;
+		fire->frameNumber = o->frameNumber;				// 有些子弹不信任 client 帧编号, 下发 scene->frameNumber
+		fire->playerId = player->id;
+		fire->cannonId = id;
+		fire->tarAngle = bullet->angle;
+		scene->frameEvents->events->Add(std::move(fire));
+	}
 
 	//xx::CoutN("fire. ", o);
 #endif
