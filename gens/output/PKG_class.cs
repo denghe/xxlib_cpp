@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "1fad2883120bebb50bd02f2f9280c3a2"; 
+        public const string value = "ed6529945419f2fe4a75dd7997cc77cc"; 
     }
 
 namespace CatchFish
@@ -1972,7 +1972,7 @@ namespace CatchFish.Events
         }
     }
     /// <summary>
-    /// 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列
+    /// 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.borns 队列. 用不到 playerId
     /// </summary>
     public partial class PushFish : CatchFish.Events.Event
     {

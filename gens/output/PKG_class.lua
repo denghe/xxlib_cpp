@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '1fad2883120bebb50bd02f2f9280c3a2'
+PKG_PkgGenMd5_Value = 'ed6529945419f2fe4a75dd7997cc77cc'
 
 --[[
 座位列表
@@ -1737,7 +1737,7 @@ PKG_CatchFish_Events_PushWeapon = {
 }
 BBuffer.Register( PKG_CatchFish_Events_PushWeapon )
 --[[
-预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列
+预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.borns 队列. 用不到 playerId
 ]]
 PKG_CatchFish_Events_PushFish = {
     typeName = "PKG_CatchFish_Events_PushFish",

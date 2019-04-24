@@ -23,6 +23,9 @@ struct Fish : PKG::CatchFish::Fish {
 #endif
 	virtual void DrawInit() noexcept;
 	virtual void DrawUpdate() noexcept;
+#else
+	// 分类统计计数器集合( 利用引用计数来统计个数 )
+	xx::List<std::shared_ptr<int>> counters;
 #endif
 };
 using Fish_s = std::shared_ptr<Fish>;

@@ -21,35 +21,32 @@ inline int Emitter1::Update(int const& ticks) noexcept {
 
 inline int Monitor1::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
+	xx::MakeTo(counter);
 	return this->BaseType::InitCascade(o);
 }
 
 inline int Monitor1::Update(int const& ticks) noexcept {
 #ifndef CC_TARGET_PLATFORM
-	if (bornAvaliableTicks == ticks) {
-		// 扫描已存在的大鱼个数. 当前用 scale >= 5 来判读是否为大鱼
-		int count = 0;
-		for (auto&& f : *scene->fishs) {
-			if (f->scale >= 5) ++count;
-		}
-		if (count < cfg_numFishsLimit) {
-			// 生成大鱼并放入预约容器
-			auto&& fb = xx::Make<PKG::CatchFish::FishBorn>();
-			fb->fish = scene->MakeRandomFish(--scene->autoDecId);
-			fb->fish->scale = 5;
-			fb->fish->coin = 20;
-			fb->beginFrameNumber = scene->frameNumber + cfg_bornDelayFrameNumber;
-			scene->borns->Add(fb);
+	// 如果大鱼条数小于限定 且 生成 cd 到了 就补鱼
+	if (counter.use_count() - 1 < cfg_numFishsLimit && bornAvaliableTicks <= ticks) {
+		// 生成大鱼并放入预约容器
+		auto&& f = scene->MakeRandomFish(--scene->autoDecId);;
+		f->scale = 5;
+		f->coin = 20;
+		f->counters.Add(counter);
+		auto&& fb = xx::Make<PKG::CatchFish::FishBorn>();
+		fb->fish = f;
+		fb->beginFrameNumber = scene->frameNumber + cfg_bornDelayFrameNumber;
+		scene->borns->Add(fb);
 
-			// 生成同步事件
-			{
-				auto&& pf = xx::Make<PKG::CatchFish::Events::PushFish>();
-				pf->born = fb;
-				scene->frameEvents->events->Add(std::move(pf));
-			}
-
-			bornAvaliableTicks = ticks + cfg_bornTicksInterval;
+		// 生成同步事件
+		{
+			auto&& pf = xx::Make<PKG::CatchFish::Events::PushFish>();
+			pf->born = fb;
+			scene->frameEvents->events->Add(std::move(pf));
 		}
+
+		bornAvaliableTicks = ticks + cfg_bornTicksInterval;
 	}
 #endif
 	return 0;

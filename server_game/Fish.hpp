@@ -158,5 +158,4 @@ inline void Fish::DrawUpdate() noexcept {
 	}
 #endif
 }
-
 #endif

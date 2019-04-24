@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "1fad2883120bebb50bd02f2f9280c3a2";
+		inline static const std::string value = "ed6529945419f2fe4a75dd7997cc77cc";
     };
 
 namespace Generic {
@@ -148,7 +148,7 @@ namespace CatchFish::Events {
     using PushWeapon_s = std::shared_ptr<PushWeapon>;
     using PushWeapon_w = std::weak_ptr<PushWeapon>;
 
-    // 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列
+    // 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.borns 队列. 用不到 playerId
     struct PushFish;
     using PushFish_s = std::shared_ptr<PushFish>;
     using PushFish_w = std::weak_ptr<PushFish>;
@@ -579,7 +579,7 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列
+    // 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.borns 队列. 用不到 playerId
     struct PushFish : PKG::CatchFish::Events::Event {
         // 已于 server 端构造好的, 无牵挂的, 能干净下发的实例
         PKG::CatchFish::FishBorn_s born;
