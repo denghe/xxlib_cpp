@@ -114,48 +114,48 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 			assert(b->indexAtContainer == i);
 			// 定位到子弹
 			if (b->id == o->bulletId) {
-				if (o->fishId && fs.len) {
-					//// 从鱼队列定位鱼
-					//size_t j = fs.len - 1;
-					//for (; j != -1; --j) {
-					//	auto&& f = fs[j];
-					//	assert(f->indexAtContainer == j);
-					//	// 定位到鱼
-					//	if (f->id == o->fishId) {
-					//		// 先根据 1/coin 死亡比例 来判断是否打死
-					//		if (scene->serverRnd.Next((int)f->coin) == 0) {
-					//			// 算钱
-					//			auto&& c = b->coin * f->coin;
-					//			// 构造鱼死事件包
-					//			{
-					//				auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
-					//				fishDead->bulletId = b->id;
-					//				fishDead->coin = c;
-					//				fishDead->fishId = f->id;
-					//				fishDead->playerId = player->id;
-					//				scene->frameEvents->events->Add(std::move(fishDead));
-					//			}
-					//			// 加钱
-					//			player->coin += c;
-					//			// 删鱼
-					//			fs[fs.len - 1]->indexAtContainer = (int)j;
-					//			fs.SwapRemoveAt(j);
-					//			//xx::CoutN("hit fish dead. ", o);
-					//		}
-					//		else {
-					//			//xx::CoutN("hit fish not dead. ", o);
-					//		}
-					//		break;
-					//	}
-					//}
-					// 未找到鱼：退钱 & 构造退钱事件包
-					if (j == -1)
-					{
+				//if (o->fishId && fs.len) {
+				//	// 从鱼队列定位鱼
+				//	size_t j = fs.len - 1;
+				//	for (; j != -1; --j) {
+				//		auto&& f = fs[j];
+				//		assert(f->indexAtContainer == j);
+				//		// 定位到鱼
+				//		if (f->id == o->fishId) {
+				//			// 先根据 1/coin 死亡比例 来判断是否打死
+				//			if (scene->serverRnd.Next((int)f->coin) == 0) {
+				//				// 算钱
+				//				auto&& c = b->coin * f->coin;
+				//				// 构造鱼死事件包
+				//				{
+				//					auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+				//					fishDead->bulletId = b->id;
+				//					fishDead->coin = c;
+				//					fishDead->fishId = f->id;
+				//					fishDead->playerId = player->id;
+				//					scene->frameEvents->events->Add(std::move(fishDead));
+				//				}
+				//				// 加钱
+				//				player->coin += c;
+				//				// 删鱼
+				//				fs[fs.len - 1]->indexAtContainer = (int)j;
+				//				fs.SwapRemoveAt(j);
+				//				//xx::CoutN("hit fish dead. ", o);
+				//			}
+				//			else {
+				//				//xx::CoutN("hit fish not dead. ", o);
+				//			}
+				//			break;
+				//		}
+				//	}
+				//	// 未找到鱼：退钱 & 构造退钱事件包
+				//	if (j == -1)
+				//	{
 						player->coin += b->coin;
 						MakeRefundEvent(b->coin);
 						//xx::CoutN("hit miss. refund = ", b->coin);
-					}
-				}
+				//	}
+				//}
 				// 删子弹
 				bs[bs.len - 1]->indexAtContainer = (int)i;
 				bs.SwapRemoveAt(i);
