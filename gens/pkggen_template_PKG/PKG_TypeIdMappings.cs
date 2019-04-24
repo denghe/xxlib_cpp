@@ -68,8 +68,6 @@ interface ITypeIdMappings
 
     CatchFish.Way _34 { get; }
 
-    CatchFish.Timer _35 { get; }
-
     List<CatchFish.WayPoint> _36 { get; }
 
     CatchFish.Events.Enter _37 { get; }
@@ -108,9 +106,13 @@ interface ITypeIdMappings
 
     List<int> _54 { get; }
 
-    List<CatchFish.Timer> _55 { get; }
+    List<CatchFish.Stages.StageElement> _74 { get; }
 
-    CatchFish.Stages.Script _56 { get; }
+    CatchFish.Stages.StageElement _75 { get; }
+
+    CatchFish.Stages.Emitter1 _76 { get; }
+
+    CatchFish.Stages.Monitor1 _77 { get; }
 
     CatchFish.Configs.Config _57 { get; }
 

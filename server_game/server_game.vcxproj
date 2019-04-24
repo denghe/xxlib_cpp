@@ -130,6 +130,8 @@
     <ClInclude Include="Scene.hpp" />
     <ClInclude Include="SpriteFrame.h" />
     <ClInclude Include="SpriteFrame.hpp" />
+    <ClInclude Include="Stage.h" />
+    <ClInclude Include="Stage.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis" />

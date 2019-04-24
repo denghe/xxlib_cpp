@@ -46,6 +46,7 @@ inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
 #include "Player.h"
 #include "Cannon.h"
 #include "Bullet.h"
+#include "Stage.h"
 
 // todo: more 
 
@@ -122,6 +123,7 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "Fish.hpp"
 #include "Cannon.hpp"
 #include "Bullet.hpp"
+#include "Stage.hpp"
 
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.hpp"

@@ -22,16 +22,15 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 
 	// 记录本帧刚进入的新玩家( 帧结束时清空 ) 用以判断是下发完整同步还是帧事件同步
 	xx::List<void*> frameEnters;
+#else
+	// 将 Scene 指针刷到所有子
+	virtual int InitCascade(void* const& o = nullptr) noexcept override;
 #endif
-
 	// 随机生成一对具备合理显示效果的进出屏幕的关键点
 	std::pair<xx::Pos, xx::Pos> MakeRandomInOutPoint(float const& itemRadius) noexcept;
 
 	// 生成随机鱼
-	void MakeRandomFish() noexcept;
-
-	// 将 Scene 指针刷到所有子
-	virtual int InitCascade(void* const& o = nullptr) noexcept override;
+	std::shared_ptr<Fish> MakeRandomFish(int const& fishId) noexcept;
 
 	// 帧逻辑更新
 	virtual int Update(int const& frameNumber = 0) noexcept override;

@@ -2,6 +2,9 @@
 	using BaseType = PKG::CatchFish::Configs::Config;
 	using BaseType::BaseType;
 
+	// 缓存关卡序列化后的数据
+	xx::List<xx::BBuffer> stageBufs;
+
 	// 用直线连接进出屏幕的两个点, 返回轨迹
 	static PKG::CatchFish::Way_s MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept;
 

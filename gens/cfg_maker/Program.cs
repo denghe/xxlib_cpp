@@ -64,6 +64,7 @@ public static class Program
 
         Fishs.Fill(cfg);
         Cannons.Fill(cfg);
+        Stages.Fill(cfg);
         // todo: more fill
 
         // cfg 序列化存盘

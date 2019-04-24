@@ -9,12 +9,13 @@ struct Fish : PKG::CatchFish::Fish {
 	// 指向具体配置
 	PKG::CatchFish::Configs::Fish* cfg = nullptr;
 
-	virtual int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& frameNumber) noexcept override;
 
 	virtual int HitCheck(Bullet* const& bullet) noexcept;
 
 #ifdef CC_TARGET_PLATFORM
+	virtual int InitCascade(void* const& o) noexcept override;
+
 	RefHolder<cocos2d::Sprite> body;
 	RefHolder<cocos2d::Sprite> shadow;
 #if DRAW_PHYSICS_POLYGON

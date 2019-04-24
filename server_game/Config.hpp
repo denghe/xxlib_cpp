@@ -45,6 +45,16 @@
 		this->ways->Add(MakeBeeline({ io.first, io.second }));
 	}
 
+
+	// ... more
+
+
+	// 关卡数据初始化
+	for (auto&& s : *stages) {
+		auto&& bb = stageBufs.Emplace();
+		bb.WriteRoot(s);
+	}
+
 	return BaseType::InitCascade(this);
 }
 

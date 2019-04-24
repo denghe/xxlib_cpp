@@ -8,6 +8,10 @@
 	xx::BBuffer::Register<Fish>(xx::TypeId_v<PKG::CatchFish::Fish>);
 	xx::BBuffer::Register<Cannon>(xx::TypeId_v<PKG::CatchFish::Cannon>);
 	xx::BBuffer::Register<Bullet>(xx::TypeId_v<PKG::CatchFish::Bullet>);
+
+	xx::BBuffer::Register<Emitter1>(xx::TypeId_v<PKG::CatchFish::Stages::Emitter1>);
+	xx::BBuffer::Register<Monitor1>(xx::TypeId_v<PKG::CatchFish::Stages::Monitor1>);
+
 	// todo: more
 }
 
@@ -46,13 +50,18 @@ inline int CatchFish::Init(std::string const& cfgName) noexcept {
 	xx::MakeTo(scene->freeSits);
 	xx::MakeTo(scene->items);
 	xx::MakeTo(scene->players);
-	xx::MakeTo(scene->rnd, 123);
-	xx::MakeTo(scene->stage);
+	xx::MakeTo(scene->rnd, 123);				// todo: 时间 seed ?
 	xx::MakeTo(scene->frameEvents);
 	xx::MakeTo(scene->frameEvents->events);
 	scene->cfg = &*cfg;
 	scene->catchFish = this;
+	
+	// 关卡初始化
+	int r = cfg->stageBufs[0].ReadRoot(scene->stage);
+	assert(!r);
+	scene->stage->InitCascade(&*scene);
 
+	// 空位初始化
 	scene->freeSits->Add(PKG::CatchFish::Sits::LeftTop
 		, PKG::CatchFish::Sits::RightTop
 		, PKG::CatchFish::Sits::RightBottom
@@ -98,7 +107,6 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 
 	// 初始化拨号器
 	xx::MakeTo(::dialer, *uv);
-
 #endif
 	return 0;
 }

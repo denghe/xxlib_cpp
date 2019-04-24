@@ -1,13 +1,13 @@
-﻿inline int Fish::InitCascade(void* const& o) noexcept {
+﻿#ifdef CC_TARGET_PLATFORM
+inline int Fish::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	assert(!cfg);
 	cfg = &*scene->cfg->fishs->At(cfgId);
 	if (int r = this->BaseType::InitCascade(o)) return r;
-#ifdef CC_TARGET_PLATFORM
 	DrawInit();
-#endif
 	return 0;
 }
+#endif
 
 inline int Fish::Update(int const& frameNumber) noexcept {
 	// 取到当前帧结束时应该前进的距离

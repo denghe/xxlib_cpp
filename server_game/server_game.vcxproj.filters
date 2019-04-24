@@ -74,6 +74,8 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SpriteFrame.h" />
+    <ClInclude Include="Stage.h" />
+    <ClInclude Include="Stage.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

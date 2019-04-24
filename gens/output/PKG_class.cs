@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "b37ff6d0dd3a65609ec9ddccc9367f42"; 
+        public const string value = "1fad2883120bebb50bd02f2f9280c3a2"; 
     }
 
 namespace CatchFish
@@ -1335,63 +1335,14 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 定时器基类
+    /// 预约出鱼
     /// </summary>
-    public partial class Timer : xx.Object
+    public partial class FishBorn : xx.Object
     {
         /// <summary>
         /// 开始 / 生效帧编号
         /// </summary>
         public int beginFrameNumber;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Timer>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.beginFrameNumber);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.Read(ref this.beginFrameNumber);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Timer\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"beginFrameNumber\":" + beginFrameNumber.ToString());
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-        }
-    }
-    /// <summary>
-    /// 预约出鱼
-    /// </summary>
-    public partial class FishBorn : CatchFish.Timer
-    {
         /// <summary>
         /// 当 currentFrameNumber == beginFrameNumber 时，将 fish 放入 Scene.fishs 并自杀
         /// </summary>
@@ -1404,13 +1355,13 @@ namespace CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            base.ToBBuffer(bb);
+            bb.Write(this.beginFrameNumber);
             bb.Write(this.fish);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            base.FromBBuffer(bb);
+            bb.Read(ref this.beginFrameNumber);
             bb.Read(ref this.fish);
         }
         public override void ToString(System.Text.StringBuilder s)
@@ -1430,7 +1381,7 @@ namespace CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            base.ToStringCore(s);
+            s.Append(", \"beginFrameNumber\":" + beginFrameNumber.ToString());
             s.Append(", \"fish\":" + (fish == null ? "nil" : fish.ToString()));
         }
         public override string ToString()
@@ -1441,7 +1392,6 @@ namespace CatchFish
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
-            base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
     /// <summary>
@@ -2596,26 +2546,30 @@ namespace CatchFish.Events
 namespace CatchFish.Stages
 {
     /// <summary>
-    /// 游戏关卡. 位于 Stage.timers 中的 timer, 使用 stageFrameNumber 来计算时间. 可弱引用 Stage 本身. 需要可以干净序列化
+    /// 游戏关卡. 一切元素皆使用 Stage.ticks 来计算时间. 可弱引用 Stage 本身. 需要可以干净序列化
     /// </summary>
     public partial class Stage : xx.Object
     {
         /// <summary>
-        /// 同下标
+        /// 关卡 id( 通常等于下标值 )
         /// </summary>
-        public int id;
+        public int cfg_id;
         /// <summary>
-        /// 关卡帧编号( clone 后需清0. 每帧 +1 )
+        /// 结束时间点
         /// </summary>
-        public int stageFrameNumber;
+        public int cfg_endTicks;
         /// <summary>
-        /// 当前阶段结束时间点( clone 后需修正 )
+        /// 帧编号( 运行时每帧 +1 )
         /// </summary>
-        public int endFrameNumber;
+        public int ticks;
         /// <summary>
-        /// 关卡元素集合
+        /// 元素集合
         /// </summary>
-        public xx.List<CatchFish.Timer> timers;
+        public xx.List<CatchFish.Stages.StageElement> elements;
+        /// <summary>
+        /// 监视器集合, 服务端专用
+        /// </summary>
+        public xx.List<CatchFish.Stages.StageElement> monitors;
 
         public override ushort GetPackageId()
         {
@@ -2624,19 +2578,22 @@ namespace CatchFish.Stages
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.id);
-            bb.Write(this.stageFrameNumber);
-            bb.Write(this.endFrameNumber);
-            bb.Write(this.timers);
+            bb.Write(this.cfg_id);
+            bb.Write(this.cfg_endTicks);
+            bb.Write(this.ticks);
+            bb.Write(this.elements);
+            bb.Write(this.monitors);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            bb.Read(ref this.id);
-            bb.Read(ref this.stageFrameNumber);
-            bb.Read(ref this.endFrameNumber);
+            bb.Read(ref this.cfg_id);
+            bb.Read(ref this.cfg_endTicks);
+            bb.Read(ref this.ticks);
             bb.readLengthLimit = 0;
-            bb.Read(ref this.timers);
+            bb.Read(ref this.elements);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.monitors);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2655,10 +2612,11 @@ namespace CatchFish.Stages
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            s.Append(", \"id\":" + id.ToString());
-            s.Append(", \"stageFrameNumber\":" + stageFrameNumber.ToString());
-            s.Append(", \"endFrameNumber\":" + endFrameNumber.ToString());
-            s.Append(", \"timers\":" + (timers == null ? "nil" : timers.ToString()));
+            s.Append(", \"cfg_id\":" + cfg_id.ToString());
+            s.Append(", \"cfg_endTicks\":" + cfg_endTicks.ToString());
+            s.Append(", \"ticks\":" + ticks.ToString());
+            s.Append(", \"elements\":" + (elements == null ? "nil" : elements.ToString()));
+            s.Append(", \"monitors\":" + (monitors == null ? "nil" : monitors.ToString()));
         }
         public override string ToString()
         {
@@ -2671,27 +2629,25 @@ namespace CatchFish.Stages
         }
     }
     /// <summary>
-    /// 服务器本地脚本( 关卡元素 )
+    /// 关卡元素基类
     /// </summary>
-    public partial class Script : CatchFish.Timer
+    public partial class StageElement : xx.Object
     {
-        public int lineNumber;
+        public int cfg_beginTicks;
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<Script>.value;
+            return xx.TypeId<StageElement>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            base.ToBBuffer(bb);
-            bb.Write(this.lineNumber);
+            bb.Write(this.cfg_beginTicks);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            base.FromBBuffer(bb);
-            bb.Read(ref this.lineNumber);
+            bb.Read(ref this.cfg_beginTicks);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2702,7 +2658,68 @@ namespace CatchFish.Stages
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Script\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.StageElement\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"cfg_beginTicks\":" + cfg_beginTicks.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+    /// <summary>
+    /// 随机小鱼发射器
+    /// </summary>
+    public partial class Emitter1 : CatchFish.Stages.StageElement
+    {
+        /// <summary>
+        /// 配置: 两条鱼生成帧间隔
+        /// </summary>
+        public int cfg_bornTicksInterval;
+        /// <summary>
+        /// 记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        /// </summary>
+        public int bornAvaliableTicks;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Emitter1>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.cfg_bornTicksInterval);
+            bb.Write(this.bornAvaliableTicks);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.cfg_bornTicksInterval);
+            bb.Read(ref this.bornAvaliableTicks);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Emitter1\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -2711,7 +2728,72 @@ namespace CatchFish.Stages
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
-            s.Append(", \"lineNumber\":" + lineNumber.ToString());
+            s.Append(", \"cfg_bornTicksInterval\":" + cfg_bornTicksInterval.ToString());
+            s.Append(", \"bornAvaliableTicks\":" + bornAvaliableTicks.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发
+    /// </summary>
+    public partial class Monitor1 : CatchFish.Stages.Emitter1
+    {
+        /// <summary>
+        /// 配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
+        /// </summary>
+        public int cfg_numFishsLimit;
+        /// <summary>
+        /// 配置: 预约延迟
+        /// </summary>
+        public int cfg_bornDelayFrameNumber;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Monitor1>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.cfg_numFishsLimit);
+            bb.Write(this.cfg_bornDelayFrameNumber);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.cfg_numFishsLimit);
+            bb.Read(ref this.cfg_bornDelayFrameNumber);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Monitor1\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"cfg_numFishsLimit\":" + cfg_numFishsLimit.ToString());
+            s.Append(", \"cfg_bornDelayFrameNumber\":" + cfg_bornDelayFrameNumber.ToString());
         }
         public override string ToString()
         {
@@ -3441,7 +3523,6 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Bullet>(32);
             xx.Object.Register<CatchFish.MoveItem>(33);
             xx.Object.Register<CatchFish.Way>(34);
-            xx.Object.Register<CatchFish.Timer>(35);
             xx.Object.Register<xx.List<CatchFish.WayPoint>>(36);
             xx.Object.Register<CatchFish.Events.Enter>(37);
             xx.Object.Register<CatchFish.Events.Leave>(38);
@@ -3461,8 +3542,10 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Events.CannonCoinChange>(52);
             xx.Object.Register<CatchFish.Events.DebugInfo>(53);
             xx.Object.Register<xx.List<int>>(54);
-            xx.Object.Register<xx.List<CatchFish.Timer>>(55);
-            xx.Object.Register<CatchFish.Stages.Script>(56);
+            xx.Object.Register<xx.List<CatchFish.Stages.StageElement>>(74);
+            xx.Object.Register<CatchFish.Stages.StageElement>(75);
+            xx.Object.Register<CatchFish.Stages.Emitter1>(76);
+            xx.Object.Register<CatchFish.Stages.Monitor1>(77);
             xx.Object.Register<CatchFish.Configs.Config>(57);
             xx.Object.Register<xx.List<CatchFish.Way>>(58);
             xx.Object.Register<xx.List<CatchFish.Configs.Fish>>(59);

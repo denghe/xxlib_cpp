@@ -49,6 +49,7 @@
     <Compile Include="..\output\PKG_class.cs">
       <Link>PKG_class.cs</Link>
     </Compile>
+    <Compile Include="Stages.cs" />
     <Compile Include="Cannons.cs" />
     <Compile Include="Ways.cs" />
     <Compile Include="SpriteFrames.cs" />

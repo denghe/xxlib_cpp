@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'b37ff6d0dd3a65609ec9ddccc9367f42'
+PKG_PkgGenMd5_Value = '1fad2883120bebb50bd02f2f9280c3a2'
 
 --[[
 座位列表
@@ -942,26 +942,27 @@ PKG_CatchFish_FishBorn = {
 
 
         --[[
+        开始 / 生效帧编号
+        ]]
+        o.beginFrameNumber = 0 -- Int32
+        --[[
         当 currentFrameNumber == beginFrameNumber 时，将 fish 放入 Scene.fishs 并自杀
         ]]
         o.fish = null -- PKG_CatchFish_Fish
-        setmetatable( o, PKG_CatchFish_Timer.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local p = getmetatable( o )
-        p.__proto.FromBBuffer( bb, p )
+        o.beginFrameNumber = bb:ReadInt32()
         o.fish = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        local p = getmetatable( o )
-        p.__proto.ToBBuffer( bb, p )
+        bb:WriteInt32( o.beginFrameNumber )
         bb:WriteObject( o.fish )
     end
 }
 BBuffer.Register( PKG_CatchFish_FishBorn )
 --[[
-游戏关卡. 位于 Stage.timers 中的 timer, 使用 stageFrameNumber 来计算时间. 可弱引用 Stage 本身. 需要可以干净序列化
+游戏关卡. 一切元素皆使用 Stage.ticks 来计算时间. 可弱引用 Stage 本身. 需要可以干净序列化
 ]]
 PKG_CatchFish_Stages_Stage = {
     typeName = "PKG_CatchFish_Stages_Stage",
@@ -978,36 +979,44 @@ PKG_CatchFish_Stages_Stage = {
 
 
         --[[
-        同下标
+        关卡 id( 通常等于下标值 )
         ]]
-        o.id = 0 -- Int32
+        o.cfg_id = 0 -- Int32
         --[[
-        关卡帧编号( clone 后需清0. 每帧 +1 )
+        结束时间点
         ]]
-        o.stageFrameNumber = 0 -- Int32
+        o.cfg_endTicks = 0 -- Int32
         --[[
-        当前阶段结束时间点( clone 后需修正 )
+        帧编号( 运行时每帧 +1 )
         ]]
-        o.endFrameNumber = 0 -- Int32
+        o.ticks = 0 -- Int32
         --[[
-        关卡元素集合
+        元素集合
         ]]
-        o.timers = null -- List_PKG_CatchFish_Timer_
+        o.elements = null -- List_PKG_CatchFish_Stages_StageElement_
+        --[[
+        监视器集合, 服务端专用
+        ]]
+        o.monitors = null -- List_PKG_CatchFish_Stages_StageElement_
         return o
     end,
     FromBBuffer = function( bb, o )
         local ReadInt32 = bb.ReadInt32
-        o.id = ReadInt32( bb )
-        o.stageFrameNumber = ReadInt32( bb )
-        o.endFrameNumber = ReadInt32( bb )
-        o.timers = bb:ReadObject()
+        local ReadObject = bb.ReadObject
+        o.cfg_id = ReadInt32( bb )
+        o.cfg_endTicks = ReadInt32( bb )
+        o.ticks = ReadInt32( bb )
+        o.elements = ReadObject( bb )
+        o.monitors = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
         local WriteInt32 = bb.WriteInt32
-        WriteInt32( bb, o.id )
-        WriteInt32( bb, o.stageFrameNumber )
-        WriteInt32( bb, o.endFrameNumber )
-        bb:WriteObject( o.timers )
+        local WriteObject = bb.WriteObject
+        WriteInt32( bb, o.cfg_id )
+        WriteInt32( bb, o.cfg_endTicks )
+        WriteInt32( bb, o.ticks )
+        WriteObject( bb, o.elements )
+        WriteObject( bb, o.monitors )
     end
 }
 BBuffer.Register( PKG_CatchFish_Stages_Stage )
@@ -1399,37 +1408,6 @@ PKG_CatchFish_Way = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Way )
---[[
-定时器基类
-]]
-PKG_CatchFish_Timer = {
-    typeName = "PKG_CatchFish_Timer",
-    typeId = 35,
-    Create = function()
-        local o = {}
-        o.__proto = PKG_CatchFish_Timer
-        o.__index = o
-        o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
-
-
-        --[[
-        开始 / 生效帧编号
-        ]]
-        o.beginFrameNumber = 0 -- Int32
-        return o
-    end,
-    FromBBuffer = function( bb, o )
-        o.beginFrameNumber = bb:ReadInt32()
-    end,
-    ToBBuffer = function( bb, o )
-        bb:WriteInt32( o.beginFrameNumber )
-    end
-}
-BBuffer.Register( PKG_CatchFish_Timer )
 List_PKG_CatchFish_WayPoint_ = {
     typeName = "List_PKG_CatchFish_WayPoint_",
     typeId = 36,
@@ -2152,12 +2130,12 @@ List_Int32_ = {
     end
 }
 BBuffer.Register( List_Int32_ )
-List_PKG_CatchFish_Timer_ = {
-    typeName = "List_PKG_CatchFish_Timer_",
-    typeId = 55,
+List_PKG_CatchFish_Stages_StageElement_ = {
+    typeName = "List_PKG_CatchFish_Stages_StageElement_",
+    typeId = 74,
     Create = function()
         local o = {}
-        o.__proto = List_PKG_CatchFish_Timer_
+        o.__proto = List_PKG_CatchFish_Stages_StageElement_
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -2183,16 +2161,16 @@ List_PKG_CatchFish_Timer_ = {
 		end
     end
 }
-BBuffer.Register( List_PKG_CatchFish_Timer_ )
+BBuffer.Register( List_PKG_CatchFish_Stages_StageElement_ )
 --[[
-服务器本地脚本( 关卡元素 )
+关卡元素基类
 ]]
-PKG_CatchFish_Stages_Script = {
-    typeName = "PKG_CatchFish_Stages_Script",
-    typeId = 56,
+PKG_CatchFish_Stages_StageElement = {
+    typeName = "PKG_CatchFish_Stages_StageElement",
+    typeId = 75,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFish_Stages_Script
+        o.__proto = PKG_CatchFish_Stages_StageElement
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -2201,22 +2179,105 @@ PKG_CatchFish_Stages_Script = {
 		end
 
 
-        o.lineNumber = 0 -- Int32
-        setmetatable( o, PKG_CatchFish_Timer.Create() )
+        o.cfg_beginTicks = 0 -- Int32
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.cfg_beginTicks = bb:ReadInt32()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteInt32( o.cfg_beginTicks )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Stages_StageElement )
+--[[
+随机小鱼发射器
+]]
+PKG_CatchFish_Stages_Emitter1 = {
+    typeName = "PKG_CatchFish_Stages_Emitter1",
+    typeId = 76,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Stages_Emitter1
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        配置: 两条鱼生成帧间隔
+        ]]
+        o.cfg_bornTicksInterval = 0 -- Int32
+        --[[
+        记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        ]]
+        o.bornAvaliableTicks = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_Stages_StageElement.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
-        o.lineNumber = bb:ReadInt32()
+        local ReadInt32 = bb.ReadInt32
+        o.cfg_bornTicksInterval = ReadInt32( bb )
+        o.bornAvaliableTicks = ReadInt32( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
-        bb:WriteInt32( o.lineNumber )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.cfg_bornTicksInterval )
+        WriteInt32( bb, o.bornAvaliableTicks )
     end
 }
-BBuffer.Register( PKG_CatchFish_Stages_Script )
+BBuffer.Register( PKG_CatchFish_Stages_Emitter1 )
+--[[
+巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发
+]]
+PKG_CatchFish_Stages_Monitor1 = {
+    typeName = "PKG_CatchFish_Stages_Monitor1",
+    typeId = 77,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Stages_Monitor1
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
+        ]]
+        o.cfg_numFishsLimit = 0 -- Int32
+        --[[
+        配置: 预约延迟
+        ]]
+        o.cfg_bornDelayFrameNumber = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_Stages_Emitter1.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
+        o.cfg_numFishsLimit = ReadInt32( bb )
+        o.cfg_bornDelayFrameNumber = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.cfg_numFishsLimit )
+        WriteInt32( bb, o.cfg_bornDelayFrameNumber )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Stages_Monitor1 )
 --[[
 游戏配置主体
 ]]

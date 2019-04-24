@@ -91,7 +91,7 @@ namespace CatchFish
             Weapon weapon;
         }
 
-        [Desc("预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.timers 队列")]
+        [Desc("预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.borns 队列. 用不到 playerId")]
         class PushFish : Event
         {
             [Desc("已于 server 端构造好的, 无牵挂的, 能干净下发的实例")]
