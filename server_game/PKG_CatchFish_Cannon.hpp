@@ -1,4 +1,4 @@
-﻿inline int Cannon::InitCascade(void* const& o) noexcept {
+﻿inline int PKG::CatchFish::Cannon::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	assert(player);
 	assert(!cfg);
@@ -21,7 +21,7 @@
 }
 
 #ifndef CC_TARGET_PLATFORM
-inline void Cannon::MakeRefundEvent(int64_t const& coin, bool isPersional) noexcept {
+inline void PKG::CatchFish::Cannon::MakeRefundEvent(int64_t const& coin, bool isPersional) noexcept {
 	auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
 	refund->coin = coin;
 	refund->playerId = player->id;
@@ -34,7 +34,7 @@ inline void Cannon::MakeRefundEvent(int64_t const& coin, bool isPersional) noexc
 }
 #endif
 
-inline int Cannon::Update(int const& frameNumber) noexcept {
+inline int PKG::CatchFish::Cannon::Update(int const& frameNumber) noexcept {
 
 	// 驱动子弹
 	auto&& bs = *this->bullets;
@@ -103,7 +103,7 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 };
 
 #ifndef CC_TARGET_PLATFORM
-inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
+inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 	// 合法性判断: 如果 bulletId / fishId 找不到就忽略
 	auto&& bs = *this->bullets;
 	auto&& fs = *scene->fishs;
@@ -171,7 +171,7 @@ inline int Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 
 
 #ifndef CC_TARGET_PLATFORM
-inline int Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
+inline int PKG::CatchFish::Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
 	// 如果金币不足, 失败
 	if (player->coin < coin) return -1;
 
@@ -186,7 +186,7 @@ inline int Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexcept {
 	// 模拟客户端参数以兼容下方代码
 	auto frameNumber = o->frameNumber;
 #else
-inline int Cannon::Fire(int const& frameNumber) noexcept {
+inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 	// 只有玩家本人发射行为受限
 	if (player->isSelf) {
 #endif
@@ -278,7 +278,7 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 }
 
 #ifdef CC_TARGET_PLATFORM
-inline void Cannon::DrawInit() noexcept {
+inline void PKG::CatchFish::Cannon::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->setGlobalZOrder(cfg->zOrder);
@@ -290,7 +290,7 @@ inline void Cannon::DrawInit() noexcept {
 	cc_scene->addChild(body);
 }
 
-inline void Cannon::DrawUpdate() noexcept {
+inline void PKG::CatchFish::Cannon::DrawUpdate() noexcept {
 	assert(body);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
 }

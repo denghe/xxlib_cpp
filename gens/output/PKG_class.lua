@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '9af9b3d28cc753f0f3bf5abca25dabf3'
+PKG_PkgGenMd5_Value = 'f057b0419958550aa12c6f40ebef30c0'
 
 --[[
 座位列表
@@ -368,10 +368,6 @@ PKG_CatchFish_Player = {
 
 
         --[[
-        账号id. 用于定位玩家 ( 填充自 db )
-        ]]
-        o.id = 0 -- Int32
-        --[[
         昵称 用于客户端显示 ( 填充自 db )
         ]]
         o.nickname = null -- String
@@ -415,13 +411,15 @@ PKG_CatchFish_Player = {
         武器集合 ( 被打死的特殊鱼转为武器对象, 飞向玩家, 变炮消失前都在这里 )
         ]]
         o.weapons = null -- List_PKG_CatchFish_Weapon_
+        setmetatable( o, PKG_CatchFish_Item.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadInt32 = bb.ReadInt32
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
         local ReadObject = bb.ReadObject
+        local ReadInt32 = bb.ReadInt32
         local ReadBoolean = bb.ReadBoolean
-        o.id = ReadInt32( bb )
         o.nickname = ReadObject( bb )
         o.avatar_id = ReadInt32( bb )
         o.noMoney = ReadBoolean( bb )
@@ -435,10 +433,11 @@ PKG_CatchFish_Player = {
         o.weapons = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
-        local WriteInt32 = bb.WriteInt32
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
         local WriteObject = bb.WriteObject
+        local WriteInt32 = bb.WriteInt32
         local WriteBoolean = bb.WriteBoolean
-        WriteInt32( bb, o.id )
         WriteObject( bb, o.nickname )
         WriteInt32( bb, o.avatar_id )
         WriteBoolean( bb, o.noMoney )
@@ -835,11 +834,11 @@ PKG_CatchFish_Item = {
 
 
         --[[
-        自增id ( 服务器实时下发的id为负 )
+        标识码
         ]]
         o.id = 0 -- Int32
         --[[
-        位于容器时的下标 ( 用于快速交换删除 )
+        位于容器时的下标 ( 用于快速交换删除. 部分类型不一定用到 )
         ]]
         o.indexAtContainer = 0 -- Int32
         return o
@@ -1098,10 +1097,6 @@ PKG_CatchFish_Cannon = {
 
 
         --[[
-        自增id ( 服务器实时下发的id为负 )
-        ]]
-        o.id = 0 -- Int32
-        --[[
         配置id
         ]]
         o.cfgId = 0 -- Int32
@@ -1117,20 +1112,21 @@ PKG_CatchFish_Cannon = {
         所有子弹
         ]]
         o.bullets = null -- List_PKG_CatchFish_Bullet_
+        setmetatable( o, PKG_CatchFish_Item.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadInt32 = bb.ReadInt32
-        o.id = ReadInt32( bb )
-        o.cfgId = ReadInt32( bb )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        o.cfgId = bb:ReadInt32()
         o.coin = bb:ReadInt64()
         o.angle = bb:ReadSingle()
         o.bullets = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        local WriteInt32 = bb.WriteInt32
-        WriteInt32( bb, o.id )
-        WriteInt32( bb, o.cfgId )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        bb:WriteInt32( o.cfgId )
         bb:WriteInt64( o.coin )
         bb:WriteSingle( o.angle )
         bb:WriteObject( o.bullets )
@@ -2219,6 +2215,9 @@ PKG_CatchFish_Stages_StageElement = {
 		end
 
 
+        --[[
+        生效时间点
+        ]]
         o.cfg_beginTicks = 0 -- Int32
         return o
     end,

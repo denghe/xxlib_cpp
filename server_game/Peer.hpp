@@ -98,7 +98,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			}
 
 			// 构建玩家上下文( 模拟已从db读到了数据 )
-			auto&& player = xx::Make<Player>();
+			auto&& player = xx::Make<PKG::CatchFish::Player>();
 			xx::MakeTo(player->cannons);
 			xx::MakeTo(player->events);
 			player->scene = &scene;
@@ -120,7 +120,7 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			switch (cannonCfgId) {
 			case 0: {
 				auto&& cannonCfg = cfg.cannons->At(cannonCfgId);
-				auto&& cannon = xx::Make<Cannon>();
+				auto&& cannon = xx::Make<PKG::CatchFish::Cannon>();
 				cannon->angle = float(cannonCfg->angle);
 				xx::MakeTo(cannon->bullets);
 				cannon->cfg = &*cannonCfg;

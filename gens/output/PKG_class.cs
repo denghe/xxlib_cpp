@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "9af9b3d28cc753f0f3bf5abca25dabf3"; 
+        public const string value = "f057b0419958550aa12c6f40ebef30c0"; 
     }
 
 namespace CatchFish
@@ -736,14 +736,70 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
+    /// 场景元素的共通基类
     /// </summary>
-    public partial class Player : xx.Object
+    public partial class Item : xx.Object
     {
         /// <summary>
-        /// 账号id. 用于定位玩家 ( 填充自 db )
+        /// 标识码
         /// </summary>
         public int id;
+        /// <summary>
+        /// 位于容器时的下标 ( 用于快速交换删除. 部分类型不一定用到 )
+        /// </summary>
+        public int indexAtContainer;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Item>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.id);
+            bb.Write(this.indexAtContainer);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.id);
+            bb.Read(ref this.indexAtContainer);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Item\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"id\":" + id.ToString());
+            s.Append(", \"indexAtContainer\":" + indexAtContainer.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+    /// <summary>
+    /// 玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
+    /// </summary>
+    public partial class Player : CatchFish.Item
+    {
         /// <summary>
         /// 昵称 用于客户端显示 ( 填充自 db )
         /// </summary>
@@ -796,7 +852,7 @@ namespace CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.id);
+            base.ToBBuffer(bb);
             bb.Write(this.nickname);
             bb.Write(this.avatar_id);
             bb.Write(this.noMoney);
@@ -812,7 +868,7 @@ namespace CatchFish
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            bb.Read(ref this.id);
+            base.FromBBuffer(bb);
             bb.readLengthLimit = 0;
             bb.Read(ref this.nickname);
             bb.Read(ref this.avatar_id);
@@ -849,7 +905,7 @@ namespace CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            s.Append(", \"id\":" + id.ToString());
+            base.ToStringCore(s);
             if (nickname != null) s.Append(", \"nickname\":\"" + nickname.ToString() + "\"");
             else s.Append(", \"nickname\":nil");
             s.Append(", \"avatar_id\":" + avatar_id.ToString());
@@ -871,77 +927,14 @@ namespace CatchFish
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
-        }
-    }
-    /// <summary>
-    /// 场景元素的共通基类
-    /// </summary>
-    public partial class Item : xx.Object
-    {
-        /// <summary>
-        /// 自增id ( 服务器实时下发的id为负 )
-        /// </summary>
-        public int id;
-        /// <summary>
-        /// 位于容器时的下标 ( 用于快速交换删除 )
-        /// </summary>
-        public int indexAtContainer;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Item>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.id);
-            bb.Write(this.indexAtContainer);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.Read(ref this.id);
-            bb.Read(ref this.indexAtContainer);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Item\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"id\":" + id.ToString());
-            s.Append(", \"indexAtContainer\":" + indexAtContainer.ToString());
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
+            base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
     /// <summary>
     /// 炮台基类. 下列属性适合大多数炮
     /// </summary>
-    public partial class Cannon : xx.Object
+    public partial class Cannon : CatchFish.Item
     {
-        /// <summary>
-        /// 自增id ( 服务器实时下发的id为负 )
-        /// </summary>
-        public int id;
         /// <summary>
         /// 配置id
         /// </summary>
@@ -966,7 +959,7 @@ namespace CatchFish
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
-            bb.Write(this.id);
+            base.ToBBuffer(bb);
             bb.Write(this.cfgId);
             bb.Write(this.coin);
             bb.Write(this.angle);
@@ -975,7 +968,7 @@ namespace CatchFish
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
-            bb.Read(ref this.id);
+            base.FromBBuffer(bb);
             bb.Read(ref this.cfgId);
             bb.Read(ref this.coin);
             bb.Read(ref this.angle);
@@ -999,7 +992,7 @@ namespace CatchFish
         }
         public override void ToStringCore(System.Text.StringBuilder s)
         {
-            s.Append(", \"id\":" + id.ToString());
+            base.ToStringCore(s);
             s.Append(", \"cfgId\":" + cfgId.ToString());
             s.Append(", \"coin\":" + coin.ToString());
             s.Append(", \"angle\":" + angle.ToString());
@@ -1013,6 +1006,7 @@ namespace CatchFish
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
+            base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
     /// <summary>
@@ -2690,6 +2684,9 @@ namespace CatchFish.Stages
     /// </summary>
     public partial class StageElement : xx.Object
     {
+        /// <summary>
+        /// 生效时间点
+        /// </summary>
         public int cfg_beginTicks;
 
         public override ushort GetPackageId()

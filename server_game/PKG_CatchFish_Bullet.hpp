@@ -1,4 +1,4 @@
-﻿inline int Bullet::InitCascade(void* const& o) noexcept {
+﻿inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	assert(player);
 	assert(cannon);
@@ -11,7 +11,7 @@
 	return 0;
 }
 
-inline int Bullet::Move() noexcept {
+inline int PKG::CatchFish::Bullet::Move() noexcept {
 	pos += moveInc;
 
 	// 飞出屏幕就消失
@@ -21,7 +21,7 @@ inline int Bullet::Move() noexcept {
 	return 0;
 }
 
-inline int Bullet::Update(int const& frameNumber) noexcept {
+inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 	if (int r = Move()) return r;
 #ifdef CC_TARGET_PLATFORM
 	// 遍历所有鱼
@@ -48,7 +48,7 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 };
 
 #ifdef CC_TARGET_PLATFORM
-inline void Bullet::DrawInit() noexcept {
+inline void PKG::CatchFish::Bullet::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->setGlobalZOrder(cfg->zOrder);
@@ -60,7 +60,7 @@ inline void Bullet::DrawInit() noexcept {
 	cc_scene->addChild(body);
 }
 
-inline void Bullet::DrawUpdate() noexcept {
+inline void PKG::CatchFish::Bullet::DrawUpdate() noexcept {
 	assert(body);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
 	body->setPosition(pos);

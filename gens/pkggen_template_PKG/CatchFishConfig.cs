@@ -5,7 +5,7 @@ namespace CatchFish
 {
     namespace Configs
     {
-        [Desc("游戏配置主体")]
+        [AttachInclude, Desc("游戏配置主体")]
         class Config
         {
             [Desc("所有固定路径( 工具创建 )")]
@@ -126,7 +126,7 @@ namespace CatchFish
             Cannon cannon;
         }
 
-        [Desc("精灵帧")]
+        [AttachInclude, Desc("精灵帧")]
         class SpriteFrame
         {
             [Desc("plist资源名")]
@@ -137,7 +137,7 @@ namespace CatchFish
         }
 
 
-        [Desc("物理建模 for 鱼与子弹碰撞检测")]
+        [AttachInclude, Desc("物理建模 for 鱼与子弹碰撞检测")]
         class Physics
         {
             [Desc("基于当前帧图的多边形碰撞顶点包围区( 由多个凸多边形组合而成, 用于物理建模碰撞判定 )")]

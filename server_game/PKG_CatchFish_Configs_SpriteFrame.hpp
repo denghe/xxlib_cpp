@@ -1,4 +1,4 @@
-﻿inline int SpriteFrame::InitCascade(void* const& o) noexcept {
+﻿inline int PKG::CatchFish::Configs::SpriteFrame::InitCascade(void* const& o) noexcept {
 #ifdef CC_TARGET_PLATFORM
 	auto&& sfc = cocos2d::SpriteFrameCache::getInstance();
 	sfc->addSpriteFramesWithFile(*this->plistName);
@@ -9,7 +9,7 @@
 	return 0;
 }
 
-inline SpriteFrame::~SpriteFrame() {
+inline PKG::CatchFish::Configs::SpriteFrame::~SpriteFrame() {
 #ifdef CC_TARGET_PLATFORM
 	if (spriteFrame) {
 		spriteFrame->release();

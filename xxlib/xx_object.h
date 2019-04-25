@@ -152,9 +152,6 @@ namespace xx {
 
 		// 级联相关( 主用于遍历调用生成物派生类 override 的代码 )
 		inline virtual int InitCascade(void* const& o = nullptr) noexcept { return 0; };
-
-		// 常用基类函数。避免频繁 dynamic_cast
-		inline virtual int Update(int const& frameNumber) noexcept { return 0; };
 	};
 
 	using Object_s = std::shared_ptr<Object>;

@@ -3,7 +3,7 @@ using TemplateLibrary;
 
 namespace CatchFish
 {
-    [Desc("场景")]
+    [AttachInclude, Desc("场景")]
     class Scene
     {
         [Desc("游戏id")]
@@ -61,6 +61,19 @@ namespace CatchFish
         List<Weak<Player>> players;
     }
 
+    [AttachInclude, Desc("场景元素的共通基类")]
+    class Item
+    {
+        [Desc("标识码")]
+        int id;
+
+        [Desc("位于容器时的下标 ( 用于快速交换删除. 部分类型不一定用到 )")]
+        int indexAtContainer;
+
+        //[Desc("级联更新逻辑")]
+        //int Update([ConstRef]int frameNumber) { return 0; }
+    }
+
     [Desc("座位列表")]
     enum Sits
     {
@@ -77,12 +90,9 @@ namespace CatchFish
         LeftTop,
     }
 
-    [Desc("玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )")]
-    class Player
+    [AttachInclude, Desc("玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )")]
+    class Player : Item
     {
-        [Desc("账号id. 用于定位玩家 ( 填充自 db )")]
-        int id;
-
         [Desc("昵称 用于客户端显示 ( 填充自 db )")]
         string nickname;
 
@@ -118,22 +128,10 @@ namespace CatchFish
         List<Weapon> weapons;
     }
 
-    [Desc("场景元素的共通基类")]
-    class Item
+
+    [AttachInclude, Desc("炮台基类. 下列属性适合大多数炮")]
+    class Cannon : Item
     {
-        [Desc("自增id ( 服务器实时下发的id为负 )")]
-        int id;
-
-        [Desc("位于容器时的下标 ( 用于快速交换删除 )")]
-        int indexAtContainer;
-    }
-
-    [Desc("炮台基类. 下列属性适合大多数炮")]
-    class Cannon
-    {
-        [Desc("自增id ( 服务器实时下发的id为负 )")]
-        int id;
-
         [Desc("配置id")]
         int cfgId;
 
@@ -160,14 +158,14 @@ namespace CatchFish
         xx.Pos moveInc;
     }
 
-    [Desc("子弹基类")]
+    [AttachInclude, Desc("子弹基类")]
     class Bullet : MoveItem
     {
         [Desc("金币 / 倍率( 记录炮台开火时的 Bet 值 )")]
         long coin;
     }
 
-    [Desc("鱼基类( 支持每帧 pos += moveInc 简单移动 )")]
+    [AttachInclude, Desc("鱼基类( 支持每帧 pos += moveInc 简单移动 )")]
     class Fish : MoveItem
     {
         [Desc("配置id")]
@@ -232,7 +230,7 @@ namespace CatchFish
         bool loop;
     }
 
-    [Desc("基于路径移动的鱼基类")]
+    [AttachInclude, Desc("基于路径移动的鱼基类")]
     class WayFish : Fish
     {
         [Desc("移动路径. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex")]

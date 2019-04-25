@@ -1,4 +1,4 @@
-﻿inline int Physics::InitCascade(void* const& o) noexcept {
+﻿inline int PKG::CatchFish::Configs::Physics::InitCascade(void* const& o) noexcept {
 	if (space) return 0;											// 多鱼共图
 	static_assert(sizeof(cpVect) == sizeof(xx::Pos));
 	if (polygons) {
@@ -12,7 +12,7 @@
 	return 0;
 }
 
-inline Physics::~Physics() {
+inline PKG::CatchFish::Configs::Physics::~Physics() {
 	if (space) {
 		cpSpaceEachShape(space, [](cpShape *shape, void *data) {
 			cpSpaceAddPostStepCallback((cpSpace*)data, [](cpSpace *space, void *key, void *data) {

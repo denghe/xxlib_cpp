@@ -27,13 +27,17 @@ namespace CatchFish
             List<StageElement> monitors;
         }
 
-        [Desc("关卡元素基类")]
+        [AttachInclude, Desc("关卡元素基类")]
         class StageElement
         {
+            [Desc("生效时间点")]
             int cfg_beginTicks;
+
+            //[Desc("级联更新逻辑")]
+            //int Update([ConstRef]int ticks) { return 0; }
         }
 
-        [Desc("随机小鱼发射器")]
+        [AttachInclude, Desc("随机小鱼发射器")]
         class Emitter_RandomFishs : StageElement
         {
             [Desc("配置: 两条鱼生成帧间隔")]
@@ -52,7 +56,7 @@ namespace CatchFish
             int bornAvaliableTicks;
         }
 
-        [Desc("巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发")]
+        [AttachInclude, Desc("巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发")]
         class Monitor_KeepBigFish : Emitter_RandomFishs
         {
             [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
@@ -62,7 +66,7 @@ namespace CatchFish
             int cfg_bornDelayFrameNumber;
         }
 
-        [Desc("从屏幕中间圆环出现的小鱼阵发射器")]
+        [AttachInclude, Desc("从屏幕中间圆环出现的小鱼阵发射器")]
         class Emitter_RingFishs : StageElement
         {
             [Desc("配置: 每波鱼只数")]

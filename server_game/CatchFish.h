@@ -7,9 +7,29 @@
 
 #include "xx_pos.h"
 #include "xx_random.h"
+struct CatchFish;
+#ifndef CC_TARGET_PLATFORM
+struct Peer;
+#else
+struct Panel_Player
+#endif
+#ifdef CC_TARGET_PLATFORM
+
+#include "RefHolder.h"
+
+	struct Dialer;
+struct CatchFish;
+std::shared_ptr<Dialer> dialer;
+CatchFish* catchFish = nullptr;
+
+inline cocos2d::Scene* cc_scene = nullptr;
+inline xx::List<cocos2d::Touch*> cc_touchs;
+inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
+
+#endif
+#include "chipmunk.h"
 #include "PKG_class.h"
 #include "xx_random.hpp"
-#include "chipmunk.h"
 
 /**************************************************************************************************/
 // ::
@@ -23,30 +43,6 @@ static constexpr int screenHeight = 720;
 static constexpr float screenWidthRatio = float(screenWidth) / float(screenWidth + screenHeight);
 static constexpr xx::Pos screenCenter = xx::Pos{ screenWidth / 2, screenHeight / 2 };
 
-#ifdef CC_TARGET_PLATFORM
-
-#include "RefHolder.h"
-
-struct Dialer;
-struct CatchFish;
-std::shared_ptr<Dialer> dialer;
-CatchFish* catchFish = nullptr;
-
-inline cocos2d::Scene* cc_scene = nullptr;
-inline xx::List<cocos2d::Touch*> cc_touchs;
-inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
-
-#endif
-
-#include "Config.h"
-#include "SpriteFrame.h"
-#include "Physics.h"
-#include "Scene.h"
-#include "Fish.h"
-#include "Player.h"
-#include "Cannon.h"
-#include "Bullet.h"
-#include "Stage.h"
 
 // todo: more 
 
@@ -66,13 +62,13 @@ struct CatchFish {
 	CatchFish& operator=(CatchFish const& o) = delete;
 
 	// 全局公用共享配置单例
-	Config_s cfg;
+	PKG::CatchFish::Configs::Config_s cfg;
 
 	// 所有玩家的强存储
-	xx::List<Player_s> players;
+	xx::List<PKG::CatchFish::Player_s> players;
 
 	// 游戏场景实例
-	Scene_s scene;
+	PKG::CatchFish::Scene_s scene;
 
 	// server info( Init 时填充 )
 	std::string serverIp;
@@ -89,7 +85,7 @@ struct CatchFish {
 	int Update() noexcept;
 
 	// 清掉某玩家( 复制传入以避免引用到容器内的地址造成无法正常删除 )
-	void Cleanup(Player_s p) noexcept;
+	void Cleanup(PKG::CatchFish::Player_s p) noexcept;
 
 	// 被用于部分调用中检测是否正在发生析构
 	bool disposed = false;
@@ -115,15 +111,18 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 /**************************************************************************************************/
 
 #include "CatchFish.hpp"
-#include "Config.hpp"
-#include "SpriteFrame.hpp"
-#include "Physics.hpp"
-#include "Scene.hpp"
-#include "Player.hpp"
-#include "Fish.hpp"
-#include "Cannon.hpp"
-#include "Bullet.hpp"
-#include "Stage.hpp"
+#include "PKG_CatchFish_Configs_Config.hpp"
+#include "PKG_CatchFish_Configs_SpriteFrame.hpp"
+#include "PKG_CatchFish_Configs_Physics.hpp"
+#include "PKG_CatchFish_Stages_Emitter_RingFishs.hpp"
+#include "PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp"
+#include "PKG_CatchFish_Stages_Emitter_RandomFishs.hpp"
+#include "PKG_CatchFish_Scene.hpp"
+#include "PKG_CatchFish_Player.hpp"
+#include "PKG_CatchFish_Cannon.hpp"
+#include "PKG_CatchFish_Bullet.hpp"
+#include "PKG_CatchFish_Fish.hpp"
+#include "PKG_CatchFish_WayFish.hpp"
 
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.hpp"

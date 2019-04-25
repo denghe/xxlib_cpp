@@ -48,34 +48,42 @@
     <ClInclude Include="..\xxlib\ikcp.h">
       <Filter>xxlib</Filter>
     </ClInclude>
-    <ClInclude Include="Cannon.hpp" />
     <ClInclude Include="CatchFish.h" />
     <ClInclude Include="CatchFish.hpp" />
-    <ClInclude Include="Fish.hpp" />
-    <ClInclude Include="Physics.hpp" />
-    <ClInclude Include="Player.hpp" />
-    <ClInclude Include="Scene.hpp" />
-    <ClInclude Include="SpriteFrame.hpp" />
-    <ClInclude Include="Bullet.hpp" />
     <ClInclude Include="Peer.hpp" />
     <ClInclude Include="Listener.hpp" />
     <ClInclude Include="..\gens\output\PKG_class.h" />
     <ClInclude Include="..\xxlib\xx_random.hpp">
       <Filter>xxlib</Filter>
     </ClInclude>
-    <ClInclude Include="Config.hpp" />
-    <ClInclude Include="Bullet.h" />
-    <ClInclude Include="Cannon.h" />
-    <ClInclude Include="Config.h" />
-    <ClInclude Include="Fish.h" />
     <ClInclude Include="Listener.h" />
     <ClInclude Include="Peer.h" />
-    <ClInclude Include="Physics.h" />
-    <ClInclude Include="Player.h" />
-    <ClInclude Include="Scene.h" />
-    <ClInclude Include="SpriteFrame.h" />
-    <ClInclude Include="Stage.h" />
-    <ClInclude Include="Stage.hpp" />
+    <ClInclude Include="PKG_CatchFish_Item.h" />
+    <ClInclude Include="PKG_CatchFish_WayFish.h" />
+    <ClInclude Include="PKG_CatchFish_Fish.hpp" />
+    <ClInclude Include="PKG_CatchFish_WayFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_Fish.h" />
+    <ClInclude Include="PKG_CatchFish_Bullet.h" />
+    <ClInclude Include="PKG_CatchFish_Bullet.hpp" />
+    <ClInclude Include="PKG_CatchFish_Stages_StageElement.h" />
+    <ClInclude Include="PKG_CatchFish_Scene.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_RandomFishs.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBigFish.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_RingFishs.h" />
+    <ClInclude Include="PKG_CatchFish_Configs_Config.h" />
+    <ClInclude Include="PKG_CatchFish_Player.h" />
+    <ClInclude Include="PKG_CatchFish_Configs_SpriteFrame.h" />
+    <ClInclude Include="PKG_CatchFish_Configs_SpriteFrame.hpp" />
+    <ClInclude Include="PKG_CatchFish_Configs_Physics.h" />
+    <ClInclude Include="PKG_CatchFish_Configs_Physics.hpp" />
+    <ClInclude Include="PKG_CatchFish_Cannon.h" />
+    <ClInclude Include="PKG_CatchFish_Cannon.hpp" />
+    <ClInclude Include="PKG_CatchFish_Configs_Config.hpp" />
+    <ClInclude Include="PKG_CatchFish_Scene.hpp" />
+    <ClInclude Include="PKG_CatchFish_Player.hpp" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_RandomFishs.hpp" />
+    <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_RingFishs.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

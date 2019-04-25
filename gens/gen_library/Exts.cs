@@ -119,11 +119,18 @@ public static class GenExtensions
 
 
     /// <summary>
-    /// 获取类型( 特指interface )的成员函数列表
+    /// 获取类型的成员函数列表
     /// </summary>
     public static List<MethodInfo> _GetMethods(this Type t)
     {
-        return t.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).ToList();
+        return t.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).Where(
+            m=>m.Name!= "ToString" &&
+            m.Name!= "Equals" &&
+            m.Name!= "GetHashCode" &&
+            m.Name!= "GetType" &&
+            m.Name!= "Finalize" &&
+            m.Name!= "MemberwiseClone"
+            ).ToList();
     }
 
 
@@ -424,7 +431,7 @@ public static class GenExtensions
                 }
                 else
                 {
-                    return "(" + _GetTypeDecl_Csharp(t) + ")" + v._ToEnumInteger(t);
+                    return "(" + _GetTypeDecl_Cpp(t, templateName) + ")" + v._ToEnumInteger(t);
                 }
             }
             if (t._IsNumeric()) return v.ToString().ToLower();   // lower for Ture, False bool

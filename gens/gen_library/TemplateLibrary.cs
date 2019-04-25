@@ -100,6 +100,30 @@ namespace TemplateLibrary
     }
 
     /// <summary>
+    /// 标记一个函数参数为 const& ( cpp only )
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Parameter)]
+    public class ConstRef : System.Attribute
+    {
+    }
+
+    /// <summary>
+    /// 标记一个函数参数为 * const& ( cpp only )
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Parameter)]
+    public class PointerConstRef : System.Attribute
+    {
+    }
+
+    /// <summary>
+    /// 标记一个类需要抠洞在声明和实现部分分别嵌入 namespace_classname.h , .hpp ( cpp only )
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public class AttachInclude : System.Attribute
+    {
+    }
+
+    /// <summary>
     /// 标记一个类成员不参与序列化
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field)]

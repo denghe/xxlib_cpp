@@ -10,7 +10,7 @@ struct Peer : xx::UvKcpPeer {
 	CatchFish* catchFish = nullptr;
 
 	// Enter 成功后绑定到玩家
-	Player_w player_w;
+	PKG::CatchFish::Player_w player_w;
 
 	// 首包判断 flag
 	bool isFirstPackage = true;

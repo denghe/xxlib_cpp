@@ -1,20 +1,4 @@
 ﻿inline CatchFish::CatchFish() {
-	// 注册替代类型
-	xx::BBuffer::Register<Config>(xx::TypeId_v<PKG::CatchFish::Configs::Config>);
-	xx::BBuffer::Register<SpriteFrame>(xx::TypeId_v<PKG::CatchFish::Configs::SpriteFrame>);
-	xx::BBuffer::Register<Physics>(xx::TypeId_v<PKG::CatchFish::Configs::Physics>);
-	xx::BBuffer::Register<Scene>(xx::TypeId_v<PKG::CatchFish::Scene>);
-	xx::BBuffer::Register<Player>(xx::TypeId_v<PKG::CatchFish::Player>);
-	xx::BBuffer::Register<Fish>(xx::TypeId_v<PKG::CatchFish::Fish>);
-	xx::BBuffer::Register<WayFish>(xx::TypeId_v<PKG::CatchFish::WayFish>);
-	xx::BBuffer::Register<Cannon>(xx::TypeId_v<PKG::CatchFish::Cannon>);
-	xx::BBuffer::Register<Bullet>(xx::TypeId_v<PKG::CatchFish::Bullet>);
-
-	xx::BBuffer::Register<Emitter_RandomFishs>(xx::TypeId_v<PKG::CatchFish::Stages::Emitter_RandomFishs>);
-	xx::BBuffer::Register<Monitor_KeepBigFish>(xx::TypeId_v<PKG::CatchFish::Stages::Monitor_KeepBigFish>);
-	xx::BBuffer::Register<Emitter_RingFishs>(xx::TypeId_v<PKG::CatchFish::Stages::Emitter_RingFishs>);
-
-	// todo: more
 }
 
 inline CatchFish::~CatchFish() {
@@ -113,7 +97,7 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 	return 0;
 }
 
-inline void CatchFish::Cleanup(Player_s p) noexcept {
+inline void CatchFish::Cleanup(PKG::CatchFish::Player_s p) noexcept {
 	assert(p);
 #ifndef CC_TARGET_PLATFORM
 	// 网络解绑

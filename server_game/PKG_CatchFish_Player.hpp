@@ -1,4 +1,4 @@
-﻿inline int Player::InitCascade(void* const& o) noexcept {
+﻿inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 
 	// 填充玩家对应的位置的坐标
@@ -18,7 +18,7 @@
 	return this->BaseType::InitCascade(o);
 }
 
-inline int Player::Update(int const& frameNumber) noexcept {
+inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 #ifndef CC_TARGET_PLATFORM
 	if (timeoutFrameNumber < scene->frameNumber) return -1;
 #endif
@@ -110,12 +110,12 @@ inline int Player::Update(int const& frameNumber) noexcept {
 
 #ifndef CC_TARGET_PLATFORM
 
-inline void Player::ResetTimeoutFrameNumber() noexcept {
+inline void PKG::CatchFish::Player::ResetTimeoutFrameNumber() noexcept {
 	timeoutFrameNumber = scene->frameNumber + 60 * 20;		// todo: 从配置拿时长
 }
 
 template<typename ...Args>
-inline int Player::Kick(Args const& ... reason) noexcept {
+inline int PKG::CatchFish::Player::Kick(Args const& ... reason) noexcept {
 	xx::CoutTN("Kick player id = ", id, ", reason = ", reason...);
 	recvFires.clear();
 	recvHits.clear();

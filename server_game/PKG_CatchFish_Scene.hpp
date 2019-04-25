@@ -1,5 +1,5 @@
 ﻿#ifdef CC_TARGET_PLATFORM
-inline int Scene::InitCascade(void* const& o) noexcept {
+inline int PKG::CatchFish::Scene::InitCascade(void* const& o) noexcept {
 	// 将 scene 指针刷下去保存在类里面以便于使用
 	// 备份，不做 InitCascade
 	auto borns = std::move(this->borns);
@@ -11,7 +11,7 @@ inline int Scene::InitCascade(void* const& o) noexcept {
 }
 #endif
 
-inline int Scene::Update(int const&) noexcept {
+inline int PKG::CatchFish::Scene::Update() noexcept {
 	++frameNumber;
 
 	// 遍历更新. 倒序扫描, 交换删除. 如果存在内部乱序删除的情况, 则需要 名单机制 或 标记机制 在更新结束之后挨个删掉
@@ -128,7 +128,7 @@ inline int Scene::Update(int const&) noexcept {
 				for (auto&& plr_w : *players) {
 					enterSuccess->players->Add(plr_w.lock());
 				}
-				enterSuccess->scene = shared_from_this();
+				enterSuccess->scene = catchFish->scene;		// todo: 如果是多个服务器实例则需要用 key 定位
 				enterSuccess->self = plr_w;
 				xx::MakeTo(enterSuccess->token, plr->token);
 
@@ -151,14 +151,15 @@ inline int Scene::Update(int const&) noexcept {
 	frameEvents->persionalEvents.reset();
 	frameEnters.Clear();				// 清除发送过的数据
 #endif
+
 	return 0;
 };
 
 
-inline WayFish_s Scene::MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept {
+inline PKG::CatchFish::WayFish_s PKG::CatchFish::Scene::MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept {
 	auto&& fishCfg = cfg->fishs->At(0);//rnd->Next((int)cfg->fishs->len));
 
-	auto&& fish = xx::Make<WayFish>();
+	auto&& fish = xx::Make<PKG::CatchFish::WayFish>();
 	fish->scene = this;
 	fish->id = fishId;	// ++autoIncId;
 	fish->cfgId = fishCfg->id;
@@ -195,7 +196,7 @@ inline WayFish_s Scene::MakeRandomFish(int const& fishId, int64_t const& coin, f
 // 生成一条随机角度的进出口( 主用于体积大于 cfg ways 设定的移动对象 )
 // -45 ~ 45, 135 ~ 225 在这两段角度之间随机一个角度值,  + 180 之后的 45 度范围内再次随机一个角度, 用旋转函数转为两个坐标点. 连为1根直线, 最后找出安全出生框与直线的交点
 // 由于最终计算出两个交点之后, 可以通过交换顺序的方式反向, 故只需要一段角度作为起始角度即可. 简化起见, 直接 135 ~ 225 ( 不考虑开区间误差 )
-inline std::pair<xx::Pos, xx::Pos> Scene::MakeRandomInOutPoint(float const& itemRadius) noexcept {
+inline std::pair<xx::Pos, xx::Pos> PKG::CatchFish::Scene::MakeRandomInOutPoint(float const& itemRadius) noexcept {
 	std::pair<xx::Pos, xx::Pos> rtv;
 	auto&& w = (screenWidth + itemRadius) / 2.0f;
 	auto && h = (screenHeight + itemRadius) / 2.0f;
