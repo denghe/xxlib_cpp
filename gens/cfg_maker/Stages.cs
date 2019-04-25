@@ -25,12 +25,12 @@
             }
             {
                 var m = NewMonitor<PKG.CatchFish.Stages.Monitor_KeepBigFish>(s);
-                m.cfg_bornTicksInterval = 180;
+                m.cfg_bornTicksInterval = 30;
                 m.cfg_coin = 20;
                 m.cfg_scaleFrom = 5;
                 m.cfg_scaleTo = 8;
                 m.cfg_numFishsLimit = 2;                                // 一共 2 只
-                m.cfg_bornDelayFrameNumber = 60;                        // 延迟 1 秒再生
+                m.cfg_bornDelayFrameNumber = 60;                        // 预约 2 秒后再生( 预约时间太短客户端容易掉线 )
             }
         }
         // 大量随机中鱼
