@@ -4,24 +4,44 @@
     {
         // 大量随机小鱼
         {
-            var s = NewStage(cfg, 60 * 10);                             // 持续 10 sec
+            var s = NewStage(cfg, 60 * 10);                             // 关卡持续时长 10 秒
             {
-                var e = NewElement<PKG.CatchFish.Stages.Emitter1>(s);
+                var e = NewElement<PKG.CatchFish.Stages.Emitter_RandomFishs>(s);
                 e.cfg_bornTicksInterval = 2;                            // 1 秒刷 30 只
+                e.cfg_coin = 1;
+                e.cfg_scaleFrom = 1;                                    // 体积在 1 ~ 2 倍之间随机
+                e.cfg_scaleTo = 2;
             }
         }
         // 少量随机小鱼 + 自动补大鱼
         {
-            var s = NewStage(cfg, 60 * 60);                             // 持续 1 分钟
+            var s = NewStage(cfg, 60 * 60);
             {
-                var e = NewElement<PKG.CatchFish.Stages.Emitter1>(s);
-                e.cfg_bornTicksInterval = 20;                           // 1 秒刷 3 只
+                var e = NewElement<PKG.CatchFish.Stages.Emitter_RandomFishs>(s);
+                e.cfg_bornTicksInterval = 20;
+                e.cfg_coin = 1;
+                e.cfg_scaleFrom = 1;
+                e.cfg_scaleTo = 2;
             }
             {
-                var m = NewMonitor<PKG.CatchFish.Stages.Monitor1>(s);
-                m.cfg_bornTicksInterval = 120;                          // 每隔 2 秒 1 只
+                var m = NewMonitor<PKG.CatchFish.Stages.Monitor_KeepBigFish>(s);
+                m.cfg_bornTicksInterval = 180;
+                m.cfg_coin = 20;
+                m.cfg_scaleFrom = 5;
+                m.cfg_scaleTo = 8;
                 m.cfg_numFishsLimit = 2;                                // 一共 2 只
-                m.cfg_bornDelayFrameNumber = 120;                       // 延迟 2 秒再生
+                m.cfg_bornDelayFrameNumber = 60;                        // 延迟 1 秒再生
+            }
+        }
+        // 大量随机中鱼
+        {
+            var s = NewStage(cfg, 60 * 15);
+            {
+                var e = NewElement<PKG.CatchFish.Stages.Emitter_RandomFishs>(s);
+                e.cfg_bornTicksInterval = 4;
+                e.cfg_coin = 5;
+                e.cfg_scaleFrom = 3;
+                e.cfg_scaleTo = 5;
             }
         }
     }

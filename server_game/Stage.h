@@ -1,5 +1,5 @@
-﻿struct Emitter1 : PKG::CatchFish::Stages::Emitter1 {
-	using BaseType = PKG::CatchFish::Stages::Emitter1;
+﻿struct Emitter_RandomFishs : PKG::CatchFish::Stages::Emitter_RandomFishs {
+	using BaseType = PKG::CatchFish::Stages::Emitter_RandomFishs;
 	using BaseType::BaseType;
 
 	// fill by InitCascade
@@ -9,8 +9,8 @@
 	virtual int Update(int const& ticks) noexcept override;
 };
 
-struct Monitor1 : PKG::CatchFish::Stages::Monitor1 {
-	using BaseType = PKG::CatchFish::Stages::Monitor1;
+struct Monitor_KeepBigFish : PKG::CatchFish::Stages::Monitor_KeepBigFish {
+	using BaseType = PKG::CatchFish::Stages::Monitor_KeepBigFish;
 	using BaseType::BaseType;
 
 	// fill by InitCascade

@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'ed6529945419f2fe4a75dd7997cc77cc'
+PKG_PkgGenMd5_Value = '51292d1d42af9be48b3bca85ec94df51'
 
 --[[
 座位列表
@@ -755,11 +755,15 @@ PKG_CatchFish_Fish = {
         ]]
         o.scale = 0 -- Single
         --[[
-        移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayIndex ( 常见于非直线鱼 )
+        移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex
         ]]
         o.way = null -- PKG_CatchFish_Way
         --[[
-        移动轨迹 于 cfg.ways 的下标. 启用优先级低于 way
+        cfg.ways[wayTypeIndex]
+        ]]
+        o.wayTypeIndex = 0 -- Int32
+        --[[
+        cfg.ways[wayTypeIndex][wayIndex]
         ]]
         o.wayIndex = 0 -- Int32
         --[[
@@ -795,6 +799,7 @@ PKG_CatchFish_Fish = {
         o.speedScale = ReadSingle( bb )
         o.scale = ReadSingle( bb )
         o.way = bb:ReadObject()
+        o.wayTypeIndex = ReadInt32( bb )
         o.wayIndex = ReadInt32( bb )
         o.wayPointIndex = ReadInt32( bb )
         o.wayPointDistance = ReadSingle( bb )
@@ -812,6 +817,7 @@ PKG_CatchFish_Fish = {
         WriteSingle( bb, o.speedScale )
         WriteSingle( bb, o.scale )
         bb:WriteObject( o.way )
+        WriteInt32( bb, o.wayTypeIndex )
         WriteInt32( bb, o.wayIndex )
         WriteInt32( bb, o.wayPointIndex )
         WriteSingle( bb, o.wayPointDistance )
@@ -2193,12 +2199,12 @@ BBuffer.Register( PKG_CatchFish_Stages_StageElement )
 --[[
 随机小鱼发射器
 ]]
-PKG_CatchFish_Stages_Emitter1 = {
-    typeName = "PKG_CatchFish_Stages_Emitter1",
+PKG_CatchFish_Stages_Emitter_RandomFishs = {
+    typeName = "PKG_CatchFish_Stages_Emitter_RandomFishs",
     typeId = 76,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFish_Stages_Emitter1
+        o.__proto = PKG_CatchFish_Stages_Emitter_RandomFishs
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -2212,6 +2218,18 @@ PKG_CatchFish_Stages_Emitter1 = {
         ]]
         o.cfg_bornTicksInterval = 0 -- Int32
         --[[
+        配置: 币值
+        ]]
+        o.cfg_coin = 0 -- Int64
+        --[[
+        配置: 体积随机起始范围
+        ]]
+        o.cfg_scaleFrom = 0 -- Single
+        --[[
+        配置: 体积随机结束范围
+        ]]
+        o.cfg_scaleTo = 0 -- Single
+        --[[
         记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
         ]]
         o.bornAvaliableTicks = 0 -- Int32
@@ -2222,27 +2240,35 @@ PKG_CatchFish_Stages_Emitter1 = {
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
         local ReadInt32 = bb.ReadInt32
+        local ReadSingle = bb.ReadSingle
         o.cfg_bornTicksInterval = ReadInt32( bb )
+        o.cfg_coin = bb:ReadInt64()
+        o.cfg_scaleFrom = ReadSingle( bb )
+        o.cfg_scaleTo = ReadSingle( bb )
         o.bornAvaliableTicks = ReadInt32( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
         local WriteInt32 = bb.WriteInt32
+        local WriteSingle = bb.WriteSingle
         WriteInt32( bb, o.cfg_bornTicksInterval )
+        bb:WriteInt64( o.cfg_coin )
+        WriteSingle( bb, o.cfg_scaleFrom )
+        WriteSingle( bb, o.cfg_scaleTo )
         WriteInt32( bb, o.bornAvaliableTicks )
     end
 }
-BBuffer.Register( PKG_CatchFish_Stages_Emitter1 )
+BBuffer.Register( PKG_CatchFish_Stages_Emitter_RandomFishs )
 --[[
 巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发
 ]]
-PKG_CatchFish_Stages_Monitor1 = {
-    typeName = "PKG_CatchFish_Stages_Monitor1",
+PKG_CatchFish_Stages_Monitor_KeepBigFish = {
+    typeName = "PKG_CatchFish_Stages_Monitor_KeepBigFish",
     typeId = 77,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFish_Stages_Monitor1
+        o.__proto = PKG_CatchFish_Stages_Monitor_KeepBigFish
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -2259,7 +2285,7 @@ PKG_CatchFish_Stages_Monitor1 = {
         配置: 预约延迟
         ]]
         o.cfg_bornDelayFrameNumber = 0 -- Int32
-        setmetatable( o, PKG_CatchFish_Stages_Emitter1.Create() )
+        setmetatable( o, PKG_CatchFish_Stages_Emitter_RandomFishs.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
@@ -2277,7 +2303,7 @@ PKG_CatchFish_Stages_Monitor1 = {
         WriteInt32( bb, o.cfg_bornDelayFrameNumber )
     end
 }
-BBuffer.Register( PKG_CatchFish_Stages_Monitor1 )
+BBuffer.Register( PKG_CatchFish_Stages_Monitor_KeepBigFish )
 --[[
 游戏配置主体
 ]]
@@ -2296,9 +2322,9 @@ PKG_CatchFish_Configs_Config = {
 
 
         --[[
-        所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )
+        所有固定轨迹( 工具创建 )
         ]]
-        o.ways = null -- List_PKG_CatchFish_Way_
+        o.fixedWays = null -- List_PKG_CatchFish_Way_
         --[[
         所有鱼的配置信息
         ]]
@@ -2323,27 +2349,35 @@ PKG_CatchFish_Configs_Config = {
         锁定点击范围 ( 增加容错, 不必点的太精确. 点击作用是 枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )
         ]]
         o.aimTouchRadius = 0 -- Single
+        --[[
+        普通鱼最大半径 ( 用于生成鱼线确保鱼出现时刚好位于屏幕外 )
+        ]]
+        o.normalFishMaxRadius = 0 -- Single
         return o
     end,
     FromBBuffer = function( bb, o )
         local ReadObject = bb.ReadObject
-        o.ways = ReadObject( bb )
+        local ReadSingle = bb.ReadSingle
+        o.fixedWays = ReadObject( bb )
         o.fishs = ReadObject( bb )
         o.cannons = ReadObject( bb )
         o.weapons = ReadObject( bb )
         o.stages = ReadObject( bb )
         o.sitPositons = ReadObject( bb )
-        o.aimTouchRadius = bb:ReadSingle()
+        o.aimTouchRadius = ReadSingle( bb )
+        o.normalFishMaxRadius = ReadSingle( bb )
     end,
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
-        WriteObject( bb, o.ways )
+        local WriteSingle = bb.WriteSingle
+        WriteObject( bb, o.fixedWays )
         WriteObject( bb, o.fishs )
         WriteObject( bb, o.cannons )
         WriteObject( bb, o.weapons )
         WriteObject( bb, o.stages )
         WriteObject( bb, o.sitPositons )
-        bb:WriteSingle( o.aimTouchRadius )
+        WriteSingle( bb, o.aimTouchRadius )
+        WriteSingle( bb, o.normalFishMaxRadius )
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_Config )
@@ -2445,10 +2479,6 @@ PKG_CatchFish_Configs_Fish = {
         ]]
         o.minDetectRadius = 0 -- Single
         --[[
-        与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利
-        ]]
-        o.ways = null -- List_PKG_CatchFish_Way_
-        --[[
         移动帧集合 ( 部分鱼可能具有多种移动状态, 硬编码确定下标范围 )
         ]]
         o.moveFrames = null -- List_PKG_CatchFish_Configs_FishSpriteFrame_
@@ -2481,7 +2511,6 @@ PKG_CatchFish_Configs_Fish = {
         o.maxCoin = ReadInt64( bb )
         o.maxDetectRadius = ReadSingle( bb )
         o.minDetectRadius = ReadSingle( bb )
-        o.ways = ReadObject( bb )
         o.moveFrames = ReadObject( bb )
         o.dieFrames = ReadObject( bb )
         o.touchRank = bb:ReadInt32()
@@ -2498,7 +2527,6 @@ PKG_CatchFish_Configs_Fish = {
         WriteInt64( bb, o.maxCoin )
         WriteSingle( bb, o.maxDetectRadius )
         WriteSingle( bb, o.minDetectRadius )
-        WriteObject( bb, o.ways )
         WriteObject( bb, o.moveFrames )
         WriteObject( bb, o.dieFrames )
         bb:WriteInt32( o.touchRank )

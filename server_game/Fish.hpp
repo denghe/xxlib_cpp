@@ -19,7 +19,13 @@ inline int Fish::Update(int const& frameNumber) noexcept {
 	}
 
 	// 定位到轨迹
-	auto&& way = this->way ? this->way : ((cfg->ways && cfg->ways->len) ? cfg->ways->At(wayIndex) : scene->cfg->ways->At(wayIndex));
+	PKG::CatchFish::Way* way = nullptr;
+	if (this->way) {
+		way = &*this->way;
+	}
+	else {
+		way = &*scene->cfg->ways[wayTypeIndex][wayIndex];
+	}
 
 LabKeepMoving:
 	// 试累加鱼当前鱼点移动距离. 如果跨点, 则用多个点的距离来凑够

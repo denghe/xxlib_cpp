@@ -182,10 +182,13 @@ namespace CatchFish
         [Desc("运行时缩放比例( 通常为 1 )")]
         float scale;
 
-        [Desc("移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayIndex ( 常见于非直线鱼 )")]
+        [Desc("移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex")]
         Way way;
 
-        [Desc("移动轨迹 于 cfg.ways 的下标. 启用优先级低于 way")]
+        [Desc("cfg.ways[wayTypeIndex]")]
+        int wayTypeIndex;
+
+        [Desc("cfg.ways[wayTypeIndex][wayIndex]")]
         int wayIndex;
 
         [Desc("当前轨迹点下标")]

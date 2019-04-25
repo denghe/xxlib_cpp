@@ -8,8 +8,8 @@ namespace CatchFish
         [Desc("游戏配置主体")]
         class Config
         {
-            [Desc("所有预生成轨迹( 轨迹创建后先填充到这, 再与具体的鱼 bind, 以达到重用的目的 )")]
-            List<Way> ways;
+            [Desc("所有固定轨迹( 工具创建 )")]
+            List<Way> fixedWays;
 
             [Desc("所有鱼的配置信息")]
             List<Fish> fishs;
@@ -28,6 +28,9 @@ namespace CatchFish
 
             [Desc("锁定点击范围 ( 增加容错, 不必点的太精确. 点击作用是 枚举该范围内出现的鱼, 找出并选取 touchRank 最大值那个 )")]
             float aimTouchRadius;
+
+            [Desc("普通鱼最大半径 ( 用于生成鱼线确保鱼出现时刚好位于屏幕外 )")]
+            float normalFishMaxRadius;
         }
 
         [Desc("配置基类")]
@@ -60,9 +63,6 @@ namespace CatchFish
 
             [Desc("必然命中的最小检测半径( 1 判. <= 0 则直接进行 2 判. 如果 bulletRadius + minDetectRadius > 子弹中心到鱼中心的距离 就认为命中 )")]
             float minDetectRadius;
-
-            [Desc("与该鱼绑定的默认路径集合( 不含鱼阵的路径 ), 为随机路径创造便利")]
-            List<Way> ways;
 
             [Desc("移动帧集合 ( 部分鱼可能具有多种移动状态, 硬编码确定下标范围 )")]
             List<FishSpriteFrame> moveFrames;

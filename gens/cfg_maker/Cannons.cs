@@ -21,12 +21,12 @@ public static class Cannons
             c.quantity = -1;
             c.muzzleLen = 200;
             c.numLimit = 30;
-            c.scale = 0.5f;
+            c.scale = 1.0f;
             c.fireCD = 6;
             c.zOrder = 100;
             c.radius = 6;
             c.maxRadius = 200;
-            c.distance = 720 / 120;  // 2秒钟上下穿越屏幕?
+            c.distance = 720 / 60;  // 1秒钟上下穿越屏幕?
         }
     }
 

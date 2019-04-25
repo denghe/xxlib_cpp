@@ -30,7 +30,7 @@ struct Scene : PKG::CatchFish::Scene, std::enable_shared_from_this<Scene> {
 	std::pair<xx::Pos, xx::Pos> MakeRandomInOutPoint(float const& itemRadius) noexcept;
 
 	// 生成随机鱼
-	std::shared_ptr<Fish> MakeRandomFish(int const& fishId) noexcept;
+	std::shared_ptr<Fish> MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept;
 
 	// 帧逻辑更新
 	virtual int Update(int const& frameNumber = 0) noexcept override;

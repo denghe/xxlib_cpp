@@ -52,7 +52,7 @@ public static class Program
         cfg.fishs = new xx.List<PKG.CatchFish.Configs.Fish>();
         cfg.sitPositons = new xx.List<xx.Pos>();
         cfg.stages = new xx.List<PKG.CatchFish.Stages.Stage>();
-        cfg.ways = new xx.List<PKG.CatchFish.Way>();
+        cfg.fixedWays = new xx.List<PKG.CatchFish.Way>();
         cfg.weapons = new xx.List<PKG.CatchFish.Configs.Weapon>();
 
         // 基于 1280 x 720 的设计尺寸
@@ -61,6 +61,7 @@ public static class Program
         cfg.sitPositons.Add(new xx.Pos { x = 250, y = 335 });
         cfg.sitPositons.Add(new xx.Pos { x = -250, y = 335 });
         cfg.aimTouchRadius = 20;
+        cfg.normalFishMaxRadius = 150;
 
         Fishs.Fill(cfg);
         Cannons.Fill(cfg);

@@ -9,8 +9,8 @@
 	xx::BBuffer::Register<Cannon>(xx::TypeId_v<PKG::CatchFish::Cannon>);
 	xx::BBuffer::Register<Bullet>(xx::TypeId_v<PKG::CatchFish::Bullet>);
 
-	xx::BBuffer::Register<Emitter1>(xx::TypeId_v<PKG::CatchFish::Stages::Emitter1>);
-	xx::BBuffer::Register<Monitor1>(xx::TypeId_v<PKG::CatchFish::Stages::Monitor1>);
+	xx::BBuffer::Register<Emitter_RandomFishs>(xx::TypeId_v<PKG::CatchFish::Stages::Emitter_RandomFishs>);
+	xx::BBuffer::Register<Monitor_KeepBigFish>(xx::TypeId_v<PKG::CatchFish::Stages::Monitor_KeepBigFish>);
 
 	// todo: more
 }

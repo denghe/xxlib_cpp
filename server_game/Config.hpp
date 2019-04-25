@@ -1,9 +1,13 @@
 ﻿int Config::InitCascade(void* const& o) noexcept {
+	// 开始填充 ways
+
+	// 先将 fixed 系列填进去以便于使用. ways[0]
+	ways.Emplace().AddRange(fixedWays->buf, fixedWays->len);
 
 	// 按一定密度遍历组合产生所有对角斜线
-	std::vector<std::pair<xx::Pos, xx::Pos>> ios_100;
-	auto&& w = (ScreenWidth + 100) / 2.0f;			// todo: 100 做到 config. 半径小于 100 的鱼才适用
-	auto && h = (ScreenHeight + 100) / 2.0f;
+	std::vector<std::pair<xx::Pos, xx::Pos>> ios_normal;
+	auto&& w = (ScreenWidth + normalFishMaxRadius) / 2.0f;
+	auto && h = (ScreenHeight + normalFishMaxRadius) / 2.0f;
 	for (int a_ = 0; a_ < 180; a_ += 10) {
 		int a1 = a_;
 		if (a1 < 90) {
@@ -30,19 +34,21 @@
 			else {
 				p2 = p2 * (h / abs.y);
 			}
-			ios_100.push_back({ p1,p2 });
+			ios_normal.push_back({ p1,p2 });
 		}
 	}
 	// 生成后为 180 根
 
-	// 预填充一些随机曲线
-	for (auto&& io : ios_100) {
-		this->ways->Add(MakeCurve({ io.first, io.second }, 0.1f, { 50, 30 }));
+	// 预填充一些随机曲线 ways[1]
+	auto&& curves = ways.Emplace();
+	for (auto&& io : ios_normal) {
+		curves.Add(MakeCurve({ io.first, io.second }, 0.1f, { 50, 30 }));
 	}
 
-	// 预填充一些随机直线
-	for (auto&& io : ios_100) {
-		this->ways->Add(MakeBeeline({ io.first, io.second }));
+	// 预填充一些随机直线 ways[2]
+	auto&& beelines = ways.Emplace();
+	for (auto&& io : ios_normal) {
+		beelines.Add(MakeBeeline({ io.first, io.second }));
 	}
 
 

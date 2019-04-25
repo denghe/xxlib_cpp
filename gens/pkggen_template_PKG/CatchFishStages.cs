@@ -34,17 +34,26 @@ namespace CatchFish
         }
 
         [Desc("随机小鱼发射器")]
-        class Emitter1 : StageElement
+        class Emitter_RandomFishs : StageElement
         {
             [Desc("配置: 两条鱼生成帧间隔")]
             int cfg_bornTicksInterval;
+
+            [Desc("配置: 币值")]
+            long cfg_coin;
+
+            [Desc("配置: 体积随机起始范围")]
+            float cfg_scaleFrom;
+
+            [Desc("配置: 体积随机结束范围")]
+            float cfg_scaleTo;
 
             [Desc("记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )")]
             int bornAvaliableTicks;
         }
 
         [Desc("巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发")]
-        class Monitor1 : Emitter1
+        class Monitor_KeepBigFish : Emitter_RandomFishs
         {
             [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
             int cfg_numFishsLimit;

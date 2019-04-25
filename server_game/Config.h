@@ -2,6 +2,9 @@
 	using BaseType = PKG::CatchFish::Configs::Config;
 	using BaseType::BaseType;
 
+	// 配置初始化时批量生成的大量随机路径
+	xx::List<xx::List<PKG::CatchFish::Way_s>> ways;
+
 	// 缓存关卡序列化后的数据
 	xx::List<xx::BBuffer> stageBufs;
 

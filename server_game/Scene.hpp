@@ -155,7 +155,7 @@ inline int Scene::Update(int const&) noexcept {
 };
 
 
-inline std::shared_ptr<Fish> Scene::MakeRandomFish(int const& fishId) noexcept {
+inline std::shared_ptr<Fish> Scene::MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept {
 	auto&& fishCfg = cfg->fishs->At(0);//rnd->Next((int)cfg->fishs->len));
 
 	auto&& fish = xx::Make<Fish>();
@@ -163,16 +163,19 @@ inline std::shared_ptr<Fish> Scene::MakeRandomFish(int const& fishId) noexcept {
 	fish->id = fishId;	// ++autoIncId;
 	fish->cfgId = fishCfg->id;
 	fish->cfg = &*fishCfg;
-	//if (fishCfg->minCoin < fishCfg->maxCoin) {
-	//	fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
-	//}
-	//else {
-	//	fish->coin = fishCfg->minCoin;
-	//}
-	fish->coin = 1;
+	if (coin) {
+		fish->coin = coin;
+	}
+	else {
+		if (fishCfg->minCoin < fishCfg->maxCoin) {
+			fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
+		}
+		else {
+			fish->coin = fishCfg->minCoin;
+		}
+	}
+	fish->scale = (float)rnd->NextDouble(scaleFrom, scaleTo);
 	fish->speedScale = 1 + (float)rnd->NextDouble() * 2;
-	fish->scale = 1 + (float)rnd->NextDouble() * 1;
-	fish->wayIndex = 0;
 	fish->wayPointIndex = 0;
 	fish->wayPointDistance = 0;
 	fish->spriteFrameIndex = 0;
@@ -180,9 +183,10 @@ inline std::shared_ptr<Fish> Scene::MakeRandomFish(int const& fishId) noexcept {
 	fish->reverse = false;
 
 	//fish->way = MakeBeeline(MakeRandomInOutPoint(fishCfg->maxDetectRadius * fishCfg->scale));
-	fish->wayIndex = rnd->Next((int)cfg->ways->len);
+	fish->wayTypeIndex = 1 + rnd->Next(2);										// 1: 曲线, 2: 直线
+	fish->wayIndex = rnd->Next((int)cfg->ways[fish->wayTypeIndex].len);			// 下标
 
-	auto&& p = cfg->ways->At(fish->wayIndex)->points->At(fish->wayPointIndex);
+	auto&& p = cfg->ways[fish->wayTypeIndex][fish->wayIndex]->points->At(fish->wayPointIndex);
 	fish->pos = p.pos;
 	fish->angle = p.angle;
 	return fish;
