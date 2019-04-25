@@ -62,21 +62,31 @@ namespace CatchFish
             int cfg_bornDelayFrameNumber;
         }
 
+        [Desc("从屏幕中间圆环出现的小鱼阵发射器")]
+        class Emitter_RingFishs : StageElement
+        {
+            [Desc("配置: 每波鱼只数")]
+            int cfg_numFishsPerBatch;
 
+            [Desc("配置: 两波鱼生成帧间隔")]
+            int cfg_bornTicksInterval;
 
+            [Desc("配置: 每只鱼币值")]
+            long cfg_coin;
 
-        //[Desc("服务器本地脚本( 关卡元素 )")]
-        //class Script : Timer
-        //{
-        //    [Desc("stackless 行号, 也可视作 state id")]
-        //    int lineNumber;
-        //}
+            [Desc("配置: 每只鱼体积")]
+            float cfg_scale;
 
-        // todo: Emitter? Effect? 
+            [Desc("配置: 每只鱼移动速度( 帧跨越像素距离 )")]
+            float cfg_speed;
+
+            [Desc("记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )")]
+            int bornAvaliableTicks;
+        }
+
         //[Desc("特效基类 ( 声音，画面等元素。派生类进一步具备具体信息 )")]
         //class Effect : Timer
         //{
         //}
-
     }
 }

@@ -70,6 +70,8 @@ interface ITypeIdMappings
 
     List<CatchFish.WayPoint> _36 { get; }
 
+    CatchFish.WayFish _80 { get; }
+
     CatchFish.Events.Enter _37 { get; }
 
     CatchFish.Events.Leave _38 { get; }
@@ -113,6 +115,8 @@ interface ITypeIdMappings
     CatchFish.Stages.Emitter_RandomFishs _76 { get; }
 
     CatchFish.Stages.Monitor_KeepBigFish _77 { get; }
+
+    CatchFish.Stages.Emitter_RingFishs _78 { get; }
 
     CatchFish.Configs.Config _57 { get; }
 

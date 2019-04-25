@@ -72,7 +72,7 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 
 		// 自动射击。直接在屏幕上随机一个坐标来用
 		if (::dialer->autoFire) {
-			tpos = { ::dialer->rnd.Next(ScreenWidth) - ScreenCenter.x, ::dialer->rnd.Next(ScreenHeight) - ScreenCenter.y };
+			tpos = { ::dialer->rnd.Next(screenWidth) - screenCenter.x, ::dialer->rnd.Next(screenHeight) - screenCenter.y };
 			fire = true;
 		}
 		else {
@@ -81,7 +81,7 @@ inline int Cannon::Update(int const& frameNumber) noexcept {
 				// 世界坐标
 				auto tloc = cc_touchs[0]->getLocationInView();
 				// 转为游戏坐标系
-				tpos = { tloc.x - ScreenCenter.x, ScreenCenter.y - tloc.y };
+				tpos = { tloc.x - screenCenter.x, screenCenter.y - tloc.y };
 				fire = true;
 			}
 		}

@@ -8,7 +8,7 @@ namespace CatchFish
         [Desc("游戏配置主体")]
         class Config
         {
-            [Desc("所有固定轨迹( 工具创建 )")]
+            [Desc("所有固定路径( 工具创建 )")]
             List<Way> fixedWays;
 
             [Desc("所有鱼的配置信息")]

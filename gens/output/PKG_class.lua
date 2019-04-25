@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'd5b3adad09f70e78acf391c747c2327b'
+PKG_PkgGenMd5_Value = '9af9b3d28cc753f0f3bf5abca25dabf3'
 
 --[[
 座位列表
@@ -722,7 +722,7 @@ List_PKG_CatchFish_Fish_ = {
 }
 BBuffer.Register( List_PKG_CatchFish_Fish_ )
 --[[
-鱼基类 ( 下列属性适合大多数鱼, 不一定适合部分 boss )
+鱼基类( 支持每帧 pos += moveInc 简单移动 )
 ]]
 PKG_CatchFish_Fish = {
     typeName = "PKG_CatchFish_Fish",
@@ -755,37 +755,9 @@ PKG_CatchFish_Fish = {
         ]]
         o.scale = 0 -- Single
         --[[
-        移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex
-        ]]
-        o.way = null -- PKG_CatchFish_Way
-        --[[
-        cfg.ways[wayTypeIndex]
-        ]]
-        o.wayTypeIndex = 0 -- Int32
-        --[[
-        cfg.ways[wayTypeIndex][wayIndex]
-        ]]
-        o.wayIndex = 0 -- Int32
-        --[[
-        当前轨迹点下标
-        ]]
-        o.wayPointIndex = 0 -- Int32
-        --[[
-        当前轨迹点上的已前进距离
-        ]]
-        o.wayPointDistance = 0 -- Single
-        --[[
         当前帧下标( 每帧循环累加 )
         ]]
         o.spriteFrameIndex = 0 -- Int32
-        --[[
-        帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
-        ]]
-        o.frameRatio = 0 -- Int32
-        --[[
-        是否为在鱼线上倒着移动( 默认否 )
-        ]]
-        o.reverse = false -- Boolean
         setmetatable( o, PKG_CatchFish_MoveItem.Create() )
         return o
     end,
@@ -798,14 +770,7 @@ PKG_CatchFish_Fish = {
         o.coin = bb:ReadInt64()
         o.speedScale = ReadSingle( bb )
         o.scale = ReadSingle( bb )
-        o.way = bb:ReadObject()
-        o.wayTypeIndex = ReadInt32( bb )
-        o.wayIndex = ReadInt32( bb )
-        o.wayPointIndex = ReadInt32( bb )
-        o.wayPointDistance = ReadSingle( bb )
         o.spriteFrameIndex = ReadInt32( bb )
-        o.frameRatio = ReadInt32( bb )
-        o.reverse = bb:ReadBoolean()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -816,14 +781,7 @@ PKG_CatchFish_Fish = {
         bb:WriteInt64( o.coin )
         WriteSingle( bb, o.speedScale )
         WriteSingle( bb, o.scale )
-        bb:WriteObject( o.way )
-        WriteInt32( bb, o.wayTypeIndex )
-        WriteInt32( bb, o.wayIndex )
-        WriteInt32( bb, o.wayPointIndex )
-        WriteSingle( bb, o.wayPointDistance )
         WriteInt32( bb, o.spriteFrameIndex )
-        WriteInt32( bb, o.frameRatio )
-        bb:WriteBoolean( o.reverse )
     end
 }
 BBuffer.Register( PKG_CatchFish_Fish )
@@ -1305,10 +1263,6 @@ PKG_CatchFish_Bullet = {
 
 
         --[[
-        每帧的直线移动坐标增量( 60fps )
-        ]]
-        o.moveInc = null -- _xx_Pos
-        --[[
         金币 / 倍率( 记录炮台开火时的 Bet 值 )
         ]]
         o.coin = 0 -- Int64
@@ -1318,13 +1272,11 @@ PKG_CatchFish_Bullet = {
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
-        o.moveInc = bb:ReadObject()
         o.coin = bb:ReadInt64()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
-        bb:WriteObject( o.moveInc )
         bb:WriteInt64( o.coin )
     end
 }
@@ -1354,25 +1306,33 @@ PKG_CatchFish_MoveItem = {
         当前角度
         ]]
         o.angle = 0 -- Single
+        --[[
+        每帧的直线移动坐标增量( 不一定用得上 )
+        ]]
+        o.moveInc = null -- _xx_Pos
         setmetatable( o, PKG_CatchFish_Item.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
-        o.pos = bb:ReadObject()
+        local ReadObject = bb.ReadObject
+        o.pos = ReadObject( bb )
         o.angle = bb:ReadSingle()
+        o.moveInc = ReadObject( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
-        bb:WriteObject( o.pos )
+        local WriteObject = bb.WriteObject
+        WriteObject( bb, o.pos )
         bb:WriteSingle( o.angle )
+        WriteObject( bb, o.moveInc )
     end
 }
 BBuffer.Register( PKG_CatchFish_MoveItem )
 --[[
-轨迹. 预约下发安全, 将复制轨迹完整数据
+路径. 预约下发安全, 将复制路径完整数据
 ]]
 PKG_CatchFish_Way = {
     typeName = "PKG_CatchFish_Way",
@@ -1389,7 +1349,7 @@ PKG_CatchFish_Way = {
 
 
         --[[
-        轨迹点集合
+        路点集合
         ]]
         o.points = null -- List_PKG_CatchFish_WayPoint_
         --[[
@@ -1446,6 +1406,80 @@ List_PKG_CatchFish_WayPoint_ = {
     end
 }
 BBuffer.Register( List_PKG_CatchFish_WayPoint_ )
+--[[
+基于路径移动的鱼基类
+]]
+PKG_CatchFish_WayFish = {
+    typeName = "PKG_CatchFish_WayFish",
+    typeId = 80,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_WayFish
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        移动路径. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex
+        ]]
+        o.way = null -- PKG_CatchFish_Way
+        --[[
+        cfg.ways[wayTypeIndex]
+        ]]
+        o.wayTypeIndex = 0 -- Int32
+        --[[
+        cfg.ways[wayTypeIndex][wayIndex]
+        ]]
+        o.wayIndex = 0 -- Int32
+        --[[
+        当前路点下标
+        ]]
+        o.wayPointIndex = 0 -- Int32
+        --[[
+        当前路点上的已前进距离
+        ]]
+        o.wayPointDistance = 0 -- Single
+        --[[
+        是否为在路径上倒着移动( 默认否 )
+        ]]
+        o.reverse = false -- Boolean
+        --[[
+        帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
+        ]]
+        o.frameRatio = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_Fish.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
+        o.way = bb:ReadObject()
+        o.wayTypeIndex = ReadInt32( bb )
+        o.wayIndex = ReadInt32( bb )
+        o.wayPointIndex = ReadInt32( bb )
+        o.wayPointDistance = bb:ReadSingle()
+        o.reverse = bb:ReadBoolean()
+        o.frameRatio = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
+        bb:WriteObject( o.way )
+        WriteInt32( bb, o.wayTypeIndex )
+        WriteInt32( bb, o.wayIndex )
+        WriteInt32( bb, o.wayPointIndex )
+        bb:WriteSingle( o.wayPointDistance )
+        bb:WriteBoolean( o.reverse )
+        WriteInt32( bb, o.frameRatio )
+    end
+}
+BBuffer.Register( PKG_CatchFish_WayFish )
 --[[
 通知: 玩家进入. 大部分字段从 Player 类复制. 添加了部分初始数值, 可还原出玩家类实例.
 ]]
@@ -2305,6 +2339,76 @@ PKG_CatchFish_Stages_Monitor_KeepBigFish = {
 }
 BBuffer.Register( PKG_CatchFish_Stages_Monitor_KeepBigFish )
 --[[
+从屏幕中间圆环出现的小鱼阵发射器
+]]
+PKG_CatchFish_Stages_Emitter_RingFishs = {
+    typeName = "PKG_CatchFish_Stages_Emitter_RingFishs",
+    typeId = 78,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Stages_Emitter_RingFishs
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        配置: 每波鱼只数
+        ]]
+        o.cfg_numFishsPerBatch = 0 -- Int32
+        --[[
+        配置: 两波鱼生成帧间隔
+        ]]
+        o.cfg_bornTicksInterval = 0 -- Int32
+        --[[
+        配置: 每只鱼币值
+        ]]
+        o.cfg_coin = 0 -- Int64
+        --[[
+        配置: 每只鱼体积
+        ]]
+        o.cfg_scale = 0 -- Single
+        --[[
+        配置: 每只鱼移动速度( 帧跨越像素距离 )
+        ]]
+        o.cfg_speed = 0 -- Single
+        --[[
+        记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        ]]
+        o.bornAvaliableTicks = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_Stages_StageElement.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
+        local ReadSingle = bb.ReadSingle
+        o.cfg_numFishsPerBatch = ReadInt32( bb )
+        o.cfg_bornTicksInterval = ReadInt32( bb )
+        o.cfg_coin = bb:ReadInt64()
+        o.cfg_scale = ReadSingle( bb )
+        o.cfg_speed = ReadSingle( bb )
+        o.bornAvaliableTicks = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
+        local WriteSingle = bb.WriteSingle
+        WriteInt32( bb, o.cfg_numFishsPerBatch )
+        WriteInt32( bb, o.cfg_bornTicksInterval )
+        bb:WriteInt64( o.cfg_coin )
+        WriteSingle( bb, o.cfg_scale )
+        WriteSingle( bb, o.cfg_speed )
+        WriteInt32( bb, o.bornAvaliableTicks )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Stages_Emitter_RingFishs )
+--[[
 游戏配置主体
 ]]
 PKG_CatchFish_Configs_Config = {
@@ -2322,7 +2426,7 @@ PKG_CatchFish_Configs_Config = {
 
 
         --[[
-        所有固定轨迹( 工具创建 )
+        所有固定路径( 工具创建 )
         ]]
         o.fixedWays = null -- List_PKG_CatchFish_Way_
         --[[

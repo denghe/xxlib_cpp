@@ -22,3 +22,14 @@ struct Monitor_KeepBigFish : PKG::CatchFish::Stages::Monitor_KeepBigFish {
 	virtual int InitCascade(void* const& o) noexcept override;
 	virtual int Update(int const& ticks) noexcept override;
 };
+
+struct Emitter_RingFishs : PKG::CatchFish::Stages::Emitter_RingFishs {
+	using BaseType = PKG::CatchFish::Stages::Emitter_RingFishs;
+	using BaseType::BaseType;
+
+	// fill by InitCascade
+	Scene* scene = nullptr;
+
+	virtual int InitCascade(void* const& o) noexcept override;
+	virtual int Update(int const& ticks) noexcept override;
+};

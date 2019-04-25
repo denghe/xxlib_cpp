@@ -3,14 +3,14 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 {
 	{
 		labelServer = cocos2d::Label::createWithSystemFont("", "", 24);
-		labelServer->setPosition(10 - ScreenCenter.x, 240 - ScreenCenter.y);
+		labelServer->setPosition(10 - screenCenter.x, 240 - screenCenter.y);
 		labelServer->setAnchorPoint({ 0, 0.5 });
 		labelServer->setGlobalZOrder(1000);
 		cc_scene->addChild(labelServer);
 	}
 	{
 		btnRedial = cocos2d::Label::createWithSystemFont("Redial", "", 32);
-		btnRedial->setPosition(10 - ScreenCenter.x, 90 - ScreenCenter.y);
+		btnRedial->setPosition(10 - screenCenter.x, 90 - screenCenter.y);
 		btnRedial->setAnchorPoint({ 0, 0.5 });
 		btnRedial->setGlobalZOrder(1000);
 		cc_scene->addChild(btnRedial);
@@ -33,7 +33,7 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 	}
 	{
 		btnAutoFire = cocos2d::Label::createWithSystemFont("", "", 32);
-		btnAutoFire->setPosition(10 - ScreenCenter.x, 180 - ScreenCenter.y);
+		btnAutoFire->setPosition(10 - screenCenter.x, 180 - screenCenter.y);
 		btnAutoFire->setAnchorPoint({ 0, 0.5 });
 		btnAutoFire->setGlobalZOrder(1000);
 		cc_scene->addChild(btnAutoFire);
@@ -56,21 +56,21 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 	}
 	{
 		labelNumDialTimes = cocos2d::Label::createWithSystemFont("", "", 32);
-		labelNumDialTimes->setPosition(10 - ScreenCenter.x, 150 - ScreenCenter.y);
+		labelNumDialTimes->setPosition(10 - screenCenter.x, 150 - screenCenter.y);
 		labelNumDialTimes->setAnchorPoint({ 0, 0.5 });
 		labelNumDialTimes->setGlobalZOrder(1000);
 		cc_scene->addChild(labelNumDialTimes);
 	}
 	{
 		labelNumFishs = cocos2d::Label::createWithSystemFont("", "", 32);
-		labelNumFishs->setPosition(10 - ScreenCenter.x, 120 - ScreenCenter.y);
+		labelNumFishs->setPosition(10 - screenCenter.x, 120 - screenCenter.y);
 		labelNumFishs->setAnchorPoint({ 0, 0.5 });
 		labelNumFishs->setGlobalZOrder(1000);
 		cc_scene->addChild(labelNumFishs);
 	}
 	{
 		labelPing = cocos2d::Label::createWithSystemFont("", "", 32);
-		labelPing->setPosition(10 - ScreenCenter.x, 210 - ScreenCenter.y);
+		labelPing->setPosition(10 - screenCenter.x, 210 - screenCenter.y);
 		labelPing->setAnchorPoint({ 0, 0.5 });
 		labelPing->setGlobalZOrder(1000);
 		cc_scene->addChild(labelPing);

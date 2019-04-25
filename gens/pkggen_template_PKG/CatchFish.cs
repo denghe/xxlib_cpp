@@ -155,19 +155,19 @@ namespace CatchFish
 
         [Desc("当前角度")]
         float angle;
+
+        [Desc("每帧的直线移动坐标增量( 不一定用得上 )")]
+        xx.Pos moveInc;
     }
 
     [Desc("子弹基类")]
     class Bullet : MoveItem
     {
-        [Desc("每帧的直线移动坐标增量( 60fps )")]
-        xx.Pos moveInc;
-
         [Desc("金币 / 倍率( 记录炮台开火时的 Bet 值 )")]
         long coin;
     }
 
-    [Desc("鱼基类 ( 下列属性适合大多数鱼, 不一定适合部分 boss )")]
+    [Desc("鱼基类( 支持每帧 pos += moveInc 简单移动 )")]
     class Fish : MoveItem
     {
         [Desc("配置id")]
@@ -182,29 +182,8 @@ namespace CatchFish
         [Desc("运行时缩放比例( 通常为 1 )")]
         float scale;
 
-        [Desc("移动轨迹. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex")]
-        Way way;
-
-        [Desc("cfg.ways[wayTypeIndex]")]
-        int wayTypeIndex;
-
-        [Desc("cfg.ways[wayTypeIndex][wayIndex]")]
-        int wayIndex;
-
-        [Desc("当前轨迹点下标")]
-        int wayPointIndex;
-
-        [Desc("当前轨迹点上的已前进距离")]
-        float wayPointDistance;
-
         [Desc("当前帧下标( 每帧循环累加 )")]
         int spriteFrameIndex;
-
-        [Desc("帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )")]
-        int frameRatio;
-
-        [Desc("是否为在鱼线上倒着移动( 默认否 )")]
-        bool reverse;
     }
 
     [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
@@ -227,7 +206,7 @@ namespace CatchFish
         Fish fish;
     }
 
-    [Desc("轨迹点")]
+    [Desc("路点")]
     struct WayPoint
     {
         [Desc("坐标")]
@@ -240,10 +219,10 @@ namespace CatchFish
         float distance;
     }
 
-    [Desc("轨迹. 预约下发安全, 将复制轨迹完整数据")]
+    [Desc("路径. 预约下发安全, 将复制路径完整数据")]
     class Way
     {
-        [Desc("轨迹点集合")]
+        [Desc("路点集合")]
         List<WayPoint> points;
 
         [Desc("总距离长度( sum( points[all].distance ). 如果非循环线, 不包含最后一个点的距离值. )")]
@@ -251,5 +230,30 @@ namespace CatchFish
 
         [Desc("是否循环( 即移动到最后一个点之后又到第 1 个点, 永远走不完")]
         bool loop;
+    }
+
+    [Desc("基于路径移动的鱼基类")]
+    class WayFish : Fish
+    {
+        [Desc("移动路径. 动态生成, 不引用自 cfg. 同步时被复制. 如果该值为空, 则启用 wayTypeIndex / wayIndex")]
+        Way way;
+
+        [Desc("cfg.ways[wayTypeIndex]")]
+        int wayTypeIndex;
+
+        [Desc("cfg.ways[wayTypeIndex][wayIndex]")]
+        int wayIndex;
+
+        [Desc("当前路点下标")]
+        int wayPointIndex;
+
+        [Desc("当前路点上的已前进距离")]
+        float wayPointDistance;
+
+        [Desc("是否为在路径上倒着移动( 默认否 )")]
+        bool reverse;
+
+        [Desc("帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )")]
+        int frameRatio;
     }
 }

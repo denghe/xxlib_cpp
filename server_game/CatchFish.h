@@ -18,10 +18,10 @@
 // 是否显示物理碰撞检测线
 #define DRAW_PHYSICS_POLYGON 0
 
-static constexpr int ScreenWidth = 1280;
-static constexpr int ScreenHeight = 720;
-static constexpr float ScreenWidthRatio = float(ScreenWidth) / float(ScreenWidth + ScreenHeight);
-static constexpr xx::Pos ScreenCenter = xx::Pos{ ScreenWidth / 2, ScreenHeight / 2 };
+static constexpr int screenWidth = 1280;
+static constexpr int screenHeight = 720;
+static constexpr float screenWidthRatio = float(screenWidth) / float(screenWidth + screenHeight);
+static constexpr xx::Pos screenCenter = xx::Pos{ screenWidth / 2, screenHeight / 2 };
 
 #ifdef CC_TARGET_PLATFORM
 

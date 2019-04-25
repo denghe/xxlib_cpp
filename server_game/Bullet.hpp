@@ -15,8 +15,8 @@ inline int Bullet::Move() noexcept {
 	pos += moveInc;
 
 	// 飞出屏幕就消失
-	auto&& w = ::ScreenCenter.x + cfg->maxRadius;
-	auto&& h = ::ScreenCenter.y + cfg->maxRadius;
+	auto&& w = ::screenCenter.x + cfg->maxRadius;
+	auto&& h = ::screenCenter.y + cfg->maxRadius;
 	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
 	return 0;
 }
@@ -29,7 +29,7 @@ inline int Bullet::Update(int const& frameNumber) noexcept {
 	if (fs.len) {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
-			if (xx::As<Fish>(fs[i])->HitCheck(this)) {
+			if (xx::As<IHitCheck>(fs[i])->HitCheck(this)) {
 				// 发命中检查包
 				auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
 				o->bulletId = id;
