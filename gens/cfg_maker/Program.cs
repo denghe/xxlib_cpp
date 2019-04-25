@@ -62,6 +62,7 @@ public static class Program
         cfg.sitPositons.Add(new xx.Pos { x = -250, y = 335 });
         cfg.aimTouchRadius = 20;
         cfg.normalFishMaxRadius = 150;
+        cfg.enableBulletFastForward = false;
 
         Fishs.Fill(cfg);
         Cannons.Fill(cfg);

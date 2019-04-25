@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "51292d1d42af9be48b3bca85ec94df51"; 
+        public const string value = "d5b3adad09f70e78acf391c747c2327b"; 
     }
 
 namespace CatchFish
@@ -2874,6 +2874,10 @@ namespace CatchFish.Configs
         /// 普通鱼最大半径 ( 用于生成鱼线确保鱼出现时刚好位于屏幕外 )
         /// </summary>
         public float normalFishMaxRadius;
+        /// <summary>
+        /// 显示非当前玩家子弹时是否启用追帧快进令其同步( 会导致高延迟玩家发射的子弹看上去离炮口有点远 )
+        /// </summary>
+        public bool enableBulletFastForward = false;
 
         public override ushort GetPackageId()
         {
@@ -2890,6 +2894,7 @@ namespace CatchFish.Configs
             bb.Write(this.sitPositons);
             bb.Write(this.aimTouchRadius);
             bb.Write(this.normalFishMaxRadius);
+            bb.Write(this.enableBulletFastForward);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -2908,6 +2913,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.sitPositons);
             bb.Read(ref this.aimTouchRadius);
             bb.Read(ref this.normalFishMaxRadius);
+            bb.Read(ref this.enableBulletFastForward);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2934,6 +2940,7 @@ namespace CatchFish.Configs
             s.Append(", \"sitPositons\":" + (sitPositons == null ? "nil" : sitPositons.ToString()));
             s.Append(", \"aimTouchRadius\":" + aimTouchRadius.ToString());
             s.Append(", \"normalFishMaxRadius\":" + normalFishMaxRadius.ToString());
+            s.Append(", \"enableBulletFastForward\":" + enableBulletFastForward.ToString());
         }
         public override string ToString()
         {

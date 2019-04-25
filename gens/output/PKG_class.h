@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "51292d1d42af9be48b3bca85ec94df51";
+		inline static const std::string value = "d5b3adad09f70e78acf391c747c2327b";
     };
 
 namespace Generic {
@@ -671,6 +671,8 @@ namespace CatchFish::Configs {
         float aimTouchRadius = 0;
         // 普通鱼最大半径 ( 用于生成鱼线确保鱼出现时刚好位于屏幕外 )
         float normalFishMaxRadius = 0;
+        // 显示非当前玩家子弹时是否启用追帧快进令其同步( 会导致高延迟玩家发射的子弹看上去离炮口有点远 )
+        bool enableBulletFastForward = false;
 
         typedef Config ThisType;
         typedef xx::Object BaseType;
@@ -3129,6 +3131,7 @@ namespace CatchFish::Configs {
         bb.Write(this->sitPositons);
         bb.Write(this->aimTouchRadius);
         bb.Write(this->normalFishMaxRadius);
+        bb.Write(this->enableBulletFastForward);
     }
     inline int Config::FromBBuffer(xx::BBuffer& bb) noexcept {
         bb.readLengthLimit = 0;
@@ -3145,6 +3148,7 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->sitPositons)) return r;
         if (int r = bb.Read(this->aimTouchRadius)) return r;
         if (int r = bb.Read(this->normalFishMaxRadius)) return r;
+        if (int r = bb.Read(this->enableBulletFastForward)) return r;
         return 0;
     }
     inline int Config::InitCascade(void* const& o) noexcept {
@@ -3192,6 +3196,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"sitPositons\":", this->sitPositons);
         xx::Append(s, ", \"aimTouchRadius\":", this->aimTouchRadius);
         xx::Append(s, ", \"normalFishMaxRadius\":", this->normalFishMaxRadius);
+        xx::Append(s, ", \"enableBulletFastForward\":", this->enableBulletFastForward);
     }
     inline uint16_t Item::GetTypeId() const noexcept {
         return 67;

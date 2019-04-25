@@ -238,7 +238,7 @@ inline int Cannon::Fire(int const& frameNumber) noexcept {
 		::dialer->peer->SendPush(pkg);
 		::dialer->peer->Flush();
 	}
-	else {
+	else if (scene->cfg->enableBulletFastForward) {
 		// 其他玩家: 子弹追帧并绘制( 追或不追, 这是个选项 )
 		auto&& times = scene->frameNumber - frameNumber;
 		assert(times >= 0);

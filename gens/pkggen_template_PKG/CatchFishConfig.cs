@@ -31,6 +31,9 @@ namespace CatchFish
 
             [Desc("普通鱼最大半径 ( 用于生成鱼线确保鱼出现时刚好位于屏幕外 )")]
             float normalFishMaxRadius;
+
+            [Desc("显示非当前玩家子弹时是否启用追帧快进令其同步( 会导致高延迟玩家发射的子弹看上去离炮口有点远 )")]
+            bool enableBulletFastForward;
         }
 
         [Desc("配置基类")]

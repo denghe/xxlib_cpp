@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '51292d1d42af9be48b3bca85ec94df51'
+PKG_PkgGenMd5_Value = 'd5b3adad09f70e78acf391c747c2327b'
 
 --[[
 座位列表
@@ -2353,6 +2353,10 @@ PKG_CatchFish_Configs_Config = {
         普通鱼最大半径 ( 用于生成鱼线确保鱼出现时刚好位于屏幕外 )
         ]]
         o.normalFishMaxRadius = 0 -- Single
+        --[[
+        显示非当前玩家子弹时是否启用追帧快进令其同步( 会导致高延迟玩家发射的子弹看上去离炮口有点远 )
+        ]]
+        o.enableBulletFastForward = false -- Boolean
         return o
     end,
     FromBBuffer = function( bb, o )
@@ -2366,6 +2370,7 @@ PKG_CatchFish_Configs_Config = {
         o.sitPositons = ReadObject( bb )
         o.aimTouchRadius = ReadSingle( bb )
         o.normalFishMaxRadius = ReadSingle( bb )
+        o.enableBulletFastForward = bb:ReadBoolean()
     end,
     ToBBuffer = function( bb, o )
         local WriteObject = bb.WriteObject
@@ -2378,6 +2383,7 @@ PKG_CatchFish_Configs_Config = {
         WriteObject( bb, o.sitPositons )
         WriteSingle( bb, o.aimTouchRadius )
         WriteSingle( bb, o.normalFishMaxRadius )
+        bb:WriteBoolean( o.enableBulletFastForward )
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_Config )
