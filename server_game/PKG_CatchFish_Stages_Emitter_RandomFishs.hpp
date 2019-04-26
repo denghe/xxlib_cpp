@@ -1,6 +1,6 @@
 ﻿inline int PKG::CatchFish::Stages::Emitter_RandomFishs::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
-	return this->BaseType::InitCascade(o);
+	return InitCascadeCore(o);
 }
 
 inline int PKG::CatchFish::Stages::Emitter_RandomFishs::Update(int const& ticks) noexcept {

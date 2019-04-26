@@ -1,4 +1,4 @@
-inline Panel_Player::Panel_Player(Player* player)
+inline Panel_Player::Panel_Player(PKG::CatchFish::Player* player)
 	: player(player) {
 	{
 		labelCoin = cocos2d::Label::createWithSystemFont("", "", 32);

@@ -3,7 +3,7 @@ using TemplateLibrary;
 
 namespace CatchFish
 {
-    [AttachInclude, Desc("场景")]
+    [AttachInclude, CustomInitCascade, Desc("场景")]
     class Scene
     {
         [Desc("游戏id")]
@@ -90,7 +90,7 @@ namespace CatchFish
         LeftTop,
     }
 
-    [AttachInclude, Desc("玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )")]
+    [AttachInclude, CustomInitCascade, Desc("玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )")]
     class Player : Item
     {
         [Desc("昵称 用于客户端显示 ( 填充自 db )")]
@@ -129,7 +129,7 @@ namespace CatchFish
     }
 
 
-    [AttachInclude, Desc("炮台基类. 下列属性适合大多数炮")]
+    [AttachInclude, CustomInitCascade, Desc("炮台基类. 下列属性适合大多数炮")]
     class Cannon : Item
     {
         [Desc("配置id")]
@@ -158,14 +158,14 @@ namespace CatchFish
         xx.Pos moveInc;
     }
 
-    [AttachInclude, Desc("子弹基类")]
+    [AttachInclude, CustomInitCascade, Desc("子弹基类")]
     class Bullet : MoveItem
     {
         [Desc("金币 / 倍率( 记录炮台开火时的 Bet 值 )")]
         long coin;
     }
 
-    [AttachInclude, Desc("鱼基类( 支持每帧 pos += moveInc 简单移动 )")]
+    [AttachInclude, CustomInitCascade, Desc("鱼基类( 支持每帧 pos += moveInc 简单移动 )")]
     class Fish : MoveItem
     {
         [Desc("配置id")]

@@ -1,4 +1,5 @@
-﻿inline int PKG::CatchFish::Cannon::InitCascade(void* const& o) noexcept {
+﻿#ifdef CC_TARGET_PLATFORM
+inline int PKG::CatchFish::Cannon::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	assert(player);
 	assert(!cfg);
@@ -13,12 +14,11 @@
 		b->cfg = cfg;
 	}
 
-	if (int r = this->BaseType::InitCascade(o)) return r;
-#ifdef CC_TARGET_PLATFORM
+	if (int r = InitCascadeCore(o)) return r;
 	DrawInit();
-#endif
 	return 0;
 }
+#endif
 
 #ifndef CC_TARGET_PLATFORM
 inline void PKG::CatchFish::Cannon::MakeRefundEvent(int64_t const& coin, bool isPersional) noexcept {
@@ -282,7 +282,7 @@ inline void PKG::CatchFish::Cannon::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->setGlobalZOrder(cfg->zOrder);
-	auto&& sf = xx::As<SpriteFrame>(cfg->frames->At(0))->spriteFrame;
+	auto&& sf = cfg->frames->At(0)->spriteFrame;
 	body->setSpriteFrame(sf);
 	body->setPosition(pos);
 	body->setScale(cfg->scale);

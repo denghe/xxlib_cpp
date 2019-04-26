@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "f057b0419958550aa12c6f40ebef30c0";
+		inline static const std::string value = "220dfe171553d64ea89325960ac23607";
     };
 
 namespace Generic {
@@ -314,6 +314,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish {
@@ -335,6 +336,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
 #include "PKG_CatchFish_Item.h"
     };
     // 子弹 & 鱼 & 武器 的基类
@@ -357,6 +359,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Configs {
@@ -382,6 +385,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Stages {
@@ -401,6 +405,7 @@ namespace CatchFish::Stages {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
 #include "PKG_CatchFish_Stages_StageElement.h"
     };
     // 随机小鱼发射器
@@ -427,6 +432,7 @@ namespace CatchFish::Stages {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Stages_Emitter_RandomFishs.h"
     };
 }
@@ -455,6 +461,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Fish.h"
     };
 }
@@ -473,6 +480,7 @@ namespace Generic {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Events {
@@ -492,6 +500,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 转发: 玩家开火解除锁定
     struct CloseAutoLock : PKG::CatchFish::Events::Event {
@@ -507,6 +516,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 转发: 玩家自动开火
     struct OpenAutoFire : PKG::CatchFish::Events::Event {
@@ -522,6 +532,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 转发: 玩家解除自动开火
     struct CloseAutoFire : PKG::CatchFish::Events::Event {
@@ -537,6 +548,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 转发: 发子弹( 单次 ). 非特殊子弹, 只可能是 cannons[0] 原始炮台发射
     struct Fire : PKG::CatchFish::Events::Event {
@@ -562,6 +574,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 转发: 切换炮台
     struct CannonSwitch : PKG::CatchFish::Events::Event {
@@ -579,6 +592,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 转发: 切换炮台倍率
     struct CannonCoinChange : PKG::CatchFish::Events::Event {
@@ -596,6 +610,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Stages {
@@ -623,6 +638,7 @@ namespace CatchFish::Stages {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Events {
@@ -640,6 +656,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Stages {
@@ -661,6 +678,7 @@ namespace CatchFish::Stages {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Stages_Monitor_KeepBigFish.h"
     };
     // 从屏幕中间圆环出现的小鱼阵发射器
@@ -689,6 +707,7 @@ namespace CatchFish::Stages {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Stages_Emitter_RingFishs.h"
     };
 }
@@ -725,6 +744,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Configs_Config.h"
     };
     // 鱼配置基类 ( 派生类中不再包含 sprite frame 相关, 以便于资源加载管理扫描 )
@@ -759,6 +779,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 炮台 & 子弹配置基类
     struct Cannon : PKG::CatchFish::Configs::Item {
@@ -790,6 +811,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 打爆部分特殊鱼出现的特殊武器配置基类
     struct Weapon : PKG::CatchFish::Configs::Item {
@@ -811,6 +833,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 精灵帧
     struct SpriteFrame : xx::Object {
@@ -830,6 +853,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Configs_SpriteFrame.h"
     };
 }
@@ -850,6 +874,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 预约: 出鱼( 需判定 beginFrameNumber ), 放入 scene.borns 队列. 用不到 playerId
     struct PushFish : PKG::CatchFish::Events::Event {
@@ -867,6 +892,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 通知: 退钱( 常见于子弹打空 )
     struct Refund : PKG::CatchFish::Events::Event {
@@ -884,6 +910,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 通知: 鱼被打死
     struct FishDead : PKG::CatchFish::Events::Event {
@@ -907,6 +934,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace Generic {
@@ -926,6 +954,7 @@ namespace Generic {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 心跳保持兼延迟测试 -- 请求
     struct Ping : xx::Object {
@@ -942,6 +971,7 @@ namespace Generic {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 心跳保持兼延迟测试 -- 回应
     struct Pong : xx::Object {
@@ -958,6 +988,7 @@ namespace Generic {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish_Client {
@@ -983,6 +1014,7 @@ namespace CatchFish_Client {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 帧事件同步包
     struct FrameEvents : xx::Object {
@@ -1004,6 +1036,7 @@ namespace CatchFish_Client {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace Client_CatchFish {
@@ -1023,6 +1056,7 @@ namespace Client_CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 开火
     struct Fire : xx::Object {
@@ -1042,6 +1076,7 @@ namespace Client_CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 碰撞检测
     struct Hit : xx::Object {
@@ -1060,6 +1095,7 @@ namespace Client_CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish {
@@ -1111,6 +1147,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Scene.h"
     };
 }
@@ -1131,6 +1168,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish {
@@ -1170,6 +1208,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Player.h"
     };
     // 子弹基类
@@ -1188,6 +1227,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Bullet.h"
     };
     // 武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )
@@ -1208,6 +1248,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 预约出鱼
     struct FishBorn : xx::Object {
@@ -1227,6 +1268,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 路径. 预约下发安全, 将复制路径完整数据
     struct Way : xx::Object {
@@ -1248,6 +1290,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 基于路径移动的鱼基类
     struct WayFish : PKG::CatchFish::Fish {
@@ -1277,6 +1320,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
 #include "PKG_CatchFish_WayFish.h"
     };
 }
@@ -1309,6 +1353,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 通知: 玩家离开
     struct Leave : PKG::CatchFish::Events::Event {
@@ -1324,6 +1369,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
     // 通知: 玩家破产
     struct NoMoney : PKG::CatchFish::Events::Event {
@@ -1339,6 +1385,7 @@ namespace CatchFish::Events {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Configs {
@@ -1358,6 +1405,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Configs_Physics.h"
     };
 }
@@ -1384,6 +1432,7 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Cannon.h"
     };
 }
@@ -1412,6 +1461,7 @@ namespace CatchFish::Configs {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 }
@@ -1516,6 +1566,9 @@ namespace Generic {
     inline int Success::FromBBuffer(xx::BBuffer& bb) noexcept {
         return 0;
     }
+    inline int Success::InitCascade(void* const& o) noexcept {
+        return 0;
+    }
     inline void Success::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -1544,6 +1597,9 @@ namespace Generic {
         if (int r = bb.Read(this->number)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->message)) return r;
+        return 0;
+    }
+    inline int Error::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void Error::ToString(std::string& s) const noexcept {
@@ -1576,6 +1632,9 @@ namespace Generic {
         if (int r = bb.Read(this->ticks)) return r;
         return 0;
     }
+    inline int Ping::InitCascade(void* const& o) noexcept {
+        return 0;
+    }
     inline void Ping::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -1602,6 +1661,9 @@ namespace Generic {
     }
     inline int Pong::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->ticks)) return r;
+        return 0;
+    }
+    inline int Pong::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void Pong::ToString(std::string& s) const noexcept {
@@ -1642,6 +1704,15 @@ namespace CatchFish_Client {
         if (int r = bb.Read(this->token)) return r;
         return 0;
     }
+    inline int EnterSuccess::InitCascade(void* const& o) noexcept {
+        if (this->scene) {
+            if (int r = this->scene->InitCascade(o)) return r;
+        }
+        if (this->players) {
+            if (int r = this->players->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void EnterSuccess::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -1680,6 +1751,15 @@ namespace CatchFish_Client {
         if (int r = bb.Read(this->persionalEvents)) return r;
         return 0;
     }
+    inline int FrameEvents::InitCascade(void* const& o) noexcept {
+        if (this->events) {
+            if (int r = this->events->InitCascade(o)) return r;
+        }
+        if (this->persionalEvents) {
+            if (int r = this->persionalEvents->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void FrameEvents::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -1711,6 +1791,9 @@ namespace Client_CatchFish {
     inline int Enter::FromBBuffer(xx::BBuffer& bb) noexcept {
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->token)) return r;
+        return 0;
+    }
+    inline int Enter::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void Enter::ToString(std::string& s) const noexcept {
@@ -1748,6 +1831,9 @@ namespace Client_CatchFish {
         if (int r = bb.Read(this->pos)) return r;
         return 0;
     }
+    inline int Fire::InitCascade(void* const& o) noexcept {
+        return 0;
+    }
     inline void Fire::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -1781,6 +1867,9 @@ namespace Client_CatchFish {
         if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
         if (int r = bb.Read(this->fishId)) return r;
+        return 0;
+    }
+    inline int Hit::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void Hit::ToString(std::string& s) const noexcept {
@@ -1852,6 +1941,30 @@ namespace CatchFish {
         if (int r = bb.Read(this->players)) return r;
         return 0;
     }
+    inline int Scene::InitCascadeCore(void* const& o) noexcept {
+        if (this->rnd) {
+            if (int r = this->rnd->InitCascade(o)) return r;
+        }
+        if (this->fishs) {
+            if (int r = this->fishs->InitCascade(o)) return r;
+        }
+        if (this->items) {
+            if (int r = this->items->InitCascade(o)) return r;
+        }
+        if (this->borns) {
+            if (int r = this->borns->InitCascade(o)) return r;
+        }
+        if (this->stage) {
+            if (int r = this->stage->InitCascade(o)) return r;
+        }
+        if (this->freeSits) {
+            if (int r = this->freeSits->InitCascade(o)) return r;
+        }
+        if (this->players) {
+            if (int r = this->players->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void Scene::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -1896,6 +2009,9 @@ namespace CatchFish {
     inline int Item::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->id)) return r;
         if (int r = bb.Read(this->indexAtContainer)) return r;
+        return 0;
+    }
+    inline int Item::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void Item::ToString(std::string& s) const noexcept {
@@ -1952,6 +2068,16 @@ namespace CatchFish {
         if (int r = bb.Read(this->weapons)) return r;
         return 0;
     }
+    inline int Player::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->cannons) {
+            if (int r = this->cannons->InitCascade(o)) return r;
+        }
+        if (this->weapons) {
+            if (int r = this->weapons->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void Player::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2000,6 +2126,13 @@ namespace CatchFish {
         if (int r = bb.Read(this->bullets)) return r;
         return 0;
     }
+    inline int Cannon::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->bullets) {
+            if (int r = this->bullets->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void Cannon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2037,6 +2170,10 @@ namespace CatchFish {
         if (int r = bb.Read(this->moveInc)) return r;
         return 0;
     }
+    inline int MoveItem::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void MoveItem::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2067,6 +2204,10 @@ namespace CatchFish {
     inline int Bullet::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
+        return 0;
+    }
+    inline int Bullet::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void Bullet::ToString(std::string& s) const noexcept {
@@ -2107,6 +2248,10 @@ namespace CatchFish {
         if (int r = bb.Read(this->spriteFrameIndex)) return r;
         return 0;
     }
+    inline int Fish::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Fish::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2143,6 +2288,10 @@ namespace CatchFish {
         if (int r = bb.Read(this->flyFrameNumber)) return r;
         return 0;
     }
+    inline int Weapon::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Weapon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2172,6 +2321,12 @@ namespace CatchFish {
     inline int FishBorn::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->beginFrameNumber)) return r;
         if (int r = bb.Read(this->fish)) return r;
+        return 0;
+    }
+    inline int FishBorn::InitCascade(void* const& o) noexcept {
+        if (this->fish) {
+            if (int r = this->fish->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void FishBorn::ToString(std::string& s) const noexcept {
@@ -2206,6 +2361,12 @@ namespace CatchFish {
         if (int r = bb.Read(this->points)) return r;
         if (int r = bb.Read(this->distance)) return r;
         if (int r = bb.Read(this->loop)) return r;
+        return 0;
+    }
+    inline int Way::InitCascade(void* const& o) noexcept {
+        if (this->points) {
+            if (int r = this->points->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void Way::ToString(std::string& s) const noexcept {
@@ -2252,6 +2413,13 @@ namespace CatchFish {
         if (int r = bb.Read(this->frameRatio)) return r;
         return 0;
     }
+    inline int WayFish::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->way) {
+            if (int r = this->way->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void WayFish::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2286,6 +2454,9 @@ namespace CatchFish::Events {
     }
     inline int Event::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->playerId)) return r;
+        return 0;
+    }
+    inline int Event::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void Event::ToString(std::string& s) const noexcept {
@@ -2331,6 +2502,10 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->cannonCoin)) return r;
         return 0;
     }
+    inline int Enter::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Enter::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2366,6 +2541,10 @@ namespace CatchFish::Events {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         return 0;
     }
+    inline int Leave::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Leave::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2391,6 +2570,10 @@ namespace CatchFish::Events {
     }
     inline int NoMoney::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int NoMoney::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void NoMoney::ToString(std::string& s) const noexcept {
@@ -2420,6 +2603,10 @@ namespace CatchFish::Events {
     inline int Refund::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
+        return 0;
+    }
+    inline int Refund::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void Refund::ToString(std::string& s) const noexcept {
@@ -2459,6 +2646,13 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->fishDeads)) return r;
         return 0;
     }
+    inline int FishDead::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->fishDeads) {
+            if (int r = this->fishDeads->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void FishDead::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2492,6 +2686,13 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->weapon)) return r;
         return 0;
     }
+    inline int PushWeapon::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->weapon) {
+            if (int r = this->weapon->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void PushWeapon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2522,6 +2723,13 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->born)) return r;
         return 0;
     }
+    inline int PushFish::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->born) {
+            if (int r = this->born->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void PushFish::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2548,6 +2756,10 @@ namespace CatchFish::Events {
     }
     inline int OpenAutoLock::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int OpenAutoLock::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void OpenAutoLock::ToString(std::string& s) const noexcept {
@@ -2579,6 +2791,10 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->fishId)) return r;
         return 0;
     }
+    inline int Aim::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Aim::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2605,6 +2821,10 @@ namespace CatchFish::Events {
     }
     inline int CloseAutoLock::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int CloseAutoLock::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void CloseAutoLock::ToString(std::string& s) const noexcept {
@@ -2634,6 +2854,10 @@ namespace CatchFish::Events {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         return 0;
     }
+    inline int OpenAutoFire::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void OpenAutoFire::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2659,6 +2883,10 @@ namespace CatchFish::Events {
     }
     inline int CloseAutoFire::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int CloseAutoFire::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void CloseAutoFire::ToString(std::string& s) const noexcept {
@@ -2698,6 +2926,10 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->coin)) return r;
         return 0;
     }
+    inline int Fire::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Fire::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2732,6 +2964,10 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->cfgId)) return r;
         return 0;
     }
+    inline int CannonSwitch::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void CannonSwitch::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2760,6 +2996,10 @@ namespace CatchFish::Events {
     inline int CannonCoinChange::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
+        return 0;
+    }
+    inline int CannonCoinChange::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void CannonCoinChange::ToString(std::string& s) const noexcept {
@@ -2791,6 +3031,13 @@ namespace CatchFish::Events {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->fishIds)) return r;
+        return 0;
+    }
+    inline int DebugInfo::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->fishIds) {
+            if (int r = this->fishIds->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void DebugInfo::ToString(std::string& s) const noexcept {
@@ -2833,6 +3080,15 @@ namespace CatchFish::Stages {
         if (int r = bb.Read(this->monitors)) return r;
         return 0;
     }
+    inline int Stage::InitCascade(void* const& o) noexcept {
+        if (this->elements) {
+            if (int r = this->elements->InitCascade(o)) return r;
+        }
+        if (this->monitors) {
+            if (int r = this->monitors->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void Stage::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2863,6 +3119,9 @@ namespace CatchFish::Stages {
     }
     inline int StageElement::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->cfg_beginTicks)) return r;
+        return 0;
+    }
+    inline int StageElement::InitCascade(void* const& o) noexcept {
         return 0;
     }
     inline void StageElement::ToString(std::string& s) const noexcept {
@@ -2903,6 +3162,10 @@ namespace CatchFish::Stages {
         if (int r = bb.Read(this->bornAvaliableTicks)) return r;
         return 0;
     }
+    inline int Emitter_RandomFishs::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Emitter_RandomFishs::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -2937,6 +3200,10 @@ namespace CatchFish::Stages {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->cfg_numFishsLimit)) return r;
         if (int r = bb.Read(this->cfg_bornDelayFrameNumber)) return r;
+        return 0;
+    }
+    inline int Monitor_KeepBigFish::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void Monitor_KeepBigFish::ToString(std::string& s) const noexcept {
@@ -2978,6 +3245,10 @@ namespace CatchFish::Stages {
         if (int r = bb.Read(this->cfg_scale)) return r;
         if (int r = bb.Read(this->cfg_speed)) return r;
         if (int r = bb.Read(this->bornAvaliableTicks)) return r;
+        return 0;
+    }
+    inline int Emitter_RingFishs::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
     inline void Emitter_RingFishs::ToString(std::string& s) const noexcept {
@@ -3037,6 +3308,27 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->enableBulletFastForward)) return r;
         return 0;
     }
+    inline int Config::InitCascadeCore(void* const& o) noexcept {
+        if (this->fixedWays) {
+            if (int r = this->fixedWays->InitCascade(o)) return r;
+        }
+        if (this->fishs) {
+            if (int r = this->fishs->InitCascade(o)) return r;
+        }
+        if (this->cannons) {
+            if (int r = this->cannons->InitCascade(o)) return r;
+        }
+        if (this->weapons) {
+            if (int r = this->weapons->InitCascade(o)) return r;
+        }
+        if (this->stages) {
+            if (int r = this->stages->InitCascade(o)) return r;
+        }
+        if (this->sitPositons) {
+            if (int r = this->sitPositons->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void Config::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -3078,6 +3370,12 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->zOrder)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->frames)) return r;
+        return 0;
+    }
+    inline int Item::InitCascade(void* const& o) noexcept {
+        if (this->frames) {
+            if (int r = this->frames->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void Item::ToString(std::string& s) const noexcept {
@@ -3129,6 +3427,16 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->touchRank)) return r;
         if (int r = bb.Read(this->shadowScale)) return r;
         if (int r = bb.Read(this->shadowOffset)) return r;
+        return 0;
+    }
+    inline int Fish::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->moveFrames) {
+            if (int r = this->moveFrames->InitCascade(o)) return r;
+        }
+        if (this->dieFrames) {
+            if (int r = this->dieFrames->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void Fish::ToString(std::string& s) const noexcept {
@@ -3183,6 +3491,10 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->distance)) return r;
         return 0;
     }
+    inline int Cannon::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
     inline void Cannon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -3224,6 +3536,13 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->cannon)) return r;
         return 0;
     }
+    inline int Weapon::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->cannon) {
+            if (int r = this->cannon->InitCascade(o)) return r;
+        }
+        return 0;
+    }
     inline void Weapon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -3258,6 +3577,9 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->frameName)) return r;
         return 0;
     }
+    inline int SpriteFrame::InitCascadeCore(void* const& o) noexcept {
+        return 0;
+    }
     inline void SpriteFrame::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
@@ -3288,6 +3610,12 @@ namespace CatchFish::Configs {
     inline int Physics::FromBBuffer(xx::BBuffer& bb) noexcept {
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->polygons)) return r;
+        return 0;
+    }
+    inline int Physics::InitCascadeCore(void* const& o) noexcept {
+        if (this->polygons) {
+            if (int r = this->polygons->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void Physics::ToString(std::string& s) const noexcept {
@@ -3325,6 +3653,18 @@ namespace CatchFish::Configs {
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->lockPoints)) return r;
         if (int r = bb.Read(this->moveDistance)) return r;
+        return 0;
+    }
+    inline int FishSpriteFrame::InitCascade(void* const& o) noexcept {
+        if (this->frame) {
+            if (int r = this->frame->InitCascade(o)) return r;
+        }
+        if (this->physics) {
+            if (int r = this->physics->InitCascade(o)) return r;
+        }
+        if (this->lockPoints) {
+            if (int r = this->lockPoints->InitCascade(o)) return r;
+        }
         return 0;
     }
     inline void FishSpriteFrame::ToString(std::string& s) const noexcept {

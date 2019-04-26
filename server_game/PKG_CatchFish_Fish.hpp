@@ -3,7 +3,7 @@ inline int PKG::CatchFish::Fish::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	assert(!cfg);
 	cfg = &*scene->cfg->fishs->At(cfgId);
-	if (int r = this->BaseType::InitCascade(o)) return r;
+	if (int r = InitCascadeCore(o)) return r;
 	DrawInit();
 	return 0;
 }
@@ -71,7 +71,7 @@ inline void PKG::CatchFish::Fish::DrawInit() noexcept {
 
 inline void PKG::CatchFish::Fish::DrawUpdate() noexcept {
 	assert(body);
-	auto&& sf = xx::As<SpriteFrame>(cfg->moveFrames->At(spriteFrameIndex)->frame)->spriteFrame;
+	auto&& sf = cfg->moveFrames->At(spriteFrameIndex)->frame->spriteFrame;
 
 	auto&& a = -angle * (180.0f / float(M_PI));
 

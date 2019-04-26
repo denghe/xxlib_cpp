@@ -18,9 +18,9 @@
 	int numDialTimes = 0;
 	bool autoFire = false;
 	xx::Random rnd;
-	std::string token;			// 保存当前玩家 token
-	Player_s player;			// 指向当前玩家
-	Panel_Dialer_s panel;		// 持有操作面板
+	std::string token;							// 保存当前玩家 token
+	PKG::CatchFish::Player_s player;			// 指向当前玩家
+	Panel_Dialer_s panel;						// 持有操作面板
 
 
 	// 处理首包( EnterSuccess || Error )

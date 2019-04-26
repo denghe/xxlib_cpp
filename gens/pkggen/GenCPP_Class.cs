@@ -238,8 +238,16 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;");
-        //    sb.Append(@"
-        //int InitCascade(void* const& o = nullptr) noexcept override;");
+            if (c._Has<TemplateLibrary.CustomInitCascade>())
+            {
+                sb.Append(@"
+        int InitCascadeCore(void* const& o = nullptr) noexcept;");
+            }
+            else
+            {
+                sb.Append(@"
+        int InitCascade(void* const& o = nullptr) noexcept override;");
+            }
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
                 sb.Append(@"
@@ -423,26 +431,34 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             sb.Append(@"
         return 0;
     }");
-    //        sb.Append(@"
-    //inline int " + c.Name + @"::InitCascade(void* const& o) noexcept {");
-    //        if (c._HasBaseType())
-    //        {
-    //            sb.Append(@"
-    //    if (int r = this->BaseType::InitCascade(o)) return r;");
-    //        }
-    //        fs = c._GetFields();
-    //        foreach (var f in fs)
-    //        {
-    //            var ft = f.FieldType;
-    //            if (!ft._IsList() && !ft._IsUserClass() || ft._IsWeak() || ft._IsExternal() && !ft._GetExternalSerializable()) continue;
-    //            sb.Append(@"
-    //    if (this->" + f.Name + @") {
-    //        if (int r = this->" + f.Name + @"->InitCascade(o)) return r;
-    //    }");
-    //        }
-    //        sb.Append(@"
-    //    return 0;
-    //}");
+            if (c._Has<TemplateLibrary.CustomInitCascade>())
+            {
+                sb.Append(@"
+    inline int " + c.Name + @"::InitCascadeCore(void* const& o) noexcept {");
+            }
+            else
+            {
+                sb.Append(@"
+    inline int " + c.Name + @"::InitCascade(void* const& o) noexcept {");
+            }
+            if (c._HasBaseType())
+            {
+                sb.Append(@"
+        if (int r = this->BaseType::InitCascade(o)) return r;");
+            }
+            fs = c._GetFields();
+            foreach (var f in fs)
+            {
+                var ft = f.FieldType;
+                if (!ft._IsList() && !ft._IsUserClass() || ft._IsWeak() || ft._IsExternal() && !ft._GetExternalSerializable()) continue;
+                sb.Append(@"
+        if (this->" + f.Name + @") {
+            if (int r = this->" + f.Name + @"->InitCascade(o)) return r;
+        }");
+            }
+            sb.Append(@"
+        return 0;
+    }");
             sb.Append(@"
     inline void " + c.Name + @"::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)

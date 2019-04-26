@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "f057b0419958550aa12c6f40ebef30c0"; 
+        public const string value = "220dfe171553d64ea89325960ac23607"; 
     }
 
 namespace CatchFish

@@ -124,6 +124,14 @@ namespace TemplateLibrary
     }
 
     /// <summary>
+    /// 标记一个类是否自己实现 InitCascade 函数. 标记则生成 InitCascadeCore 名字的函数 ( cpp only )
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public class CustomInitCascade : System.Attribute
+    {
+    }
+
+    /// <summary>
     /// 标记一个类成员不参与序列化
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field)]

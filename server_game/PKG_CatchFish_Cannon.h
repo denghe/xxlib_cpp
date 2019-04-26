@@ -30,10 +30,11 @@ virtual int Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
 void MakeRefundEvent(int64_t const& coin, bool isPersional = false) noexcept;
 #endif
 
-int InitCascade(void* const& o) noexcept override;
 virtual int Update(int const& frameNumber) noexcept override;
 
 #ifdef CC_TARGET_PLATFORM
+int InitCascade(void* const& o) noexcept override;
+
 RefHolder<cocos2d::Sprite> body;
 virtual void DrawInit() noexcept;
 virtual void DrawUpdate() noexcept;

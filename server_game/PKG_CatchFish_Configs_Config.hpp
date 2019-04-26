@@ -52,7 +52,7 @@
 	}
 
 
-	// ... more
+	// todo: more
 
 
 	// 关卡数据初始化
@@ -61,7 +61,8 @@
 		bb.WriteRoot(s);
 	}
 
-	return BaseType::InitCascade(this);
+	// 继续级联初始化成员
+	return InitCascadeCore(o);
 }
 
 inline PKG::CatchFish::Way_s PKG::CatchFish::Configs::Config::MakeBeeline(std::pair<xx::Pos, xx::Pos> const& inOutPos) noexcept {

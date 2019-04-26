@@ -12,14 +12,14 @@ inline int Dialer::HandleFirstPackage() noexcept {
 
 		// store players
 		for (auto&& p : *es->players) {
-			::catchFish->players.Add(xx::As<Player>(p));
+			::catchFish->players.Add(p);
 		}
 
 		// store scene
-		::catchFish->scene = xx::As<Scene>(es->scene);
+		::catchFish->scene = es->scene;
 
 		// store current player
-		player = xx::As<Player>(es->self.lock());
+		player = es->self.lock();
 		token = *es->token;
 
 		// set current player's flag
@@ -139,7 +139,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Enter_s o) noexcept {
 	if (o->playerId == player->id) return 0;
 
 	// 构建玩家上下文( 模拟收到的数据以方便调用 InitCascade )
-	auto&& player = xx::Make<Player>();
+	auto&& player = xx::Make<PKG::CatchFish::Player>();
 	player->autoFire = false;
 	player->autoIncId = 0;
 	player->autoLock = false;
@@ -159,7 +159,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Enter_s o) noexcept {
 	switch (o->cannonCfgId) {
 	case 0: {
 		auto&& cannonCfg = catchFish->cfg->cannons->At(o->cannonCfgId);
-		auto&& cannon = xx::Make<Cannon>();
+		auto&& cannon = xx::Make<PKG::CatchFish::Cannon>();
 		cannon->angle = float(cannonCfg->angle);
 		xx::MakeTo(cannon->bullets);
 		cannon->cfgId = o->cannonCfgId;
@@ -280,11 +280,10 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 			// 定位到目标炮台
 			for (auto&& c : *p->cannons) {
 				if (c->id == o->cannonId) {
-					auto&& cannon = xx::As<Cannon>(c);
 					// 发射
-					cannon->coin = o->coin;					// todo: 理论上如果做完了币值切换通知就不需要这个赋值了
-					cannon->angle = o->tarAngle;
-					(void)cannon->Fire(o->frameNumber);
+					c->coin = o->coin;					// todo: 理论上如果做完了币值切换通知就不需要这个赋值了
+					c->angle = o->tarAngle;
+					(void)c->Fire(o->frameNumber);
 					break;
 				}
 			}

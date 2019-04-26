@@ -11,13 +11,13 @@ struct CatchFish;
 #ifndef CC_TARGET_PLATFORM
 struct Peer;
 #else
-struct Panel_Player
+struct Panel_Player;
 #endif
 #ifdef CC_TARGET_PLATFORM
 
 #include "RefHolder.h"
 
-	struct Dialer;
+struct Dialer;
 struct CatchFish;
 std::shared_ptr<Dialer> dialer;
 CatchFish* catchFish = nullptr;

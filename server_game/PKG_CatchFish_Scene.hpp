@@ -4,7 +4,7 @@ inline int PKG::CatchFish::Scene::InitCascade(void* const& o) noexcept {
 	// 备份，不做 InitCascade
 	auto borns = std::move(this->borns);
 	// 下刷
-	int r = this->BaseType::InitCascade(this);
+	int r = InitCascadeCore(this);
 	// 还原
 	this->borns = std::move(borns);
 	return r;

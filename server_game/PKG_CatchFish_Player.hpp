@@ -1,13 +1,12 @@
-﻿inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
+﻿#ifdef CC_TARGET_PLATFORM
+inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 
 	// 填充玩家对应的位置的坐标
 	this->pos = scene->cfg->sitPositons->At((int)this->sit);
 
-#ifdef CC_TARGET_PLATFORM
 	// 初始面板显示元素
 	xx::MakeTo(panel, this);
-#endif
 
 	// 前置填充
 	for (auto&& cannon : *cannons) {
@@ -15,8 +14,9 @@
 	}
 
 	// 开始瀑布初始化
-	return this->BaseType::InitCascade(o);
+	return InitCascadeCore(o);
 }
+#endif
 
 inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 #ifndef CC_TARGET_PLATFORM

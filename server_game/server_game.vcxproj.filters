@@ -63,7 +63,6 @@
     <ClInclude Include="PKG_CatchFish_Fish.hpp" />
     <ClInclude Include="PKG_CatchFish_WayFish.hpp" />
     <ClInclude Include="PKG_CatchFish_Fish.h" />
-    <ClInclude Include="PKG_CatchFish_Bullet.h" />
     <ClInclude Include="PKG_CatchFish_Bullet.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_StageElement.h" />
     <ClInclude Include="PKG_CatchFish_Scene.h" />
@@ -84,6 +83,7 @@
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RandomFishs.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RingFishs.hpp" />
+    <ClInclude Include="PKG_CatchFish_Bullet.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

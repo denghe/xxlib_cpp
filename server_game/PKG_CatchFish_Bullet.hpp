@@ -1,15 +1,15 @@
-﻿inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
+﻿#ifdef CC_TARGET_PLATFORM
+inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	assert(player);
 	assert(cannon);
 	assert(cfg);
 
-	if (int r = this->BaseType::InitCascade(o)) return r;
-#ifdef CC_TARGET_PLATFORM
+	if (int r = InitCascadeCore(o)) return r;
 	DrawInit();
-#endif
 	return 0;
 }
+#endif
 
 inline int PKG::CatchFish::Bullet::Move() noexcept {
 	pos += moveInc;
@@ -29,7 +29,7 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 	if (fs.len) {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
-			if (xx::As<IHitCheck>(fs[i])->HitCheck(this)) {
+			if (fs[i]->HitCheck(this)) {
 				// 发命中检查包
 				auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
 				o->bulletId = id;
@@ -52,7 +52,7 @@ inline void PKG::CatchFish::Bullet::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->setGlobalZOrder(cfg->zOrder);
-	auto&& sf = xx::As<SpriteFrame>(cfg->frames->At(1))->spriteFrame;
+	auto&& sf = cfg->frames->At(1)->spriteFrame;
 	body->setSpriteFrame(sf);
 	body->setPosition(pos);
 	body->setScale(cfg->scale);

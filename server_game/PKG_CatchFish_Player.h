@@ -32,7 +32,8 @@ bool isSelf = false;
 
 // 玩家面板( 头像, 金币 ui 啥的 )
 std::shared_ptr<Panel_Player> panel;
-#endif
 
 virtual int InitCascade(void* const& o) noexcept override;
+#endif
+
 virtual int Update(int const& frameNumber) noexcept override;
