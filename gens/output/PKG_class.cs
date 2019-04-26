@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "220dfe171553d64ea89325960ac23607"; 
+        public const string value = "181f4b8b0b621c5d8a36b4a3a51d01a9"; 
     }
 
 namespace CatchFish
@@ -2688,6 +2688,10 @@ namespace CatchFish.Stages
         /// 生效时间点
         /// </summary>
         public int cfg_beginTicks;
+        /// <summary>
+        /// 结束时间点
+        /// </summary>
+        public int cfg_endTicks;
 
         public override ushort GetPackageId()
         {
@@ -2697,11 +2701,13 @@ namespace CatchFish.Stages
         public override void ToBBuffer(xx.BBuffer bb)
         {
             bb.Write(this.cfg_beginTicks);
+            bb.Write(this.cfg_endTicks);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             bb.Read(ref this.cfg_beginTicks);
+            bb.Read(ref this.cfg_endTicks);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2721,6 +2727,7 @@ namespace CatchFish.Stages
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             s.Append(", \"cfg_beginTicks\":" + cfg_beginTicks.ToString());
+            s.Append(", \"cfg_endTicks\":" + cfg_endTicks.ToString());
         }
         public override string ToString()
         {
@@ -2733,7 +2740,7 @@ namespace CatchFish.Stages
         }
     }
     /// <summary>
-    /// 随机小鱼发射器
+    /// 发射器: 随机小鱼
     /// </summary>
     public partial class Emitter_RandomFishs : CatchFish.Stages.StageElement
     {
@@ -2818,7 +2825,7 @@ namespace CatchFish.Stages
         }
     }
     /// <summary>
-    /// 巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发
+    /// 监视器: 自动再生巨大鱼, 服务端预约下发
     /// </summary>
     public partial class Monitor_KeepBigFish : CatchFish.Stages.Emitter_RandomFishs
     {
@@ -2882,7 +2889,7 @@ namespace CatchFish.Stages
         }
     }
     /// <summary>
-    /// 从屏幕中间圆环出现的小鱼阵发射器
+    /// 发射器: 从屏幕中间圆环批量出小鱼
     /// </summary>
     public partial class Emitter_RingFishs : CatchFish.Stages.StageElement
     {
@@ -2961,6 +2968,112 @@ namespace CatchFish.Stages
             s.Append(", \"cfg_scale\":" + cfg_scale.ToString());
             s.Append(", \"cfg_speed\":" + cfg_speed.ToString());
             s.Append(", \"bornAvaliableTicks\":" + bornAvaliableTicks.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 发射器: 从屏幕中间 0 度开始旋转式出小鱼
+    /// </summary>
+    public partial class Emitter_CircleFishs : CatchFish.Stages.StageElement
+    {
+        /// <summary>
+        /// 配置: 起始角度
+        /// </summary>
+        public float cfg_angleBegin;
+        /// <summary>
+        /// 配置: 每只鱼偏转角度
+        /// </summary>
+        public float cfg_angleIncrease;
+        /// <summary>
+        /// 配置: 两只鱼生成帧间隔
+        /// </summary>
+        public int cfg_bornTicksInterval;
+        /// <summary>
+        /// 配置: 每只鱼币值
+        /// </summary>
+        public long cfg_coin;
+        /// <summary>
+        /// 配置: 每只鱼体积
+        /// </summary>
+        public float cfg_scale;
+        /// <summary>
+        /// 配置: 每只鱼移动速度( 帧跨越像素距离 )
+        /// </summary>
+        public float cfg_speed;
+        /// <summary>
+        /// 记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        /// </summary>
+        public int bornAvaliableTicks;
+        /// <summary>
+        /// 当前角度
+        /// </summary>
+        public float angle;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Emitter_CircleFishs>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.cfg_angleBegin);
+            bb.Write(this.cfg_angleIncrease);
+            bb.Write(this.cfg_bornTicksInterval);
+            bb.Write(this.cfg_coin);
+            bb.Write(this.cfg_scale);
+            bb.Write(this.cfg_speed);
+            bb.Write(this.bornAvaliableTicks);
+            bb.Write(this.angle);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.cfg_angleBegin);
+            bb.Read(ref this.cfg_angleIncrease);
+            bb.Read(ref this.cfg_bornTicksInterval);
+            bb.Read(ref this.cfg_coin);
+            bb.Read(ref this.cfg_scale);
+            bb.Read(ref this.cfg_speed);
+            bb.Read(ref this.bornAvaliableTicks);
+            bb.Read(ref this.angle);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Emitter_CircleFishs\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"cfg_angleBegin\":" + cfg_angleBegin.ToString());
+            s.Append(", \"cfg_angleIncrease\":" + cfg_angleIncrease.ToString());
+            s.Append(", \"cfg_bornTicksInterval\":" + cfg_bornTicksInterval.ToString());
+            s.Append(", \"cfg_coin\":" + cfg_coin.ToString());
+            s.Append(", \"cfg_scale\":" + cfg_scale.ToString());
+            s.Append(", \"cfg_speed\":" + cfg_speed.ToString());
+            s.Append(", \"bornAvaliableTicks\":" + bornAvaliableTicks.ToString());
+            s.Append(", \"angle\":" + angle.ToString());
         }
         public override string ToString()
         {
@@ -3721,6 +3834,7 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Stages.Emitter_RandomFishs>(76);
             xx.Object.Register<CatchFish.Stages.Monitor_KeepBigFish>(77);
             xx.Object.Register<CatchFish.Stages.Emitter_RingFishs>(78);
+            xx.Object.Register<CatchFish.Stages.Emitter_CircleFishs>(81);
             xx.Object.Register<CatchFish.Configs.Config>(57);
             xx.Object.Register<xx.List<CatchFish.Way>>(58);
             xx.Object.Register<xx.List<CatchFish.Configs.Fish>>(59);

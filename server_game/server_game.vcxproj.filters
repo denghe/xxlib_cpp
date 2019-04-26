@@ -84,6 +84,8 @@
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RingFishs.hpp" />
     <ClInclude Include="PKG_CatchFish_Bullet.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_CircleFishs.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_CircleFishs.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

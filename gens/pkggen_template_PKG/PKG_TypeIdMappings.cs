@@ -118,6 +118,8 @@ interface ITypeIdMappings
 
     CatchFish.Stages.Emitter_RingFishs _78 { get; }
 
+    CatchFish.Stages.Emitter_CircleFishs _81 { get; }
+
     CatchFish.Configs.Config _57 { get; }
 
     List<CatchFish.Way> _58 { get; }

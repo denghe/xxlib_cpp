@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '220dfe171553d64ea89325960ac23607'
+PKG_PkgGenMd5_Value = '181f4b8b0b621c5d8a36b4a3a51d01a9'
 
 --[[
 座位列表
@@ -2219,18 +2219,26 @@ PKG_CatchFish_Stages_StageElement = {
         生效时间点
         ]]
         o.cfg_beginTicks = 0 -- Int32
+        --[[
+        结束时间点
+        ]]
+        o.cfg_endTicks = 0 -- Int32
         return o
     end,
     FromBBuffer = function( bb, o )
-        o.cfg_beginTicks = bb:ReadInt32()
+        local ReadInt32 = bb.ReadInt32
+        o.cfg_beginTicks = ReadInt32( bb )
+        o.cfg_endTicks = ReadInt32( bb )
     end,
     ToBBuffer = function( bb, o )
-        bb:WriteInt32( o.cfg_beginTicks )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.cfg_beginTicks )
+        WriteInt32( bb, o.cfg_endTicks )
     end
 }
 BBuffer.Register( PKG_CatchFish_Stages_StageElement )
 --[[
-随机小鱼发射器
+发射器: 随机小鱼
 ]]
 PKG_CatchFish_Stages_Emitter_RandomFishs = {
     typeName = "PKG_CatchFish_Stages_Emitter_RandomFishs",
@@ -2294,7 +2302,7 @@ PKG_CatchFish_Stages_Emitter_RandomFishs = {
 }
 BBuffer.Register( PKG_CatchFish_Stages_Emitter_RandomFishs )
 --[[
-巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发
+监视器: 自动再生巨大鱼, 服务端预约下发
 ]]
 PKG_CatchFish_Stages_Monitor_KeepBigFish = {
     typeName = "PKG_CatchFish_Stages_Monitor_KeepBigFish",
@@ -2338,7 +2346,7 @@ PKG_CatchFish_Stages_Monitor_KeepBigFish = {
 }
 BBuffer.Register( PKG_CatchFish_Stages_Monitor_KeepBigFish )
 --[[
-从屏幕中间圆环出现的小鱼阵发射器
+发射器: 从屏幕中间圆环批量出小鱼
 ]]
 PKG_CatchFish_Stages_Emitter_RingFishs = {
     typeName = "PKG_CatchFish_Stages_Emitter_RingFishs",
@@ -2407,6 +2415,88 @@ PKG_CatchFish_Stages_Emitter_RingFishs = {
     end
 }
 BBuffer.Register( PKG_CatchFish_Stages_Emitter_RingFishs )
+--[[
+发射器: 从屏幕中间 0 度开始旋转式出小鱼
+]]
+PKG_CatchFish_Stages_Emitter_CircleFishs = {
+    typeName = "PKG_CatchFish_Stages_Emitter_CircleFishs",
+    typeId = 81,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Stages_Emitter_CircleFishs
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        配置: 起始角度
+        ]]
+        o.cfg_angleBegin = 0 -- Single
+        --[[
+        配置: 每只鱼偏转角度
+        ]]
+        o.cfg_angleIncrease = 0 -- Single
+        --[[
+        配置: 两只鱼生成帧间隔
+        ]]
+        o.cfg_bornTicksInterval = 0 -- Int32
+        --[[
+        配置: 每只鱼币值
+        ]]
+        o.cfg_coin = 0 -- Int64
+        --[[
+        配置: 每只鱼体积
+        ]]
+        o.cfg_scale = 0 -- Single
+        --[[
+        配置: 每只鱼移动速度( 帧跨越像素距离 )
+        ]]
+        o.cfg_speed = 0 -- Single
+        --[[
+        记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        ]]
+        o.bornAvaliableTicks = 0 -- Int32
+        --[[
+        当前角度
+        ]]
+        o.angle = 0 -- Single
+        setmetatable( o, PKG_CatchFish_Stages_StageElement.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadSingle = bb.ReadSingle
+        local ReadInt32 = bb.ReadInt32
+        o.cfg_angleBegin = ReadSingle( bb )
+        o.cfg_angleIncrease = ReadSingle( bb )
+        o.cfg_bornTicksInterval = ReadInt32( bb )
+        o.cfg_coin = bb:ReadInt64()
+        o.cfg_scale = ReadSingle( bb )
+        o.cfg_speed = ReadSingle( bb )
+        o.bornAvaliableTicks = ReadInt32( bb )
+        o.angle = ReadSingle( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteSingle = bb.WriteSingle
+        local WriteInt32 = bb.WriteInt32
+        WriteSingle( bb, o.cfg_angleBegin )
+        WriteSingle( bb, o.cfg_angleIncrease )
+        WriteInt32( bb, o.cfg_bornTicksInterval )
+        bb:WriteInt64( o.cfg_coin )
+        WriteSingle( bb, o.cfg_scale )
+        WriteSingle( bb, o.cfg_speed )
+        WriteInt32( bb, o.bornAvaliableTicks )
+        WriteSingle( bb, o.angle )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Stages_Emitter_CircleFishs )
 --[[
 游戏配置主体
 ]]

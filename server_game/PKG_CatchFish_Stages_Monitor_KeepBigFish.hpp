@@ -1,7 +1,7 @@
 ﻿inline int PKG::CatchFish::Stages::Monitor_KeepBigFish::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
 	xx::MakeTo(counter);
-	return this->BaseType::InitCascade(o);
+	return InitCascadeCore(o);
 }
 
 inline int PKG::CatchFish::Stages::Monitor_KeepBigFish::Update(int const& ticks) noexcept {

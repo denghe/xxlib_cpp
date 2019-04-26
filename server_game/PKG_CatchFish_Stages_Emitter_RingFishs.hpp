@@ -1,10 +1,10 @@
 ﻿inline int PKG::CatchFish::Stages::Emitter_RingFishs::InitCascade(void* const& o) noexcept {
 	scene = (Scene*)o;
-	return this->BaseType::InitCascade(o);
+	return InitCascadeCore(o);
 }
 
 inline int PKG::CatchFish::Stages::Emitter_RingFishs::Update(int const& ticks) noexcept {
-	if (bornAvaliableTicks == ticks) {
+	if (bornAvaliableTicks <= ticks) {
 		// 立刻生成一圈小鱼并放入容器
 		auto&& fishCfg = scene->cfg->fishs->At(0);	// todo: 指定鱼的类型, 根据类型路由创建函数?
 

@@ -114,6 +114,7 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "PKG_CatchFish_Configs_Config.hpp"
 #include "PKG_CatchFish_Configs_SpriteFrame.hpp"
 #include "PKG_CatchFish_Configs_Physics.hpp"
+#include "PKG_CatchFish_Stages_Emitter_CircleFishs.hpp"
 #include "PKG_CatchFish_Stages_Emitter_RingFishs.hpp"
 #include "PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp"
 #include "PKG_CatchFish_Stages_Emitter_RandomFishs.hpp"

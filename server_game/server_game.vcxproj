@@ -125,6 +125,8 @@
     <ClInclude Include="PKG_CatchFish_Fish.h" />
     <ClInclude Include="PKG_CatchFish_Fish.hpp" />
     <ClInclude Include="PKG_CatchFish_Item.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_CircleFishs.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Emitter_CircleFishs.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RandomFishs.h" />
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RingFishs.h" />
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBigFish.h" />

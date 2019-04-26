@@ -4,7 +4,7 @@
 }
 
 inline int PKG::CatchFish::Stages::Emitter_RandomFishs::Update(int const& ticks) noexcept {
-	if (bornAvaliableTicks == ticks) {
+	if (bornAvaliableTicks <= ticks) {
 		// 立刻生成小鱼并放入容器
 		auto&& fish = scene->MakeRandomFish(++scene->autoIncId, cfg_coin, cfg_scaleFrom, cfg_scaleTo);
 		fish->indexAtContainer = (int)scene->fishs->len;

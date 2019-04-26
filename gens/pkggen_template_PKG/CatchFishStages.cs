@@ -33,11 +33,14 @@ namespace CatchFish
             [Desc("生效时间点")]
             int cfg_beginTicks;
 
+            [Desc("结束时间点")]
+            int cfg_endTicks;
+
             //[Desc("级联更新逻辑")]
             //int Update([ConstRef]int ticks) { return 0; }
         }
 
-        [AttachInclude, CustomInitCascade, Desc("随机小鱼发射器")]
+        [AttachInclude, CustomInitCascade, Desc("发射器: 随机小鱼")]
         class Emitter_RandomFishs : StageElement
         {
             [Desc("配置: 两条鱼生成帧间隔")]
@@ -56,7 +59,7 @@ namespace CatchFish
             int bornAvaliableTicks;
         }
 
-        [AttachInclude, CustomInitCascade, Desc("巨大鱼监视器, 先实现简单功能: 发现巨大鱼总数量不足自动补鱼. 服务端预约下发")]
+        [AttachInclude, CustomInitCascade, Desc("监视器: 自动再生巨大鱼, 服务端预约下发")]
         class Monitor_KeepBigFish : Emitter_RandomFishs
         {
             [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
@@ -66,7 +69,7 @@ namespace CatchFish
             int cfg_bornDelayFrameNumber;
         }
 
-        [AttachInclude, CustomInitCascade, Desc("从屏幕中间圆环出现的小鱼阵发射器")]
+        [AttachInclude, CustomInitCascade, Desc("发射器: 从屏幕中间圆环批量出小鱼")]
         class Emitter_RingFishs : StageElement
         {
             [Desc("配置: 每波鱼只数")]
@@ -87,6 +90,35 @@ namespace CatchFish
             [Desc("记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )")]
             int bornAvaliableTicks;
         }
+
+        [AttachInclude, CustomInitCascade, Desc("发射器: 从屏幕中间 0 度开始旋转式出小鱼")]
+        class Emitter_CircleFishs : StageElement
+        {
+            [Desc("配置: 起始角度")]
+            float cfg_angleBegin;
+
+            [Desc("配置: 每只鱼偏转角度")]
+            float cfg_angleIncrease;
+
+            [Desc("配置: 两只鱼生成帧间隔")]
+            int cfg_bornTicksInterval;
+
+            [Desc("配置: 每只鱼币值")]
+            long cfg_coin;
+
+            [Desc("配置: 每只鱼体积")]
+            float cfg_scale;
+
+            [Desc("配置: 每只鱼移动速度( 帧跨越像素距离 )")]
+            float cfg_speed;
+
+            [Desc("记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )")]
+            int bornAvaliableTicks;
+
+            [Desc("当前角度")]
+            float angle;
+        }
+
 
         //[Desc("特效基类 ( 声音，画面等元素。派生类进一步具备具体信息 )")]
         //class Effect : Timer

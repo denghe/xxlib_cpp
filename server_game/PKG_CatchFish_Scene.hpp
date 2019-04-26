@@ -55,9 +55,14 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 	if (es.len) {
 		for (size_t i = es.len - 1; i != -1; --i) {
 			auto&& e = es[i];
+			if (e->cfg_endTicks <= ticks) {
+				es.SwapRemoveAt(i);
+				continue;
+			}
 			if (e->cfg_beginTicks <= ticks) {
 				if (int r = e->Update(ticks)) {
 					es.SwapRemoveAt(i);
+					continue;
 				}
 			}
 		}
@@ -69,9 +74,14 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 	if (ms.len) {
 		for (size_t i = ms.len - 1; i != -1; --i) {
 			auto&& m = ms[i];
+			if (m->cfg_endTicks <= ticks) {
+				ms.SwapRemoveAt(i);
+				continue;
+			}
 			if (m->cfg_beginTicks <= ticks) {
 				if (int r = m->Update(ticks)) {
 					ms.SwapRemoveAt(i);
+					continue;
 				}
 			}
 		}
