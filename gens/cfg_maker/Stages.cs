@@ -58,7 +58,7 @@
                 m.cfg_scaleFrom = 4;
                 m.cfg_scaleTo = 5;
                 m.cfg_numFishsLimit = 2;                                // 总只数限制
-                m.cfg_bornDelayFrameNumber = 60;                        // 预约 xx 帧 后再生( 预约时间太短客户端容易掉线 )
+                m.cfg_bornDelayFrameNumber = 120;                       // 预约 xx 帧 后再生( 预约时间太短客户端容易掉线 )
                 m.cfg_endTicks -= m.cfg_bornDelayFrameNumber;           // 监视器结束时间 应早于 关卡结束时间 - 预约延迟
             }
         }
