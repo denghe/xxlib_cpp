@@ -1,5 +1,10 @@
-﻿struct Dialer : xx::UvKcpDialer<ClientPeer> {
+﻿#if USE_UDP_KCP
+struct Dialer : xx::UvKcpDialer<ClientPeer> {
 	using BaseType = xx::UvKcpDialer<ClientPeer>;
+#else
+struct Dialer : xx::UvTcpDialer<ClientPeer> {
+	using BaseType = xx::UvTcpDialer<ClientPeer>;
+#endif
 	using BaseType::BaseType;
 
 	// 收到的数据

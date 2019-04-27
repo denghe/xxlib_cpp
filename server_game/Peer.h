@@ -1,6 +1,11 @@
 ﻿struct Listener;
+#if USE_UDP_KCP
 struct Peer : xx::UvKcpPeer {
 	using BaseType = xx::UvKcpPeer;
+#else
+struct Peer : xx::UvTcpPeer {
+	using BaseType = xx::UvTcpPeer;
+#endif
 	using BaseType::BaseType;
 
 	// 引用到 listener( Listener Accept 时填充 )

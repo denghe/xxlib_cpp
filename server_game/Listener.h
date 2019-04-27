@@ -1,5 +1,12 @@
-﻿struct Listener : xx::UvKcpListener<Peer> {
+﻿#if USE_UDP_KCP
+struct Listener : xx::UvKcpListener<Peer> {
 	using BaseType = xx::UvKcpListener<Peer>;
+	virtual void Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept override;
+#else
+struct Listener : xx::UvTcpListener<Peer> {
+	using BaseType = xx::UvTcpListener<Peer>;
+	virtual void Accept(std::shared_ptr<Peer> peer_) noexcept override;
+#endif
 
 	// 游戏实例( 此物也可以与 Listener 同级. 为方便先放这 )
 	CatchFish catchFish;
@@ -15,6 +22,5 @@
 	const int64_t ticksPerFrame = int64_t(10000000 / 60.3);
 
 	Listener(xx::Uv & uv, std::string const& ip, int const& port);
-	virtual void Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept override;
 };
 using Listener_s = std::shared_ptr<Listener>;

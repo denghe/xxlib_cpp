@@ -96,6 +96,9 @@ struct CatchFish {
 using CatchFish_s = std::shared_ptr<CatchFish>;
 
 
+// 如果改成 0 将启用 tcp
+#define USE_UDP_KCP 0
+
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.h"
 #include "Listener.h"

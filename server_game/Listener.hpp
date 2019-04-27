@@ -1,5 +1,9 @@
-﻿inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
+﻿#if USE_UDP_KCP
+inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
 	auto&& peer = xx::As<Peer>(peer_);
+#else
+inline void Listener::Accept(std::shared_ptr<Peer> peer) noexcept {
+#endif
 	xx::CoutTN(peer->GetIP(), " connected.");
 	peer->listener = this;
 	peer->catchFish = &catchFish;

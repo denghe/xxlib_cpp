@@ -482,6 +482,9 @@ namespace xx {
 			});
 		}
 
+		// 保持与 Udp 函数兼容
+		inline void Flush() noexcept {}
+
 	protected:
 		// 4 byte len header. can override for write custom header format
 		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
