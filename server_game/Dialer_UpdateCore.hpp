@@ -98,6 +98,8 @@ LabDial:
 		// 处理帧同步消息
 		if (r = HandlePackagesOrUpdateScene()) {
 			xx::CoutTN("redial when HandlePackagesOrUpdateScene() r = ", r);
+			++numDialTimes;
+			panel->SetText_NumDialTimes(numDialTimes);
 			goto LabDial;
 		}
 
