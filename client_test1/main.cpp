@@ -1,20 +1,6 @@
-﻿#include <iostream>
-
-template<typename T>
-struct B : T {
-	B() : T() {
-		this->Xxx();
-	}
-};
-struct A {
-	inline void Xxx() {
-		std::cout << "xxx";
-	}
-};
-struct C : B<A> {
-};
+﻿#include "xx_uv.h"
 
 int main() {
-	C c;
+	xx::Uv uv;
 	return 0;
 }

@@ -2,5 +2,21 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ikcp.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="xx_list.h" />
+    <ClInclude Include="xx_object.h" />
+    <ClInclude Include="xx_pos.h" />
+    <ClInclude Include="xx_random.h" />
+    <ClInclude Include="xx_random.hpp" />
+    <ClInclude Include="xx_uv.h" />
+    <ClInclude Include="fixed_function.hpp" />
+    <ClInclude Include="ikcp.h" />
+    <ClInclude Include="xx_bbuffer.h" />
+    <ClInclude Include="xx_dict.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="xx.natvis" />
   </ItemGroup>
 </Project>

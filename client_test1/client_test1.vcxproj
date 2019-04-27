@@ -15,19 +15,19 @@
     <ProjectGuid>{5C4F10A4-4584-4129-BBBF-B377A03E3BF6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>client_test1</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -92,7 +92,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ikcp.c" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="fixed_function.hpp" />
+    <ClInclude Include="ikcp.h" />
+    <ClInclude Include="xx_bbuffer.h" />
+    <ClInclude Include="xx_dict.h" />
+    <ClInclude Include="xx_list.h" />
+    <ClInclude Include="xx_object.h" />
+    <ClInclude Include="xx_pos.h" />
+    <ClInclude Include="xx_random.h" />
+    <ClInclude Include="xx_random.hpp" />
+    <ClInclude Include="xx_uv.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="xx.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
