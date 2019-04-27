@@ -17,6 +17,7 @@
 	int timeoutFrameNumber = 0;
 	int numDialTimes = 0;
 	bool autoFire = false;
+	int64_t ping = 0;
 	xx::Random rnd;
 	std::string token;							// 保存当前玩家 token
 	PKG::CatchFish::Player_s player;			// 指向当前玩家

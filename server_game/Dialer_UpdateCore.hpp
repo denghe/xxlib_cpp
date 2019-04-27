@@ -76,7 +76,7 @@ LabDial:
 	}
 
 	// wait recv data
-	waitMS = xx::NowSteadyEpochMS() + 10000;	// calc timeout
+	waitMS = xx::NowSteadyEpochMS() + 5000;	// calc timeout
 	while (!recvs.size()) {
 		COR_YIELD
 			if (xx::NowSteadyEpochMS() > waitMS) goto LabDial;
@@ -109,21 +109,23 @@ LabDial:
 			goto LabDial;
 		}
 
-		// 处理 ping 请求的回应. 收到正常 ping 包
-		if (::catchFish->scene->frameNumber % 30 == 0) {
+		// 如果已得到 ping 的返回结果 就显示并重置
+		if (ping) {
+			panel->SetText_Ping(ping);
+			ping = 0;
+		}
+		// 如果没在 ping 并且时机恰当 就发起 ping
+		if(!ping && ::catchFish->scene->frameNumber % 16 == 0) {
 			pkgPing->ticks = xx::NowSteadyEpochMS();
 			peer->SendRequest(pkgPing, [this](xx::Object_s && msg) {
-				// 防止 catchFish 析构造成的 msg 为空
-				if (!msg && !::catchFish->disposed) {
-					panel->SetText_Ping(-1);
+				if (!msg && !::catchFish->disposed) {		// 同时防止 catchFish 析构造成的 msg 为空
+					ping = -1;
 				}
-				else {
-					if (auto && pong = xx::As<PKG::Generic::Pong>(msg)) {
-						panel->SetText_Ping(xx::NowSteadyEpochMS() - pong->ticks);
-					}
+				else  if (auto && pong = xx::As<PKG::Generic::Pong>(msg)) {
+					ping = xx::NowSteadyEpochMS() - pong->ticks;
 				}
 				return 0;
-				}, 2000);
+			}, 2000);
 			peer->Flush();
 		}
 

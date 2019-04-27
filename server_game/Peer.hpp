@@ -16,9 +16,11 @@ inline int Peer::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept 
 	switch (msg->GetTypeId()) {
 	case xx::TypeId_v<PKG::Generic::Ping>: {
 		// 重置超时
-		this->ResetTimeoutMS(10000);
 		if (auto && p = player_w.lock()) {
 			p->ResetTimeoutFrameNumber();
+		}
+		else {
+			this->ResetTimeoutMS(10000);
 		}
 
 		// 携带收到的数据回发
@@ -81,7 +83,6 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 						// 放入本帧进入游戏的列表, 以便下发完整同步
 						scene.frameEnters.Add(&*p);
 						// 设置超时
-						this->ResetTimeoutMS(10000);
 						p->ResetTimeoutFrameNumber();
 						// 返回成功
 						return 0;
@@ -165,7 +166,6 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			}
 
 			// 设置超时
-			this->ResetTimeoutMS(10000);
 			player->ResetTimeoutFrameNumber();
 
 			// 成功退出

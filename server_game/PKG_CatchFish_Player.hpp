@@ -111,6 +111,9 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 #ifndef CC_TARGET_PLATFORM
 
 inline void PKG::CatchFish::Player::ResetTimeoutFrameNumber() noexcept {
+	if (peer && !peer->Disposed()) {
+		peer->ResetTimeoutMS(10000);
+	}
 	timeoutFrameNumber = scene->frameNumber + 60 * 20;		// todo: 从配置拿时长
 }
 

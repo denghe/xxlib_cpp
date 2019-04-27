@@ -1,15 +1,15 @@
-inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
+ï»¿inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
 	auto&& peer = xx::As<Peer>(peer_);
 	xx::CoutTN(peer->GetIP(), " connected.");
 	peer->listener = this;
 	peer->catchFish = &catchFish;
 
-	// ÓÃÕâ¸öÊÂ¼þ»Øµ÷À´³ÖÓÐ peer Ö¸Õë
+	// ç”¨è¿™ä¸ªäº‹ä»¶å›žè°ƒæ¥æŒæœ‰ peer æŒ‡é’ˆ
 	peer->OnDisconnect = [peer] {
 		xx::CoutTN(peer->GetIP(), " disconnected.");
 	};
 
-	// ÆôÓÃ³¬Ê±¼ì²â. xx ms Ã»ÊÕµ½°ü¾Í Disconnect. ÊÕµ½ Ping »áÔÙ´ÎÖØÖÃ
+	// å¯ç”¨è¶…æ—¶æ£€æµ‹. xx ms æ²¡æ”¶åˆ°åŒ…å°± Disconnect. æ”¶åˆ°åˆæ³•æ“ä½œæ•°æ®æˆ– ping ä¼šå†æ¬¡é‡ç½®
 	peer->ResetTimeoutMS(10000);
 }
 
