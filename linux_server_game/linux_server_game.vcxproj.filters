@@ -54,34 +54,6 @@
     <ClInclude Include="..\xxlib\fixed_function.hpp">
       <Filter>xxlib</Filter>
     </ClInclude>
-    <ClInclude Include="..\server_game\Cannon.h" />
-    <ClInclude Include="..\server_game\Cannon.hpp" />
-    <ClInclude Include="..\server_game\CatchFish.h" />
-    <ClInclude Include="..\server_game\CatchFish.hpp" />
-    <ClInclude Include="..\server_game\ClientPeer.h" />
-    <ClInclude Include="..\server_game\ClientPeer.hpp" />
-    <ClInclude Include="..\server_game\Config.h" />
-    <ClInclude Include="..\server_game\Config.hpp" />
-    <ClInclude Include="..\server_game\Dialer.h" />
-    <ClInclude Include="..\server_game\Dialer.hpp" />
-    <ClInclude Include="..\server_game\Dialer_UpdateCore.hpp" />
-    <ClInclude Include="..\server_game\Fish.h" />
-    <ClInclude Include="..\server_game\Fish.hpp" />
-    <ClInclude Include="..\server_game\Listener.h" />
-    <ClInclude Include="..\server_game\Listener.hpp" />
-    <ClInclude Include="..\server_game\Peer.h" />
-    <ClInclude Include="..\server_game\Peer.hpp" />
-    <ClInclude Include="..\server_game\Physics.h" />
-    <ClInclude Include="..\server_game\Physics.hpp" />
-    <ClInclude Include="..\server_game\Player.h" />
-    <ClInclude Include="..\server_game\Player.hpp" />
-    <ClInclude Include="..\server_game\RefHolder.h" />
-    <ClInclude Include="..\server_game\Scene.h" />
-    <ClInclude Include="..\server_game\Scene.hpp" />
-    <ClInclude Include="..\server_game\SpriteFrame.h" />
-    <ClInclude Include="..\server_game\SpriteFrame.hpp" />
-    <ClInclude Include="..\server_game\Bullet.h" />
-    <ClInclude Include="..\server_game\Bullet.hpp" />
     <ClInclude Include="..\libuv\include\uv\aix.h">
       <Filter>libuv</Filter>
     </ClInclude>
@@ -130,7 +102,6 @@
     <ClInclude Include="..\libuv\include\uv.h">
       <Filter>libuv</Filter>
     </ClInclude>
-    <ClInclude Include="..\gens\output\PKG_class.h" />
     <ClInclude Include="..\chipmunk\include\chipmunk\chipmunk.h">
       <Filter>chipmunk</Filter>
     </ClInclude>
@@ -218,6 +189,41 @@
     <ClInclude Include="..\chipmunk\include\chipmunk\cpVect.h">
       <Filter>chipmunk</Filter>
     </ClInclude>
+    <ClInclude Include="..\server_game\CatchFish.h" />
+    <ClInclude Include="..\server_game\CatchFish.hpp" />
+    <ClInclude Include="..\server_game\Listener.h" />
+    <ClInclude Include="..\server_game\Listener.hpp" />
+    <ClInclude Include="..\server_game\Peer.h" />
+    <ClInclude Include="..\server_game\Peer.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Bullet.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Bullet.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Cannon.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Cannon.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Config.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Config.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Physics.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Physics.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_SpriteFrame.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_SpriteFrame.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Fish.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Fish.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Item.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Player.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Player.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Scene.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Scene.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_CircleFishs.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_CircleFishs.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RandomFishs.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RandomFishs.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RingFishs.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RingFishs.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Monitor_KeepBigFish.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_StageElement.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_WayFish.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_WayFish.hpp" />
+    <ClInclude Include="..\gens\output\PKG_class.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\xxlib\ikcp.c">

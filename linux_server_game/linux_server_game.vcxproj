@@ -81,34 +81,40 @@
     <ClInclude Include="..\libuv\include\uv\unix.h" />
     <ClInclude Include="..\libuv\include\uv\version.h" />
     <ClInclude Include="..\libuv\include\uv\win.h" />
-    <ClInclude Include="..\server_game\Bullet.h" />
-    <ClInclude Include="..\server_game\Bullet.hpp" />
-    <ClInclude Include="..\server_game\Cannon.h" />
-    <ClInclude Include="..\server_game\Cannon.hpp" />
     <ClInclude Include="..\server_game\CatchFish.h" />
     <ClInclude Include="..\server_game\CatchFish.hpp" />
-    <ClInclude Include="..\server_game\ClientPeer.h" />
-    <ClInclude Include="..\server_game\ClientPeer.hpp" />
-    <ClInclude Include="..\server_game\Config.h" />
-    <ClInclude Include="..\server_game\Config.hpp" />
-    <ClInclude Include="..\server_game\Dialer.h" />
-    <ClInclude Include="..\server_game\Dialer.hpp" />
-    <ClInclude Include="..\server_game\Dialer_UpdateCore.hpp" />
-    <ClInclude Include="..\server_game\Fish.h" />
-    <ClInclude Include="..\server_game\Fish.hpp" />
     <ClInclude Include="..\server_game\Listener.h" />
     <ClInclude Include="..\server_game\Listener.hpp" />
     <ClInclude Include="..\server_game\Peer.h" />
     <ClInclude Include="..\server_game\Peer.hpp" />
-    <ClInclude Include="..\server_game\Physics.h" />
-    <ClInclude Include="..\server_game\Physics.hpp" />
-    <ClInclude Include="..\server_game\Player.h" />
-    <ClInclude Include="..\server_game\Player.hpp" />
-    <ClInclude Include="..\server_game\RefHolder.h" />
-    <ClInclude Include="..\server_game\Scene.h" />
-    <ClInclude Include="..\server_game\Scene.hpp" />
-    <ClInclude Include="..\server_game\SpriteFrame.h" />
-    <ClInclude Include="..\server_game\SpriteFrame.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Bullet.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Bullet.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Cannon.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Cannon.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Config.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Config.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Physics.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_Physics.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_SpriteFrame.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Configs_SpriteFrame.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Fish.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Fish.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Item.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Player.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Player.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Scene.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Scene.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_CircleFishs.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_CircleFishs.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RandomFishs.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RandomFishs.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RingFishs.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Emitter_RingFishs.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Monitor_KeepBigFish.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_Stages_StageElement.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_WayFish.h" />
+    <ClInclude Include="..\server_game\PKG_CatchFish_WayFish.hpp" />
     <ClInclude Include="..\xxlib\fixed_function.hpp" />
     <ClInclude Include="..\xxlib\ikcp.h" />
     <ClInclude Include="..\xxlib\ikcp2.h" />
@@ -180,7 +186,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <AdditionalSourcesToCopyMapping>
     </AdditionalSourcesToCopyMapping>
-    <IncludePath>../libuv/include;../xxlib;../gens/output;../chipmunk/include/chipmunk</IncludePath>
+    <IncludePath>../server_game;../libuv/include;../xxlib;../gens/output;../chipmunk/include/chipmunk</IncludePath>
     <SourcePath>
     </SourcePath>
     <LibraryPath>../libuv</LibraryPath>
@@ -188,7 +194,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <AdditionalSourcesToCopyMapping>
     </AdditionalSourcesToCopyMapping>
-    <IncludePath>../libuv/include;../xxlib;../gens/output;../chipmunk/include/chipmunk</IncludePath>
+    <IncludePath>../server_game;../libuv/include;../xxlib;../gens/output;../chipmunk/include/chipmunk</IncludePath>
     <SourcePath>
     </SourcePath>
     <LibraryPath>../libuv</LibraryPath>
