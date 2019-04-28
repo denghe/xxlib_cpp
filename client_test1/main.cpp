@@ -1,4 +1,5 @@
 ﻿#include "xx_uv.h"
+#include "xx_uv_lua.h"
 
 void RunServer() {
 	xx::Uv uv;

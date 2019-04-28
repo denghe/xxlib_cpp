@@ -363,19 +363,20 @@ namespace xx {
 
 	struct IUvPeer : UvItem {
 		using UvItem::UvItem;
+		using RpcFunc = std::function<int(Object_s&& msg)>;
 		virtual std::string GetIP() noexcept = 0;
 		virtual void ResetTimeoutMS(int64_t const& ms) noexcept = 0;
 		virtual int Send(uint8_t const* const& buf, ssize_t const& dataLen, sockaddr const* const& addr = nullptr) noexcept = 0;
 		virtual void Flush() noexcept = 0;
 		virtual void OnDisconnect(std::function<void()>&& func) noexcept = 0;
 		virtual void Disconnect() noexcept = 0;
-		virtual void OnReceivePush(std::function<int(Object_s&& msg)>&& func) noexcept = 0;
+		virtual void OnReceivePush(RpcFunc&& func) noexcept = 0;
 		virtual int ReceivePush(Object_s&& msg) noexcept = 0;
 		virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) = 0;
 		virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept = 0;
 		virtual int SendPush(Object_s const& data) noexcept = 0;
 		virtual int SendResponse(int32_t const& serial, Object_s const& data) noexcept = 0;
-		virtual int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS) noexcept = 0;
+		virtual int SendRequest(Object_s const& data, RpcFunc&& cb, uint64_t const& timeoutMS) noexcept = 0;
 	};
 	using IUvPeer_s = std::shared_ptr<IUvPeer>;
 	using IUvPeer_w = std::weak_ptr<IUvPeer>;
@@ -546,20 +547,20 @@ namespace xx {
 	// for tcp & udp attach high level funcs
 	template<typename BaseType>
 	struct UvRpcBase : BaseType {
-
+		using RpcFunc = std::function<int(Object_s&& msg)>;
 		int serial = 0;
-		Dict<int, std::pair<std::function<int(Object_s&& msg)>, int64_t>> callbacks;
+		Dict<int, std::pair<RpcFunc, int64_t>> callbacks;
 		UvTimer_s timer;
-		std::function<int(Object_s&& msg)> onReceivePush;
+		RpcFunc onReceivePush;
 		std::function<int(int const& serial, Object_s&& msg)> onReceiveRequest;
 
 		UvRpcBase(Uv& uv) : BaseType(uv) {
 			MakeTo(timer, uv, 10, 10, [this] {
 				this->Update(NowSteadyEpochMS());
-				});
+			});
 		}
 
-		inline virtual void OnReceivePush(std::function<int(Object_s&& msg)>&& func) noexcept override {
+		inline virtual void OnReceivePush(RpcFunc&& func) noexcept override {
 			onReceivePush = std::move(func);
 		}
 
@@ -582,7 +583,7 @@ namespace xx {
 			return this->SendPackage(data, serial);
 		}
 
-		inline virtual int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS = 0) noexcept override {
+		inline virtual int SendRequest(Object_s const& data, RpcFunc&& cb, uint64_t const& timeoutMS = 0) noexcept override {
 			if (this->Disposed()) return -1;
 			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
