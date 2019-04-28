@@ -1,11 +1,14 @@
-﻿#if USE_UDP_KCP
-struct Dialer : xx::UvKcpDialer<ClientPeer> {
-	using BaseType = xx::UvKcpDialer<ClientPeer>;
-#else
-struct Dialer : xx::UvTcpDialer<ClientPeer> {
-	using BaseType = xx::UvTcpDialer<ClientPeer>;
-#endif
-	using BaseType::BaseType;
+﻿struct Dialer {
+	Dialer();
+
+	// 拨号器
+	xx::IUvDialer_s dialer;
+
+	// 创建拨号器. 默认 tcp. 可选 kcp.
+	void MakeDialer(bool kcp = false);
+
+	// 拨号后得到的连接
+	xx::IUvPeer_s peer;
 
 	// 收到的数据
 	std::deque<xx::Object_s> recvs;

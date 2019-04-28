@@ -2,15 +2,6 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	COR_BEGIN
 
 		// init
-		xx::MakeTo(resolver, uv);
-	resolver->OnFinish = [this] {
-		ips = std::move(resolver->ips);
-		finished = true;
-	};
-	this->OnAccept = [this](auto peer) {
-		finished = true;
-	};
-
 	// 初始面板显示元素
 	xx::MakeTo(panel, this);
 
@@ -43,7 +34,7 @@ LabDial:
 	finished = false;
 
 	// try connect to server
-	Dial(ips, catchFish->serverPort, 2000);
+	dialer->Dial(ips, catchFish->serverPort, 2000);
 
 	// cleanup context data & displays
 	Reset();

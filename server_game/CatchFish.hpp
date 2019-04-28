@@ -112,7 +112,7 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 	::catchFish = this;
 
 	// 初始化拨号器
-	xx::MakeTo(::dialer, *uv);
+	xx::MakeTo(::dialer);
 #endif
 	return 0;
 }

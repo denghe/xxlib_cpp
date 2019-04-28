@@ -1,3 +1,24 @@
+inline Dialer::Dialer() {
+	xx::MakeTo(resolver, *uv);
+	resolver->OnFinish = [this] {
+		ips = std::move(resolver->ips);
+		finished = true;
+	};
+}
+
+inline void Dialer::MakeDialer(bool kcp) {
+	if (kcp) {
+		dialer = xx::Make<xx::UvKcpDialer<>>(*uv);
+	}
+	else {
+		dialer = xx::Make<xx::UvTcpDialer<>>(*uv);
+	}
+	dialer->OnAccept([this](xx::IUvPeer_s peer) {
+		this->peer = peer;
+		finished = true;
+	});
+}
+
 inline int Dialer::Update() noexcept {
 	lineNumber = UpdateCore(lineNumber);
 	return lineNumber ? 0 : -1;

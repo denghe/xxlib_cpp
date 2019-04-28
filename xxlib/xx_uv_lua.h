@@ -5,7 +5,7 @@ namespace xx {
 		using UvTcpPeerBase::UvTcpPeerBase;
 	protected:
 		// serial == 0: push    > 0: response    < 0: request
-		inline int LuaSendPackage(BBuffer const& data, int32_t const& serial = 0) {
+		inline int SendPackage(BBuffer const& data, int32_t const& serial = 0) {
 			if (!uvTcp) return -1;
 			auto& sendBB = uv.sendBB;
 			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
@@ -28,7 +28,7 @@ namespace xx {
 		using UvKcpPeerBase::UvKcpPeerBase;
 	protected:
 		// serial == 0: push    > 0: response    < 0: request
-		inline int LuaSendPackage(BBuffer const& data, int32_t const& serial = 0) {
+		inline int SendPackage(BBuffer const& data, int32_t const& serial = 0) {
 			if (!kcp) return -1;
 			auto& sendBB = uv.sendBB;
 			sendBB.Resize(4);						// header len( 4 bytes )
@@ -54,9 +54,9 @@ namespace xx {
 		UvTimer_s timer;
 
 		std::function<int(BBuffer& data)> onReceivePush;
-		inline int LuaReceivePush(BBuffer& data) noexcept { return onReceivePush ? onReceivePush(data) : 0; };
+		inline int ReceivePush(BBuffer& data) noexcept { return onReceivePush ? onReceivePush(data) : 0; };
 		std::function<int(int const& serial, BBuffer& data)> onReceiveRequest;
-		inline int LuaReceiveRequest(int const& serial, BBuffer& data) noexcept { return onReceiveRequest ? onReceiveRequest(serial, data) : 0; };
+		inline int ReceiveRequest(int const& serial, BBuffer& data) noexcept { return onReceiveRequest ? onReceiveRequest(serial, data) : 0; };
 
 		UvLuaRpcBase(Uv& uv) : BaseType(uv) {
 			MakeTo(timer, uv, 10, 10, [this] {
@@ -64,20 +64,20 @@ namespace xx {
 			});
 		}
 
-		inline int LuaSendPush(BBuffer const& data) {
-			return this->LuaSendPackage(data);
+		inline int SendPush(BBuffer const& data) {
+			return this->SendPackage(data);
 		}
-		inline int LuaSendResponse(int32_t const& serial, BBuffer const& data) {
-			return this->LuaSendPackage(data, serial);
+		inline int SendResponse(int32_t const& serial, BBuffer const& data) {
+			return this->SendPackage(data, serial);
 		}
-		inline int LuaSendRequest(BBuffer const& data, RpcFunc&& cb, uint64_t const& timeoutMS = 0) {
+		inline int SendRequest(BBuffer const& data, RpcFunc&& cb, uint64_t const& timeoutMS = 0) {
 			if (this->Disposed()) return -1;
 			std::pair<RpcFunc, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
 			if (timeoutMS) {
-				v.second = this->uv.nowMS + timeoutMS;
+				v.second = NowSteadyEpochMS() + timeoutMS;
 			}
-			if (int r = this->LuaSendPackage(data, -serial)) return r;
+			if (int r = this->SendPackage(data, -serial)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);
 			return 0;
@@ -93,10 +93,10 @@ namespace xx {
 			recvBB.readLengthLimit = recvLen;			// 用于 lua 创建时计算 memcpy 读取长度
 
 			if (serial == 0) {
-				return LuaReceivePush(recvBB);
+				return ReceivePush(recvBB);
 			}
 			else if (serial < 0) {
-				return LuaReceiveRequest(-serial, recvBB);
+				return ReceiveRequest(-serial, recvBB);
 			}
 			else {
 				auto&& idx = callbacks.Find(serial);
@@ -127,6 +127,20 @@ namespace xx {
 		}
 
 		// todo: impl all unused IUvPeer interfaces
+
+		//inline virtual std::string GetIP() noexcept = 0;
+		//inline virtual void ResetTimeoutMS(int64_t const& ms) noexcept = 0;
+		//inline virtual int Send(uint8_t const* const& buf, ssize_t const& dataLen, sockaddr const* const& addr = nullptr) noexcept = 0;
+		//inline virtual void Flush() noexcept = 0;
+		//inline virtual void OnDisconnect(std::function<void()>&& func) noexcept = 0;
+		//inline virtual void Disconnect() noexcept = 0;
+		inline virtual void OnReceivePush(std::function<int(Object_s&& msg)>&& func) noexcept override {}
+		inline virtual int ReceivePush(Object_s&& msg) noexcept override { return -1; }
+		inline virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) noexcept override {}
+		inline virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept override { return -1; }
+		inline virtual int SendPush(Object_s const& data) noexcept override { return -1; }
+		inline virtual int SendResponse(int32_t const& serial, Object_s const& data) noexcept override { return -1; }
+		inline virtual int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS) noexcept override { return -1; }
 	};
 
 

@@ -12,6 +12,7 @@ struct Peer;
 struct Panel_Player;
 #endif
 #ifdef CC_TARGET_PLATFORM
+#include "RefHolder.h"
 struct Dialer;
 std::shared_ptr<Dialer> dialer;
 CatchFish* catchFish = nullptr;
@@ -19,8 +20,6 @@ CatchFish* catchFish = nullptr;
 inline cocos2d::Scene* cc_scene = nullptr;
 inline xx::List<cocos2d::Touch*> cc_touchs;
 inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
-
-#include "RefHolder.h"
 #endif
 
 #include "xx_pos.h"

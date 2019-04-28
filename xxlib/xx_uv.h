@@ -374,7 +374,7 @@ namespace xx {
 		virtual void Disconnect() noexcept = 0;
 		virtual void OnReceivePush(std::function<int(Object_s&& msg)>&& func) noexcept = 0;
 		virtual int ReceivePush(Object_s&& msg) noexcept = 0;
-		virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) = 0;
+		virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) noexcept = 0;
 		virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept = 0;
 		virtual int SendPush(Object_s const& data) noexcept = 0;
 		virtual int SendResponse(int32_t const& serial, Object_s const& data) noexcept = 0;
@@ -398,7 +398,7 @@ namespace xx {
 		virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept = 0;
 		virtual int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS) noexcept = 0;
 		virtual int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS) noexcept = 0;
-		virtual void Cancel(bool resetPeer = true) noexcept = 0;
+		virtual void Cancel() noexcept = 0;
 	};
 	using IUvDialer_s = std::shared_ptr<IUvDialer>;
 	using IUvDialer_w = std::weak_ptr<IUvDialer>;
@@ -547,6 +547,7 @@ namespace xx {
 
 
 	// for tcp & udp attach high level funcs
+	struct UvKcpPeerBase;
 	template<typename BaseType>
 	struct UvRpcBase : BaseType {
 		using RpcFunc = std::function<int(Object_s&& msg)>;
@@ -570,7 +571,7 @@ namespace xx {
 			return onReceivePush ? onReceivePush(std::move(msg)) : 0;
 		}
 
-		inline virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) override {
+		inline virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) noexcept override {
 			onReceiveRequest = std::move(func);
 		}
 		inline virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept override {
@@ -774,7 +775,6 @@ namespace xx {
 		std::vector<ReqType*> reqs;
 		UvTimer_s timeouter;
 		bool disposed = false;
-		std::shared_ptr<PeerType> peer;
 
 		std::function<IUvPeer_s(Uv& uv)> onCreatePeer;
 		std::function<void(IUvPeer_s peer)> onAccept;
@@ -847,10 +847,10 @@ namespace xx {
 				if (status) return;														// error or -4081 canceled
 				if (req->peer->ReadStart()) return;										// read error
 
+				auto&& peer = std::move(req->peer);
 				dialer->Cancel();														// cancel other reqs
-				dialer->peer = std::move(req->peer);									// store peer
-				Uv::FillIP(dialer->peer->uvTcp, dialer->peer->ip);
-				dialer->Accept(dialer->peer);											// callback
+				Uv::FillIP(peer->uvTcp, peer->ip);
+				dialer->Accept(peer);													// callback
 				})) return -3;
 
 			reqs.push_back(req);
@@ -877,12 +877,9 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void Cancel(bool resetPeer = true) noexcept override {
+		inline virtual void Cancel() noexcept override {
 			if (disposed) return;
 			timeouter.reset();
-			if (resetPeer) {
-				peer.reset();
-			}
 			for (auto&& req : reqs) {
 				if (!req->finished) {
 					req->finished = true;
@@ -898,7 +895,7 @@ namespace xx {
 			TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
 				if (auto self = self_w.lock()) {
 					self->Cancel();
-					self->Accept(self->peer);
+					self->Accept(IUvPeer_s());
 				}
 				});
 			return timeouter ? 0 : -2;
@@ -1432,7 +1429,6 @@ namespace xx {
 		Dict<int, std::shared_ptr<UvDialerKcp>> reqs;		// key: port
 		UvTimer_s timeouter;
 		bool disposed = false;
-		std::shared_ptr<PeerType> peer;
 
 		std::function<IUvPeer_s(Uv& uv)> onCreatePeer;
 		std::function<void(IUvPeer_s peer)> onAccept;
@@ -1450,17 +1446,15 @@ namespace xx {
 		}
 
 		inline virtual void Accept(IUvPeer_s peer_) noexcept override {
-			assert(!this->peer);
 			auto&& peer = As<PeerType>(peer_);
 			if (peer) {
 				timeouter.reset();
 				auto&& udp = As<UvDialerKcp>(peer->udp);
 				udp->owner = nullptr;
-				this->peer = std::move(peer);
 				reqs.Clear();
 			}
 			if (this->onAccept) {
-				this->onAccept(this->peer);
+				this->onAccept(peer);
 			}
 		}
 
@@ -1513,12 +1507,9 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void Cancel(bool resetPeer = true) noexcept override {
+		inline virtual void Cancel() noexcept override {
 			if (disposed) return;
 			timeouter.reset();
-			if (resetPeer) {
-				peer.reset();
-			}
 			reqs.Clear();
 		}
 
@@ -1529,8 +1520,8 @@ namespace xx {
 			if (!timeoutMS) return 0;
 			xx::TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvKcpDialer>(shared_from_this())]{
 				if (auto self = self_w.lock()) {
-					self->Cancel(true);
-					self->Accept(As<UvKcpPeerBase>(self->peer));
+					self->Cancel();
+					self->Accept(IUvPeer_s());
 				}
 				});
 			return timeouter ? 0 : -2;
