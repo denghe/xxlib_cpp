@@ -12,7 +12,11 @@ void RunServer() {
 		xx::CoutN("SERVER: ", peer->GetIP(), " connected.");
 		peer->OnDisconnect([peer] {
 			xx::CoutN("SERVER: ", peer->GetIP(), " disconnected.");
-			});
+		});
+		peer->OnReceivePush([peer](xx::Object_s && msg) {
+			xx::CoutN("SERVER: ", peer->GetIP(), " OnReceivePush ", msg);
+			return peer->SendPush(msg);	// echo
+		});
 	};
 	listener1->OnAccept(std::function<void(xx::IUvPeer_s peer)>(acceptFunc));
 	listener2->OnAccept(std::move(acceptFunc));
@@ -33,10 +37,17 @@ void RunClient() {
 			xx::CoutN("dial timeout.");
 		}
 		else {
-			xx::CoutN("CLIENT: ", peer->GetIP(), " connected.");
+			xx::CoutN("CLIENT: connected.");
 			peer->OnDisconnect([peer] {
-				xx::CoutN("CLIENT: ", peer->GetIP(), " disconnected.");
+				xx::CoutN("CLIENT: disconnected.");
 			});
+			peer->OnReceivePush([peer](xx::Object_s && msg) {
+				xx::CoutN("CLIENT: OnReceivePush ", msg);
+				return -1;
+			});
+			auto&& bb = xx::Make<xx::BBuffer>();
+			bb->Write(1u, 2u, 3u, 4u, 5u);
+			peer->SendPush(bb);
 		}
 	};
 	dialer1->OnAccept(std::function<void(xx::IUvPeer_s peer)>(acceptFunc));
