@@ -1,32 +1,23 @@
-﻿#if USE_UDP_KCP
-inline void Listener::Accept(std::shared_ptr<xx::UvKcpBasePeer> peer_) noexcept {
-	auto&& peer = xx::As<Peer>(peer_);
-#else
-inline void Listener::Accept(std::shared_ptr<Peer> peer) noexcept {
-#endif
-	xx::CoutTN(peer->GetIP(), " connected.");
-	peer->listener = this;
-	peer->catchFish = &catchFish;
+﻿inline Service::Service() {
+	// 创建游戏上下文并加载配置文件( 多个相同游戏上下文可共享同一配置文件 )
+	catchFish = xx::Make<CatchFish>();
+	if (int r = catchFish->Init("cfg.bin")) throw r;
 
-	// 用这个事件回调来持有 peer 指针
-	peer->OnDisconnect = [peer] {
-		xx::CoutTN(peer->GetIP(), " disconnected.");
-	};
+	// tcp, kcp 同时监听同一端口
+	tcpListener = xx::Make<xx::UvTcpListener<>>(uv, "0.0.0.0", 12345);
+	kcpListener = xx::Make<xx::UvKcpListener<>>(uv, "0.0.0.0", 12345);
 
-	// 启用超时检测. xx ms 没收到包就 Disconnect. 收到合法操作数据或 ping 会再次重置
-	peer->ResetTimeoutMS(10000);
-}
+	// 为连接创建上下文对象并附加到连接. 同步生命周期
+	tcpListener->OnAccept([this](xx::IUvPeer_s peer) { new PeerContext(peer, this); });
+	kcpListener->OnAccept([this](xx::IUvPeer_s peer) { new PeerContext(peer, this); });
 
-inline Listener::Listener(xx::Uv& uv, std::string const& ip, int const& port)
-	: BaseType(uv, ip, port) {
-	if (int r = catchFish.Init("cfg.bin")) throw r;
 	xx::MakeTo(looper, uv, 0, 1, [this] {
 		auto currTicks = xx::NowEpoch10m();
 		ticksPool += currTicks - lastTicks;
 		lastTicks = currTicks;
 		while (ticksPool > ticksPerFrame) {
 			// game frame loop
-			(void)catchFish.Update();
+			(void)catchFish->Update();
 			ticksPool -= ticksPerFrame;
 		}
 	});

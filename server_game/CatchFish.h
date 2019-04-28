@@ -5,8 +5,6 @@
 #endif
 #include <cmath>
 
-#include "xx_pos.h"
-#include "xx_random.h"
 struct CatchFish;
 #ifndef CC_TARGET_PLATFORM
 struct Peer;
@@ -14,11 +12,7 @@ struct Peer;
 struct Panel_Player;
 #endif
 #ifdef CC_TARGET_PLATFORM
-
-#include "RefHolder.h"
-
 struct Dialer;
-struct CatchFish;
 std::shared_ptr<Dialer> dialer;
 CatchFish* catchFish = nullptr;
 
@@ -26,9 +20,14 @@ inline cocos2d::Scene* cc_scene = nullptr;
 inline xx::List<cocos2d::Touch*> cc_touchs;
 inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
 
+#include "RefHolder.h"
 #endif
+
+#include "xx_pos.h"
+#include "xx_random.h"
 #include "chipmunk.h"
 #include "PKG_class.h"
+
 #include "xx_random.hpp"
 
 /**************************************************************************************************/
@@ -95,9 +94,6 @@ struct CatchFish {
 };
 using CatchFish_s = std::shared_ptr<CatchFish>;
 
-
-// 如果改成 0 将启用 tcp
-#define USE_UDP_KCP 0
 
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.h"

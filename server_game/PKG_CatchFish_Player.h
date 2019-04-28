@@ -11,7 +11,7 @@ std::string token;
 int timeoutFrameNumber = 0;
 
 // 绑定的网络连接
-std::shared_ptr<Peer> peer;
+xx::IUvPeer_s peer;
 
 // 重置超时判断变量
 void ResetTimeoutFrameNumber() noexcept;

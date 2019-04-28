@@ -123,7 +123,7 @@ inline int PKG::CatchFish::Player::Kick(Args const& ... reason) noexcept {
 	recvFires.clear();
 	recvHits.clear();
 	if (peer) {
-		peer->Dispose();
+		peer->Dispose(1);
 		peer.reset();
 	}
 	return 0;

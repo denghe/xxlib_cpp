@@ -1,18 +1,17 @@
-﻿struct Listener;
-#if USE_UDP_KCP
-struct Peer : xx::UvKcpPeer {
-	using BaseType = xx::UvKcpPeer;
-#else
-struct Peer : xx::UvTcpPeer {
-	using BaseType = xx::UvTcpPeer;
-#endif
-	using BaseType::BaseType;
+﻿struct Service;
+struct PeerContext {
+	// 一些便于调用的存储
+	xx::IUvPeer_s peer;
+	Service* service = nullptr;
+	CatchFish* catchFish = nullptr;		// 所在游戏实例( 这个理论上应该从玩家来获取 )
 
-	// 引用到 listener( Listener Accept 时填充 )
-	Listener* listener = nullptr;
+	PeerContext(xx::IUvPeer_s& peer, Service* service);
 
-	// 所在游戏实例( Listener Accept 时填充 )
-	CatchFish* catchFish = nullptr;
+	// 与 player 解绑( 被原始 peer Dispose 时调用 )
+	~PeerContext();
+
+	// 得到 peer 的 PeerContext
+	static PeerContext& From(xx::IUvPeer_s const& peer);
 
 	// Enter 成功后绑定到玩家
 	PKG::CatchFish::Player_w player_w;
@@ -23,12 +22,9 @@ struct Peer : xx::UvTcpPeer {
 	// 预创建 反复用
 	inline static PKG::Generic::Pong_s pkgPong = xx::Make<PKG::Generic::Pong>();
 
-	// 处理推送
-	virtual int ReceivePush(xx::Object_s&& msg) noexcept override;
+	// 处理推送( 被原始 peer 调用 )
+	int ReceivePush(xx::Object_s&& msg) noexcept;
 
-	// 处理请求( 当前主要针对 ping )
-	virtual int ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept override;
-
-	// 附带与 player 解绑 的功能
-	virtual void Dispose(int const& flag = 1) noexcept override;
+	// 处理请求( 当前主要针对 ping )( 被原始 peer 调用 )
+	int ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept;
 };
