@@ -4,6 +4,9 @@ struct Panel_Dialer {
 	Dialer* dialer = nullptr;
 	Panel_Dialer(Dialer* dialer);
 
+	RefHolder<cocos2d::Label> btnSwitchTcpKcp;
+	RefHolder<cocos2d::EventListenerTouchOneByOne> listenerSwitchTcpKcp;
+
 	RefHolder<cocos2d::Label> btnRedial;
 	RefHolder<cocos2d::EventListenerTouchOneByOne> listenerRedial;
 
@@ -15,6 +18,7 @@ struct Panel_Dialer {
 	RefHolder<cocos2d::Label> labelNumFishs;
 	RefHolder<cocos2d::Label> labelServer;
 
+	void SetText_TcpKcp(bool const& value) noexcept;
 	void SetText_AutoFire(bool const& value) noexcept;
 	void SetText_NumDialTimes(int64_t const& value) noexcept;
 	void SetText_Ping(int64_t const& value) noexcept;

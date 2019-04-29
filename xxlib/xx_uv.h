@@ -497,7 +497,7 @@ namespace xx {
 
 		// required by UvRpcBase
 		// handle pack's content( except header )
-		inline virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept = 0;
+		virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept = 0;
 
 		// required by UvRpcBase
 		// serial == 0: push    > 0: response    < 0: request

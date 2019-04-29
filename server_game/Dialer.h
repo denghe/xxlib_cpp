@@ -4,6 +4,9 @@
 	// 拨号器
 	xx::IUvDialer_s dialer;
 
+	// 默认走 tcp 协议
+	bool useKcp = false;
+
 	// 创建拨号器. 默认 tcp. 可选 kcp.
 	void MakeDialer(bool kcp = false);
 

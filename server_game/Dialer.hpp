@@ -15,6 +15,12 @@ inline void Dialer::MakeDialer(bool kcp) {
 	}
 	dialer->OnAccept([this](xx::IUvPeer_s peer) {
 		this->peer = peer;
+		if (peer) {
+			peer->OnReceivePush([this](xx::Object_s && msg) {
+				this->recvs.push_back(std::move(msg));
+				return 0;
+			});
+		}
 		finished = true;
 	});
 }

@@ -114,7 +114,7 @@ inline int PeerContext::ReceivePush(xx::Object_s&& msg) noexcept {
 			xx::MakeTo(player->cannons);
 			xx::MakeTo(player->events);
 			player->scene = &scene;
-			//player->id = ++listener->playerAutoId;
+			player->id = ++::service->playerAutoId;
 			xx::Append(player->token, xx::Guid(true));
 			player->sit = sit;
 			player->pos = scene.cfg->sitPositons->At((int)sit);

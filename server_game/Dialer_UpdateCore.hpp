@@ -8,6 +8,9 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	// 显示目标服务器 ip:port
 	panel->SetText_Server(catchFish->serverIp + ":" + std::to_string(catchFish->serverPort));
 
+	// 显示拨号器协议
+	panel->SetText_TcpKcp(useKcp);
+
 	// begin resolve domain to iplist
 LabResolveDomain:
 
@@ -30,6 +33,9 @@ LabResolveDomain:
 
 	// ip list -> connected peer
 LabDial:
+	// 创建指定协议拨号器
+	MakeDialer(useKcp);
+
 	// clear flag
 	finished = false;
 
@@ -66,6 +72,7 @@ LabDial:
 		goto LabDial;
 	}
 
+	xx::CoutTN("step 3");
 	// wait recv data
 	waitMS = xx::NowSteadyEpochMS() + 5000;	// calc timeout
 	while (!recvs.size()) {
@@ -73,13 +80,14 @@ LabDial:
 			if (xx::NowSteadyEpochMS() > waitMS) goto LabDial;
 	}
 
+	xx::CoutTN("step 4");
 	// first package handle
 	if (r = HandleFirstPackage()) {
 		// todo: show error?
 		goto LabDial;
 	}
 
-	xx::CoutTN("step 3");
+	xx::CoutTN("step 5");
 
 	// 记录 / 计算收到的 last frame number 用于接收超时判断( 暂定 5 秒 )
 	timeoutFrameNumber = ::catchFish->scene->frameNumber + 60 * 5;

@@ -100,7 +100,6 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #else
 #include "Panel_Dialer.h"
 #include "Panel_Player.h"
-#include "ClientPeer.h"
 #include "Dialer.h"
 #endif
 
@@ -129,6 +128,5 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #else
 #include "Panel_Dialer.hpp"
 #include "Panel_Player.hpp"
-#include "ClientPeer.hpp"
 #include "Dialer.hpp"
 #endif

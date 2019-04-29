@@ -3,10 +3,13 @@
 #include "xx_uv.h"
 xx::Uv uv;
 
+struct Service;
+Service* service;
 #include "CatchFish.h"
 
 int main() {
-	Service service;
+	::service = new Service();
 	uv.Run();
+	delete ::service;
 	return 0;
 }

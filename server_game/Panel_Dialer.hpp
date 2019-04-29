@@ -9,6 +9,34 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 		cc_scene->addChild(labelServer);
 	}
 	{
+		btnSwitchTcpKcp = cocos2d::Label::createWithSystemFont("", "", 32);
+		btnSwitchTcpKcp->setPosition(10 - screenCenter.x, 270 - screenCenter.y);
+		btnSwitchTcpKcp->setAnchorPoint({ 0, 0.5 });
+		btnSwitchTcpKcp->setGlobalZOrder(1000);
+		cc_scene->addChild(btnSwitchTcpKcp);
+
+		listenerSwitchTcpKcp = cocos2d::EventListenerTouchOneByOne::create();
+		listenerSwitchTcpKcp->onTouchBegan = [this](cocos2d::Touch * t, cocos2d::Event * e) {
+			auto&& tL = t->getLocation();
+			auto&& p = btnSwitchTcpKcp->convertToNodeSpace(tL);
+			auto&& s = btnSwitchTcpKcp->getContentSize();
+			cocos2d::Rect r{ 0,0, s.width, s.height };
+			auto&& b = r.containsPoint(p);
+			if (b) {
+				if (this->dialer->dialer) {
+					this->dialer->dialer->Dispose(1);
+				}
+				if (this->dialer->peer) {
+					this->dialer->peer->Dispose(1);
+				}
+				this->dialer->useKcp = !this->dialer->useKcp;
+				this->SetText_TcpKcp(this->dialer->useKcp);
+			}
+			return b;
+		};
+		cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listenerSwitchTcpKcp, btnSwitchTcpKcp);
+	}
+	{
 		btnRedial = cocos2d::Label::createWithSystemFont("Redial", "", 32);
 		btnRedial->setPosition(10 - screenCenter.x, 90 - screenCenter.y);
 		btnRedial->setAnchorPoint({ 0, 0.5 });
@@ -77,6 +105,13 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 	}
 }
 
+inline void Panel_Dialer::SetText_TcpKcp(bool const& value) noexcept {
+	assert(!::catchFish->disposed);
+	if (!btnSwitchTcpKcp) return;
+	std::string s = "protocol: ";
+	s += value ? "KCP" : "TCP";
+	btnSwitchTcpKcp->setString(s);
+}
 inline void Panel_Dialer::SetText_AutoFire(bool const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!btnAutoFire) return;
