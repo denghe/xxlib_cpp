@@ -448,7 +448,7 @@ namespace xx {
 
 		inline virtual void Flush() noexcept override {}
 
-		inline virtual void Update(int64_t const& nowMS) noexcept {}
+		inline virtual int Update(int64_t const& nowMS) noexcept { return 0; }
 
 		inline virtual void OnDisconnect(std::function<void()> && func) noexcept override {
 			onDisconnect = std::move(func);
@@ -630,13 +630,13 @@ namespace xx {
 		}
 
 		// call by timer
-		inline virtual void Update(int64_t const& nowMS) noexcept override {
+		inline virtual int Update(int64_t const& nowMS) noexcept override {
 			assert(!this->Disposed());
-			this->BaseType::Update(nowMS);
+			if (int r = this->BaseType::Update(nowMS)) return r;
 
 			if (this->timeoutMS && this->timeoutMS < nowMS) {
 				this->Dispose(1);
-				return;
+				return -1;
 			}
 
 			for (auto&& iter = this->callbacks.begin(); iter != this->callbacks.end(); ++iter) {
@@ -647,6 +647,8 @@ namespace xx {
 					a(nullptr);
 				}
 			}
+
+			return 0;
 		}
 	};
 
@@ -1065,17 +1067,17 @@ namespace xx {
 		}
 
 		// called by ext class
-		inline virtual void Update(int64_t const& nowMS) noexcept {
-			if (!kcp) return;
+		inline virtual int Update(int64_t const& nowMS) noexcept {
+			if (!kcp) return -1;
 			if (this->timeoutMS && this->timeoutMS < nowMS) {
 				this->Dispose(1);
-				return;
+				return -1;
 			}
 
 			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: uint32 limit. connect only alive 50+ days
-			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return;						// reduce cpu usage
+			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return 0;						// reduce cpu usage
 			ikcp_update(kcp, currentMS);
-			if (!kcp) return;
+			if (!kcp) return -1;
 			if (uv.runMode == UV_RUN_DEFAULT) {
 				nextUpdateMS = ikcp_check(kcp, currentMS);
 			}
@@ -1085,9 +1087,11 @@ namespace xx {
 				if (recvLen <= 0) break;
 				if (int r = Unpack((uint8_t*)uv.recvBuf, recvLen)) {
 					Dispose(1);
-					return;
+					return -1;
 				}
 			} while (true);
+
+			return 0;
 		}
 
 		// push send data to kcp. though ikcp_setoutput func send.
