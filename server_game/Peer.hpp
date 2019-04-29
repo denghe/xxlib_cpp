@@ -8,6 +8,8 @@ inline PeerContext::PeerContext(xx::IUvPeer_s& peer, Service* service)
 		delete (PeerContext*)peer->userData;
 		peer->userData = nullptr;
 	});
+	peer->OnReceivePush([this](xx::Object_s && msg) { return this->ReceivePush(std::move(msg)); });
+	peer->OnReceiveRequest([this](int const& serial, xx::Object_s && msg) { return this->ReceiveRequest(serial, std::move(msg)); });
 }
 
 inline PeerContext::~PeerContext() noexcept {
