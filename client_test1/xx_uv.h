@@ -14,12 +14,15 @@ namespace xx {
 		BBuffer recvBB;								// shared deserialization for package receive. direct replace buf when using
 		BBuffer sendBB;								// shared serialization for package send
 		int autoId = 0;								// udps key, udp dialer port gen: --autoId
-		Dict<int, std::weak_ptr<UvKcp>> udps;	// key: port( dialer peer port = autoId )
+		Dict<int, std::weak_ptr<UvKcp>> udps;		// key: port( dialer peer port = autoId )
 		char* recvBuf = nullptr;					// shared receive buf for kcp
 		size_t recvBufLen = 65535;					// shared receive buf's len
 		uv_run_mode runMode = UV_RUN_DEFAULT;		// reduce frame client update kcp delay
 
-		Uv();
+		Uv() {
+			if (int r = uv_loop_init(&uvLoop)) throw r;
+			recvBuf = new char[recvBufLen];
+		}
 		Uv(Uv const&) = delete;
 		Uv& operator=(Uv const&) = delete;
 
@@ -36,7 +39,10 @@ namespace xx {
 			assert(!r);
 		}
 
-		int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept;
+		int Uv::Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
+			runMode = mode;
+			return uv_run(&uvLoop, mode);
+		}
 
 		inline void Stop() {
 			uv_stop(&uvLoop);
@@ -120,6 +126,9 @@ namespace xx {
 		*/
 		virtual bool Disposed() const noexcept = 0;
 		virtual void Dispose(int const& flag) noexcept = 0;	// flag == 0 : call by ~T()
+
+		// user data
+		void* userData = nullptr;
 	};
 	using UvItem_s = std::shared_ptr<UvItem>;
 	using UvItem_w = std::weak_ptr<UvItem>;
@@ -182,7 +191,7 @@ namespace xx {
 		uv_timer_t* uvTimer = nullptr;
 		uint64_t timeoutMS = 0;
 		uint64_t repeatIntervalMS = 0;
-		std::function<void()> OnFire;
+		std::function<void()> onFire;
 
 		UvTimer(Uv& uv)
 			: UvItem(uv) {
@@ -209,7 +218,7 @@ namespace xx {
 			Uv::HandleCloseAndFree(uvTimer);
 			if (flag) {
 				auto holder = shared_from_this();
-				OnFire = nullptr;
+				onFire = nullptr;
 			}
 		}
 
@@ -217,7 +226,7 @@ namespace xx {
 			if (!uvTimer) return -1;
 			this->timeoutMS = timeoutMS;
 			this->repeatIntervalMS = repeatIntervalMS;
-			this->OnFire = std::move(onFire);
+			this->onFire = std::move(onFire);
 			return uv_timer_start(uvTimer, Fire, timeoutMS, repeatIntervalMS);
 		}
 		inline int Restart() noexcept {
@@ -241,8 +250,8 @@ namespace xx {
 	protected:
 		inline static void Fire(uv_timer_t * t) {
 			auto self = Uv::GetSelf<UvTimer>(t);
-			if (self->OnFire) {
-				self->OnFire();
+			if (self->onFire) {
+				self->onFire();
 			}
 		}
 	};
@@ -262,7 +271,7 @@ namespace xx {
 		UvTimer_s timeouter;
 		bool disposed = false;
 		std::vector<std::string> ips;
-		std::function<void()> OnFinish;
+		std::function<void()> onFinish;
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 		addrinfo hints;
 #endif
@@ -289,7 +298,7 @@ namespace xx {
 			Cancel();
 			if (flag) {
 				auto holder = shared_from_this();
-				OnFinish = nullptr;
+				onFinish = nullptr;
 			}
 		}
 
@@ -309,8 +318,8 @@ namespace xx {
 			if (timeoutMS) {
 				TryMakeTo(timeouter, uv, timeoutMS, 0, [this] {
 					Cancel();
-					if (OnFinish) {
-						OnFinish();
+					if (onFinish) {
+						onFinish();
 					}
 					});
 				if (!timeouter) return -2;
@@ -345,8 +354,8 @@ namespace xx {
 				uv_freeaddrinfo(ai);
 
 				resolver->timeouter.reset();
-				if (resolver->OnFinish) {
-					resolver->OnFinish();
+				if (resolver->onFinish) {
+					resolver->onFinish();
 				}
 
 				}, domainName.c_str(), nullptr,
@@ -361,65 +370,241 @@ namespace xx {
 		}
 	};
 
-	struct IUvPeer : UvItem {
+	struct UvPeer;
+	using UvPeer_s = std::shared_ptr<UvPeer>;
+	using UvPeer_w = std::weak_ptr<UvPeer>;
+
+	struct UvPeerBase : UvItem {
 		using UvItem::UvItem;
-		using RpcFunc = std::function<int(Object_s&& msg)>;
+		UvPeer* peer = nullptr;
 		virtual std::string GetIP() noexcept = 0;
-		virtual void ResetTimeoutMS(int64_t const& ms) noexcept = 0;
-		virtual int Send(uint8_t const* const& buf, ssize_t const& dataLen, sockaddr const* const& addr = nullptr) noexcept = 0;
+		virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept = 0;
 		virtual void Flush() noexcept = 0;
-		virtual void OnDisconnect(std::function<void()>&& func) noexcept = 0;
-		virtual void Disconnect() noexcept = 0;
-		virtual void OnReceivePush(RpcFunc&& func) noexcept = 0;
-		virtual int ReceivePush(Object_s&& msg) noexcept = 0;
-		virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) = 0;
-		virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept = 0;
-		virtual int SendPush(Object_s const& data) noexcept = 0;
-		virtual int SendResponse(int32_t const& serial, Object_s const& data) noexcept = 0;
-		virtual int SendRequest(Object_s const& data, RpcFunc&& cb, uint64_t const& timeoutMS) noexcept = 0;
+		virtual int Update(int64_t const& nowMS) noexcept = 0;
 	};
-	using IUvPeer_s = std::shared_ptr<IUvPeer>;
-	using IUvPeer_w = std::weak_ptr<IUvPeer>;
+	using UvPeerBase_s = std::shared_ptr<UvPeerBase>;
 
-	struct IUvListener : UvItem {
+	struct UvCreateAcceptBase : UvItem {
 		using UvItem::UvItem;
-		virtual void OnCreatePeer(std::function<IUvPeer_s(Uv& uv)>&& func) noexcept = 0;
-		virtual IUvPeer_s CreatePeer() noexcept = 0;
-		virtual void OnAccept(std::function<void(IUvPeer_s peer)>&& func) noexcept = 0;
-		virtual void Accept(IUvPeer_s peer) noexcept = 0;
-	};
-	using IUvListener_s = std::shared_ptr<IUvListener>;
-	using IUvListener_w = std::weak_ptr<IUvListener>;
+		std::function<UvPeer_s(Uv& uv)> onCreatePeer;
+		std::function<void(UvPeer_s peer)> onAccept;
 
-	struct IUvDialer : IUvListener {
-		using IUvListener::IUvListener;
+		inline virtual UvPeer_s CreatePeer() noexcept {
+			return onCreatePeer ? onCreatePeer(uv) : TryMake<UvPeer>(uv);
+		}
+
+		inline virtual void Accept(UvPeer_s peer) noexcept {
+			if (onAccept) {
+				onAccept(peer);
+			}
+		}
+	};
+
+	struct UvKcpListener;
+	struct UvTcpListener;
+	struct UvListener : UvCreateAcceptBase {
+		std::shared_ptr<UvTcpListener> tcpListener;
+		std::shared_ptr<UvKcpListener> kcpListener;
+
+		UvListener(Uv& uv, std::string const& ip, int const& port, int tcpKcpOpt = 2);
+		~UvListener() {
+			Dispose(0);
+		}
+		inline virtual bool Disposed() const noexcept override {
+			return !tcpListener && !kcpListener;
+		}
+		virtual void Dispose(int const& flag) noexcept;
+	};
+	using UvListener_s = std::shared_ptr<UvListener>;
+	using UvListener_w = std::weak_ptr<UvListener>;
+
+
+	struct UvListenerBase : UvItem {
+		using UvItem::UvItem;
+		UvListener* listener = nullptr;
+		virtual void Accept(UvPeerBase_s peer) noexcept;
+	};
+
+	struct UvDialer;
+	struct UvDialerBase : UvItem {
+		using UvItem::UvItem;
+		UvDialer* dialer = nullptr;
 		virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept = 0;
 		virtual int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS) noexcept = 0;
 		virtual int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS) noexcept = 0;
-		virtual void Cancel(bool resetPeer = true) noexcept = 0;
+		virtual void Cancel() noexcept = 0;
+		virtual void Accept(UvPeerBase_s peer) noexcept = 0;
 	};
-	using IUvDialer_s = std::shared_ptr<IUvDialer>;
-	using IUvDialer_w = std::weak_ptr<IUvDialer>;
 
+	struct UvPeer : UvItem {
+		UvPeerBase_s peerBase;		// fill after make
+		Dict<int, std::pair<std::function<int(Object_s&& msg)>, int64_t>> callbacks;
+		int serial = 0;
+		int64_t timeoutMS = 0;
+		UvTimer_s timer;
+		std::function<void()> onDisconnect;
+		std::function<int(Object_s&& msg)> onReceivePush;
+		std::function<int(int const& serial, Object_s&& msg)> onReceiveRequest;
+
+		UvPeer(Uv& uv)
+			: UvItem(uv) {
+			MakeTo(timer, uv, 10, 10, [this] {
+				Update(NowSteadyEpochMS());
+				});
+		}
+
+		inline std::string GetIP() noexcept {
+			return peerBase->GetIP();
+		}
+
+		inline void ResetTimeoutMS(int64_t const& ms) noexcept {
+			timeoutMS = ms ? NowSteadyEpochMS() + ms : 0;
+		}
+
+		inline void Flush() noexcept {
+			peerBase->Flush();
+		};
+
+		inline void Disconnect() noexcept {
+			if (onDisconnect) {
+				onDisconnect();
+			}
+		}
+
+		inline int ReceivePush(Object_s&& msg) noexcept {
+			return onReceivePush ? onReceivePush(std::move(msg)) : 0;
+		}
+
+		inline int ReceiveRequest(int const& serial, Object_s&& msg) noexcept {
+			return onReceiveRequest ? onReceiveRequest(serial, std::move(msg)) : 0;
+		}
+
+		inline int SendPush(Object_s const& data) noexcept {
+			return peerBase->SendPackage(data);
+		}
+
+		inline int SendResponse(int32_t const& serial, Object_s const& data) noexcept {
+			return peerBase->SendPackage(data, serial);
+		}
+
+		inline int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS) noexcept {
+			if (!peerBase) return -1;
+			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
+			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
+			if (timeoutMS) {
+				v.second = NowSteadyEpochMS() + timeoutMS;
+			}
+			if (int r = peerBase->SendPackage(data, -serial)) return r;
+			v.first = std::move(cb);
+			callbacks[serial] = std::move(v);
+			return 0;
+		}
+
+		inline int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+			// for kcp listener accept
+			if (recvLen == 1 && *recvBuf == 0) return 0;
+
+			auto & recvBB = uv.recvBB;
+			recvBB.Reset((uint8_t*)recvBuf, recvLen);
+
+			int serial = 0;
+			if (int r = recvBB.Read(serial)) return r;
+			Object_s msg;
+			if (int r = recvBB.ReadRoot(msg)) return r;
+
+			if (serial == 0) {
+				return ReceivePush(std::move(msg));
+			}
+			else if (serial < 0) {
+				return ReceiveRequest(-serial, std::move(msg));
+			}
+			else {
+				auto&& idx = callbacks.Find(serial);
+				if (idx == -1) return 0;
+				auto a = std::move(callbacks.ValueAt(idx).first);
+				callbacks.RemoveAt(idx);
+				return a(std::move(msg));
+			}
+		}
+
+		// call by timer
+		inline int Update(int64_t const& nowMS) noexcept {
+			assert(peerBase);
+			if (timeoutMS && timeoutMS < nowMS) {
+				Dispose(1);
+				return -1;
+			}
+
+			if (int r = peerBase->Update(nowMS)) return r;
+
+			for (auto&& iter = callbacks.begin(); iter != callbacks.end(); ++iter) {
+				auto&& v = iter->value;
+				if (v.second < nowMS) {
+					auto a = std::move(v.first);
+					iter.Remove();
+					a(nullptr);
+				}
+			}
+
+			return 0;
+		}
+
+		inline virtual bool Disposed() const noexcept override {
+			return !peerBase;
+		}
+
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (!peerBase) return;
+			peerBase.reset();
+			timer.reset();
+			for (auto&& kv : callbacks) {
+				kv.value.first(nullptr);
+			}
+			callbacks.Clear();
+			if (flag) {
+				auto holder = shared_from_this();
+				Disconnect();
+				onDisconnect = nullptr;
+				onReceivePush = nullptr;
+				onReceiveRequest = nullptr;
+			}
+		}
+	};
+
+	inline void UvListenerBase::Accept(UvPeerBase_s peer) noexcept {
+		auto&& p = listener->CreatePeer();
+		p->peerBase = peer;
+		listener->Accept(p);
+	}
 
 	struct uv_write_t_ex : uv_write_t {
 		uv_buf_t buf;
 	};
 
-	struct UvTcpPeerBase : IUvPeer {
+	struct UvTcpPeerBase : UvPeerBase {
 		uv_tcp_t* uvTcp = nullptr;
-		int64_t timeoutMS = 0;
 		std::string ip;
 		Buffer buf;
-		std::function<void()> onDisconnect;
 
-		UvTcpPeerBase(Uv& uv) : IUvPeer(uv) {
+		UvTcpPeerBase(Uv& uv) : UvPeerBase(uv) {
 			uvTcp = Uv::Alloc<uv_tcp_t>(this);
 			if (!uvTcp) throw - 1;
 			if (int r = uv_tcp_init(&uv.uvLoop, uvTcp)) {
 				uvTcp = nullptr;
 				throw r;
 			}
+		}
+
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (!uvTcp) return;
+			Uv::HandleCloseAndFree(uvTcp);
+			if (flag) {
+				peer->Dispose(flag);
+			}
+		}
+
+		~UvTcpPeerBase() {
+			Dispose(0);
 		}
 
 		inline virtual bool Disposed() const noexcept override {
@@ -430,33 +615,29 @@ namespace xx {
 			return ip;
 		}
 
-		inline virtual void ResetTimeoutMS(int64_t const& ms) noexcept override {
-			this->timeoutMS = ms ? NowSteadyEpochMS() + ms : 0;
-		}
-
-		inline virtual int Send(uint8_t const* const& buf, ssize_t const& dataLen, sockaddr const* const& unusedAddr = nullptr) noexcept override {
+		// serial == 0: push    > 0: response    < 0: request
+		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
 			if (!uvTcp) return -1;
-			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + dataLen);
-			if (!req) return -2;
-			memcpy(req + 1, buf, dataLen);
-			req->buf.base = (char*)(req + 1);
-			req->buf.len = decltype(uv_buf_t::len)(dataLen);
-			return SendReq(req);
+			auto& sendBB = uv.sendBB;
+			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
+			sendBB.Reserve(1024);
+			sendBB.len = sizeof(uv_write_t_ex) + 4;		// skip uv_write_t_ex + header space
+			sendBB.Write(serial);
+			sendBB.WriteRoot(data);
+
+			auto buf = sendBB.buf;						// cut buf memory for send
+			auto len = sendBB.len - sizeof(uv_write_t_ex) - 4;
+			sendBB.buf = nullptr;
+			sendBB.len = 0;
+			sendBB.cap = 0;
+
+			return SendReqAndData(buf, (uint32_t)len);
 		}
 
 		inline virtual void Flush() noexcept override {}
 
-		inline virtual void Update(int64_t const& nowMS) noexcept {}
+		inline virtual int Update(int64_t const& nowMS) noexcept { return 0; }
 
-		inline virtual void OnDisconnect(std::function<void()> && func) noexcept override {
-			onDisconnect = std::move(func);
-		}
-
-		inline virtual void Disconnect() noexcept {
-			if (onDisconnect) {
-				onDisconnect();
-			}
-		}
 
 		// called by dialer or listener
 		inline int ReadStart() noexcept {
@@ -473,9 +654,9 @@ namespace xx {
 						self->Dispose(1);
 					}
 				}
-			});
+				});
 		}
-	protected:
+
 		// 4 byte len header. can override for write custom header format
 		virtual int Unpack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
@@ -486,35 +667,21 @@ namespace xx {
 				if (offset + 4 + len > buf.len) break;				// not enough data
 
 				offset += 4;
-				if (int r = HandlePack(buf.buf + offset, len)) return r;
+				if (int r = peer->HandlePack(buf.buf + offset, len)) return r;
 				offset += len;
 			}
 			buf.RemoveFront(offset);
 			return 0;
 		}
 
-		// required by UvRpcBase
-		// handle pack's content( except header )
-		inline virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept = 0;
-
-		// required by UvRpcBase
-		// serial == 0: push    > 0: response    < 0: request
-		inline int SendPackage(Object_s const& data, int32_t const& serial = 0) {
-			if (this->Disposed()) return -1;
-			auto& sendBB = this->uv.sendBB;
-			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
-			sendBB.Reserve(1024);
-			sendBB.len = sizeof(uv_write_t_ex) + 4;		// skip uv_write_t_ex + header space
-			sendBB.Write(serial);
-			sendBB.WriteRoot(data);
-
-			auto buf = sendBB.buf;						// cut buf memory for send
-			auto len = sendBB.len - sizeof(uv_write_t_ex) - 4;
-			sendBB.buf = nullptr;
-			sendBB.len = 0;
-			sendBB.cap = 0;
-
-			return this->SendReqAndData(buf, (uint32_t)len);
+		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
+			if (!uvTcp) return -1;
+			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + dataLen);
+			if (!req) return -2;
+			memcpy(req + 1, buf, dataLen);
+			req->buf.base = (char*)(req + 1);
+			req->buf.len = decltype(uv_buf_t::len)(dataLen);
+			return SendReq(req);
 		}
 
 		// launch a send request
@@ -543,367 +710,6 @@ namespace xx {
 		}
 	};
 
-
-	// for tcp & udp attach high level funcs
-	template<typename BaseType>
-	struct UvRpcBase : BaseType {
-		using RpcFunc = std::function<int(Object_s&& msg)>;
-		int serial = 0;
-		Dict<int, std::pair<RpcFunc, int64_t>> callbacks;
-		UvTimer_s timer;
-		RpcFunc onReceivePush;
-		std::function<int(int const& serial, Object_s&& msg)> onReceiveRequest;
-
-		UvRpcBase(Uv& uv) : BaseType(uv) {
-			MakeTo(timer, uv, 10, 10, [this] {
-				this->Update(NowSteadyEpochMS());
-			});
-		}
-
-		inline virtual void OnReceivePush(RpcFunc&& func) noexcept override {
-			onReceivePush = std::move(func);
-		}
-
-		inline virtual int ReceivePush(Object_s&& msg) noexcept override {
-			return onReceivePush ? onReceivePush(std::move(msg)) : 0;
-		}
-
-		inline virtual void OnReceiveRequest(std::function<int(int const& serial, Object_s&& msg)>&& func) override {
-			onReceiveRequest = std::move(func);
-		}
-		inline virtual int ReceiveRequest(int const& serial, Object_s&& msg) noexcept override {
-			return onReceiveRequest ? onReceiveRequest(serial, std::move(msg)) : 0;
-		}
-
-		inline virtual int SendPush(Object_s const& data) noexcept override {
-			return this->SendPackage(data);
-		}
-
-		inline virtual int SendResponse(int32_t const& serial, Object_s const& data) noexcept override {
-			return this->SendPackage(data, serial);
-		}
-
-		inline virtual int SendRequest(Object_s const& data, RpcFunc&& cb, uint64_t const& timeoutMS = 0) noexcept override {
-			if (this->Disposed()) return -1;
-			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
-			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
-			if (timeoutMS) {
-				v.second = NowSteadyEpochMS() + timeoutMS;
-			}
-			if (int r = this->SendPackage(data, -serial)) return r;
-			v.first = std::move(cb);
-			callbacks[serial] = std::move(v);
-			return 0;
-		}
-
-	protected:
-		virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept override {
-			// for kcp listener accept
-			if constexpr (std::is_base_of_v<UvKcpPeerBase, BaseType>) {
-				if (recvLen == 1 && *recvBuf == 0) return 0;
-			}
-
-			auto& recvBB = this->uv.recvBB;
-			recvBB.Reset((uint8_t*)recvBuf, recvLen);
-
-			int serial = 0;
-			if (int r = recvBB.Read(serial)) return r;
-			Object_s msg;
-			if (int r = recvBB.ReadRoot(msg)) return r;
-
-			if (serial == 0) {
-				return ReceivePush(std::move(msg));
-			}
-			else if (serial < 0) {
-				return ReceiveRequest(-serial, std::move(msg));
-			}
-			else {
-				auto&& idx = callbacks.Find(serial);
-				if (idx == -1) return 0;
-				auto a = std::move(callbacks.ValueAt(idx).first);
-				callbacks.RemoveAt(idx);
-				return a(std::move(msg));
-			}
-		}
-
-		// call by timer
-		inline virtual void Update(int64_t const& nowMS) noexcept override {
-			assert(!this->Disposed());
-			this->BaseType::Update(nowMS);
-
-			if (this->timeoutMS && this->timeoutMS < nowMS) {
-				this->Dispose(1);
-				return;
-			}
-
-			for (auto&& iter = this->callbacks.begin(); iter != this->callbacks.end(); ++iter) {
-				auto&& v = iter->value;
-				if (v.second < nowMS) {
-					auto a = std::move(v.first);
-					iter.Remove();
-					a(nullptr);
-				}
-			}
-		}
-	};
-
-	// pack struct: [tar,] serial, data
-	struct UvTcpPeer : UvRpcBase<UvTcpPeerBase> {
-		using BaseType = UvRpcBase<UvTcpPeerBase>;
-		using BaseType::BaseType;
-		UvTcpPeer(UvTcpPeer const&) = delete;
-		UvTcpPeer& operator=(UvTcpPeer const&) = delete;
-
-		~UvTcpPeer() {
-			this->Dispose(0);
-		}
-
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (this->Disposed()) return;
-			Uv::HandleCloseAndFree(this->uvTcp);
-			for (auto&& kv : this->callbacks) {
-				kv.value.first(nullptr);
-			}
-			this->callbacks.Clear();
-			if (flag) {
-				auto holder = shared_from_this();
-				this->timer.reset();
-				this->Disconnect();
-				this->onDisconnect = nullptr;
-				this->onReceivePush = nullptr;
-				this->onReceiveRequest = nullptr;
-			}
-		}
-	};
-	using UvTcpPeer_s = std::shared_ptr<UvTcpPeer>;
-	using UvTcpPeer_w = std::weak_ptr<UvTcpPeer>;
-
-
-	template<typename PeerType = UvTcpPeer>
-	struct UvTcpListener : IUvListener {
-		uv_tcp_t* uvTcp = nullptr;
-		sockaddr_in6 addr;
-		std::function<IUvPeer_s(Uv& uv)> onCreatePeer;
-		std::function<void(IUvPeer_s peer)> onAccept;
-
-		inline virtual void OnCreatePeer(std::function<IUvPeer_s(Uv& uv)>&& func) noexcept {
-			onCreatePeer = std::move(func);
-		}
-
-		inline virtual IUvPeer_s CreatePeer() noexcept {
-			return onCreatePeer ? onCreatePeer(uv) : TryMake<PeerType>(uv);
-		}
-
-		virtual void OnAccept(std::function<void(IUvPeer_s peer)>&& func) noexcept {
-			onAccept = std::move(func);
-		}
-
-		inline virtual void Accept(IUvPeer_s peer) noexcept {
-			if (onAccept) {
-				onAccept(peer);
-			}
-		}
-
-		UvTcpListener(Uv& uv, std::string const& ip, int const& port, int const& backlog = 128)
-			: IUvListener(uv) {
-
-			uvTcp = Uv::Alloc<uv_tcp_t>(this);
-			if (!uvTcp) throw - 4;
-			if (int r = uv_tcp_init(&uv.uvLoop, uvTcp)) {
-				uvTcp = nullptr;
-				throw r;
-			}
-
-			if (ip.find(':') == std::string::npos) {
-				if (uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)& addr)) throw - 1;
-			}
-			else {
-				if (uv_ip6_addr(ip.c_str(), port, &addr)) throw - 2;
-			}
-			if (uv_tcp_bind(uvTcp, (sockaddr*)& addr, 0)) throw - 3;
-
-			if (uv_listen((uv_stream_t*)uvTcp, backlog, [](uv_stream_t * server, int status) {
-				if (status) return;
-				auto self = Uv::GetSelf<UvTcpListener<PeerType>>(server);
-				auto peer = xx::As<PeerType>(self->CreatePeer());
-				if (!peer) return;
-				if (uv_accept(server, (uv_stream_t*)peer->uvTcp)) return;
-				if (peer->ReadStart()) return;
-				Uv::FillIP(peer->uvTcp, peer->ip);
-				self->Accept(peer);
-				})) throw - 4;
-		};
-
-		UvTcpListener(UvTcpListener const&) = delete;
-		UvTcpListener& operator=(UvTcpListener const&) = delete;
-		~UvTcpListener() { this->Dispose(0); }
-
-		inline virtual bool Disposed() const noexcept override {
-			return !uvTcp;
-		}
-
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!uvTcp) return;
-			Uv::HandleCloseAndFree(uvTcp);
-			if (flag) {
-				auto holder = shared_from_this();
-				onCreatePeer = nullptr;
-				onAccept = nullptr;
-			}
-		}
-	};
-
-	template<typename PeerType = UvTcpPeer>
-	struct UvTcpDialer;
-
-	template<typename PeerType>
-	struct uv_connect_t_ex {
-		uv_connect_t req;
-		std::shared_ptr<PeerType> peer;
-		std::weak_ptr<UvTcpDialer<PeerType>> dialer_w;
-		bool finished = false;
-	};
-
-	template<typename PeerType>
-	struct UvTcpDialer : IUvDialer {
-		using IUvDialer::IUvDialer;
-		using ThisType = UvTcpDialer<PeerType>;
-		using ReqType = uv_connect_t_ex<PeerType>;
-		std::vector<ReqType*> reqs;
-		UvTimer_s timeouter;
-		bool disposed = false;
-		std::shared_ptr<PeerType> peer;
-
-		std::function<IUvPeer_s(Uv& uv)> onCreatePeer;
-		std::function<void(IUvPeer_s peer)> onAccept;
-
-		inline virtual void OnCreatePeer(std::function<IUvPeer_s(Uv& uv)>&& func) noexcept {
-			onCreatePeer = std::move(func);
-		}
-
-		inline virtual IUvPeer_s CreatePeer() noexcept {
-			return onCreatePeer ? onCreatePeer(uv) : TryMake<PeerType>(uv);
-		}
-
-		virtual void OnAccept(std::function<void(IUvPeer_s peer)>&& func) noexcept {
-			onAccept = std::move(func);
-		}
-
-		inline virtual void Accept(IUvPeer_s peer) noexcept {
-			if (onAccept) {
-				onAccept(peer);
-			}
-		}
-
-		UvTcpDialer(UvTcpDialer const&) = delete;
-		UvTcpDialer& operator=(UvTcpDialer const&) = delete;
-		~UvTcpDialer() { this->Dispose(0); }
-
-		inline virtual bool Disposed() const noexcept override {
-			return disposed;
-		}
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (disposed) return;
-			Cancel();
-			if (flag) {
-				auto holder = shared_from_this();
-				onCreatePeer = nullptr;
-				onAccept = nullptr;
-			}
-		}
-
-		inline virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept override {
-			if (disposed) return -1;
-			if (cleanup) {
-				Cancel();
-				if (int r = SetTimeout(timeoutMS)) return r;
-			}
-
-			sockaddr_in6 addr;
-			if (ip.find(':') == std::string::npos) {								// ipv4
-				if (int r = uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)& addr)) return r;
-			}
-			else {																	// ipv6
-				if (int r = uv_ip6_addr(ip.c_str(), port, &addr)) return r;
-			}
-
-			auto req = new (std::nothrow) ReqType();
-			if (!req) return -1;
-			xx::ScopeGuard sgReq([&req] { delete req; });
-
-			req->peer = xx::As<PeerType>(CreatePeer());
-			if (!req->peer) return -2;
-
-			req->dialer_w = As<ThisType>(shared_from_this());
-
-			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)& addr, [](uv_connect_t * conn, int status) {
-				auto req = std::unique_ptr<ReqType>(container_of(conn, ReqType, req));	// auto delete when return
-				if (req->finished) return;												// canceled
-				req->finished = true;													// set flag
-				auto dialer = req->dialer_w.lock();
-				if (!dialer) return;													// container disposed
-				if (status) return;														// error or -4081 canceled
-				if (req->peer->ReadStart()) return;										// read error
-
-				dialer->Cancel();														// cancel other reqs
-				dialer->peer = std::move(req->peer);									// store peer
-				Uv::FillIP(dialer->peer->uvTcp, dialer->peer->ip);
-				dialer->Accept(dialer->peer);											// callback
-				})) return -3;
-
-			reqs.push_back(req);
-			sgReq.Cancel();
-			return 0;
-		}
-
-		inline virtual int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS = 0) noexcept override {
-			if (disposed) return -1;
-			Cancel();
-			if (int r = SetTimeout(timeoutMS)) return r;
-			for (auto&& ip : ips) {
-				if (int r = Dial(ip, port, 0, false)) return r;
-			}
-			return 0;
-		}
-		inline virtual int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS = 0) noexcept override {
-			if (disposed) return -1;
-			Cancel();
-			if (int r = SetTimeout(timeoutMS)) return r;
-			for (auto&& ipport : ipports) {
-				if (int r = Dial(ipport.first, ipport.second, 0, false)) return r;
-			}
-			return 0;
-		}
-
-		inline virtual void Cancel(bool resetPeer = true) noexcept override {
-			if (disposed) return;
-			timeouter.reset();
-			if (resetPeer) {
-				peer.reset();
-			}
-			for (auto&& req : reqs) {
-				if (!req->finished) {
-					req->finished = true;
-					uv_cancel((uv_req_t*)& req->req);
-				}
-			}
-			reqs.clear();
-		}
-
-	protected:
-		inline int SetTimeout(uint64_t const& timeoutMS = 0) noexcept {
-			if (disposed) return -1;
-			TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
-				if (auto self = self_w.lock()) {
-					self->Cancel();
-					self->Accept(self->peer);
-				}
-				});
-			return timeouter ? 0 : -2;
-		}
-	};
-
-
 	struct uv_udp_send_t_ex : uv_udp_send_t {
 		uv_buf_t buf;
 	};
@@ -912,7 +718,6 @@ namespace xx {
 		uv_udp_t* uvUdp = nullptr;
 		sockaddr_in6 addr;
 		Buffer buf;
-		IUvListener* owner = nullptr;				// fill by owner
 		int port = 0;								// fill by owner. dict's key. port > 0: listener  < 0: dialer fill by --uv.udpId
 		virtual void Remove(uint32_t const& conv) noexcept = 0;
 
@@ -920,7 +725,7 @@ namespace xx {
 			: UvItem(uv) {
 			if (ip.size()) {
 				if (ip.find(':') == std::string::npos) {
-					if (int r = uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)&addr)) throw r;
+					if (int r = uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)& addr)) throw r;
 				}
 				else {
 					if (int r = uv_ip6_addr(ip.c_str(), port, &addr)) throw r;
@@ -934,9 +739,9 @@ namespace xx {
 			}
 			ScopeGuard sgUdp([this] { Uv::HandleCloseAndFree(uvUdp); });
 			if (isListener) {
-				if (int r = uv_udp_bind(uvUdp, (sockaddr*)&addr, UV_UDP_REUSEADDR)) throw r;
+				if (int r = uv_udp_bind(uvUdp, (sockaddr*)& addr, UV_UDP_REUSEADDR)) throw r;
 			}
-			if (int r = uv_udp_recv_start(uvUdp, Uv::AllocCB, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
+			if (int r = uv_udp_recv_start(uvUdp, Uv::AllocCB, [](uv_udp_t * handle, ssize_t nread, const uv_buf_t * buf, const struct sockaddr* addr, unsigned flags) {
 				auto self = Uv::GetSelf<UvKcp>(handle);
 				auto holder = self->shared_from_this();	// hold for callback Dispose
 				if (nread > 0) {
@@ -948,12 +753,12 @@ namespace xx {
 						self->Dispose(1);
 					}
 				}
-			})) throw r;
+				})) throw r;
 			sgUdp.Cancel();
 		}
 		UvKcp(UvKcp const&) = delete;
 		UvKcp& operator=(UvKcp const&) = delete;
-		~UvKcp() { this->Dispose(0); }
+		~UvKcp() { Dispose(0); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvUdp;
@@ -976,11 +781,11 @@ namespace xx {
 		}
 
 	protected:
-		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept = 0;
+		virtual int Unpack(uint8_t * const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept = 0;
 
 		// reqbuf = uv_udp_send_t_ex space + len space + data
 		// len = data's len
-		inline int SendReqAndData(uint8_t* const& reqbuf, uint32_t const& len, sockaddr const* const& addr = nullptr) {
+		inline int SendReqAndData(uint8_t * const& reqbuf, uint32_t const& len, sockaddr const* const& addr = nullptr) {
 			reqbuf[sizeof(uv_udp_send_t_ex) + 0] = uint8_t(len);		// fill package len
 			reqbuf[sizeof(uv_udp_send_t_ex) + 1] = uint8_t(len >> 8);
 			reqbuf[sizeof(uv_udp_send_t_ex) + 2] = uint8_t(len >> 16);
@@ -992,19 +797,19 @@ namespace xx {
 			return Send(req, addr);
 		}
 
-		inline int Send(uv_udp_send_t_ex* const& req, sockaddr const* const& addr = nullptr) noexcept {
+		inline int Send(uv_udp_send_t_ex * const& req, sockaddr const* const& addr = nullptr) noexcept {
 			if (!uvUdp) return -1;
 			// todo: check send queue len ? protect?
-			int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)&this->addr, [](uv_udp_send_t *req, int status) {
+			int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)& addr, [](uv_udp_send_t * req, int status) {
 				::free(req);
-			});
+				});
 			if (r) Dispose(1);
 			return r;
 		}
 	};
 
-	struct UvKcpPeerBase : IUvPeer {
-		using IUvPeer::IUvPeer;
+	struct UvKcpPeerBase : UvPeerBase {
+		using UvPeerBase::UvPeerBase;
 		std::shared_ptr<UvKcp> udp;					// fill by creater
 		uint32_t conv = 0;							// fill by creater
 		int64_t createMS = 0;						// fill by creater
@@ -1012,33 +817,6 @@ namespace xx {
 		uint32_t nextUpdateMS = 0;					// for kcp update interval control. reduce cpu usage
 		Buffer buf;
 		sockaddr_in6 addr;							// for Send. fill by owner Unpack
-		int64_t timeoutMS = 0;
-		std::function<void()> onDisconnect;
-
-		// set timeoutMS. 0 = disable
-		inline virtual void ResetTimeoutMS(int64_t const& ms) noexcept override {
-			this->timeoutMS = ms ? NowSteadyEpochMS() + ms : 0;
-		}
-
-		inline virtual void OnDisconnect(std::function<void()>&& func) noexcept override {
-			onDisconnect = std::move(func);
-		}
-
-		inline virtual void Disconnect() noexcept override {
-			if (onDisconnect) {
-				onDisconnect();
-			}
-		}
-
-		inline virtual std::string GetIP() noexcept override {
-			std::string ip;
-			Uv::FillIP(addr, ip);
-			return ip;
-		}
-
-		virtual bool Disposed() const noexcept override {
-			return !kcp;
-		}
 
 		// require: fill udp, conv, createMS, addr
 		inline int InitKcp() {
@@ -1059,24 +837,39 @@ namespace xx {
 			return 0;
 		}
 
-		// called by udp class. put data to kcp when udp receive 
-		inline int Input(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
-			if (!kcp) return -1;
-			return ikcp_input(kcp, (char*)recvBuf, recvLen);
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (!kcp) return;
+			ikcp_release(kcp);
+			kcp = nullptr;
+			udp->Remove(conv);						// remove self from container
+			udp.reset();							// unbind
+			if (flag) {
+				peer->Dispose(flag);
+			}
+		}
+
+		~UvKcpPeerBase() {
+			Dispose(0);
+		}
+
+		inline virtual std::string GetIP() noexcept override {
+			std::string ip;
+			Uv::FillIP(addr, ip);
+			return ip;
+		}
+
+		virtual bool Disposed() const noexcept override {
+			return !kcp;
 		}
 
 		// called by ext class
-		inline virtual void Update(int64_t const& nowMS) noexcept {
-			if (!kcp) return;
-			if (this->timeoutMS && this->timeoutMS < nowMS) {
-				this->Dispose(1);
-				return;
-			}
+		inline virtual int Update(int64_t const& nowMS) noexcept {
+			if (!kcp) return -1;
 
 			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: uint32 limit. connect only alive 50+ days
-			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return;						// reduce cpu usage
+			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return 0;						// reduce cpu usage
 			ikcp_update(kcp, currentMS);
-			if (!kcp) return;
+			if (!kcp) return -1;
 			if (uv.runMode == UV_RUN_DEFAULT) {
 				nextUpdateMS = ikcp_check(kcp, currentMS);
 			}
@@ -1086,28 +879,17 @@ namespace xx {
 				if (recvLen <= 0) break;
 				if (int r = Unpack((uint8_t*)uv.recvBuf, recvLen)) {
 					Dispose(1);
-					return;
+					return -1;
 				}
 			} while (true);
+
+			return 0;
 		}
 
-		// push send data to kcp. though ikcp_setoutput func send.
-		inline virtual int Send(uint8_t const* const& buf, ssize_t const& dataLen, sockaddr const* const& unusedAddr = nullptr) noexcept override {
-			if (!kcp) return -1;
-			return ikcp_send(kcp, (char*)buf, (int)dataLen);
-		}
-
-		// send data immediately ( no wait for more data combine send )
-		inline virtual void Flush() noexcept override {
-			if (!kcp) return;
-			ikcp_flush(kcp);
-		}
-
-	protected:
 		// serial == 0: push    > 0: response    < 0: request
-		inline int SendPackage(Object_s const& data, int32_t const& serial = 0) {
-			if (this->Disposed()) return -1;
-			auto& sendBB = this->uv.sendBB;
+		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
+			if (!kcp) return -1;
+			auto& sendBB = uv.sendBB;
 			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
 			sendBB.Reserve(1024);
 			sendBB.len = 4;		// skip header space
@@ -1119,7 +901,19 @@ namespace xx {
 			buf[1] = uint8_t(len >> 8);
 			buf[2] = uint8_t(len >> 16);
 			buf[3] = uint8_t(len >> 24);
-			return this->Send(buf, sendBB.len);
+			return Send(buf, sendBB.len);
+		}
+
+		// send data immediately ( no wait for more data combine send )
+		inline virtual void Flush() noexcept override {
+			if (!kcp) return;
+			ikcp_flush(kcp);
+		}
+
+		// called by udp class. put data to kcp when udp receive 
+		inline int Input(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+			if (!kcp) return -1;
+			return ikcp_input(kcp, (char*)recvBuf, recvLen);
 		}
 
 		// 4 bytes len header. can override for custom header format.
@@ -1132,50 +926,23 @@ namespace xx {
 				if (offset + 4 + len > buf.len) break;				// not enough data
 
 				offset += 4;
-				if (int r = HandlePack(buf.buf + offset, len)) return r;
+				if (int r = peer->HandlePack(buf.buf + offset, len)) return r;
 				offset += len;
 			}
 			buf.RemoveFront(offset);
 			return 0;
 		}
 
-		// unpack & dispatch
-		virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept = 0;
-	};
-
-	// pack struct: [tar,] serial, data
-	struct UvKcpPeer : UvRpcBase<UvKcpPeerBase> {
-		using BaseType = UvRpcBase<UvKcpPeerBase>;
-		using BaseType::BaseType;
-		UvKcpPeer(UvKcpPeer const&) = delete;
-		UvKcpPeer& operator=(UvKcpPeer const&) = delete;
-		~UvKcpPeer() {
-			this->Dispose(0);
-		}
-
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (this->Disposed()) return;
-			this->timer.reset();
-			ikcp_release(kcp);
-			this->kcp = nullptr;
-			this->udp->Remove(conv);					// remove self from container
-			this->udp.reset();							// unbind
-			for (auto&& kv : this->callbacks) {
-				kv.value.first(nullptr);
-			}
-			this->callbacks.Clear();
-			if (flag) {
-				auto holder = shared_from_this();
-				this->Disconnect();
-				this->onDisconnect = nullptr;
-				this->onReceivePush = nullptr;
-				this->onReceiveRequest = nullptr;
-			}
+		// push send data to kcp. though ikcp_setoutput func send.
+		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
+			if (!kcp) return -1;
+			return ikcp_send(kcp, (char*)buf, (int)dataLen);
 		}
 	};
 
 	struct UvListenerKcp : UvKcp {
 		using UvKcp::UvKcp;
+		UvListenerBase* owner = nullptr;			// fill by owner
 		Dict<uint32_t, std::weak_ptr<UvKcpPeerBase>> peers;
 		Dict<std::string, std::pair<uint32_t, int64_t>> shakes;	// key: ip:port   value: conv, nowMS
 		uint32_t convId = 0;
@@ -1186,7 +953,7 @@ namespace xx {
 			: UvKcp(uv, ip, port, isListener) {
 			MakeTo(timer, uv, 10, 10, [this] {
 				this->Update(NowSteadyEpochMS());
-			});
+				});
 		}
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
@@ -1254,7 +1021,7 @@ namespace xx {
 				auto && idx = shakes.Find(ipAndPort);			// find by addr
 				if (idx == -1 || shakes.ValueAt(idx).first != conv) return 0;	// not found or bad conv: ignore
 				shakes.RemoveAt(idx);							// remove from shakes
-				peer = xx::As<UvKcpPeerBase>(owner->CreatePeer());	// create kcp peer and init
+				peer = xx::TryMake<UvKcpPeerBase>(uv);			// create kcp peer
 				if (!peer) return 0;
 				peer->udp = As<UvKcp>(shared_from_this());
 				peer->conv = conv;
@@ -1282,12 +1049,13 @@ namespace xx {
 		bool connected = false;
 		std::weak_ptr<UvKcpPeerBase> peer_w;
 		UvTimer_s timer;
+		UvDialerBase* owner = nullptr;			// fill by owner
 
 		UvDialerKcp(Uv& uv, std::string const& ip, int const& port, bool const& isListener)
 			: UvKcp(uv, ip, port, isListener) {
 			MakeTo(timer, uv, 10, 10, [this] {
 				this->Update(NowSteadyEpochMS());
-			});
+				});
 		}
 		~UvDialerKcp() {
 			this->Dispose(0);
@@ -1332,7 +1100,8 @@ namespace xx {
 			// ensure hand shake result data
 			if (recvLen == 8 && owner) {						// 4 bytes serial + 4 bytes conv
 				if (memcmp(recvBuf, &port, 4)) return 0;		// bad serial: ignore
-				auto&& p = xx::As<UvKcpPeer>(owner->CreatePeer());
+				auto&& p = xx::TryMake<UvKcpPeerBase>(uv);
+				if (!p) return -1;								// not enough memory
 				peer_w = p;										// bind
 				p->udp = As<UvKcp>(shared_from_this());
 				memcpy(&p->conv, recvBuf + 4, 4);
@@ -1365,33 +1134,11 @@ namespace xx {
 		}
 	};
 
-	template<typename PeerType = UvKcpPeer, typename ENABLED = std::enable_if_t<std::is_base_of_v<IUvPeer, PeerType>>>
-	struct UvKcpListener : IUvListener {
+	struct UvKcpListener : UvListenerBase {
 		std::shared_ptr<UvListenerKcp> udp;
 
-		std::function<IUvPeer_s(Uv& uv)> onCreatePeer;
-		std::function<void(IUvPeer_s peer)> onAccept;
-
-		inline virtual void OnCreatePeer(std::function<IUvPeer_s(Uv& uv)>&& func) noexcept {
-			onCreatePeer = std::move(func);
-		}
-
-		inline virtual IUvPeer_s CreatePeer() noexcept {
-			return onCreatePeer ? onCreatePeer(uv) : TryMake<PeerType>(uv);
-		}
-
-		virtual void OnAccept(std::function<void(IUvPeer_s peer)>&& func) noexcept {
-			onAccept = std::move(func);
-		}
-
-		inline virtual void Accept(IUvPeer_s peer) noexcept {
-			if (onAccept) {
-				onAccept(peer);
-			}
-		}
-
 		UvKcpListener(Uv& uv, std::string const& ip, int const& port)
-			: IUvListener(uv) {
+			: UvListenerBase(uv) {
 			auto&& udps = uv.udps;
 			auto&& idx = udps.Find(port);
 			if (idx != -1) {
@@ -1417,49 +1164,127 @@ namespace xx {
 			udp->owner = nullptr;								// unbind
 			udp.reset();
 			if (flag) {
-				auto holder = shared_from_this();
-				onCreatePeer = nullptr;
-				onAccept = nullptr;
+				listener->Dispose(1);
 			}
 		}
 	};
 
-	template<typename PeerType = UvKcpPeer, typename ENABLED = std::enable_if_t<std::is_base_of_v<IUvPeer, PeerType>>>
-	struct UvKcpDialer : IUvDialer {
-		using IUvDialer::IUvDialer;
+	struct UvTcpListener : UvListenerBase {
+		uv_tcp_t* uvTcp = nullptr;
+		sockaddr_in6 addr;
+
+		UvTcpListener(Uv& uv, std::string const& ip, int const& port, int const& backlog = 128)
+			: UvListenerBase(uv) {
+
+			uvTcp = Uv::Alloc<uv_tcp_t>(this);
+			if (!uvTcp) throw - 4;
+			if (int r = uv_tcp_init(&uv.uvLoop, uvTcp)) {
+				uvTcp = nullptr;
+				throw r;
+			}
+
+			if (ip.find(':') == std::string::npos) {
+				if (uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)& addr)) throw - 1;
+			}
+			else {
+				if (uv_ip6_addr(ip.c_str(), port, &addr)) throw - 2;
+			}
+			if (uv_tcp_bind(uvTcp, (sockaddr*)& addr, 0)) throw - 3;
+
+			if (uv_listen((uv_stream_t*)uvTcp, backlog, [](uv_stream_t * server, int status) {
+				if (status) return;
+				auto&& self = Uv::GetSelf<UvTcpListener>(server);
+				auto&& peer = xx::TryMake<UvTcpPeerBase>(self->uv);
+				if (!peer) return;
+				if (uv_accept(server, (uv_stream_t*)peer->uvTcp)) return;
+				if (peer->ReadStart()) return;
+				Uv::FillIP(peer->uvTcp, peer->ip);
+				self->Accept(peer);
+				})) throw - 4;
+		};
+
+		UvTcpListener(UvTcpListener const&) = delete;
+		UvTcpListener& operator=(UvTcpListener const&) = delete;
+		~UvTcpListener() { this->Dispose(0); }
+
+		inline virtual bool Disposed() const noexcept override {
+			return !uvTcp;
+		}
+
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (!uvTcp) return;
+			Uv::HandleCloseAndFree(uvTcp);
+			if (flag) {
+				listener->Dispose(1);
+			}
+		}
+
+	};
+
+	inline UvListener::UvListener(Uv& uv, std::string const& ip, int const& port, int tcpKcpOpt)
+		: UvCreateAcceptBase(uv) {
+		if (tcpKcpOpt == 0 || tcpKcpOpt == 2) {
+			xx::MakeTo(tcpListener, uv, ip, port);
+		}
+		if (tcpKcpOpt == 1 || tcpKcpOpt == 2) {
+			xx::MakeTo(kcpListener, uv, ip, port);
+		}
+	}
+
+	inline void UvListener::Dispose(int const& flag) noexcept {
+		tcpListener.reset();
+		kcpListener.reset();
+		if (flag) {
+			auto&& holder = shared_from_this();
+			onCreatePeer = nullptr;
+			onAccept = nullptr;
+		}
+	}
+
+	struct UvKcpDialer;
+	struct UvTcpDialer;
+	struct UvDialer : UvCreateAcceptBase {
+		using UvCreateAcceptBase::UvCreateAcceptBase;
+		std::shared_ptr<UvKcpDialer> kcpDialer;
+		std::shared_ptr<UvTcpDialer> tcpDialer;
+		bool disposed = false;
+
+		UvDialer(UvDialer const&) = delete;
+		UvDialer& operator=(UvDialer const&) = delete;
+
+		~UvDialer() { this->Dispose(0); }
+		virtual bool Disposed() const noexcept override {
+			return disposed;
+		}
+		virtual void Dispose(int const& flag = 1) noexcept override;
+		virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept;
+		virtual int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS = 0) noexcept;
+		virtual int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS = 0) noexcept;
+		virtual void Cancel() noexcept;
+	};
+
+	struct UvKcpDialer : UvDialerBase {
+		using UvDialerBase::UvDialerBase;
 		Dict<int, std::shared_ptr<UvDialerKcp>> reqs;		// key: port
 		UvTimer_s timeouter;
 		bool disposed = false;
-		std::shared_ptr<PeerType> peer;
 
-		std::function<IUvPeer_s(Uv& uv)> onCreatePeer;
-		std::function<void(IUvPeer_s peer)> onAccept;
-
-		inline virtual void OnCreatePeer(std::function<IUvPeer_s(Uv& uv)>&& func) noexcept {
-			onCreatePeer = std::move(func);
+		inline virtual UvPeer_s CreatePeer() noexcept {
+			return dialer->CreatePeer();
 		}
 
-		inline virtual IUvPeer_s CreatePeer() noexcept {
-			return onCreatePeer ? onCreatePeer(uv) : TryMake<PeerType>(uv);
-		}
-
-		virtual void OnAccept(std::function<void(IUvPeer_s peer)>&& func) noexcept {
-			onAccept = std::move(func);
-		}
-
-		inline virtual void Accept(IUvPeer_s peer_) noexcept override {
-			assert(!this->peer);
-			auto&& peer = As<PeerType>(peer_);
-			if (peer) {
+		inline virtual void Accept(UvPeerBase_s peer_) noexcept override {
+			auto&& pc = As<UvKcpPeerBase>(peer_);
+			if (pc) {
 				timeouter.reset();
-				auto&& udp = As<UvDialerKcp>(peer->udp);
+				auto&& udp = As<UvDialerKcp>(pc->udp);
 				udp->owner = nullptr;
-				this->peer = std::move(peer);
 				reqs.Clear();
 			}
-			if (this->onAccept) {
-				this->onAccept(this->peer);
-			}
+			dialer->Cancel();
+			auto&& p = dialer->CreatePeer();
+			p->peerBase = pc;
+			dialer->Accept(p);
 		}
 
 		~UvKcpDialer() { this->Dispose(0); }
@@ -1471,9 +1296,7 @@ namespace xx {
 			disposed = true;
 			Cancel();
 			if (flag) {
-				auto holder = shared_from_this();
-				onCreatePeer = nullptr;
-				onAccept = nullptr;
+				dialer->Dispose(1);
 			}
 		}
 
@@ -1483,7 +1306,7 @@ namespace xx {
 				Cancel();
 				if (int r = SetTimeout(timeoutMS)) return r;
 			}
-			auto req = TryMake<UvDialerKcp>(uv, ip, port, false);
+			auto&& req = TryMake<UvDialerKcp>(uv, ip, port, false);
 			if (!req) return -2;
 			req->owner = this;
 			req->port = --uv.autoId;
@@ -1511,12 +1334,9 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void Cancel(bool resetPeer = true) noexcept override {
+		inline virtual void Cancel() noexcept override {
 			if (disposed) return;
 			timeouter.reset();
-			if (resetPeer) {
-				peer.reset();
-			}
 			reqs.Clear();
 		}
 
@@ -1526,22 +1346,164 @@ namespace xx {
 			timeouter.reset();
 			if (!timeoutMS) return 0;
 			xx::TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvKcpDialer>(shared_from_this())]{
-				if (auto self = self_w.lock()) {
-					self->Cancel(true);
-					self->Accept(As<UvKcpPeerBase>(self->peer));
+				if (auto&& self = self_w.lock()) {
+					self->Cancel();
+					self->Accept(UvPeerBase_s());
 				}
 				});
 			return timeouter ? 0 : -2;
 		}
 	};
 
-	inline Uv::Uv() {
-		if (int r = uv_loop_init(&uvLoop)) throw r;
-		recvBuf = new char[recvBufLen];
+	struct UvTcpDialer;
+	struct uv_connect_t_ex {
+		uv_connect_t req;
+		std::shared_ptr<UvTcpPeerBase> peer;
+		std::weak_ptr<UvTcpDialer> dialer_w;
+		bool finished = false;
+	};
+
+	struct UvTcpDialer : UvDialerBase {
+		using UvDialerBase::UvDialerBase;
+		std::vector<uv_connect_t_ex*> reqs;
+		UvTimer_s timeouter;
+		bool disposed = false;
+
+		inline virtual void Accept(UvPeerBase_s peer) noexcept {
+			dialer->Cancel();
+			auto&& p = dialer->CreatePeer();
+			p->peerBase = peer;
+			dialer->Accept(p);
+		}
+
+		~UvTcpDialer() { this->Dispose(0); }
+		inline virtual bool Disposed() const noexcept override {
+			return disposed;
+		}
+		inline virtual void Dispose(int const& flag = 1) noexcept override {
+			if (disposed) return;
+			disposed = true;
+			Cancel();
+			if (flag) {
+				dialer->Dispose(1);
+			}
+		}
+
+		inline virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept override {
+			if (disposed) return -1;
+			if (cleanup) {
+				Cancel();
+				if (int r = SetTimeout(timeoutMS)) return r;
+			}
+
+			sockaddr_in6 addr;
+			if (ip.find(':') == std::string::npos) {								// ipv4
+				if (int r = uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)& addr)) return r;
+			}
+			else {																	// ipv6
+				if (int r = uv_ip6_addr(ip.c_str(), port, &addr)) return r;
+			}
+
+			auto&& req = new (std::nothrow) uv_connect_t_ex();
+			if (!req) return -1;
+			xx::ScopeGuard sgReq([&req] { delete req; });
+
+			req->peer = xx::TryMake<UvTcpPeerBase>(uv);
+			if (!req->peer) return -2;
+
+			req->dialer_w = As<UvTcpDialer>(shared_from_this());
+
+			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)& addr, [](uv_connect_t * conn, int status) {
+				auto&& req = std::unique_ptr<uv_connect_t_ex>(container_of(conn, uv_connect_t_ex, req));// auto delete when return
+				if (req->finished) return;												// canceled
+				req->finished = true;													// set flag
+				auto&& dialer = req->dialer_w.lock();
+				if (!dialer) return;													// container disposed
+				if (status) return;														// error or -4081 canceled
+				if (req->peer->ReadStart()) return;										// read error
+
+				auto&& peer = std::move(req->peer);
+				dialer->Cancel();														// cancel other reqs
+				Uv::FillIP(peer->uvTcp, peer->ip);
+				dialer->Accept(peer);													// callback
+				})) return -3;
+
+			reqs.push_back(req);
+			sgReq.Cancel();
+			return 0;
+		}
+
+		inline virtual int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS = 0) noexcept override {
+			if (disposed) return -1;
+			Cancel();
+			if (int r = SetTimeout(timeoutMS)) return r;
+			for (auto&& ip : ips) {
+				if (int r = Dial(ip, port, 0, false)) return r;
+			}
+			return 0;
+		}
+		inline virtual int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS = 0) noexcept override {
+			if (disposed) return -1;
+			Cancel();
+			if (int r = SetTimeout(timeoutMS)) return r;
+			for (auto&& ipport : ipports) {
+				if (int r = Dial(ipport.first, ipport.second, 0, false)) return r;
+			}
+			return 0;
+		}
+
+		inline virtual void Cancel() noexcept override {
+			if (disposed) return;
+			timeouter.reset();
+			for (auto&& req : reqs) {
+				if (!req->finished) {
+					req->finished = true;
+					uv_cancel((uv_req_t*)& req->req);
+				}
+			}
+			reqs.clear();
+		}
+
+	protected:
+		inline int SetTimeout(uint64_t const& timeoutMS = 0) noexcept {
+			if (disposed) return -1;
+			TryMakeTo(timeouter, uv, timeoutMS, 0, [self_w = AsWeak<UvTcpDialer>(shared_from_this())]{
+				if (auto&& self = self_w.lock()) {
+					self->Cancel();
+					self->Accept(UvPeerBase_s());
+				}
+				});
+			return timeouter ? 0 : -2;
+		}
+	};
+
+	inline int UvDialer::Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS, bool cleanup) noexcept {
+		if (int r = tcpDialer->Dial(ip, port, timeoutMS, cleanup)) return r;
+		return kcpDialer->Dial(ip, port, timeoutMS, cleanup);
+	}
+	inline int UvDialer::Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS) noexcept {
+		if (int r = tcpDialer->Dial(ips, port, timeoutMS)) return r;
+		return kcpDialer->Dial(ips, port, timeoutMS);
+	}
+	inline int UvDialer::Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS) noexcept {
+		if (int r = tcpDialer->Dial(ipports, timeoutMS)) return r;
+		return kcpDialer->Dial(ipports, timeoutMS);
+	}
+	inline void UvDialer::Cancel() noexcept {
+		tcpDialer->Cancel();
+		kcpDialer->Cancel();
 	}
 
-	inline int Uv::Run(uv_run_mode const& mode) noexcept {
-		runMode = mode;
-		return uv_run(&uvLoop, mode);
+	inline void UvDialer::Dispose(int const& flag) noexcept {
+		if (disposed) return;
+		disposed = true;
+		Cancel();
+		if (flag) {
+			kcpDialer->Dispose(1);
+			tcpDialer->Dispose(1);
+		}
 	}
+
+	using UvDialer_s = std::shared_ptr<UvDialer>;
+	using UvDialer_w = std::weak_ptr<UvDialer>;
 }
