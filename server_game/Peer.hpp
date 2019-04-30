@@ -1,29 +1,4 @@
-inline PeerContext::PeerContext(xx::IUvPeer_s& peer, Service* service)
-	: peer(peer)
-	, service(service)
-	, catchFish(&*service->catchFish) {
-	peer->userData = this;
-	peer->OnDisconnect([peer] {
-		assert(peer->userData);
-		delete (PeerContext*)peer->userData;
-		peer->userData = nullptr;
-	});
-	peer->OnReceivePush([this](xx::Object_s && msg) { return this->ReceivePush(std::move(msg)); });
-	peer->OnReceiveRequest([this](int const& serial, xx::Object_s && msg) { return this->ReceiveRequest(serial, std::move(msg)); });
-}
-
-inline PeerContext::~PeerContext() noexcept {
-	// 解绑
-	if (auto&& p = player_w.lock()) {
-		p->peer.reset();
-	}
-}
-
-PeerContext& PeerContext::From(xx::IUvPeer_s const& peer) {
-	return *(PeerContext*)peer->userData;
-}
-
-inline int PeerContext::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept {
+inline int Peer::ReceiveRequest(int const& serial, xx::Object_s&& msg) noexcept {
 	switch (msg->GetTypeId()) {
 	case xx::TypeId_v<PKG::Generic::Ping>: {
 		// 重置超时
@@ -31,13 +6,13 @@ inline int PeerContext::ReceiveRequest(int const& serial, xx::Object_s&& msg) no
 			p->ResetTimeoutFrameNumber();
 		}
 		else {
-			peer->ResetTimeoutMS(10000);
+			ResetTimeoutMS(10000);
 		}
 
 		// 携带收到的数据回发
 		pkgPong->ticks = xx::As<PKG::Generic::Ping>(msg)->ticks;
-		auto r = peer->SendResponse(serial, pkgPong);
-		peer->Flush();
+		auto r = SendResponse(serial, pkgPong);
+		Flush();
 		return r;
 	}
 	default:
@@ -46,7 +21,7 @@ inline int PeerContext::ReceiveRequest(int const& serial, xx::Object_s&& msg) no
 	}
 }
 
-inline int PeerContext::ReceivePush(xx::Object_s&& msg) noexcept {
+inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 
 	// 有玩家 bind
 	if (auto && player = player_w.lock()) {
@@ -85,12 +60,12 @@ inline int PeerContext::ReceivePush(xx::Object_s&& msg) noexcept {
 				// 用 token 查找玩家
 				for(auto&& p : catchFish->players) {
 					if (p->token == *o->token) {
-						assert(p->peer != peer);
+						assert(p->peer != shared_from_this());
 						// 踢掉原有连接( 可能性: 客户端很久没收到推送, 自己 redial, 而 server 并没发现断线 )
-						p->Kick(peer->GetIP(), " reconnect");
+						p->Kick(GetIP(), " reconnect");
 						// 玩家与连接绑定
 						player_w = p;
-						p->peer = peer;
+						p->peer = xx::As<Peer>(shared_from_this());
 						// 放入本帧进入游戏的列表, 以便下发完整同步
 						scene.frameEnters.Add(&*p);
 						// 设置超时
@@ -160,7 +135,7 @@ inline int PeerContext::ReceivePush(xx::Object_s&& msg) noexcept {
 
 			// 玩家与连接绑定
 			player_w = player;
-			player->peer = peer;
+			player->peer = xx::As<Peer>(shared_from_this());
 
 			// 构建玩家进入通知并放入帧同步下发事件集合待发
 			{
@@ -180,7 +155,7 @@ inline int PeerContext::ReceivePush(xx::Object_s&& msg) noexcept {
 			player->ResetTimeoutFrameNumber();
 
 			// 成功退出
-			xx::CoutTN(peer->GetIP(), " player enter. ", player);
+			xx::CoutTN(GetIP(), " player enter. ", player);
 			break;
 		}
 		default:

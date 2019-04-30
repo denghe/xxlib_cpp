@@ -1,7 +1,6 @@
 ﻿struct Service {
 	// 多协议监听器
-	xx::IUvListener_s tcpListener;
-	xx::IUvListener_s kcpListener;
+	xx::UvListener_s listener;
 
 	// 当前只有一个游戏实例
 	std::shared_ptr<CatchFish> catchFish;

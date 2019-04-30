@@ -122,7 +122,7 @@ inline void CatchFish::Cleanup(PKG::CatchFish::Player_s p) noexcept {
 #ifndef CC_TARGET_PLATFORM
 	// 网络解绑
 	if (p->peer) {
-		assert(PeerContext::From(p->peer).player_w.lock() == p);
+		assert(p->peer->player_w.lock() == p);
 		p->peer->Dispose(1);
 		p->peer.reset();
 	}

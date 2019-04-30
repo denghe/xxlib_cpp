@@ -22,6 +22,7 @@ inline xx::List<cocos2d::Touch*> cc_touchs;
 inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
 #endif
 
+struct Peer;
 #include "xx_pos.h"
 #include "xx_random.h"
 #include "chipmunk.h"
