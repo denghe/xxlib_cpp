@@ -381,6 +381,7 @@ namespace xx {
 		virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept = 0;
 		virtual void Flush() noexcept = 0;
 		virtual int Update(int64_t const& nowMS) noexcept = 0;
+		virtual bool IsKcp() noexcept = 0;
 	};
 	using UvPeerBase_s = std::shared_ptr<UvPeerBase>;
 
@@ -445,7 +446,7 @@ namespace xx {
 		std::function<void()> onDisconnect;
 		std::function<int(Object_s&& msg)> onReceivePush;
 		std::function<int(int const& serial, Object_s&& msg)> onReceiveRequest;
-		std::string ip;
+		std::string ip;			// cache
 
 		UvPeer(Uv& uv)
 			: UvItem(uv) {
@@ -455,9 +456,13 @@ namespace xx {
 		}
 
 		inline std::string GetIP() noexcept {
-			if (ip.size()) return ip;
-			ip = peerBase->GetIP();
-			return ip;
+			if (!peerBase || ip.size()) return ip;
+			return ip = peerBase->GetIP();
+		}
+
+		inline bool IsKcp() noexcept {
+			if (!peerBase) return false;
+			return peerBase->IsKcp();
 		}
 
 		inline void ResetTimeoutMS(int64_t const& ms) noexcept {
@@ -613,6 +618,10 @@ namespace xx {
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvTcp;
+		}
+
+		inline virtual bool IsKcp() noexcept override {
+			return false;
 		}
 
 		inline virtual std::string GetIP() noexcept override {
@@ -854,6 +863,10 @@ namespace xx {
 
 		~UvKcpPeerBase() {
 			Dispose(0);
+		}
+
+		inline virtual bool IsKcp() noexcept override {
+			return true;
 		}
 
 		inline virtual std::string GetIP() noexcept override {
