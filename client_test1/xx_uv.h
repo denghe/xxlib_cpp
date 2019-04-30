@@ -4,9 +4,6 @@
 #include "xx_dict.h"
 #include "ikcp.h"
 
-// todo: 直接实现一个跨 tcp udp 的 Listener, Dialer
-// 需要不停刷新的先用 timer 实现以简化设计
-
 namespace xx {
 	struct UvKcp;
 	struct Uv {
