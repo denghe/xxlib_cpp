@@ -445,6 +445,7 @@ namespace xx {
 		std::function<void()> onDisconnect;
 		std::function<int(Object_s&& msg)> onReceivePush;
 		std::function<int(int const& serial, Object_s&& msg)> onReceiveRequest;
+		std::string ip;
 
 		UvPeer(Uv& uv)
 			: UvItem(uv) {
@@ -454,7 +455,9 @@ namespace xx {
 		}
 
 		inline std::string GetIP() noexcept {
-			return peerBase->GetIP();
+			if (ip.size()) return ip;
+			ip = peerBase->GetIP();
+			return ip;
 		}
 
 		inline void ResetTimeoutMS(int64_t const& ms) noexcept {
@@ -571,9 +574,10 @@ namespace xx {
 		}
 	};
 
-	inline void UvListenerBase::Accept(UvPeerBase_s peer) noexcept {
+	inline void UvListenerBase::Accept(UvPeerBase_s pb) noexcept {
 		auto&& p = listener->CreatePeer();
-		p->peerBase = peer;
+		p->peerBase = pb;
+		pb->peer = &*p;
 		listener->Accept(p);
 	}
 
@@ -1225,9 +1229,11 @@ namespace xx {
 		: UvCreateAcceptBase(uv) {
 		if (tcpKcpOpt == 0 || tcpKcpOpt == 2) {
 			xx::MakeTo(tcpListener, uv, ip, port);
+			tcpListener->listener = this;
 		}
 		if (tcpKcpOpt == 1 || tcpKcpOpt == 2) {
 			xx::MakeTo(kcpListener, uv, ip, port);
+			kcpListener->listener = this;
 		}
 	}
 
@@ -1244,11 +1250,11 @@ namespace xx {
 	struct UvKcpDialer;
 	struct UvTcpDialer;
 	struct UvDialer : UvCreateAcceptBase {
-		using UvCreateAcceptBase::UvCreateAcceptBase;
 		std::shared_ptr<UvKcpDialer> kcpDialer;
 		std::shared_ptr<UvTcpDialer> tcpDialer;
 		bool disposed = false;
 
+		UvDialer(Uv& uv);
 		UvDialer(UvDialer const&) = delete;
 		UvDialer& operator=(UvDialer const&) = delete;
 
@@ -1369,10 +1375,12 @@ namespace xx {
 		UvTimer_s timeouter;
 		bool disposed = false;
 
-		inline virtual void Accept(UvPeerBase_s peer) noexcept {
+		inline virtual void Accept(UvPeerBase_s pb) noexcept {
 			dialer->Cancel();
 			auto&& p = dialer->CreatePeer();
-			p->peerBase = peer;
+			if (!p) return;
+			p->peerBase = pb;
+			pb->peer = &*p;
 			dialer->Accept(p);
 		}
 
@@ -1477,6 +1485,13 @@ namespace xx {
 		}
 	};
 
+	inline UvDialer::UvDialer(Uv& uv)
+		: UvCreateAcceptBase(uv) {
+		xx::MakeTo(tcpDialer, uv);
+		xx::MakeTo(kcpDialer, uv);
+		tcpDialer->dialer = this;
+		kcpDialer->dialer = this;
+	}
 	inline int UvDialer::Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS, bool cleanup) noexcept {
 		if (int r = tcpDialer->Dial(ip, port, timeoutMS, cleanup)) return r;
 		return kcpDialer->Dial(ip, port, timeoutMS, cleanup);
