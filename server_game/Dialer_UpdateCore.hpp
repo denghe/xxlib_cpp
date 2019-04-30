@@ -60,6 +60,9 @@ LabDial:
 
 	xx::CoutTN("step 2");
 
+	++numDialTimes;
+	panel->SetText_NumDialTimes(numDialTimes);
+
 	// send enter package
 	if (token.size()) {
 		xx::MakeTo(pkgEnter->token, token);
@@ -97,16 +100,12 @@ LabDial:
 		// 处理帧同步消息
 		if (r = HandlePackagesOrUpdateScene()) {
 			xx::CoutTN("redial when HandlePackagesOrUpdateScene() r = ", r);
-			++numDialTimes;
-			panel->SetText_NumDialTimes(numDialTimes);
 			goto LabDial;
 		}
 
 		// 接收超时就重连
 		if (timeoutFrameNumber < ::catchFish->scene->frameNumber) {
 			xx::CoutTN("redial when recv timeout");
-			++numDialTimes;
-			panel->SetText_NumDialTimes(numDialTimes);
 			goto LabDial;
 		}
 
@@ -136,7 +135,7 @@ LabDial:
 		COR_YIELD
 	}
 
-	xx::CoutTN("redial by user. redial after 2 secs");
+	xx::CoutTN("user redial or server kick or network disconnected. redial after 2 secs");
 	waitMS = xx::NowSteadyEpochMS() + 2000;	// 等 2 秒再重连
 	while (xx::NowSteadyEpochMS() < waitMS) {
 		COR_YIELD

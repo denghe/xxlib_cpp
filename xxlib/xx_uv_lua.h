@@ -107,13 +107,13 @@ namespace xx {
 			}
 		}
 
-		inline virtual void Update(int64_t const& nowMS) noexcept override {
+		inline virtual int Update(int64_t const& nowMS) noexcept override {
 			assert(!this->Disposed());
-			this->BaseType::Update(nowMS);
+			if (int r = this->BaseType::Update(nowMS)) return r;
 
 			if (this->timeoutMS && this->timeoutMS < nowMS) {
 				this->Dispose(1);
-				return;
+				return -1;
 			}
 
 			for (auto&& iter = this->callbacks.begin(); iter != this->callbacks.end(); ++iter) {
@@ -124,6 +124,8 @@ namespace xx {
 					a(nullptr);
 				}
 			}
+
+			return 0;
 		}
 
 		// todo: impl all unused IUvPeer interfaces
