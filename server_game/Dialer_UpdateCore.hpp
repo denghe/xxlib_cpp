@@ -3,13 +3,10 @@ inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 
 		// init
 	// 初始面板显示元素
-	xx::MakeTo(panel, this);
+		xx::MakeTo(panel, this);
 
 	// 显示目标服务器 ip:port
 	panel->SetText_Server(catchFish->serverIp + ":" + std::to_string(catchFish->serverPort));
-
-	// 显示拨号器协议
-	panel->SetText_TcpKcp(useKcp);
 
 	// begin resolve domain to iplist
 LabResolveDomain:
@@ -34,7 +31,7 @@ LabResolveDomain:
 	// ip list -> connected peer
 LabDial:
 	// 创建指定协议拨号器
-	MakeDialer(useKcp);
+	MakeDialer();
 
 	// clear flag
 	finished = false;
@@ -59,6 +56,9 @@ LabDial:
 	}
 
 	xx::CoutTN("step 2");
+
+	// 显示连接所用协议
+	panel->SetText_TcpKcp(peer->IsKcp());
 
 	++numDialTimes;
 	panel->SetText_NumDialTimes(numDialTimes);
@@ -115,7 +115,7 @@ LabDial:
 			ping = 0;
 		}
 		// 如果没在 ping 并且时机恰当 就发起 ping
-		if(!ping && ::catchFish->scene->frameNumber % 16 == 0) {
+		if (!ping && ::catchFish->scene->frameNumber % 16 == 0) {
 			pkgPing->ticks = xx::NowSteadyEpochMS();
 			peer->SendRequest(pkgPing, [this](xx::Object_s && msg) {
 				if (!msg && !::catchFish->disposed) {		// 同时防止 catchFish 析构造成的 msg 为空
@@ -125,7 +125,7 @@ LabDial:
 					ping = xx::NowSteadyEpochMS() - pong->ticks;
 				}
 				return 0;
-			}, 2000);
+				}, 2000);
 			peer->Flush();
 		}
 

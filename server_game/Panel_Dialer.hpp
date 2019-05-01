@@ -15,26 +15,26 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 		btnSwitchTcpKcp->setGlobalZOrder(1000);
 		cc_scene->addChild(btnSwitchTcpKcp);
 
-		listenerSwitchTcpKcp = cocos2d::EventListenerTouchOneByOne::create();
-		listenerSwitchTcpKcp->onTouchBegan = [this](cocos2d::Touch * t, cocos2d::Event * e) {
-			auto&& tL = t->getLocation();
-			auto&& p = btnSwitchTcpKcp->convertToNodeSpace(tL);
-			auto&& s = btnSwitchTcpKcp->getContentSize();
-			cocos2d::Rect r{ 0,0, s.width, s.height };
-			auto&& b = r.containsPoint(p);
-			if (b) {
-				if (this->dialer->dialer) {
-					this->dialer->dialer->Dispose(1);
-				}
-				if (this->dialer->peer) {
-					this->dialer->peer->Dispose(1);
-				}
-				this->dialer->useKcp = !this->dialer->useKcp;
-				this->SetText_TcpKcp(this->dialer->useKcp);
-			}
-			return b;
-		};
-		cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listenerSwitchTcpKcp, btnSwitchTcpKcp);
+		//listenerSwitchTcpKcp = cocos2d::EventListenerTouchOneByOne::create();
+		//listenerSwitchTcpKcp->onTouchBegan = [this](cocos2d::Touch * t, cocos2d::Event * e) {
+		//	auto&& tL = t->getLocation();
+		//	auto&& p = btnSwitchTcpKcp->convertToNodeSpace(tL);
+		//	auto&& s = btnSwitchTcpKcp->getContentSize();
+		//	cocos2d::Rect r{ 0,0, s.width, s.height };
+		//	auto&& b = r.containsPoint(p);
+		//	if (b) {
+		//		if (this->dialer->dialer) {
+		//			this->dialer->dialer->Dispose(1);
+		//		}
+		//		if (this->dialer->peer) {
+		//			this->dialer->peer->Dispose(1);
+		//		}
+		//		this->dialer->useKcp = !this->dialer->useKcp;
+		//		this->SetText_TcpKcp(this->dialer->useKcp);
+		//	}
+		//	return b;
+		//};
+		//cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listenerSwitchTcpKcp, btnSwitchTcpKcp);
 	}
 	{
 		btnRedial = cocos2d::Label::createWithSystemFont("Redial", "", 32);

@@ -2,16 +2,13 @@
 	Dialer();
 
 	// 拨号器
-	xx::IUvDialer_s dialer;
+	xx::UvDialer_s dialer;
 
-	// 默认走 tcp 协议
-	bool useKcp = false;
-
-	// 创建拨号器. 默认 tcp. 可选 kcp.
-	void MakeDialer(bool kcp = false);
+	// 创建拨号器
+	void MakeDialer();
 
 	// 拨号后得到的连接
-	xx::IUvPeer_s peer;
+	xx::UvPeer_s peer;
 
 	// 收到的数据
 	std::deque<xx::Object_s> recvs;

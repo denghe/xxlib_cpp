@@ -1,28 +1,23 @@
 inline Dialer::Dialer() {
 	xx::MakeTo(resolver, *uv);
-	resolver->OnFinish = [this] {
+	resolver->onFinish = [this] {
 		ips = std::move(resolver->ips);
 		finished = true;
 	};
 }
 
-inline void Dialer::MakeDialer(bool kcp) {
-	if (kcp) {
-		dialer = xx::Make<xx::UvKcpDialer<>>(*uv);
-	}
-	else {
-		dialer = xx::Make<xx::UvTcpDialer<>>(*uv);
-	}
-	dialer->OnAccept([this](xx::IUvPeer_s peer) {
+inline void Dialer::MakeDialer() {
+	dialer = xx::Make<xx::UvDialer>(*uv);
+	dialer->onAccept = [this](xx::UvPeer_s peer) {
 		this->peer = peer;
 		if (peer) {
-			peer->OnReceivePush([this](xx::Object_s && msg) {
+			peer->onReceivePush = [this](xx::Object_s && msg) {
 				this->recvs.push_back(std::move(msg));
 				return 0;
-			});
+			};
 		}
 		finished = true;
-	});
+	};
 }
 
 inline int Dialer::Update() noexcept {

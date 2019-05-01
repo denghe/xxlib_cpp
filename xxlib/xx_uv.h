@@ -376,6 +376,7 @@ namespace xx {
 		UvPeer* peer = nullptr;
 		virtual std::string GetIP() noexcept = 0;
 		virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept = 0;
+		virtual int SendPackage(BBuffer const& data, int32_t const& serial = 0) noexcept = 0;		// for lua
 		virtual void Flush() noexcept = 0;
 		virtual int Update(int64_t const& nowMS) noexcept = 0;
 		virtual bool IsKcp() noexcept = 0;
@@ -505,7 +506,7 @@ namespace xx {
 			return 0;
 		}
 
-		inline int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+		inline virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
 			// for kcp listener accept
 			if (recvLen == 1 && *recvBuf == 0) return 0;
 
@@ -533,7 +534,7 @@ namespace xx {
 		}
 
 		// call by timer
-		inline int Update(int64_t const& nowMS) noexcept {
+		inline virtual int Update(int64_t const& nowMS) noexcept {
 			assert(peerBase);
 			if (timeoutMS && timeoutMS < nowMS) {
 				Dispose(1);
@@ -626,22 +627,33 @@ namespace xx {
 		}
 
 		// serial == 0: push    > 0: response    < 0: request
-		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
+		template<typename Data>
+		inline int SendPackageCore(Data const& data, int32_t const& serial = 0) noexcept {
 			if (!uvTcp) return -1;
 			auto& sendBB = uv.sendBB;
 			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
 			sendBB.Reserve(1024);
 			sendBB.len = sizeof(uv_write_t_ex) + 4;		// skip uv_write_t_ex + header space
 			sendBB.Write(serial);
-			sendBB.WriteRoot(data);
-
+			if constexpr (std::is_same_v<BBuffer, Data>) {
+				sendBB.AddRange(data.buf, data.len);
+			}
+			else {
+				sendBB.WriteRoot(data);
+			}
 			auto buf = sendBB.buf;						// cut buf memory for send
 			auto len = sendBB.len - sizeof(uv_write_t_ex) - 4;
 			sendBB.buf = nullptr;
 			sendBB.len = 0;
 			sendBB.cap = 0;
-
 			return SendReqAndData(buf, (uint32_t)len);
+		}
+
+		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
+			return SendPackageCore(data, serial);
+		}
+		inline virtual int SendPackage(BBuffer const& data, int32_t const& serial = 0) noexcept override {
+			return SendPackageCore(data, serial);
 		}
 
 		inline virtual void Flush() noexcept override {}
@@ -900,15 +912,22 @@ namespace xx {
 			return 0;
 		}
 
+
 		// serial == 0: push    > 0: response    < 0: request
-		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
+		template<typename Data>
+		inline int SendPackageCore(Data const& data, int32_t const& serial = 0) noexcept {
 			if (!kcp) return -1;
 			auto& sendBB = uv.sendBB;
 			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
 			sendBB.Reserve(1024);
 			sendBB.len = 4;		// skip header space
 			sendBB.Write(serial);
-			sendBB.WriteRoot(data);
+			if constexpr (std::is_same_v<BBuffer, Data>) {
+				sendBB.AddRange(data.buf, data.len);
+			}
+			else {
+				sendBB.WriteRoot(data);
+			}
 			auto buf = sendBB.buf;
 			auto len = sendBB.len - 4;
 			buf[0] = uint8_t(len);					// fill package len
@@ -916,6 +935,13 @@ namespace xx {
 			buf[2] = uint8_t(len >> 16);
 			buf[3] = uint8_t(len >> 24);
 			return Send(buf, sendBB.len);
+		}
+
+		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
+			return SendPackageCore(data, serial);
+		}
+		inline virtual int SendPackage(BBuffer const& data, int32_t const& serial = 0) noexcept override {
+			return SendPackageCore(data, serial);
 		}
 
 		// send data immediately ( no wait for more data combine send )
@@ -1289,17 +1315,21 @@ namespace xx {
 			return dialer->CreatePeer();
 		}
 
-		inline virtual void Accept(UvPeerBase_s peer_) noexcept override {
-			auto&& pc = As<UvKcpPeerBase>(peer_);
-			if (pc) {
+		inline virtual void Accept(UvPeerBase_s pb_) noexcept override {
+			if (!pb_) {
+				dialer->Accept(xx::UvPeer_s());
+				return;
+			}
+			dialer->Cancel();
+			auto&& pb = As<UvKcpPeerBase>(pb_);
+			if (pb) {
 				timeouter.reset();
-				auto&& udp = As<UvDialerKcp>(pc->udp);
+				auto&& udp = As<UvDialerKcp>(pb->udp);
 				udp->owner = nullptr;
 				reqs.Clear();
 			}
-			dialer->Cancel();
 			auto&& p = dialer->CreatePeer();
-			p->peerBase = pc;
+			p->peerBase = pb;
 			dialer->Accept(p);
 		}
 
@@ -1386,6 +1416,10 @@ namespace xx {
 		bool disposed = false;
 
 		inline virtual void Accept(UvPeerBase_s pb) noexcept {
+			if (!pb) {
+				dialer->Accept(xx::UvPeer_s());
+				return;
+			}
 			dialer->Cancel();
 			auto&& p = dialer->CreatePeer();
 			if (!p) return;
