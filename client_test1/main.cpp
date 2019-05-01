@@ -2,19 +2,19 @@
 #include "xx_uv_lua.h"
 
 void RunServer() {
-	xx::Uv uv;
-	auto&& listener = xx::Make<xx::UvListener>(uv, "0.0.0.0", 11111);
-	listener->onAccept = [](xx::UvPeer_s peer) {
-		xx::CoutN("SERVER: ", peer->GetIP(), " connected with ", (peer->IsKcp() ? "KCP" : "TCP"));
-		peer->onDisconnect = [peer] {
-			xx::CoutN("SERVER: ", peer->GetIP(), " disconnected.");
-		};
-		peer->onReceivePush = [peer](xx::Object_s && msg) {
-			xx::CoutN("SERVER: ", peer->GetIP(), " OnReceivePush ", msg);
-			return peer->SendPush(msg);	// echo
-		};
-	};
-	uv.Run();
+	//xx::Uv uv;
+	//auto&& listener = xx::Make<xx::UvListener>(uv, "0.0.0.0", 11111, 2);
+	//listener->onAccept = [](xx::UvPeer_s peer) {
+	//	xx::CoutN("SERVER: ", peer->GetIP(), " connected with ", (peer->IsKcp() ? "KCP" : "TCP"));
+	//	peer->onDisconnect = [peer] {
+	//		xx::CoutN("SERVER: ", peer->GetIP(), " disconnected.");
+	//	};
+	//	peer->onReceivePush = [peer](xx::Object_s && msg) {
+	//		xx::CoutN("SERVER: ", peer->GetIP(), " OnReceivePush ", msg);
+	//		return peer->SendPush(msg);	// echo
+	//	};
+	//};
+	//uv.Run();
 }
 
 void RunClient() {
