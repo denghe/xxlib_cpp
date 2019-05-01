@@ -36,7 +36,7 @@ namespace xx {
 			assert(!r);
 		}
 
-		int Uv::Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
+		int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
 			runMode = mode;
 			return uv_run(&uvLoop, mode);
 		}
