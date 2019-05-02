@@ -145,6 +145,7 @@ inline int Dialer::HandleEvents(PKG::CatchFish::Events::Event_s const& e) noexce
 }
 
 inline void Dialer::Reset() noexcept {
+	peer.reset();
 	recvs.clear();
 	player.reset();
 	::catchFish->players.Clear();
@@ -262,7 +263,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::PushWeapon_s o) noexcept {
 
 inline int Dialer::Handle(PKG::CatchFish::Events::PushFish_s o) noexcept {
 	// 如果太晚收到预约包就断线重连
-	if (o->born->beginFrameNumber < catchFish->scene->frameNumber) return -2;
+	if (o->born->beginFrameNumber <= catchFish->scene->frameNumber) return -2;
 	catchFish->scene->borns->Add(std::move(o->born));
 	return 0;
 }

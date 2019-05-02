@@ -132,11 +132,11 @@ LabDial:
 		COR_YIELD
 	}
 
-	xx::CoutTN("user redial or server kick or network disconnected. redial after 2 secs");
-	waitMS = xx::NowSteadyEpochMS() + 2000;	// 等 2 秒再重连
-	while (xx::NowSteadyEpochMS() < waitMS) {
-		COR_YIELD
-	}
+	xx::CoutTN("user redial or server kick or network disconnected. ");
+	//waitMS = xx::NowSteadyEpochMS() + 2000;	// 等 2 秒再重连
+	//while (xx::NowSteadyEpochMS() < waitMS) {
+	//	COR_YIELD
+	//}
 	goto LabDial;
 	COR_END
 }

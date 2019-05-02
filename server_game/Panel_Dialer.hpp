@@ -51,8 +51,8 @@ inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
 			cocos2d::Rect r{ 0,0, s.width, s.height };
 			auto&& b = r.containsPoint(p);
 			if (b) {
-				if (this->dialer->dialer) {
-					this->dialer->dialer->Dispose(1);
+				if (this->dialer->peer) {
+					this->dialer->peer->Dispose(1);
 				}
 			}
 			return b;

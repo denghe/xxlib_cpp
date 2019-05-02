@@ -1155,7 +1155,8 @@ namespace xx {
 				auto&& p = xx::TryMake<UvKcpPeerBase>(uv);
 				if (!p) return -1;								// not enough memory
 				peer_w = p;										// bind
-				p->udp = As<UvKcp>(shared_from_this());
+				auto&& self = As<UvKcp>(shared_from_this());
+				p->udp = self;
 				memcpy(&p->conv, recvBuf + 4, 4);
 				memcpy(&p->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 				p->createMS = NowSteadyEpochMS();
@@ -1165,6 +1166,7 @@ namespace xx {
 				p->Flush();
 				connected = true;								// set flag
 				owner->Accept(p);								// cleanup all reqs
+				owner = nullptr;
 				return 0;
 			}
 

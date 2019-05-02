@@ -4,7 +4,7 @@
 	if (int r = catchFish->Init("cfg.bin")) throw r;
 
 	// tcp, kcp 同时监听同一端口
-	listener = xx::Make<xx::UvListener>(uv, "0.0.0.0", 12345, 1);
+	listener = xx::Make<xx::UvListener>(uv, "0.0.0.0", 12345);
 
 	// 为连接创建上下文对象并附加到连接. 同步生命周期
 	listener->onAccept = [this](xx::UvPeer_s peer) {
