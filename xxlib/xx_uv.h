@@ -388,15 +388,8 @@ namespace xx {
 		std::function<UvPeer_s(Uv& uv)> onCreatePeer;
 		std::function<void(UvPeer_s peer)> onAccept;
 
-		inline virtual UvPeer_s CreatePeer() noexcept {
-			return onCreatePeer ? onCreatePeer(uv) : TryMake<UvPeer>(uv);
-		}
-
-		inline virtual void Accept(UvPeer_s peer) noexcept {
-			if (onAccept) {
-				onAccept(peer);
-			}
-		}
+		virtual UvPeer_s CreatePeer() noexcept;
+		virtual void Accept(UvPeer_s peer) noexcept;
 	};
 
 	struct UvKcpListener;
@@ -512,7 +505,10 @@ namespace xx {
 
 		inline virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
 			// for kcp listener accept
-			if (recvLen == 1 && *recvBuf == 0) return 0;
+			if (recvLen == 1 && *recvBuf == 0) {
+				ip = peerBase->GetIP();
+				return 0;
+			}
 
 			auto & recvBB = uv.recvBB;
 			recvBB.Reset((uint8_t*)recvBuf, recvLen);
@@ -581,7 +577,19 @@ namespace xx {
 		}
 	};
 
+	inline UvPeer_s UvCreateAcceptBase::CreatePeer() noexcept {
+		return onCreatePeer ? onCreatePeer(uv) : TryMake<UvPeer>(uv);
+	}
+
+	inline void UvCreateAcceptBase::Accept(UvPeer_s peer) noexcept {
+		if (onAccept) {
+			assert(!peer || peer->peerBase);
+			onAccept(peer);
+		}
+	}
+
 	inline void UvListenerBase::Accept(UvPeerBase_s pb) noexcept {
+		assert(pb);
 		auto&& p = listener->CreatePeer();
 		p->peerBase = pb;
 		pb->peer = &*p;
@@ -1152,9 +1160,10 @@ namespace xx {
 				memcpy(&p->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 				p->createMS = NowSteadyEpochMS();
 				if (p->InitKcp()) return 0;						// init kcp fail: ignore
-				connected = true;								// set flag
-				p->Send((uint8_t*)"\x1\0\0\0\0", 5);			// for server accept
+				int r = p->Send((uint8_t*)"\x1\0\0\0\0", 5);	// for server accept
+				assert(!r);
 				p->Flush();
+				connected = true;								// set flag
 				owner->Accept(p);								// cleanup all reqs
 				return 0;
 			}
@@ -1336,15 +1345,12 @@ namespace xx {
 		return 0;
 	}
 	inline void UvDialerBase::Accept(UvPeerBase_s pb) noexcept {
-		if (!pb) {
-			dialer->Accept(xx::UvPeer_s());
-			return;
-		}
-		dialer->Cancel();
+		assert(pb);
 		auto&& p = dialer->CreatePeer();
 		if (!p) return;
 		p->peerBase = pb;
 		pb->peer = &*p;
+		dialer->Cancel();
 		dialer->Accept(p);
 	}
 

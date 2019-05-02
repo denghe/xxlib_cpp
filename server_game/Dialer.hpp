@@ -4,9 +4,6 @@ inline Dialer::Dialer() {
 		ips = std::move(resolver->ips);
 		finished = true;
 	};
-}
-
-inline void Dialer::MakeDialer() {
 	dialer = xx::Make<xx::UvDialer>(*uv);
 	dialer->onAccept = [this](xx::UvPeer_s peer) {
 		this->peer = peer;

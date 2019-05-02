@@ -30,9 +30,6 @@ LabResolveDomain:
 
 	// ip list -> connected peer
 LabDial:
-	// 创建指定协议拨号器
-	MakeDialer();
-
 	// clear flag
 	finished = false;
 
