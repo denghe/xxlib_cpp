@@ -163,5 +163,19 @@ namespace CatchFish
             float moveDistance;
 
         }
+
+
+        [Desc("小鱼环绕的大鱼的特殊配置")]
+        class BigFish : Fish
+        {
+            [Desc("小鱼配置类型")]
+            int childCfgId;
+
+            [Desc("小鱼只数")]
+            int numChilds;
+
+            [Desc("逃离时的帧比值")]
+            int escapeFrameRatio;
+        }
     }
 }

@@ -9,14 +9,22 @@ inline int PKG::CatchFish::Fish::InitCascade(void* const& o) noexcept {
 }
 #endif
 
-inline int PKG::CatchFish::Fish::Update(int const& frameNumber) noexcept {
+inline int PKG::CatchFish::Fish::Move() noexcept {
 	pos += moveInc * speedScale;
 	if (fabsf(pos.x) > screenCenter.x + cfg->maxDetectRadius || fabsf(pos.y) > screenCenter.y + cfg->maxDetectRadius) return -1;
-#ifdef CC_TARGET_PLATFORM
+
 	// 帧下标循环前进
 	if (++spriteFrameIndex == cfg->moveFrames->len) {
 		spriteFrameIndex = 0;
 	}
+	return 0;
+}
+
+inline int PKG::CatchFish::Fish::Update(int const& frameNumber) noexcept {
+	for (int i = 0; i < frameRatio; ++i) {
+		if (int r = Move()) return r;
+	}
+#ifdef CC_TARGET_PLATFORM
 	DrawUpdate();
 #endif
 	return 0;

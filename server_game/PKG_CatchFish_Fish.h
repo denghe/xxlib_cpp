@@ -4,8 +4,11 @@ PKG::CatchFish::Scene* scene = nullptr;
 // 指向具体配置
 PKG::CatchFish::Configs::Fish* cfg = nullptr;
 
-// 执行简单移动逻辑
+// 执行移动逻辑( frameRatio 控制了 Move 次数 )
 virtual int Update(int const& frameNumber) noexcept override;
+
+// 做一次移动
+virtual int Move() noexcept;
 
 // 碰撞检测。如果与传入子弹相撞则返回 1
 virtual int HitCheck(Bullet* const& bullet) noexcept;

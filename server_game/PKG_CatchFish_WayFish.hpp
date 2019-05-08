@@ -68,13 +68,3 @@ LabKeepMoving:
 	angle = p->angle;
 	return 0;
 }
-
-inline int PKG::CatchFish::WayFish::Update(int const& frameNumber) noexcept {
-	for (int i = 0; i < frameRatio; ++i) {
-		if (int r = Move()) return r;
-	}
-#ifdef CC_TARGET_PLATFORM
-	DrawUpdate();
-#endif
-	return 0;
-};

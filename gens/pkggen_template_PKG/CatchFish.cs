@@ -180,8 +180,11 @@ namespace CatchFish
         [Desc("运行时缩放比例( 通常为 1 )")]
         float scale;
 
-        [Desc("当前帧下标( 每帧循环累加 )")]
+        [Desc("当前帧下标( 循环累加 )")]
         int spriteFrameIndex;
+
+        [Desc("帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )")]
+        int frameRatio;
     }
 
     [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
@@ -250,8 +253,29 @@ namespace CatchFish
 
         [Desc("是否为在路径上倒着移动( 默认否 )")]
         bool reverse;
+    }
 
-        [Desc("帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )")]
-        int frameRatio;
+
+
+    [AttachInclude, Desc("围绕目标鱼 圆周 旋转的小鱼( 继承自 Fish 是为了重写 Update 函数并附加几个计算参数 )")]
+    class RoundFish : Fish
+    {
+        // 下列属性不建模, 手工附加, Update 前填充
+
+        // 大鱼的坐标
+        //xx.Pos tarPos;
+
+        // 帧递增角度( 以 tarPos 为原点，计算到 this.Pos 的角度，加上该值 得到 newAngle, 计算出基于新角度的坐标. this.angle = newAngle +- 90度 垂直显示 ) ")]
+        //float angleInc;
+
+        // 离大鱼中心点的距离 / 旋转半径
+        //float tarDistance;
+    }
+
+    [AttachInclude, Desc("一只大鱼, 身边围了几只小鱼. 分摊伤害. 随机直线慢移. 自动再生. 切换关卡时快速逃离")]
+    class BigFish : Fish
+    {
+        [Desc("围在身边的小鱼( Update, HitCheck 时级联处理 )")]
+        List<RoundFish> childs;
     }
 }

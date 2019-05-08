@@ -8,34 +8,38 @@ public static class Fishs
 {
     public static void Fill(PKG.CatchFish.Configs.Config cfg)
     {
-        {
-            var f = new PKG.CatchFish.Configs.Fish();
-            f.id = cfg.fishs.dataLen;
-            cfg.fishs.Add(f);
-            f.minCoin = 1;
-            f.maxCoin = 3;
-            f.minDetectRadius = 6;
-            f.maxDetectRadius = 32;
-            f.scale = 1;
-            f.zOrder = 3;
-            f.shadowOffset = new xx.Pos { x = 5, y = 5 };
-            f.shadowScale = 1;
-            FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
-        }
-        {
-            var f = new PKG.CatchFish.Configs.Fish();
-            f.id = cfg.fishs.dataLen;
-            cfg.fishs.Add(f);
-            f.minCoin = 3;
-            f.maxCoin = 6;
-            f.minDetectRadius = 6;
-            f.maxDetectRadius = 32;
-            f.scale = 6;
-            f.zOrder = 4;
-            f.shadowOffset = new xx.Pos { x = 10, y = 10 };
-            f.shadowScale = 1;
-            FillFishFrames(f, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
-        }
+        var f1 = new PKG.CatchFish.Configs.Fish();
+        f1.id = cfg.fishs.dataLen;
+        cfg.fishs.Add(f1);
+        f1.minCoin = 1;
+        f1.maxCoin = 3;
+        f1.minDetectRadius = 6;
+        f1.maxDetectRadius = 32;
+        f1.scale = 1;
+        f1.zOrder = 3;
+        f1.shadowOffset = new xx.Pos { x = 5, y = 5 };
+        f1.shadowScale = 1;
+        FillFishFrames(f1, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
+
+
+        var f2 = new PKG.CatchFish.Configs.BigFish();
+        f2.id = cfg.fishs.dataLen;
+        cfg.fishs.Add(f2);
+        f2.minCoin = 50;
+        f2.maxCoin = 50;
+        f2.minDetectRadius = f1.minDetectRadius;
+        f2.maxDetectRadius = f1.maxDetectRadius;
+        f2.scale = 6;
+        f2.zOrder = 4;
+        f2.shadowOffset = new xx.Pos { x = 10, y = 10 };
+        f2.shadowScale = f1.shadowScale;
+        f2.frames = f1.frames;
+        f2.moveFrames = f1.moveFrames;
+        f2.dieFrames = f1.dieFrames;
+
+        f2.childCfgId = f1.id;
+        f2.numChilds = 16;
+        f2.escapeFrameRatio = 3;
     }
 
 

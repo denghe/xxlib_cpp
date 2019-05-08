@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "3eebbc9325977504a4b001a253c2dda6"; 
+        public const string value = "8948698862e3b14dbae55a9e79c35464"; 
     }
 
 namespace CatchFish
@@ -1159,9 +1159,13 @@ namespace CatchFish
         /// </summary>
         public float scale;
         /// <summary>
-        /// 当前帧下标( 每帧循环累加 )
+        /// 当前帧下标( 循环累加 )
         /// </summary>
         public int spriteFrameIndex;
+        /// <summary>
+        /// 帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
+        /// </summary>
+        public int frameRatio;
 
         public override ushort GetPackageId()
         {
@@ -1176,6 +1180,7 @@ namespace CatchFish
             bb.Write(this.speedScale);
             bb.Write(this.scale);
             bb.Write(this.spriteFrameIndex);
+            bb.Write(this.frameRatio);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -1186,6 +1191,7 @@ namespace CatchFish
             bb.Read(ref this.speedScale);
             bb.Read(ref this.scale);
             bb.Read(ref this.spriteFrameIndex);
+            bb.Read(ref this.frameRatio);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1210,6 +1216,7 @@ namespace CatchFish
             s.Append(", \"speedScale\":" + speedScale.ToString());
             s.Append(", \"scale\":" + scale.ToString());
             s.Append(", \"spriteFrameIndex\":" + spriteFrameIndex.ToString());
+            s.Append(", \"frameRatio\":" + frameRatio.ToString());
         }
         public override string ToString()
         {
@@ -1498,10 +1505,6 @@ namespace CatchFish
         /// 是否为在路径上倒着移动( 默认否 )
         /// </summary>
         public bool reverse = false;
-        /// <summary>
-        /// 帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
-        /// </summary>
-        public int frameRatio;
 
         public override ushort GetPackageId()
         {
@@ -1517,7 +1520,6 @@ namespace CatchFish
             bb.Write(this.wayPointIndex);
             bb.Write(this.wayPointDistance);
             bb.Write(this.reverse);
-            bb.Write(this.frameRatio);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -1529,7 +1531,6 @@ namespace CatchFish
             bb.Read(ref this.wayPointIndex);
             bb.Read(ref this.wayPointDistance);
             bb.Read(ref this.reverse);
-            bb.Read(ref this.frameRatio);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1555,7 +1556,114 @@ namespace CatchFish
             s.Append(", \"wayPointIndex\":" + wayPointIndex.ToString());
             s.Append(", \"wayPointDistance\":" + wayPointDistance.ToString());
             s.Append(", \"reverse\":" + reverse.ToString());
-            s.Append(", \"frameRatio\":" + frameRatio.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 围绕目标鱼 圆周 旋转的小鱼( 继承自 Fish 是为了重写 Update 函数并附加几个计算参数 )
+    /// </summary>
+    public partial class RoundFish : CatchFish.Fish
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<RoundFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.RoundFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 一只大鱼, 身边围了几只小鱼. 分摊伤害. 随机直线慢移. 自动再生. 切换关卡时快速逃离
+    /// </summary>
+    public partial class BigFish : CatchFish.Fish
+    {
+        /// <summary>
+        /// 围在身边的小鱼( Update, HitCheck 时级联处理 )
+        /// </summary>
+        public xx.List<CatchFish.RoundFish> childs;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<BigFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.childs);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.childs);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.BigFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"childs\":" + (childs == null ? "nil" : childs.ToString()));
         }
         public override string ToString()
         {
@@ -3771,6 +3879,77 @@ namespace CatchFish.Configs
         {
         }
     }
+    /// <summary>
+    /// 小鱼环绕的大鱼的特殊配置
+    /// </summary>
+    public partial class BigFish : CatchFish.Configs.Fish
+    {
+        /// <summary>
+        /// 小鱼配置类型
+        /// </summary>
+        public int childCfgId;
+        /// <summary>
+        /// 小鱼只数
+        /// </summary>
+        public int numChilds;
+        /// <summary>
+        /// 逃离时的帧比值
+        /// </summary>
+        public int escapeFrameRatio;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<BigFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.childCfgId);
+            bb.Write(this.numChilds);
+            bb.Write(this.escapeFrameRatio);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.childCfgId);
+            bb.Read(ref this.numChilds);
+            bb.Read(ref this.escapeFrameRatio);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.BigFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"childCfgId\":" + childCfgId.ToString());
+            s.Append(", \"numChilds\":" + numChilds.ToString());
+            s.Append(", \"escapeFrameRatio\":" + escapeFrameRatio.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
 }
     public static class AllTypes
     {
@@ -3811,6 +3990,9 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Way>(34);
             xx.Object.Register<xx.List<CatchFish.WayPoint>>(36);
             xx.Object.Register<CatchFish.WayFish>(80);
+            xx.Object.Register<CatchFish.RoundFish>(82);
+            xx.Object.Register<CatchFish.BigFish>(83);
+            xx.Object.Register<xx.List<CatchFish.RoundFish>>(84);
             xx.Object.Register<CatchFish.Events.Enter>(37);
             xx.Object.Register<CatchFish.Events.Leave>(38);
             xx.Object.Register<CatchFish.Events.NoMoney>(39);
@@ -3852,6 +4034,7 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Configs.FishSpriteFrame>(71);
             xx.Object.Register<CatchFish.Configs.Physics>(72);
             xx.Object.Register<xx.List<xx.List<xx.Pos>>>(73);
+            xx.Object.Register<CatchFish.Configs.BigFish>(85);
         }
     }
 }

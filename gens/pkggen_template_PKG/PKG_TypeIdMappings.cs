@@ -72,6 +72,12 @@ interface ITypeIdMappings
 
     CatchFish.WayFish _80 { get; }
 
+    CatchFish.RoundFish _82 { get; }
+
+    CatchFish.BigFish _83 { get; }
+
+    List<CatchFish.RoundFish> _84 { get; }
+
     CatchFish.Events.Enter _37 { get; }
 
     CatchFish.Events.Leave _38 { get; }
@@ -153,5 +159,7 @@ interface ITypeIdMappings
     CatchFish.Configs.Physics _72 { get; }
 
     List<List<xx.Pos>> _73 { get; }
+
+    CatchFish.Configs.BigFish _85 { get; }
 
 }

@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '3eebbc9325977504a4b001a253c2dda6'
+PKG_PkgGenMd5_Value = '8948698862e3b14dbae55a9e79c35464'
 
 --[[
 座位列表
@@ -754,9 +754,13 @@ PKG_CatchFish_Fish = {
         ]]
         o.scale = 0 -- Single
         --[[
-        当前帧下标( 每帧循环累加 )
+        当前帧下标( 循环累加 )
         ]]
         o.spriteFrameIndex = 0 -- Int32
+        --[[
+        帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
+        ]]
+        o.frameRatio = 0 -- Int32
         setmetatable( o, PKG_CatchFish_MoveItem.Create() )
         return o
     end,
@@ -770,6 +774,7 @@ PKG_CatchFish_Fish = {
         o.speedScale = ReadSingle( bb )
         o.scale = ReadSingle( bb )
         o.spriteFrameIndex = ReadInt32( bb )
+        o.frameRatio = ReadInt32( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -781,6 +786,7 @@ PKG_CatchFish_Fish = {
         WriteSingle( bb, o.speedScale )
         WriteSingle( bb, o.scale )
         WriteInt32( bb, o.spriteFrameIndex )
+        WriteInt32( bb, o.frameRatio )
     end
 }
 BBuffer.Register( PKG_CatchFish_Fish )
@@ -1443,10 +1449,6 @@ PKG_CatchFish_WayFish = {
         是否为在路径上倒着移动( 默认否 )
         ]]
         o.reverse = false -- Boolean
-        --[[
-        帧比值, 平时为 1, 如果为 0 则表示鱼不动( 比如实现冰冻效果 ), 帧图也不更新. 如果大于 1, 则需要在 1 帧内多次驱动该鱼( 比如实现快速离场的效果 )
-        ]]
-        o.frameRatio = 0 -- Int32
         setmetatable( o, PKG_CatchFish_Fish.Create() )
         return o
     end,
@@ -1460,7 +1462,6 @@ PKG_CatchFish_WayFish = {
         o.wayPointIndex = ReadInt32( bb )
         o.wayPointDistance = bb:ReadSingle()
         o.reverse = bb:ReadBoolean()
-        o.frameRatio = ReadInt32( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -1472,10 +1473,107 @@ PKG_CatchFish_WayFish = {
         WriteInt32( bb, o.wayPointIndex )
         bb:WriteSingle( o.wayPointDistance )
         bb:WriteBoolean( o.reverse )
-        WriteInt32( bb, o.frameRatio )
     end
 }
 BBuffer.Register( PKG_CatchFish_WayFish )
+--[[
+围绕目标鱼 圆周 旋转的小鱼( 继承自 Fish 是为了重写 Update 函数并附加几个计算参数 )
+]]
+PKG_CatchFish_RoundFish = {
+    typeName = "PKG_CatchFish_RoundFish",
+    typeId = 82,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_RoundFish
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        setmetatable( o, PKG_CatchFish_Fish.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+    end
+}
+BBuffer.Register( PKG_CatchFish_RoundFish )
+--[[
+一只大鱼, 身边围了几只小鱼. 分摊伤害. 随机直线慢移. 自动再生. 切换关卡时快速逃离
+]]
+PKG_CatchFish_BigFish = {
+    typeName = "PKG_CatchFish_BigFish",
+    typeId = 83,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_BigFish
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        围在身边的小鱼( Update, HitCheck 时级联处理 )
+        ]]
+        o.childs = null -- List_PKG_CatchFish_RoundFish_
+        setmetatable( o, PKG_CatchFish_Fish.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        o.childs = bb:ReadObject()
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        bb:WriteObject( o.childs )
+    end
+}
+BBuffer.Register( PKG_CatchFish_BigFish )
+List_PKG_CatchFish_RoundFish_ = {
+    typeName = "List_PKG_CatchFish_RoundFish_",
+    typeId = 84,
+    Create = function()
+        local o = {}
+        o.__proto = List_PKG_CatchFish_RoundFish_
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+		local len = bb:ReadUInt32()
+        local f = BBuffer.ReadObject
+		for i = 1, len do
+			o[ i ] = f( bb )
+		end
+    end,
+    ToBBuffer = function( bb, o )
+        local len = #o
+		bb:WriteUInt32( len )
+        local f = BBuffer.WriteObject
+        for i = 1, len do
+			f( bb, o[ i ] )
+		end
+    end
+}
+BBuffer.Register( List_PKG_CatchFish_RoundFish_ )
 --[[
 通知: 玩家进入. 大部分字段从 Player 类复制. 添加了部分初始数值, 可还原出玩家类实例.
 ]]
@@ -3268,3 +3366,53 @@ List_List__xx_Pos__ = {
     end
 }
 BBuffer.Register( List_List__xx_Pos__ )
+--[[
+小鱼环绕的大鱼的特殊配置
+]]
+PKG_CatchFish_Configs_BigFish = {
+    typeName = "PKG_CatchFish_Configs_BigFish",
+    typeId = 85,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Configs_BigFish
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        小鱼配置类型
+        ]]
+        o.childCfgId = 0 -- Int32
+        --[[
+        小鱼只数
+        ]]
+        o.numChilds = 0 -- Int32
+        --[[
+        逃离时的帧比值
+        ]]
+        o.escapeFrameRatio = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_Configs_Fish.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
+        o.childCfgId = ReadInt32( bb )
+        o.numChilds = ReadInt32( bb )
+        o.escapeFrameRatio = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.childCfgId )
+        WriteInt32( bb, o.numChilds )
+        WriteInt32( bb, o.escapeFrameRatio )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Configs_BigFish )

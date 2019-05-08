@@ -124,6 +124,8 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "PKG_CatchFish_Bullet.hpp"
 #include "PKG_CatchFish_Fish.hpp"
 #include "PKG_CatchFish_WayFish.hpp"
+#include "PKG_CatchFish_RoundFish.hpp"
+#include "PKG_CatchFish_BigFish.hpp"
 
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.hpp"
