@@ -467,7 +467,7 @@ int ikcp_peeksize(const ikcpcb *kcp)
 int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 {
 	IKCPSEG *seg;
-	int count, i;
+	IUINT32 count, i;
 
 	assert(kcp->mss > 0);
 	if (len < 0) return -1;
@@ -629,12 +629,12 @@ static void ikcp_parse_fastack(ikcpcb *kcp, IUINT32 sn)
 //---------------------------------------------------------------------
 static void ikcp_ack_push(ikcpcb *kcp, IUINT32 sn, IUINT32 ts)
 {
-	size_t newsize = kcp->ackcount + 1;
+	IUINT32 newsize = kcp->ackcount + 1;
 	IUINT32 *ptr;
 
 	if (newsize > kcp->ackblock) {
 		IUINT32 *acklist;
-		size_t newblock;
+		IUINT32 newblock;
 
 		for (newblock = 8; newblock < newsize; newblock <<= 1);
 		acklist = (IUINT32*)ikcp_malloc(newblock * sizeof(IUINT32) * 2);
