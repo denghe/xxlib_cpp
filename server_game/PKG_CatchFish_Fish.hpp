@@ -11,7 +11,8 @@ inline int PKG::CatchFish::Fish::InitCascade(void* const& o) noexcept {
 
 inline int PKG::CatchFish::Fish::Move() noexcept {
 	pos += moveInc * speedScale;
-	if (fabsf(pos.x) > designSize_2.x + cfg->maxDetectRadius || fabsf(pos.y) > designSize_2.y + cfg->maxDetectRadius) return -1;
+	auto&& radius = cfg->maxDetectRadius * cfg->scale * scale;
+	if (fabsf(pos.x) > designSize_2.x + radius || fabsf(pos.y) > designSize_2.y + radius) return -1;
 
 	// 帧下标循环前进
 	if (++spriteFrameIndex == cfg->moveFrames->len) {

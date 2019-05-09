@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "8948698862e3b14dbae55a9e79c35464"; 
+        public const string value = "21c8600cd7c9d2de90ee00c942fd9a7c"; 
     }
 
 namespace CatchFish
@@ -1569,10 +1569,14 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 围绕目标鱼 圆周 旋转的小鱼( 继承自 Fish 是为了重写 Update 函数并附加几个计算参数 )
+    /// 围绕目标鱼 圆周 旋转的小鱼( 实现自己的 Move 函数并附加几个计算参数, 被 BigFish Move 调用 )
     /// </summary>
     public partial class RoundFish : CatchFish.Fish
     {
+        /// <summary>
+        /// 目标大鱼到当前小鱼的角度
+        /// </summary>
+        public float tarAngle;
 
         public override ushort GetPackageId()
         {
@@ -1582,11 +1586,13 @@ namespace CatchFish
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
+            bb.Write(this.tarAngle);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
+            bb.Read(ref this.tarAngle);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1606,6 +1612,7 @@ namespace CatchFish
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
+            s.Append(", \"tarAngle\":" + tarAngle.ToString());
         }
         public override string ToString()
         {
@@ -2933,9 +2940,9 @@ namespace CatchFish.Stages
         }
     }
     /// <summary>
-    /// 监视器: 自动再生巨大鱼, 服务端预约下发
+    /// 监视器: 自动再生肥鱼, 服务端预约下发
     /// </summary>
-    public partial class Monitor_KeepBigFish : CatchFish.Stages.Emitter_RandomFishs
+    public partial class Monitor_KeepFatFish : CatchFish.Stages.Emitter_RandomFishs
     {
         /// <summary>
         /// 配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
@@ -2948,7 +2955,7 @@ namespace CatchFish.Stages
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<Monitor_KeepBigFish>.value;
+            return xx.TypeId<Monitor_KeepFatFish>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
@@ -2973,7 +2980,7 @@ namespace CatchFish.Stages
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Monitor_KeepBigFish\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Monitor_KeepFatFish\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -2984,6 +2991,84 @@ namespace CatchFish.Stages
             base.ToStringCore(s);
             s.Append(", \"cfg_numFishsLimit\":" + cfg_numFishsLimit.ToString());
             s.Append(", \"cfg_bornDelayFrameNumber\":" + cfg_bornDelayFrameNumber.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 监视器: 自动再生大鱼, 服务端预约下发
+    /// </summary>
+    public partial class Monitor_KeepBigFish : CatchFish.Stages.StageElement
+    {
+        /// <summary>
+        /// 配置: 两条鱼生成帧间隔
+        /// </summary>
+        public int cfg_bornTicksInterval;
+        /// <summary>
+        /// 配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
+        /// </summary>
+        public int cfg_numFishsLimit;
+        /// <summary>
+        /// 配置: 预约延迟
+        /// </summary>
+        public int cfg_bornDelayFrameNumber;
+        /// <summary>
+        /// 记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        /// </summary>
+        public int bornAvaliableTicks;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Monitor_KeepBigFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.cfg_bornTicksInterval);
+            bb.Write(this.cfg_numFishsLimit);
+            bb.Write(this.cfg_bornDelayFrameNumber);
+            bb.Write(this.bornAvaliableTicks);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.cfg_bornTicksInterval);
+            bb.Read(ref this.cfg_numFishsLimit);
+            bb.Read(ref this.cfg_bornDelayFrameNumber);
+            bb.Read(ref this.bornAvaliableTicks);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Monitor_KeepBigFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"cfg_bornTicksInterval\":" + cfg_bornTicksInterval.ToString());
+            s.Append(", \"cfg_numFishsLimit\":" + cfg_numFishsLimit.ToString());
+            s.Append(", \"cfg_bornDelayFrameNumber\":" + cfg_bornDelayFrameNumber.ToString());
+            s.Append(", \"bornAvaliableTicks\":" + bornAvaliableTicks.ToString());
         }
         public override string ToString()
         {
@@ -3885,17 +3970,17 @@ namespace CatchFish.Configs
     public partial class BigFish : CatchFish.Configs.Fish
     {
         /// <summary>
-        /// 小鱼配置类型
+        /// 每帧移动距离
         /// </summary>
-        public int childCfgId;
+        public float moveFrameDistance;
         /// <summary>
         /// 小鱼只数
         /// </summary>
         public int numChilds;
         /// <summary>
-        /// 逃离时的帧比值
+        /// 小鱼前进角速度
         /// </summary>
-        public int escapeFrameRatio;
+        public float childsAngleInc;
 
         public override ushort GetPackageId()
         {
@@ -3905,17 +3990,17 @@ namespace CatchFish.Configs
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
-            bb.Write(this.childCfgId);
+            bb.Write(this.moveFrameDistance);
             bb.Write(this.numChilds);
-            bb.Write(this.escapeFrameRatio);
+            bb.Write(this.childsAngleInc);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
-            bb.Read(ref this.childCfgId);
+            bb.Read(ref this.moveFrameDistance);
             bb.Read(ref this.numChilds);
-            bb.Read(ref this.escapeFrameRatio);
+            bb.Read(ref this.childsAngleInc);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -3935,9 +4020,9 @@ namespace CatchFish.Configs
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
-            s.Append(", \"childCfgId\":" + childCfgId.ToString());
+            s.Append(", \"moveFrameDistance\":" + moveFrameDistance.ToString());
             s.Append(", \"numChilds\":" + numChilds.ToString());
-            s.Append(", \"escapeFrameRatio\":" + escapeFrameRatio.ToString());
+            s.Append(", \"childsAngleInc\":" + childsAngleInc.ToString());
         }
         public override string ToString()
         {
@@ -4014,7 +4099,8 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Stages.StageElement>>(74);
             xx.Object.Register<CatchFish.Stages.StageElement>(75);
             xx.Object.Register<CatchFish.Stages.Emitter_RandomFishs>(76);
-            xx.Object.Register<CatchFish.Stages.Monitor_KeepBigFish>(77);
+            xx.Object.Register<CatchFish.Stages.Monitor_KeepFatFish>(77);
+            xx.Object.Register<CatchFish.Stages.Monitor_KeepBigFish>(86);
             xx.Object.Register<CatchFish.Stages.Emitter_RingFishs>(78);
             xx.Object.Register<CatchFish.Stages.Emitter_CircleFishs>(81);
             xx.Object.Register<CatchFish.Configs.Config>(57);

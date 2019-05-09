@@ -23,8 +23,11 @@ virtual int InitCascade(void* const& o = nullptr) noexcept override;
 // 随机生成一对具备合理显示效果的进出屏幕的关键点
 std::pair<xx::Pos, xx::Pos> MakeRandomInOutPoint(float const& itemRadius) noexcept;
 
-// 生成随机鱼
+// 生成随机直线 WayFish
 PKG::CatchFish::WayFish_s MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept;
+
+// 生成随机直线 BigFish
+PKG::CatchFish::BigFish_s MakeRandomBigFish(int const& fishId) noexcept;
 
 // 帧逻辑更新
 int Update() noexcept;

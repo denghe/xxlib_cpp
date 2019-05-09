@@ -120,7 +120,9 @@ interface ITypeIdMappings
 
     CatchFish.Stages.Emitter_RandomFishs _76 { get; }
 
-    CatchFish.Stages.Monitor_KeepBigFish _77 { get; }
+    CatchFish.Stages.Monitor_KeepFatFish _77 { get; }
+
+    CatchFish.Stages.Monitor_KeepBigFish _86 { get; }
 
     CatchFish.Stages.Emitter_RingFishs _78 { get; }
 

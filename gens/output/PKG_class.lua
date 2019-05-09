@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '8948698862e3b14dbae55a9e79c35464'
+PKG_PkgGenMd5_Value = '21c8600cd7c9d2de90ee00c942fd9a7c'
 
 --[[
 座位列表
@@ -1477,7 +1477,7 @@ PKG_CatchFish_WayFish = {
 }
 BBuffer.Register( PKG_CatchFish_WayFish )
 --[[
-围绕目标鱼 圆周 旋转的小鱼( 继承自 Fish 是为了重写 Update 函数并附加几个计算参数 )
+围绕目标鱼 圆周 旋转的小鱼( 实现自己的 Move 函数并附加几个计算参数, 被 BigFish Move 调用 )
 ]]
 PKG_CatchFish_RoundFish = {
     typeName = "PKG_CatchFish_RoundFish",
@@ -1493,16 +1493,22 @@ PKG_CatchFish_RoundFish = {
 		end
 
 
+        --[[
+        目标大鱼到当前小鱼的角度
+        ]]
+        o.tarAngle = 0 -- Single
         setmetatable( o, PKG_CatchFish_Fish.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
+        o.tarAngle = bb:ReadSingle()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
+        bb:WriteSingle( o.tarAngle )
     end
 }
 BBuffer.Register( PKG_CatchFish_RoundFish )
@@ -2400,14 +2406,14 @@ PKG_CatchFish_Stages_Emitter_RandomFishs = {
 }
 BBuffer.Register( PKG_CatchFish_Stages_Emitter_RandomFishs )
 --[[
-监视器: 自动再生巨大鱼, 服务端预约下发
+监视器: 自动再生肥鱼, 服务端预约下发
 ]]
-PKG_CatchFish_Stages_Monitor_KeepBigFish = {
-    typeName = "PKG_CatchFish_Stages_Monitor_KeepBigFish",
+PKG_CatchFish_Stages_Monitor_KeepFatFish = {
+    typeName = "PKG_CatchFish_Stages_Monitor_KeepFatFish",
     typeId = 77,
     Create = function()
         local o = {}
-        o.__proto = PKG_CatchFish_Stages_Monitor_KeepBigFish
+        o.__proto = PKG_CatchFish_Stages_Monitor_KeepFatFish
         o.__index = o
         o.__newindex = o
 		o.__isReleased = false
@@ -2440,6 +2446,62 @@ PKG_CatchFish_Stages_Monitor_KeepBigFish = {
         local WriteInt32 = bb.WriteInt32
         WriteInt32( bb, o.cfg_numFishsLimit )
         WriteInt32( bb, o.cfg_bornDelayFrameNumber )
+    end
+}
+BBuffer.Register( PKG_CatchFish_Stages_Monitor_KeepFatFish )
+--[[
+监视器: 自动再生大鱼, 服务端预约下发
+]]
+PKG_CatchFish_Stages_Monitor_KeepBigFish = {
+    typeName = "PKG_CatchFish_Stages_Monitor_KeepBigFish",
+    typeId = 86,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_CatchFish_Stages_Monitor_KeepBigFish
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        --[[
+        配置: 两条鱼生成帧间隔
+        ]]
+        o.cfg_bornTicksInterval = 0 -- Int32
+        --[[
+        配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
+        ]]
+        o.cfg_numFishsLimit = 0 -- Int32
+        --[[
+        配置: 预约延迟
+        ]]
+        o.cfg_bornDelayFrameNumber = 0 -- Int32
+        --[[
+        记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )
+        ]]
+        o.bornAvaliableTicks = 0 -- Int32
+        setmetatable( o, PKG_CatchFish_Stages_StageElement.Create() )
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.FromBBuffer( bb, p )
+        local ReadInt32 = bb.ReadInt32
+        o.cfg_bornTicksInterval = ReadInt32( bb )
+        o.cfg_numFishsLimit = ReadInt32( bb )
+        o.cfg_bornDelayFrameNumber = ReadInt32( bb )
+        o.bornAvaliableTicks = ReadInt32( bb )
+    end,
+    ToBBuffer = function( bb, o )
+        local p = getmetatable( o )
+        p.__proto.ToBBuffer( bb, p )
+        local WriteInt32 = bb.WriteInt32
+        WriteInt32( bb, o.cfg_bornTicksInterval )
+        WriteInt32( bb, o.cfg_numFishsLimit )
+        WriteInt32( bb, o.cfg_bornDelayFrameNumber )
+        WriteInt32( bb, o.bornAvaliableTicks )
     end
 }
 BBuffer.Register( PKG_CatchFish_Stages_Monitor_KeepBigFish )
@@ -3384,35 +3446,35 @@ PKG_CatchFish_Configs_BigFish = {
 
 
         --[[
-        小鱼配置类型
+        每帧移动距离
         ]]
-        o.childCfgId = 0 -- Int32
+        o.moveFrameDistance = 0 -- Single
         --[[
         小鱼只数
         ]]
         o.numChilds = 0 -- Int32
         --[[
-        逃离时的帧比值
+        小鱼前进角速度
         ]]
-        o.escapeFrameRatio = 0 -- Int32
+        o.childsAngleInc = 0 -- Single
         setmetatable( o, PKG_CatchFish_Configs_Fish.Create() )
         return o
     end,
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
-        local ReadInt32 = bb.ReadInt32
-        o.childCfgId = ReadInt32( bb )
-        o.numChilds = ReadInt32( bb )
-        o.escapeFrameRatio = ReadInt32( bb )
+        local ReadSingle = bb.ReadSingle
+        o.moveFrameDistance = ReadSingle( bb )
+        o.numChilds = bb:ReadInt32()
+        o.childsAngleInc = ReadSingle( bb )
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
-        local WriteInt32 = bb.WriteInt32
-        WriteInt32( bb, o.childCfgId )
-        WriteInt32( bb, o.numChilds )
-        WriteInt32( bb, o.escapeFrameRatio )
+        local WriteSingle = bb.WriteSingle
+        WriteSingle( bb, o.moveFrameDistance )
+        bb:WriteInt32( o.numChilds )
+        WriteSingle( bb, o.childsAngleInc )
     end
 }
 BBuffer.Register( PKG_CatchFish_Configs_BigFish )

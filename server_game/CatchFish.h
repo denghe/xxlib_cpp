@@ -131,6 +131,7 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "PKG_CatchFish_Stages_Emitter_CircleFishs.hpp"
 #include "PKG_CatchFish_Stages_Emitter_RingFishs.hpp"
 #include "PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp"
+#include "PKG_CatchFish_Stages_Monitor_KeepFatFish.hpp"
 #include "PKG_CatchFish_Stages_Emitter_RandomFishs.hpp"
 #include "PKG_CatchFish_Scene.hpp"
 #include "PKG_CatchFish_Player.hpp"

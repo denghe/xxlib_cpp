@@ -257,19 +257,11 @@ namespace CatchFish
 
 
 
-    [AttachInclude, Desc("围绕目标鱼 圆周 旋转的小鱼( 继承自 Fish 是为了重写 Update 函数并附加几个计算参数 )")]
+    [AttachInclude, Desc("围绕目标鱼 圆周 旋转的小鱼( 实现自己的 Move 函数并附加几个计算参数, 被 BigFish Move 调用 )")]
     class RoundFish : Fish
     {
-        // 下列属性不建模, 手工附加, Update 前填充
-
-        // 大鱼的坐标
-        //xx.Pos tarPos;
-
-        // 帧递增角度( 以 tarPos 为原点，计算到 this.Pos 的角度，加上该值 得到 newAngle, 计算出基于新角度的坐标. this.angle = newAngle +- 90度 垂直显示 ) ")]
-        //float angleInc;
-
-        // 离大鱼中心点的距离 / 旋转半径
-        //float tarDistance;
+        [Desc("目标大鱼到当前小鱼的角度")]
+        float tarAngle;
     }
 
     [AttachInclude, Desc("一只大鱼, 身边围了几只小鱼. 分摊伤害. 随机直线慢移. 自动再生. 切换关卡时快速逃离")]

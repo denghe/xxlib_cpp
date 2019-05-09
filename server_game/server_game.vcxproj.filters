@@ -90,6 +90,8 @@
     <ClInclude Include="PKG_CatchFish_RoundFish.h" />
     <ClInclude Include="PKG_CatchFish_RoundFish.hpp" />
     <ClInclude Include="PKG_CatchFish_BigFish.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepFatFish.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepFatFish.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

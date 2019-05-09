@@ -37,9 +37,9 @@ public static class Fishs
         f2.moveFrames = f1.moveFrames;
         f2.dieFrames = f1.dieFrames;
 
-        f2.childCfgId = f1.id;
+        f2.moveFrameDistance = 2.5f;
         f2.numChilds = 16;
-        f2.escapeFrameRatio = 3;
+        f2.childsAngleInc = (float)(Math.PI / 90.0);
     }
 
 

@@ -6,7 +6,6 @@ namespace CatchFish
     namespace Stages
     {
         // 命名规则：以 cfg_ 打头的 fields 为配置性质的东西，数据维持不变. 其他为运行时数据可变
-        // 所有关卡的数据可在 cfg.bin 处理同期将其分别写入不同 BBuffer, 以便随时还原出新的
 
         [Desc("游戏关卡. 一切元素皆使用 Stage.ticks 来计算时间. 可弱引用 Stage 本身. 需要可以干净序列化")]
         class Stage
@@ -35,9 +34,6 @@ namespace CatchFish
 
             [Desc("结束时间点")]
             int cfg_endTicks;
-
-            //[Desc("级联更新逻辑")]
-            //int Update([ConstRef]int ticks) { return 0; }
         }
 
         [AttachInclude, CustomInitCascade, Desc("发射器: 随机小鱼")]
@@ -59,14 +55,30 @@ namespace CatchFish
             int bornAvaliableTicks;
         }
 
-        [AttachInclude, CustomInitCascade, Desc("监视器: 自动再生巨大鱼, 服务端预约下发")]
-        class Monitor_KeepBigFish : Emitter_RandomFishs
+        [AttachInclude, CustomInitCascade, Desc("监视器: 自动再生肥鱼, 服务端预约下发")]
+        class Monitor_KeepFatFish : Emitter_RandomFishs
         {
             [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
             int cfg_numFishsLimit;
 
             [Desc("配置: 预约延迟")]
             int cfg_bornDelayFrameNumber;
+        }
+
+        [AttachInclude, CustomInitCascade, Desc("监视器: 自动再生大鱼, 服务端预约下发")]
+        class Monitor_KeepBigFish : StageElement
+        {
+            [Desc("配置: 两条鱼生成帧间隔")]
+            int cfg_bornTicksInterval;
+
+            [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
+            int cfg_numFishsLimit;
+
+            [Desc("配置: 预约延迟")]
+            int cfg_bornDelayFrameNumber;
+
+            [Desc("记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )")]
+            int bornAvaliableTicks;
         }
 
         [AttachInclude, CustomInitCascade, Desc("发射器: 从屏幕中间圆环批量出小鱼")]
