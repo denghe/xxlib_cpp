@@ -15,8 +15,8 @@ inline int PKG::CatchFish::Bullet::Move() noexcept {
 	pos += moveInc;
 
 	// 飞出屏幕就消失
-	auto&& w = ::screenCenter.x + cfg->maxRadius;
-	auto&& h = ::screenCenter.y + cfg->maxRadius;
+	auto&& w = ::designSize_2.x + cfg->maxRadius;
+	auto&& h = ::designSize_2.y + cfg->maxRadius;
 	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
 	return 0;
 }
@@ -51,13 +51,13 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 inline void PKG::CatchFish::Bullet::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
-	body->setGlobalZOrder(cfg->zOrder);
+	body->setLocalZOrder(cfg->zOrder);
 	auto&& sf = cfg->frames->At(1)->spriteFrame;
 	body->setSpriteFrame(sf);
 	body->setPosition(pos);
 	body->setScale(cfg->scale);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
-	cc_scene->addChild(body);
+	cc_fishNode->addChild(body);
 }
 
 inline void PKG::CatchFish::Bullet::DrawUpdate() noexcept {

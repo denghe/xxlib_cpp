@@ -18,8 +18,10 @@ std::shared_ptr<Dialer> dialer;
 CatchFish* catchFish = nullptr;
 
 inline cocos2d::Scene* cc_scene = nullptr;
-inline xx::List<cocos2d::Touch*> cc_touchs;
+inline RefHolder<cocos2d::Node> cc_fishNode;
+inline RefHolder<cocos2d::Node> cc_uiNode;
 inline RefHolder<cocos2d::EventListenerTouchAllAtOnce> cc_listener;
+inline xx::List<cocos2d::Touch*> cc_touchs;
 #endif
 
 #ifndef CC_TARGET_PLATFORM
@@ -39,12 +41,24 @@ struct Peer;
 // 是否显示物理碰撞检测线
 #define DRAW_PHYSICS_POLYGON 0
 
-static constexpr int screenWidth = 1280;
-static constexpr int screenHeight = 720;
-static constexpr float screenWidthRatio = float(screenWidth) / float(screenWidth + screenHeight);
-static constexpr xx::Pos screenCenter = xx::Pos{ screenWidth / 2, screenHeight / 2 };
+static constexpr xx::Pos designSize = xx::Pos{ 1280, 720 };
+static constexpr xx::Pos designSize_2 = xx::Pos{ designSize.x / 2, designSize.y / 2 };
+static constexpr float designWidthRatio = designSize.x / (designSize.x + designSize.y);
 
-
+#ifdef CC_TARGET_PLATFORM
+inline static cocos2d::Size cc_visibleSize;
+inline static cocos2d::Size cc_visibleSize_2;
+// 基于实际设计尺寸的 9 点定位坐标
+inline static xx::Pos cc_p1;
+inline static xx::Pos cc_p2;
+inline static xx::Pos cc_p3;
+inline static xx::Pos cc_p4;
+inline static xx::Pos cc_p5;
+inline static xx::Pos cc_p6;
+inline static xx::Pos cc_p7;
+inline static xx::Pos cc_p8;
+inline static xx::Pos cc_p9;
+#endif
 // todo: more 
 
 

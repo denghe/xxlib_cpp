@@ -18,6 +18,7 @@ inline int PKG::CatchFish::Stages::Emitter_CircleFishs::Update(int const& ticks)
 		fish->pos = { 0,0 };
 		fish->angle = angle;
 		fish->moveInc = xx::Rotate({ cfg_speed ,0 }, angle);
+		fish->frameRatio = 1;
 		angle += cfg_angleIncrease;
 
 		fish->indexAtContainer = (int)scene->fishs->len;

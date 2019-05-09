@@ -72,16 +72,14 @@ inline int PKG::CatchFish::Cannon::Update(int const& frameNumber) noexcept {
 
 		// 自动射击。直接在屏幕上随机一个坐标来用
 		if (::dialer->autoFire) {
-			tpos = { ::dialer->rnd.Next(screenWidth) - screenCenter.x, ::dialer->rnd.Next(screenHeight) - screenCenter.y };
+			tpos = { ::dialer->rnd.Next((int)designSize.x) - designSize_2.x, ::dialer->rnd.Next((int)designSize.y) - designSize_2.y };
 			fire = true;
 		}
 		else {
 			// 输入检测. 炮台角度对准首个 touch 点( 暂定方案 )
 			if (cc_touchs.len) {
-				// 世界坐标
-				auto tloc = cc_touchs[0]->getLocationInView();
-				// 转为游戏坐标系
-				tpos = { tloc.x - screenCenter.x, screenCenter.y - tloc.y };
+				auto tloc = cc_fishNode->convertTouchToNodeSpace(cc_touchs[0]);
+				tpos = { tloc.x, tloc.y };
 				fire = true;
 			}
 		}
@@ -281,13 +279,13 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 inline void PKG::CatchFish::Cannon::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
-	body->setGlobalZOrder(cfg->zOrder);
+	body->setLocalZOrder(cfg->zOrder);
 	auto&& sf = cfg->frames->At(0)->spriteFrame;
 	body->setSpriteFrame(sf);
 	body->setPosition(pos);
 	body->setScale(cfg->scale);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
-	cc_scene->addChild(body);
+	cc_fishNode->addChild(body);
 }
 
 inline void PKG::CatchFish::Cannon::DrawUpdate() noexcept {

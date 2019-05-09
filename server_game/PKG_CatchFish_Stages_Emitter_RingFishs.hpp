@@ -22,6 +22,7 @@ inline int PKG::CatchFish::Stages::Emitter_RingFishs::Update(int const& ticks) n
 			fish->pos = { 0,0 };
 			fish->angle = a;
 			fish->moveInc = xx::Rotate({ cfg_speed ,0 }, a);
+			fish->frameRatio = 1;
 
 			fish->indexAtContainer = (int)scene->fishs->len;
 			scene->fishs->Add(fish);

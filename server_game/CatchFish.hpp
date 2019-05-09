@@ -80,7 +80,27 @@ inline int CatchFish::Init(std::string const& ip, int const& port, std::string c
 
 	assert(!cc_scene);
 	// 初始化 cocos 相关
+	cc_visibleSize = cocos2d::Director::getInstance()->getOpenGLView()->getDesignResolutionSize();
+	cc_visibleSize_2 = cc_visibleSize / 2;
+	cc_p1 = { -cc_visibleSize_2.width, -cc_visibleSize_2.height };
+	cc_p2 = { 0, -cc_visibleSize_2.height };
+	cc_p3 = { cc_visibleSize_2.width, -cc_visibleSize_2.height };
+	cc_p4 = { -cc_visibleSize_2.width, 0 };
+	cc_p5 = { 0, 0 };
+	cc_p6 = { cc_visibleSize_2.width, 0 };
+	cc_p7 = { -cc_visibleSize_2.width, cc_visibleSize_2.height };
+	cc_p8 = { 0, cc_visibleSize_2.height };
+	cc_p9 = { cc_visibleSize_2.width, cc_visibleSize_2.height };
+
 	cc_scene = cocos2d::Director::getInstance()->getRunningScene();
+
+	cc_fishNode = cocos2d::ClippingRectangleNode::create({ -designSize_2.x, -designSize_2.y, designSize.x, designSize.y });
+	cc_fishNode->setScale(designSize.x / designSize.y > cc_visibleSize.width / cc_visibleSize.height ? cc_visibleSize.width / designSize.x : cc_visibleSize.height / designSize.y);
+	cc_scene->addChild(cc_fishNode);
+
+	cc_uiNode = cocos2d::Node::create();
+	cc_scene->addChild(cc_uiNode);
+	
 	cc_listener = cocos2d::EventListenerTouchAllAtOnce::create();
 	cc_listener->onTouchesBegan = [](const std::vector<cocos2d::Touch*> & ts, cocos2d::Event * e) {
 		cc_touchs.AddRange(ts.data(), ts.size());

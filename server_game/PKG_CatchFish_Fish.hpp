@@ -11,7 +11,7 @@ inline int PKG::CatchFish::Fish::InitCascade(void* const& o) noexcept {
 
 inline int PKG::CatchFish::Fish::Move() noexcept {
 	pos += moveInc * speedScale;
-	if (fabsf(pos.x) > screenCenter.x + cfg->maxDetectRadius || fabsf(pos.y) > screenCenter.y + cfg->maxDetectRadius) return -1;
+	if (fabsf(pos.x) > designSize_2.x + cfg->maxDetectRadius || fabsf(pos.y) > designSize_2.y + cfg->maxDetectRadius) return -1;
 
 	// 帧下标循环前进
 	if (++spriteFrameIndex == cfg->moveFrames->len) {
@@ -59,21 +59,21 @@ int PKG::CatchFish::Fish::HitCheck(PKG::CatchFish::Bullet* const& bullet) noexce
 inline void PKG::CatchFish::Fish::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();
-	body->setGlobalZOrder(cfg->zOrder);
+	body->setLocalZOrder(cfg->zOrder);
 
 	shadow = cocos2d::Sprite::create();
-	shadow->setGlobalZOrder(cfg->zOrder);
+	shadow->setLocalZOrder(cfg->zOrder);
 	shadow->setColor(cocos2d::Color3B::BLACK);
 	shadow->setOpacity(125);
 #if DRAW_PHYSICS_POLYGON
 	debugNode = cocos2d::DrawNode::create();
-	debugNode->setGlobalZOrder(cfg->zOrder);
+	debugNode->setLocalZOrder(cfg->zOrder);
 #endif
 	DrawUpdate();
-	cc_scene->addChild(shadow);
-	cc_scene->addChild(body);
+	cc_fishNode->addChild(shadow);
+	cc_fishNode->addChild(body);
 #if DRAW_PHYSICS_POLYGON
-	cc_scene->addChild(debugNode);
+	cc_fishNode->addChild(debugNode);
 #endif
 }
 

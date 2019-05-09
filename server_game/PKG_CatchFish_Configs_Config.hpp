@@ -6,8 +6,8 @@
 
 	// 按一定密度遍历组合产生所有对角斜线
 	std::vector<std::pair<xx::Pos, xx::Pos>> ios_normal;
-	auto&& w = (screenWidth + normalFishMaxRadius) / 2.0f;
-	auto && h = (screenHeight + normalFishMaxRadius) / 2.0f;
+	auto&& w = (designSize.x + normalFishMaxRadius) / 2.0f;
+	auto&& h = (designSize.y + normalFishMaxRadius) / 2.0f;
 	for (int a_ = 0; a_ < 180; a_ += 10) {
 		int a1 = a_;
 		if (a1 < 90) {
@@ -18,7 +18,7 @@
 		}
 		auto&& p1 = xx::Rotate(xx::Pos{ 1, 0 }, a1 * (float(M_PI) / 180.0f));
 		xx::Pos abs{ std::fabs(p1.x), std::fabs(p1.y) };
-		if (abs.x / (abs.x + abs.y) > screenWidthRatio) {
+		if (abs.x / (abs.x + abs.y) > designWidthRatio) {
 			p1 = p1 * (w / abs.x);
 		}
 		else {
@@ -28,7 +28,7 @@
 			auto&& p2 = xx::Rotate(xx::Pos{ 1, 0 }, a2 * (float(M_PI) / 180.0f));
 			abs.x = std::fabs(p2.x);
 			abs.y = std::fabs(p2.y);
-			if (abs.x / (abs.x + abs.y) > screenWidthRatio) {
+			if (abs.x / (abs.x + abs.y) > designWidthRatio) {
 				p2 = p2 * (w / abs.x);
 			}
 			else {
