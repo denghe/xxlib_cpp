@@ -1399,11 +1399,12 @@ namespace xx {
 		uv_connect_t req;
 		std::shared_ptr<UvTcpPeerBase> peer;
 		std::weak_ptr<UvTcpDialer> dialer_w;
+		~uv_connect_t_ex();
 	};
 
 	struct UvTcpDialer : UvDialerBase {
 		using UvDialerBase::UvDialerBase;
-		std::vector<uv_connect_t_ex*> reqs;
+		List<uv_connect_t_ex*> reqs;
 
 		~UvTcpDialer() { this->Dispose(0); }
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
@@ -1439,34 +1440,50 @@ namespace xx {
 			req->dialer_w = As<UvTcpDialer>(shared_from_this());
 
 			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)& addr, [](uv_connect_t * conn, int status) {
-				auto&& req = std::unique_ptr<uv_connect_t_ex>(container_of(conn, uv_connect_t_ex, req));// auto delete when return
-				if (!req->peer) return;													// canceled
-				auto&& dialer = req->dialer_w.lock();
-				if (!dialer) return;													// container disposed
-				if (status) return;														// error or -4081 canceled
-
-				auto&& peer = std::move(req->peer);										// remove peer to outside, avoid cancel
+				std::shared_ptr<UvTcpDialer> dialer;
+				std::shared_ptr<UvTcpPeerBase> peer;
+				{
+					// auto delete when exit scope
+					auto&& req = std::unique_ptr<uv_connect_t_ex>(container_of(conn, uv_connect_t_ex, req));
+					if (status) return;													// error or -4081 canceled
+					if (!req->peer) return;												// canceled
+					dialer = req->dialer_w.lock();
+					if (!dialer) return;												// container disposed
+					peer = std::move(req->peer);										// remove peer to outside, avoid cancel
+				}
 				if (peer->ReadStart()) return;											// read error
 				Uv::FillIP(peer->uvTcp, peer->ip);
 				dialer->Accept(peer);													// callback
-				})) return -3;
+			})) return -3;
 
-			reqs.push_back(req);
+			reqs.Add(req);
 			sgReq.Cancel();
 			return 0;
 		}
 
 		inline virtual void Cancel() noexcept override {
 			if (disposed) return;
-			for (auto&& req : reqs) {
-				if (req->peer) {
-					uv_cancel((uv_req_t*)& req->req);
-					req->peer.reset();
+			if (reqs.len) {
+				for (auto i = reqs.len - 1; i != (size_t)-1; --i) {
+					auto req = reqs[i];
+					assert(req->peer);
+					uv_cancel((uv_req_t*)& req->req);				// ios call this do nothing
+					if (reqs[i] == req) {							// check req is alive
+						req->peer.reset();							// ios need this to fire cancel progress
+					}
 				}
 			}
-			reqs.clear();
+			reqs.Clear();
 		}
 	};
+
+	inline uv_connect_t_ex::~uv_connect_t_ex() {
+		auto&& dialer = dialer_w.lock();
+		if (!dialer) return;
+		auto idx = dialer->reqs.Find(this);
+		if (idx == -1) return;
+		dialer->reqs.SwapRemoveAt(idx);
+	}
 
 	inline UvDialer::UvDialer(Uv& uv)
 		: UvCreateAcceptBase(uv) {
