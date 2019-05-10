@@ -8,6 +8,7 @@
 
 	// 为连接创建上下文对象并附加到连接. 同步生命周期
 	listener->onAccept = [this](xx::UvPeer_s peer) {
+		xx::CoutTN(peer->GetIP(), peer->IsKcp() ? " kcp" : " tcp", " accepted.");
 		peer->onDisconnect = [peer] {		// hold memory
 			xx::CoutTN(peer->GetIP(), " disconnected.");
 		};
@@ -29,5 +30,5 @@
 			(void)catchFish->Update();
 			ticksPool -= ticksPerFrame;
 		}
-	});
+		});
 }
