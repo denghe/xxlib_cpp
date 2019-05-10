@@ -249,7 +249,7 @@ namespace xx {
 			}
 			Reserve(len + sizeof(T) + 1);
 			while (u >= 1 << 7) {
-				buf[len++] = uint8_t(u & 0x7fu | 0x80u);
+				buf[len++] = uint8_t((u & 0x7fu) | 0x80u);
 				u >>= 7;
 			};
 			buf[len++] = uint8_t(u);

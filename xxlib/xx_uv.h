@@ -405,7 +405,7 @@ namespace xx {
 		inline virtual bool Disposed() const noexcept override {
 			return !tcpListener && !kcpListener;
 		}
-		virtual void Dispose(int const& flag) noexcept;
+		virtual void Dispose(int const& flag) noexcept override;
 	};
 	using UvListener_s = std::shared_ptr<UvListener>;
 	using UvListener_w = std::weak_ptr<UvListener>;
@@ -670,7 +670,7 @@ namespace xx {
 
 		inline virtual void Flush() noexcept override {}
 
-		inline virtual int Update(int64_t const& nowMS) noexcept { return 0; }
+		inline virtual int Update(int64_t const& nowMS) noexcept override { return 0; }
 
 
 		// called by dialer or listener
@@ -901,7 +901,7 @@ namespace xx {
 		}
 
 		// called by ext class
-		inline virtual int Update(int64_t const& nowMS) noexcept {
+		inline virtual int Update(int64_t const& nowMS) noexcept override {
 			if (!kcp) return -1;
 
 			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: uint32 limit. connect only alive 50+ days

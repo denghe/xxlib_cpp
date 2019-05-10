@@ -687,18 +687,15 @@ namespace xx {
 
 	// 移动时是否可使用 memmove 的标志 基础适配模板
 	template<typename T, typename ENABLED = void>
-	struct IsTrivial {
-		static const bool value = false;
-	};
+	struct IsTrivial : std::false_type {};
 
 	template<typename T>
 	constexpr bool IsTrivial_v = IsTrivial<T>::value;
 
-	// 适配 std::is_trivial<T>::value
+	// 适配 std::is_trivial<T>::value 或 智能指针( 看上去其实现可以直接 memcpy )
 	template<typename T>
-	struct IsTrivial<T, std::enable_if_t<std::is_trivial_v<T>>> {
-		static const bool value = true;
-	};
+	struct IsTrivial<T, std::enable_if_t<(IsShared_v<T> || IsWeak_v<T>) || std::is_trivial_v<T>>> : std::true_type {};
+
 
 
 

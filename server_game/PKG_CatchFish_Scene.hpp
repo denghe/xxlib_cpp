@@ -113,7 +113,7 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 			int r = 0;
 			{
 				auto&& p = xx::As<Player>(w.lock());
-				if (r = p->Update(frameNumber)) {
+				if ((r = p->Update(frameNumber))) {
 					catchFish->Cleanup(p);
 				}
 			}
