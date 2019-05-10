@@ -1,4 +1,4 @@
-﻿inline PKG::CatchFish::Configs::BigFish* const& PKG::CatchFish::BigFish::Cfg() const noexcept {
+﻿inline PKG::CatchFish::Configs::BigFish* PKG::CatchFish::BigFish::Cfg() const noexcept {
 	assert(dynamic_cast<PKG::CatchFish::Configs::BigFish*>(this->cfg));
 	return (PKG::CatchFish::Configs::BigFish*)this->cfg;
 }

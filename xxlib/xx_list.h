@@ -65,7 +65,7 @@ namespace xx
 			assert(newBuf);
 
 			if constexpr (IsTrivial_v<T>) {
-				::memcpy(newBuf, buf, len * sizeof(T));
+				::memcpy((void*)newBuf, buf, len * sizeof(T));
 			}
 			else {
 				for (size_t i = 0; i < len; ++i) {

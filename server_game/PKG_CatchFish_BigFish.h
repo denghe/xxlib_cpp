@@ -1,5 +1,5 @@
 ﻿// 将配置转为具体类型
-PKG::CatchFish::Configs::BigFish* const& Cfg() const noexcept;
+PKG::CatchFish::Configs::BigFish* Cfg() const noexcept;
 
 // 执行移动逻辑, 同时调用 childs Update
 virtual int Update(int const& frameNumber) noexcept override;
