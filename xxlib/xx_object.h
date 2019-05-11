@@ -135,7 +135,12 @@ namespace xx {
 	struct BBuffer;
 
 	struct Object {
-		virtual ~Object() {}
+		Object() = default;
+		virtual ~Object() = default;
+		Object(Object const&) = delete;
+		Object& operator=(Object const&) = delete;
+		Object(Object &&) = delete;
+		Object& operator=(Object &&) = delete;
 
 		// 序列化相关
 		inline virtual uint16_t GetTypeId() const noexcept { return 0; }
@@ -147,7 +152,7 @@ namespace xx {
 		inline virtual void ToStringCore(std::string& s) const noexcept {};
 		bool toStringFlag = false;
 		inline void SetToStringFlag(bool const& b = true) const noexcept {
-			((Object*)this)->toStringFlag = b;
+			const_cast<Object*>(this)->toStringFlag = b;
 		}
 
 		// 级联相关( 主用于遍历调用生成物派生类 override 的代码 )
