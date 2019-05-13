@@ -1,1 +1,1 @@
-﻿inline virtual int Update(int const& frameNumber) noexcept { return 0; }
+﻿virtual int Update(int const& frameNumber) noexcept;

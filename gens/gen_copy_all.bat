@@ -13,4 +13,5 @@ xcopy output\cfg.bin ..\x64\Debug /y
 xcopy output\cfg.bin ..\x64\Release /y
 xcopy output\cfg.bin ..\..\xxlib_cocos_cpp\res /y
 xcopy output\PKG_class.h ..\..\xxlib_cocos_cpp\Classes /y
+xcopy output\PKG_class.hpp ..\..\xxlib_cocos_cpp\Classes /y
 pause

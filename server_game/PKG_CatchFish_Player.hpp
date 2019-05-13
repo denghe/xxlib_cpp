@@ -6,7 +6,7 @@ inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 	this->pos = scene->cfg->sitPositons->At((int)this->sit);
 
 	// 初始面板显示元素
-	xx::MakeTo(panel, this);
+	DrawInit();
 
 	// 前置填充
 	for (auto&& cannon : *cannons) {
@@ -16,6 +16,23 @@ inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 	// 开始瀑布初始化
 	return InitCascadeCore(o);
 }
+
+inline void PKG::CatchFish::Player::DrawInit() noexcept {
+	labelCoin = cocos2d::Label::createWithSystemFont("", "", 32);
+	labelCoin->setPosition(pos + xx::Pos{ 0, 30 });
+	labelCoin->setAnchorPoint({ 0.5, 1 });
+	labelCoin->setLocalZOrder(500);
+	cc_fishNode->addChild(labelCoin);
+	DrawUpdate_Coin();						// 更新显示内容
+}
+inline void PKG::CatchFish::Player::DrawUpdate_Coin() noexcept {
+	assert(!::catchFish->disposed);
+	if (!labelCoin) return;
+	if (!coin == lastCoin) return;
+	labelCoin->setString(std::to_string(coin));
+	lastCoin = coin;
+}
+
 #endif
 
 inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
@@ -35,7 +52,7 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 
 #ifdef CC_TARGET_PLATFORM
 	// 更新金币显示
-	panel->SetText_Coin(this->coin);
+	DrawUpdate_Coin();
 
 #else
 	// 简单包堆积检测

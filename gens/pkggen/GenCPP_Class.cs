@@ -130,10 +130,10 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 }
             }
 
-            if(c._Has<TemplateLibrary.AttachInclude>())
+            if (c._Has<TemplateLibrary.AttachInclude>())
             {
                 sb.Append(@"
-#include """+c._GetTypeDecl_Lua(templateName)+@".h""");
+#include """ + c._GetTypeDecl_Lua(templateName) + @".h""");
             }
 
             // struct /
@@ -530,6 +530,19 @@ namespace " + templateName + @" {
 ");
 
         var outFN = Path.Combine(outDir, templateName + "_class.h");
+        sb._WriteToFile(outFN);
+        System.Console.WriteLine("已生成 " + outFN);
+
+        sb.Clear();
+        foreach(var c in cs)
+        {
+            if (c._Has<TemplateLibrary.AttachInclude>())
+            {
+                sb.Append(@"#include """ + c._GetTypeDecl_Lua(templateName) + @".hpp""
+");
+            }
+        }
+        outFN = Path.Combine(outDir, templateName + "_class.hpp");
         sb._WriteToFile(outFN);
         System.Console.WriteLine("已生成 " + outFN);
     }

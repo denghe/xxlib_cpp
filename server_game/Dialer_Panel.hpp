@@ -1,4 +1,4 @@
-﻿inline Panel_Dialer::Panel_Dialer(Dialer* dialer)
+﻿inline Dialer_Panel::Dialer_Panel(Dialer* dialer)
 	: dialer(dialer)
 {
 	// 从下往上流式布局. g1 坐标向上偏移 70 以避开 cocos ogl 统计区
@@ -81,26 +81,26 @@
 	//cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listenerSwitchTcpKcp, btnSwitchTcpKcp);
 }
 
-inline void Panel_Dialer::SetText_TcpKcp(bool const& value) noexcept {
+inline void Dialer_Panel::SetText_TcpKcp(bool const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!btnSwitchTcpKcp) return;
 	std::string s = "protocol: ";
 	s += value ? "KCP" : "TCP";
 	btnSwitchTcpKcp->setString(s);
 }
-inline void Panel_Dialer::SetText_AutoFire(bool const& value) noexcept {
+inline void Dialer_Panel::SetText_AutoFire(bool const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!btnAutoFire) return;
 	std::string s = "auto fire: ";
 	s += value ? "ON" : "OFF";
 	btnAutoFire->setString(s);
 }
-inline void Panel_Dialer::SetText_NumDialTimes(int64_t const& value) noexcept {
+inline void Dialer_Panel::SetText_NumDialTimes(int64_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelNumDialTimes) return;
 	labelNumDialTimes->setString("reconnect times: " + std::to_string(value));
 }
-inline void Panel_Dialer::SetText_Ping(int64_t const& value) noexcept {
+inline void Dialer_Panel::SetText_Ping(int64_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelPing) return;
 	if (value < 0) {
@@ -112,12 +112,12 @@ inline void Panel_Dialer::SetText_Ping(int64_t const& value) noexcept {
 		labelPing->setString(s);
 	}
 }
-inline void Panel_Dialer::SetText_NumFishs(size_t const& value) noexcept {
+inline void Dialer_Panel::SetText_NumFishs(size_t const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelNumFishs) return;
 	labelNumFishs->setString("num fishs: " + std::to_string(value));
 }
-inline void Panel_Dialer::SetText_Server(std::string const& value) noexcept {
+inline void Dialer_Panel::SetText_Server(std::string const& value) noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelServer) return;
 	labelServer->setString(value);

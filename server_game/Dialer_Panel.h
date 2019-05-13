@@ -1,8 +1,8 @@
 ﻿struct Dialer;
-struct Panel_Dialer {
+struct Dialer_Panel {
 	// 指向 dialer( 由 dialer 填充 )
 	Dialer* dialer = nullptr;
-	Panel_Dialer(Dialer* dialer);
+	Dialer_Panel(Dialer* dialer);
 
 	RefHolder<cocos2d::Label> btnSwitchTcpKcp;
 	RefHolder<cocos2d::EventListenerTouchOneByOne> listenerSwitchTcpKcp;
@@ -25,4 +25,4 @@ struct Panel_Dialer {
 	void SetText_NumFishs(size_t const& value) noexcept;
 	void SetText_Server(std::string const& value) noexcept;
 };
-using Panel_Dialer_s = std::shared_ptr<Panel_Dialer>;
+using Dialer_Panel_s = std::shared_ptr<Dialer_Panel>;

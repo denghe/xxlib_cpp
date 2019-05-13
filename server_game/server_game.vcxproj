@@ -95,6 +95,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\gens\output\PKG_class.h" />
+    <ClInclude Include="..\gens\output\PKG_class.hpp" />
     <ClInclude Include="..\xxlib\fixed_function.hpp" />
     <ClInclude Include="..\xxlib\ikcp.h" />
     <ClInclude Include="..\xxlib\xx_bbuffer.h" />

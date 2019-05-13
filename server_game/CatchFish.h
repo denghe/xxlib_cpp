@@ -32,7 +32,6 @@ struct Peer;
 #include "chipmunk.h"
 #include "PKG_class.h"
 
-#include "xx_random.hpp"
 
 /**************************************************************************************************/
 // ::
@@ -115,8 +114,7 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "Peer.h"
 #include "Listener.h"
 #else
-#include "Panel_Dialer.h"
-#include "Panel_Player.h"
+#include "Dialer_Panel.h"
 #include "Dialer.h"
 #endif
 
@@ -124,29 +122,14 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 // hpp includes
 /**************************************************************************************************/
 
+#include "xx_random.hpp"
 #include "CatchFish.hpp"
-#include "PKG_CatchFish_Configs_Config.hpp"
-#include "PKG_CatchFish_Configs_SpriteFrame.hpp"
-#include "PKG_CatchFish_Configs_Physics.hpp"
-#include "PKG_CatchFish_Stages_Emitter_CircleFishs.hpp"
-#include "PKG_CatchFish_Stages_Emitter_RingFishs.hpp"
-#include "PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp"
-#include "PKG_CatchFish_Stages_Monitor_KeepFatFish.hpp"
-#include "PKG_CatchFish_Stages_Emitter_RandomFishs.hpp"
-#include "PKG_CatchFish_Scene.hpp"
-#include "PKG_CatchFish_Player.hpp"
-#include "PKG_CatchFish_Cannon.hpp"
-#include "PKG_CatchFish_Bullet.hpp"
-#include "PKG_CatchFish_Fish.hpp"
-#include "PKG_CatchFish_WayFish.hpp"
-#include "PKG_CatchFish_RoundFish.hpp"
-#include "PKG_CatchFish_BigFish.hpp"
+#include "PKG_class.hpp"
 
 #ifndef CC_TARGET_PLATFORM
 #include "Peer.hpp"
 #include "Listener.hpp"
 #else
-#include "Panel_Dialer.hpp"
-#include "Panel_Player.hpp"
+#include "Dialer_Panel.hpp"
 #include "Dialer.hpp"
 #endif

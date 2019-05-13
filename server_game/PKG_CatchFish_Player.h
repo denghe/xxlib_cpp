@@ -30,8 +30,12 @@ xx::List_s<PKG::CatchFish::Events::Event_s> events;
 // 标识这个玩家是本人
 bool isSelf = false;
 
-// 玩家面板( 头像, 金币 ui 啥的 )
-std::shared_ptr<Panel_Player> panel;
+// 面板显示相关
+int64_t lastCoin = -1;
+RefHolder<cocos2d::Label> labelCoin;
+void SetText_Coin(int64_t const& value) noexcept;
+void DrawInit() noexcept;
+void DrawUpdate_Coin() noexcept;
 
 virtual int InitCascade(void* const& o) noexcept override;
 #endif
