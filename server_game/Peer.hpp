@@ -26,18 +26,16 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 	// 有玩家 bind
 	if (auto && player = player_w.lock()) {
 		// 已绑定连接
-		// 将初步判定合法的消息放入分类容器, 待到适当时机读出使用, 模拟输入
-		switch (msg->GetTypeId()) {
-		case xx::TypeId_v<PKG::Client_CatchFish::Fire>:
-			player->recvFires.push_back(xx::As<PKG::Client_CatchFish::Fire>(msg));
-			break;
-		case xx::TypeId_v<PKG::Client_CatchFish::Hit>:
-			player->recvHits.push_back(xx::As<PKG::Client_CatchFish::Hit>(msg));
-			break;
-		default:
+		// 将初步判定合法的消息放入容器, 待到适当时机读出使用, 模拟输入
+		auto&& typeId = msg->GetTypeId();
+		if (typeId != xx::TypeId_v<PKG::Client_CatchFish::Bet>
+			&& typeId != xx::TypeId_v<PKG::Client_CatchFish::Fire>
+			&& typeId != xx::TypeId_v<PKG::Client_CatchFish::Hit>) {
 			xx::CoutTN("binded recv unhandled push: ", msg);
 			return -1;
 		}
+		player->recvs.push_back(msg);
+		return 0;
 	}
 	// 没玩家 bind
 	else {

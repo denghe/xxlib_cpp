@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "21c8600cd7c9d2de90ee00c942fd9a7c";
+		inline static const std::string value = "afb5065555d5ca348ece3444ea38769b";
     };
 
 namespace Generic {
@@ -43,6 +43,11 @@ namespace Client_CatchFish {
     struct Enter;
     using Enter_s = std::shared_ptr<Enter>;
     using Enter_w = std::weak_ptr<Enter>;
+
+    // 调整炮台倍率
+    struct Bet;
+    using Bet_s = std::shared_ptr<Bet>;
+    using Bet_w = std::weak_ptr<Bet>;
 
     // 开火
     struct Fire;
@@ -533,6 +538,22 @@ namespace CatchFish::Configs {
     };
 }
 namespace CatchFish::Events {
+    // 转发: 玩家自动开火
+    struct OpenAutoFire : PKG::CatchFish::Events::Event {
+
+        typedef OpenAutoFire ThisType;
+        typedef PKG::CatchFish::Events::Event BaseType;
+	    OpenAutoFire() = default;
+		OpenAutoFire(OpenAutoFire const&) = delete;
+		OpenAutoFire& operator=(OpenAutoFire const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
     // 转发: 玩家解除自动开火
     struct CloseAutoFire : PKG::CatchFish::Events::Event {
 
@@ -549,14 +570,14 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 转发: 玩家自动开火
-    struct OpenAutoFire : PKG::CatchFish::Events::Event {
+    // 转发: 玩家开火解除锁定
+    struct CloseAutoLock : PKG::CatchFish::Events::Event {
 
-        typedef OpenAutoFire ThisType;
+        typedef CloseAutoLock ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
-	    OpenAutoFire() = default;
-		OpenAutoFire(OpenAutoFire const&) = delete;
-		OpenAutoFire& operator=(OpenAutoFire const&) = delete;
+	    CloseAutoLock() = default;
+		CloseAutoLock(CloseAutoLock const&) = delete;
+		CloseAutoLock& operator=(CloseAutoLock const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -583,24 +604,10 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 转发: 玩家开火解除锁定
-    struct CloseAutoLock : PKG::CatchFish::Events::Event {
-
-        typedef CloseAutoLock ThisType;
-        typedef PKG::CatchFish::Events::Event BaseType;
-	    CloseAutoLock() = default;
-		CloseAutoLock(CloseAutoLock const&) = delete;
-		CloseAutoLock& operator=(CloseAutoLock const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
     // 转发: 切换炮台倍率
     struct CannonCoinChange : PKG::CatchFish::Events::Event {
+        // 炮台id
+        int32_t cannonId = 0;
         // 币值 / 倍率
         int64_t coin = 0;
 
@@ -609,24 +616,6 @@ namespace CatchFish::Events {
 	    CannonCoinChange() = default;
 		CannonCoinChange(CannonCoinChange const&) = delete;
 		CannonCoinChange& operator=(CannonCoinChange const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
-    // 调试信息( 开发阶段校验用 )
-    struct DebugInfo : PKG::CatchFish::Events::Event {
-        // 鱼id集合
-        xx::List_s<int32_t> fishIds;
-
-        typedef DebugInfo ThisType;
-        typedef PKG::CatchFish::Events::Event BaseType;
-	    DebugInfo() = default;
-		DebugInfo(DebugInfo const&) = delete;
-		DebugInfo& operator=(DebugInfo const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -645,6 +634,24 @@ namespace CatchFish::Events {
 	    Aim() = default;
 		Aim(Aim const&) = delete;
 		Aim& operator=(Aim const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
+    // 调试信息( 开发阶段校验用 )
+    struct DebugInfo : PKG::CatchFish::Events::Event {
+        // 鱼id集合
+        xx::List_s<int32_t> fishIds;
+
+        typedef DebugInfo ThisType;
+        typedef PKG::CatchFish::Events::Event BaseType;
+	    DebugInfo() = default;
+		DebugInfo(DebugInfo const&) = delete;
+		DebugInfo& operator=(DebugInfo const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -693,8 +700,6 @@ namespace CatchFish::Events {
         int32_t bulletId = 0;
         // 子弹的发射角度
         float tarAngle = 0;
-        // 币值 / 倍率
-        int64_t coin = 0;
 
         typedef Fire ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
@@ -1004,6 +1009,24 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
+    // 通知: 退钱( 常见于子弹打空 )
+    struct Refund : PKG::CatchFish::Events::Event {
+        // 币值
+        int64_t coin = 0;
+
+        typedef Refund ThisType;
+        typedef PKG::CatchFish::Events::Event BaseType;
+	    Refund() = default;
+		Refund(Refund const&) = delete;
+		Refund& operator=(Refund const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
     // 通知: 鱼被打死
     struct FishDead : PKG::CatchFish::Events::Event {
         // 鱼id
@@ -1020,34 +1043,6 @@ namespace CatchFish::Events {
 	    FishDead() = default;
 		FishDead(FishDead const&) = delete;
 		FishDead& operator=(FishDead const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
-}
-namespace CatchFish::Configs {
-    // 带物理检测区和锁定线等附加数据的鱼移动帧动画
-    struct FishSpriteFrame : xx::Object {
-        // 指向精灵帧
-        PKG::CatchFish::Configs::SpriteFrame_s frame;
-        // 指向物理建模
-        PKG::CatchFish::Configs::Physics_s physics;
-        // 首选锁定点( 如果该点还在屏幕上, 则 lock 准星一直在其上 )
-        ::xx::Pos lockPoint;
-        // 锁定点集合( 串成一条线的锁定点. 当首选锁定点不在屏上时, 使用该线与所在屏的边线的交点作为锁定点 )
-        xx::List_s<::xx::Pos> lockPoints;
-        // 本帧动画切到下一帧动画后应该移动的距离( 受 Fish.speedScale 影响 )
-        float moveDistance = 0;
-
-        typedef FishSpriteFrame ThisType;
-        typedef xx::Object BaseType;
-	    FishSpriteFrame() = default;
-		FishSpriteFrame(FishSpriteFrame const&) = delete;
-		FishSpriteFrame& operator=(FishSpriteFrame const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1170,6 +1165,24 @@ namespace Client_CatchFish {
 	    Enter() = default;
 		Enter(Enter const&) = delete;
 		Enter& operator=(Enter const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
+    // 调整炮台倍率
+    struct Bet : xx::Object {
+        int32_t cannonId = 0;
+        int64_t coin = 0;
+
+        typedef Bet ThisType;
+        typedef xx::Object BaseType;
+	    Bet() = default;
+		Bet(Bet const&) = delete;
+		Bet& operator=(Bet const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1309,28 +1322,6 @@ namespace CatchFish {
         int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Player.h"
     };
-}
-namespace CatchFish::Events {
-    // 通知: 下发已生效 Weapon, 需要判断 flyFrameNumber, 放入 player.weapon 队列
-    struct PushWeapon : PKG::CatchFish::Events::Event {
-        // 已于 server 端构造好的, 无牵挂的, 能干净下发的实例
-        PKG::CatchFish::Weapon_s weapon;
-
-        typedef PushWeapon ThisType;
-        typedef PKG::CatchFish::Events::Event BaseType;
-	    PushWeapon() = default;
-		PushWeapon(PushWeapon const&) = delete;
-		PushWeapon& operator=(PushWeapon const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
-}
-namespace CatchFish {
     // 炮台基类. 下列属性适合大多数炮
     struct Cannon : PKG::CatchFish::Item {
         // 配置id
@@ -1355,6 +1346,25 @@ namespace CatchFish {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include "PKG_CatchFish_Cannon.h"
+    };
+    // 子弹基类
+    struct Bullet : PKG::CatchFish::MoveItem {
+        // 金币 / 倍率( 记录炮台开火时的 Bet 值 )
+        int64_t coin = 0;
+
+        typedef Bullet ThisType;
+        typedef PKG::CatchFish::MoveItem BaseType;
+	    Bullet() = default;
+		Bullet(Bullet const&) = delete;
+		Bullet& operator=(Bullet const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
+#include "PKG_CatchFish_Bullet.h"
     };
     // 武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )
     struct Weapon : PKG::CatchFish::MoveItem {
@@ -1549,16 +1559,26 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 通知: 退钱( 常见于子弹打空 )
-    struct Refund : PKG::CatchFish::Events::Event {
-        // 币值
-        int64_t coin = 0;
+}
+namespace CatchFish::Configs {
+    // 带物理检测区和锁定线等附加数据的鱼移动帧动画
+    struct FishSpriteFrame : xx::Object {
+        // 指向精灵帧
+        PKG::CatchFish::Configs::SpriteFrame_s frame;
+        // 指向物理建模
+        PKG::CatchFish::Configs::Physics_s physics;
+        // 首选锁定点( 如果该点还在屏幕上, 则 lock 准星一直在其上 )
+        ::xx::Pos lockPoint;
+        // 锁定点集合( 串成一条线的锁定点. 当首选锁定点不在屏上时, 使用该线与所在屏的边线的交点作为锁定点 )
+        xx::List_s<::xx::Pos> lockPoints;
+        // 本帧动画切到下一帧动画后应该移动的距离( 受 Fish.speedScale 影响 )
+        float moveDistance = 0;
 
-        typedef Refund ThisType;
-        typedef PKG::CatchFish::Events::Event BaseType;
-	    Refund() = default;
-		Refund(Refund const&) = delete;
-		Refund& operator=(Refund const&) = delete;
+        typedef FishSpriteFrame ThisType;
+        typedef xx::Object BaseType;
+	    FishSpriteFrame() = default;
+		FishSpriteFrame(FishSpriteFrame const&) = delete;
+		FishSpriteFrame& operator=(FishSpriteFrame const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1568,25 +1588,24 @@ namespace CatchFish::Events {
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
-namespace CatchFish {
-    // 子弹基类
-    struct Bullet : PKG::CatchFish::MoveItem {
-        // 金币 / 倍率( 记录炮台开火时的 Bet 值 )
-        int64_t coin = 0;
+namespace CatchFish::Events {
+    // 通知: 下发已生效 Weapon, 需要判断 flyFrameNumber, 放入 player.weapon 队列
+    struct PushWeapon : PKG::CatchFish::Events::Event {
+        // 已于 server 端构造好的, 无牵挂的, 能干净下发的实例
+        PKG::CatchFish::Weapon_s weapon;
 
-        typedef Bullet ThisType;
-        typedef PKG::CatchFish::MoveItem BaseType;
-	    Bullet() = default;
-		Bullet(Bullet const&) = delete;
-		Bullet& operator=(Bullet const&) = delete;
+        typedef PushWeapon ThisType;
+        typedef PKG::CatchFish::Events::Event BaseType;
+	    PushWeapon() = default;
+		PushWeapon(PushWeapon const&) = delete;
+		PushWeapon& operator=(PushWeapon const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Bullet.h"
+        int InitCascade(void* const& o = nullptr) noexcept override;
     };
 }
 namespace CatchFish::Configs {
@@ -1642,6 +1661,7 @@ namespace xx {
     template<> struct TypeId<xx::List<PKG::CatchFish::Events::Event_s>> { static const uint16_t value = 12; };
     template<> struct TypeId<PKG::CatchFish::Events::Event> { static const uint16_t value = 13; };
     template<> struct TypeId<PKG::Client_CatchFish::Enter> { static const uint16_t value = 14; };
+    template<> struct TypeId<PKG::Client_CatchFish::Bet> { static const uint16_t value = 87; };
     template<> struct TypeId<PKG::Client_CatchFish::Fire> { static const uint16_t value = 15; };
     template<> struct TypeId<PKG::Client_CatchFish::Hit> { static const uint16_t value = 16; };
     template<> struct TypeId<::xx::Random> { static const uint16_t value = 17; };
@@ -1969,6 +1989,40 @@ namespace Client_CatchFish {
         this->BaseType::ToStringCore(s);
         if (this->token) xx::Append(s, ", \"token\":\"", this->token, "\"");
         else xx::Append(s, ", \"token\":nil");
+    }
+    inline uint16_t Bet::GetTypeId() const noexcept {
+        return 87;
+    }
+    inline void Bet::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        bb.Write(this->cannonId);
+        bb.Write(this->coin);
+    }
+    inline int Bet::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = bb.Read(this->cannonId)) return r;
+        if (int r = bb.Read(this->coin)) return r;
+        return 0;
+    }
+    inline int Bet::InitCascade(void* const& o) noexcept {
+        return 0;
+    }
+    inline void Bet::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"Client_CatchFish.Bet\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void Bet::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"cannonId\":", this->cannonId);
+        xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t Fire::GetTypeId() const noexcept {
         return 15;
@@ -3142,7 +3196,6 @@ namespace CatchFish::Events {
         bb.Write(this->cannonId);
         bb.Write(this->bulletId);
         bb.Write(this->tarAngle);
-        bb.Write(this->coin);
     }
     inline int Fire::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
@@ -3150,7 +3203,6 @@ namespace CatchFish::Events {
         if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
         if (int r = bb.Read(this->tarAngle)) return r;
-        if (int r = bb.Read(this->coin)) return r;
         return 0;
     }
     inline int Fire::InitCascade(void* const& o) noexcept {
@@ -3177,7 +3229,6 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"bulletId\":", this->bulletId);
         xx::Append(s, ", \"tarAngle\":", this->tarAngle);
-        xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t CannonSwitch::GetTypeId() const noexcept {
         return 51;
@@ -3218,10 +3269,12 @@ namespace CatchFish::Events {
     }
     inline void CannonCoinChange::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
+        bb.Write(this->cannonId);
         bb.Write(this->coin);
     }
     inline int CannonCoinChange::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->coin)) return r;
         return 0;
     }
@@ -3245,6 +3298,7 @@ namespace CatchFish::Events {
     }
     inline void CannonCoinChange::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t DebugInfo::GetTypeId() const noexcept {
@@ -4074,6 +4128,7 @@ namespace PKG {
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::Event_s>>(12);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Event>(13);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Enter>(14);
+	        xx::BBuffer::Register<PKG::Client_CatchFish::Bet>(87);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Fire>(15);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Hit>(16);
 	        xx::BBuffer::Register<::xx::Random>(17);

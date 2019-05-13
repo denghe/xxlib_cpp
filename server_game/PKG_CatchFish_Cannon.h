@@ -16,26 +16,35 @@ int fireCD = 0;
 // 剩余子弹数量. 炮台初创时从 cfg 读取填充. ( -1 表示无限, 其余情况每次发射 -1, 到 0 时无法发射 )
 int quantity = -1;
 
+virtual int Update(int const& frameNumber) noexcept override;
+
 // 发射子弹. 成功返回 true
-#ifdef CC_TARGET_PLATFORM
-virtual int Fire(int const& frameNumber) noexcept;
-#else
-// player 在遍历 recvFires 的时候定位到炮台就 call 这个函数来发射
+#ifndef CC_TARGET_PLATFORM
+// player 在遍历 recvs 的时候定位到炮台就 call 这个函数来发射
 virtual int Fire(PKG::Client_CatchFish::Fire_s& o) noexcept;
 
-// player 在遍历 recvHits 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
+// player 在遍历 recvs 的时候定位到炮台就 call 这个函数来做子弹碰撞检测
 virtual int Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
+
+// player 在遍历 recvs 的时候定位到炮台就 call 这个函数来修改炮台倍率
+virtual int SetCoin(PKG::Client_CatchFish::Bet_s& o) noexcept;
 
 // 生成退钱事件
 void MakeRefundEvent(int64_t const& coin, bool isPersional = false) noexcept;
-#endif
+#else
+virtual int Fire(int const& frameNumber) noexcept;
 
-virtual int Update(int const& frameNumber) noexcept override;
-
-#ifdef CC_TARGET_PLATFORM
 int InitCascade(void* const& o) noexcept override;
-
-RefHolder<cocos2d::Sprite> body;
 virtual void DrawInit() noexcept;
 virtual void DrawUpdate() noexcept;
+
+void SetText_Coin() noexcept;
+void ChangeCoin() noexcept;
+
+RefHolder<cocos2d::Sprite> body;
+
+RefHolder<cocos2d::Label> labelCoin;
+RefHolder<cocos2d::Label> btnInc;
+RefHolder<cocos2d::Label> btnDec;
+RefHolder<cocos2d::EventListenerTouchOneByOne> listenerIncDec;
 #endif

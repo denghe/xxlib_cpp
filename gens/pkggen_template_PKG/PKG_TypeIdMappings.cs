@@ -28,6 +28,8 @@ interface ITypeIdMappings
 
     Client_CatchFish.Enter _14 { get; }
 
+    Client_CatchFish.Bet _87 { get; }
+
     Client_CatchFish.Fire _15 { get; }
 
     Client_CatchFish.Hit _16 { get; }

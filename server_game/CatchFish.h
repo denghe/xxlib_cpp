@@ -65,9 +65,6 @@ inline static xx::Pos cc_p9;
 // CatchFish
 /**************************************************************************************************/
 
-#ifdef CC_TARGET_PLATFORM
-struct Dialer;
-#endif
 struct CatchFish {
 	CatchFish();
 	CatchFish(CatchFish&& o) = default;
@@ -84,14 +81,15 @@ struct CatchFish {
 	// 游戏场景实例
 	PKG::CatchFish::Scene_s scene;
 
+
+#ifndef CC_TARGET_PLATFORM
+	// 初始化( 加载配置文件, .... )
+	int Init(std::string const& cfgName) noexcept;
+#else
 	// server info( Init 时填充 )
 	std::string serverIp;
 	int serverPort = 0;
 
-	// 初始化( 加载配置文件, .... )
-#ifndef CC_TARGET_PLATFORM
-	int Init(std::string const& cfgName) noexcept;
-#else
 	int Init(std::string const& ip, int const& port, std::string const& cfgName) noexcept;
 #endif
 
@@ -114,7 +112,6 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "Peer.h"
 #include "Listener.h"
 #else
-#include "Dialer_Panel.h"
 #include "Dialer.h"
 #endif
 
@@ -130,6 +127,5 @@ using CatchFish_s = std::shared_ptr<CatchFish>;
 #include "Peer.hpp"
 #include "Listener.hpp"
 #else
-#include "Dialer_Panel.hpp"
 #include "Dialer.hpp"
 #endif

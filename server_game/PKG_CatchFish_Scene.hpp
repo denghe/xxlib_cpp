@@ -205,6 +205,7 @@ inline PKG::CatchFish::WayFish_s PKG::CatchFish::Scene::MakeRandomFish(int const
 
 inline PKG::CatchFish::BigFish_s PKG::CatchFish::Scene::MakeRandomBigFish(int const& fishId) noexcept {
 	auto&& fishCfg = xx::As<PKG::CatchFish::Configs::BigFish>(cfg->fishs->At(1));
+	assert(fishCfg);
 
 	auto&& fish = xx::Make<PKG::CatchFish::BigFish>();
 	fish->scene = this;

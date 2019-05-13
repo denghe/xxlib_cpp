@@ -20,9 +20,8 @@ void ResetTimeoutFrameNumber() noexcept;
 template<typename ...Args>
 int Kick(Args const& ... reason) noexcept;
 
-// 分类收包容器( 在适当的生命周期读取并处理 )
-std::deque<PKG::Client_CatchFish::Fire_s> recvFires;
-std::deque<PKG::Client_CatchFish::Hit_s> recvHits;
+// 收包容器( 在适当的生命周期读取并处理 )
+std::deque<xx::Object_s> recvs;
 
 // 私有事件通知容器
 xx::List_s<PKG::CatchFish::Events::Event_s> events;

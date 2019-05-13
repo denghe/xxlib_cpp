@@ -1,12 +1,12 @@
-inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
+ï»¿inline int Dialer::UpdateCore(int const& lineNumber) noexcept {
 	COR_BEGIN
 
 		// init
-	// ³õÊ¼Ãæ°åÏÔÊ¾ÔªËØ
-		xx::MakeTo(panel, this);
+	// åˆå§‹é¢æ¿æ˜¾ç¤ºå…ƒç´ 
+		DrawInit();
 
-	// ÏÔÊ¾Ä¿±ê·şÎñÆ÷ ip:port
-	panel->SetText_Server(catchFish->serverIp + ":" + std::to_string(catchFish->serverPort));
+	// æ˜¾ç¤ºç›®æ ‡æœåŠ¡å™¨ ip:port
+	SetText_Server(catchFish->serverIp + ":" + std::to_string(catchFish->serverPort));
 
 	// begin resolve domain to iplist
 LabResolveDomain:
@@ -54,11 +54,11 @@ LabDial:
 
 	xx::CoutTN("step 2");
 
-	// ÏÔÊ¾Á¬½ÓËùÓÃĞ­Òé
-	panel->SetText_TcpKcp(peer->IsKcp());
+	// æ˜¾ç¤ºè¿æ¥æ‰€ç”¨åè®®
+	SetText_TcpKcp(peer->IsKcp());
 
 	++numDialTimes;
-	panel->SetText_NumDialTimes(numDialTimes);
+	SetText_NumDialTimes(numDialTimes);
 
 	// send enter package
 	if (token.size()) {
@@ -89,33 +89,33 @@ LabDial:
 
 	xx::CoutTN("step 5");
 
-	// ¼ÇÂ¼ / ¼ÆËãÊÕµ½µÄ last frame number ÓÃÓÚ½ÓÊÕ³¬Ê±ÅĞ¶Ï( Ôİ¶¨ 5 Ãë )
+	// è®°å½• / è®¡ç®—æ”¶åˆ°çš„ last frame number ç”¨äºæ¥æ”¶è¶…æ—¶åˆ¤æ–­( æš‚å®š 5 ç§’ )
 	timeoutFrameNumber = ::catchFish->scene->frameNumber + 60 * 5;
 
 	// peer keeper
 	while (!peer->Disposed()) {
-		// ´¦ÀíÖ¡Í¬²½ÏûÏ¢
+		// å¤„ç†å¸§åŒæ­¥æ¶ˆæ¯
 		if (r = HandlePackagesOrUpdateScene()) {
 			xx::CoutTN("redial when HandlePackagesOrUpdateScene() r = ", r);
 			goto LabDial;
 		}
 
-		// ½ÓÊÕ³¬Ê±¾ÍÖØÁ¬
+		// æ¥æ”¶è¶…æ—¶å°±é‡è¿
 		if (timeoutFrameNumber < ::catchFish->scene->frameNumber) {
 			xx::CoutTN("redial when recv timeout");
 			goto LabDial;
 		}
 
-		// Èç¹ûÒÑµÃµ½ ping µÄ·µ»Ø½á¹û ¾ÍÏÔÊ¾²¢ÖØÖÃ
+		// å¦‚æœå·²å¾—åˆ° ping çš„è¿”å›ç»“æœ å°±æ˜¾ç¤ºå¹¶é‡ç½®
 		if (ping) {
-			panel->SetText_Ping(ping);
+			SetText_Ping(ping);
 			ping = 0;
 		}
-		// Èç¹ûÃ»ÔÚ ping ²¢ÇÒÊ±»úÇ¡µ± ¾Í·¢Æğ ping
+		// å¦‚æœæ²¡åœ¨ ping å¹¶ä¸”æ—¶æœºæ°å½“ å°±å‘èµ· ping
 		if (!ping && ::catchFish->scene->frameNumber % 16 == 0) {
 			pkgPing->ticks = xx::NowSteadyEpochMS();
 			peer->SendRequest(pkgPing, [this](xx::Object_s && msg) {
-				if (!msg && !::catchFish->disposed) {		// Í¬Ê±·ÀÖ¹ catchFish Îö¹¹Ôì³ÉµÄ msg Îª¿Õ
+				if (!msg && !::catchFish->disposed) {		// åŒæ—¶é˜²æ­¢ catchFish ææ„é€ æˆçš„ msg ä¸ºç©º
 					ping = -1;
 				}
 				else  if (auto && pong = xx::As<PKG::Generic::Pong>(msg)) {
@@ -126,14 +126,14 @@ LabDial:
 			peer->Flush();
 		}
 
-		// ÏÔÊ¾ÓãµÄÊıÁ¿
-		panel->SetText_NumFishs(::catchFish->scene->fishs->len);
+		// æ˜¾ç¤ºé±¼çš„æ•°é‡
+		SetText_NumFishs(::catchFish->scene->fishs->len);
 
 		COR_YIELD
 	}
 
 	xx::CoutTN("user redial or server kick or network disconnected. ");
-	//waitMS = xx::NowSteadyEpochMS() + 2000;	// µÈ 2 ÃëÔÙÖØÁ¬
+	//waitMS = xx::NowSteadyEpochMS() + 2000;	// ç­‰ 2 ç§’å†é‡è¿
 	//while (xx::NowSteadyEpochMS() < waitMS) {
 	//	COR_YIELD
 	//}

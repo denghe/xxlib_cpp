@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "21c8600cd7c9d2de90ee00c942fd9a7c"; 
+        public const string value = "afb5065555d5ca348ece3444ea38769b"; 
     }
 
 namespace CatchFish
@@ -431,6 +431,60 @@ namespace Client_CatchFish
         {
             if (token != null) s.Append(", \"token\":\"" + token.ToString() + "\"");
             else s.Append(", \"token\":nil");
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+    /// <summary>
+    /// 调整炮台倍率
+    /// </summary>
+    public partial class Bet : xx.Object
+    {
+        public int cannonId;
+        public long coin;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Bet>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.cannonId);
+            bb.Write(this.coin);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.cannonId);
+            bb.Read(ref this.coin);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"Client_CatchFish.Bet\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"cannonId\":" + cannonId.ToString());
+            s.Append(", \"coin\":" + coin.ToString());
         }
         public override string ToString()
         {
@@ -2472,10 +2526,6 @@ namespace CatchFish.Events
         /// 子弹的发射角度
         /// </summary>
         public float tarAngle;
-        /// <summary>
-        /// 币值 / 倍率
-        /// </summary>
-        public long coin;
 
         public override ushort GetPackageId()
         {
@@ -2489,7 +2539,6 @@ namespace CatchFish.Events
             bb.Write(this.cannonId);
             bb.Write(this.bulletId);
             bb.Write(this.tarAngle);
-            bb.Write(this.coin);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -2499,7 +2548,6 @@ namespace CatchFish.Events
             bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.tarAngle);
-            bb.Read(ref this.coin);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2523,7 +2571,6 @@ namespace CatchFish.Events
             s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"tarAngle\":" + tarAngle.ToString());
-            s.Append(", \"coin\":" + coin.ToString());
         }
         public override string ToString()
         {
@@ -2599,6 +2646,10 @@ namespace CatchFish.Events
     public partial class CannonCoinChange : CatchFish.Events.Event
     {
         /// <summary>
+        /// 炮台id
+        /// </summary>
+        public int cannonId;
+        /// <summary>
         /// 币值 / 倍率
         /// </summary>
         public long coin;
@@ -2611,12 +2662,14 @@ namespace CatchFish.Events
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
+            bb.Write(this.cannonId);
             bb.Write(this.coin);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
+            bb.Read(ref this.cannonId);
             bb.Read(ref this.coin);
         }
         public override void ToString(System.Text.StringBuilder s)
@@ -2637,6 +2690,7 @@ namespace CatchFish.Events
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
+            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"coin\":" + coin.ToString());
         }
         public override string ToString()
@@ -4053,6 +4107,7 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<CatchFish.Events.Event>>(12);
             xx.Object.Register<CatchFish.Events.Event>(13);
             xx.Object.Register<Client_CatchFish.Enter>(14);
+            xx.Object.Register<Client_CatchFish.Bet>(87);
             xx.Object.Register<Client_CatchFish.Fire>(15);
             xx.Object.Register<Client_CatchFish.Hit>(16);
             xx.Object.Register<xx.Random>(17);

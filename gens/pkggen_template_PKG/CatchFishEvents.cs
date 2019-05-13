@@ -131,9 +131,6 @@ namespace CatchFish
 
             [Desc("子弹的发射角度")]
             float tarAngle;
-
-            [Desc("币值 / 倍率")]
-            long coin;
         }
 
         [Desc("转发: 切换炮台")]
@@ -146,6 +143,9 @@ namespace CatchFish
         [Desc("转发: 切换炮台倍率")]
         class CannonCoinChange : Event
         {
+            [Desc("炮台id")]
+            int cannonId;
+
             [Desc("币值 / 倍率")]
             long coin;
         }

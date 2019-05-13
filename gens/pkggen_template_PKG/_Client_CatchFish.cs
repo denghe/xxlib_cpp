@@ -11,6 +11,13 @@ namespace Client_CatchFish
         string token;
     }
 
+    [Desc("调整炮台倍率")]
+    class Bet
+    {
+        int cannonId;
+        long coin;
+    }
+
     [Desc("开火")]
     class Fire
     {

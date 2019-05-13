@@ -10,7 +10,7 @@ inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 
 	// 前置填充
 	for (auto&& cannon : *cannons) {
-		xx::As<Cannon>(cannon)->player = this;
+		cannon->player = this;
 	}
 
 	// 开始瀑布初始化
@@ -18,10 +18,13 @@ inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 }
 
 inline void PKG::CatchFish::Player::DrawInit() noexcept {
+	// 根据玩家位置计算金币显示 y 偏移
+	float offsetY = (this->sit == PKG::CatchFish::Sits::LeftBottom
+		|| this->sit == PKG::CatchFish::Sits::RightBottom) ? 40 : -40;
+
 	labelCoin = cocos2d::Label::createWithSystemFont("", "", 32);
-	labelCoin->setPosition(pos + xx::Pos{ 0, 30 });
-	labelCoin->setAnchorPoint({ 0.5, 1 });
-	labelCoin->setLocalZOrder(500);
+	labelCoin->setPosition(pos + xx::Pos{ 0, offsetY });
+	labelCoin->setLocalZOrder(500);			// 确保覆盖在所有炮台之上
 	cc_fishNode->addChild(labelCoin);
 	DrawUpdate_Coin();						// 更新显示内容
 }
@@ -56,64 +59,86 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 
 #else
 	// 简单包堆积检测
-	if (recvFires.size() > 200) return Kick("recvFires.size() > 200");
-	if (recvHits.size() > 200) return Kick("recvHits.size() > 200");
+	if (recvs.size() > 200) return Kick("recvs.size() > 200");
 
 	// 是否产生有效操作
 	bool success = false;
 
-	// 处理玩家的发射请求
-	while (!recvFires.empty()) {
-		auto&& o = recvFires.front();
+	// 处理玩家的请求
+	while (!recvs.empty()) {
+		auto&& msg = recvs.front();
+		auto&& typeId = msg->GetTypeId();
+		switch (typeId) {
+		case xx::TypeId_v<PKG::Client_CatchFish::Bet>: {
+			auto&& o = xx::As<PKG::Client_CatchFish::Bet>(msg);
 
-		// 如果收到的包比 server 当前帧还要提前, 就等到那帧再处理
-		if (o->frameNumber > frameNumber) break;
-
-		// 倒着扫找炮 id
-		size_t i = cannons->len - 1;
-		for (; i != -1; --i) {
-			auto&& c = cannons->At(i);
-			// 找到了就试着射击. 失败直接踢掉
-			if (c->id == o->cannonId) {
-				if (int r = xx::As<Cannon>(c)->Fire(o)) return Kick("Fire failed. r = ", r, "pkg = ", o);
-				break;
+			// 倒着扫找炮 id
+			size_t i = cannons->len - 1;
+			for (; i != -1; --i) {
+				auto&& c = cannons->At(i);
+				// 找到了就试着改倍率. 失败直接踢掉
+				if (c->id == o->cannonId) {
+					if (int r = c->SetCoin(o)) return Kick("Bet failed. r = ", r," pkg = ", o);
+					break;
+				}
 			}
-		}
-		// 未找到炮台, 直接踢掉
-		if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
+			// 未找到炮台, 直接踢掉
+			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
 
-		//  操作成功, 需要重置超时时间
-		success = true;
+			//  操作成功, 需要重置超时时间
+			success = true;
+			break;
+		}
+		case xx::TypeId_v<PKG::Client_CatchFish::Fire>: {
+			auto&& o = xx::As<PKG::Client_CatchFish::Fire>(msg);
+
+			// 如果收到的包比 server 当前帧还要提前, 就等到那帧再处理
+			if (o->frameNumber > frameNumber) break;
+
+			// 倒着扫找炮 id
+			size_t i = cannons->len - 1;
+			for (; i != -1; --i) {
+				auto&& c = cannons->At(i);
+				// 找到了就试着射击. 失败直接踢掉
+				if (c->id == o->cannonId) {
+					if (int r = c->Fire(o)) return Kick("Fire failed. r = ", r, "pkg = ", o);
+					break;
+				}
+			}
+			// 未找到炮台, 直接踢掉
+			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
+
+			//  操作成功, 需要重置超时时间
+			success = true;
+			break;
+		}
+		case xx::TypeId_v<PKG::Client_CatchFish::Hit>: {
+			auto&& o = xx::As<PKG::Client_CatchFish::Hit>(msg);
+
+			// 倒着扫找炮 id
+			size_t i = cannons->len - 1;
+			for (; i != -1; --i) {
+				auto&& c = cannons->At(i);
+				// 找到了就试着检测. 失败直接踢掉
+				if (c->id == o->cannonId) {
+					if (int r = c->Hit(o)) return Kick("Hit failed. r = ", r, "pkg = ", o);
+					break;
+				}
+			}
+			// 未找到炮台, 直接踢掉
+			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
+
+			//  操作成功, 需要重置超时时间
+			success = true;
+			break;
+		}
+		default:
+			assert(false);
+		}
 
 		// 清掉当前指令
-		recvFires.pop_front();
+		recvs.pop_front();
 	}
-
-	// 处理玩家的发射请求
-	while (!recvHits.empty()) {
-		auto&& o = recvHits.front();
-
-		// 倒着扫找炮 id
-		size_t i = cannons->len - 1;
-		for (; i != -1; --i) {
-			auto&& c = cannons->At(i);
-			// 找到了就试着检测. 失败直接踢掉
-			if (c->id == o->cannonId) {
-				if (int r = xx::As<Cannon>(c)->Hit(o)) return Kick("Hit failed. r = ", r, "pkg = ", o);
-				break;
-			}
-		}
-		// 未找到炮台, 直接踢掉
-		if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
-
-		//  操作成功, 需要重置超时时间
-		success = true;
-
-		// 清掉当前指令
-		recvHits.pop_front();
-	}
-
-	// ... more cmds handle here
 
 	if (success) {
 		ResetTimeoutFrameNumber();
@@ -137,8 +162,7 @@ inline void PKG::CatchFish::Player::ResetTimeoutFrameNumber() noexcept {
 template<typename ...Args>
 inline int PKG::CatchFish::Player::Kick(Args const& ... reason) noexcept {
 	xx::CoutTN("Kick player id = ", id, ", reason = ", reason...);
-	recvFires.clear();
-	recvHits.clear();
+	recvs.clear();
 	if (peer) {
 		peer->Dispose(1);
 		peer.reset();

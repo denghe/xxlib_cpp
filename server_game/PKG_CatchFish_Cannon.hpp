@@ -7,8 +7,7 @@ inline int PKG::CatchFish::Cannon::InitCascade(void* const& o) noexcept {
 	pos = player->pos;
 
 	// 前置填充
-	for (auto&& bullet : *bullets) {
-		auto&& b = xx::As<Bullet>(bullet);
+	for (auto&& b : *bullets) {
 		b->player = player;
 		b->cannon = this;
 		b->cfg = cfg;
@@ -101,6 +100,22 @@ inline int PKG::CatchFish::Cannon::Update(int const& frameNumber) noexcept {
 };
 
 #ifndef CC_TARGET_PLATFORM
+inline int PKG::CatchFish::Cannon::SetCoin(PKG::Client_CatchFish::Bet_s& o) noexcept {
+	if (o->cannonId != id) return -1;
+	if (o->coin <= 0) return -2;
+	if (o->coin > 1000) return -3;	// todo: 押注最大值最小值应该读取当前配置来判断
+	if (o->coin == coin) return -4;
+	// todo: 更多判断. 比如倍率必然为限定的几个值
+	coin = o->coin;
+
+	// 创建压住变化通知事件
+	auto&& ccc = xx::Make<PKG::CatchFish::Events::CannonCoinChange>();
+	ccc->playerId = player->id;
+	ccc->coin = coin;
+	scene->frameEvents->events->Add(std::move(ccc));
+	return 0;
+}
+
 inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept {
 	// 合法性判断: 如果 bulletId / fishId 找不到就忽略
 	auto&& bs = *this->bullets;
@@ -187,12 +202,16 @@ inline int PKG::CatchFish::Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexce
 inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 	// 只有玩家本人发射行为受限
 	if (player->isSelf) {
+		// 如果金币不足, 失败
+		if (player->coin < coin) return 0;	// todo: 显示提示?
 #endif
-		if (!quantity) return -3;									// 剩余颗数为 0
-		if (frameNumber < fireCD) return -4;						// CD 中
+		if (!quantity) return -4;									// 剩余颗数为 0
+		if (frameNumber < fireCD) return -5;						// CD 中
 		if (bullets->len == cfg->numLimit) {						// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
 #ifndef CC_TARGET_PLATFORM
 			MakeRefundEvent(coin, true);							// 生成专有发射取消事件通知( 没必要发送给其他玩家 )
+#else
+			// todo: 看情况显示发射遇到上限?
 #endif
 			return 0;
 		}
@@ -261,7 +280,6 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 	{
 		auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
 		fire->bulletId = bullet->id;
-		fire->coin = bullet->coin;
 		fire->frameNumber = o->frameNumber;
 		fire->playerId = player->id;
 		fire->cannonId = id;
@@ -277,6 +295,7 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 
 #ifdef CC_TARGET_PLATFORM
 inline void PKG::CatchFish::Cannon::DrawInit() noexcept {
+	// 绘制炮台本体
 	assert(!body);
 	body = cocos2d::Sprite::create();
 	body->setLocalZOrder(cfg->zOrder);
@@ -286,10 +305,88 @@ inline void PKG::CatchFish::Cannon::DrawInit() noexcept {
 	body->setScale(cfg->scale);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
 	cc_fishNode->addChild(body);
+
+	// 当前倍率显示
+	labelCoin = cocos2d::Label::createWithSystemFont("", "", 32);
+	labelCoin->setPosition(pos);
+	labelCoin->setLocalZOrder(cfg->zOrder);
+	cc_fishNode->addChild(labelCoin);
+	SetText_Coin();
+
+	// 如果不是当前玩家则绘制 + - 按钮
+	if (!player->isSelf) return;
+
+	// 简单计算 + - 按钮绘制坐标偏移值( 也可以写死 )
+	float btnOffset = sf->getOriginalSize().width * cfg->scale / 2 + 20;
+
+	// 绘制倍率 + - 按钮
+	btnInc = cocos2d::Label::createWithSystemFont("+", "", 64, cocos2d::Size::ZERO, cocos2d::TextHAlignment::LEFT, cocos2d::TextVAlignment::CENTER);
+	btnInc->setAnchorPoint({ 1, 0.5 });	// 以 Label 右中为基点定位
+	btnInc->setPosition(pos + xx::Pos{ btnOffset, 0});
+	btnInc->setLocalZOrder(cfg->zOrder);
+	cc_fishNode->addChild(btnInc);
+
+	btnDec = cocos2d::Label::createWithSystemFont("-", "", 64, cocos2d::Size::ZERO, cocos2d::TextHAlignment::RIGHT, cocos2d::TextVAlignment::CENTER);
+	btnDec->setAnchorPoint({ 0, 0.5 });	// 以 Label 左中为基点定位
+	btnDec->setPosition(pos - xx::Pos{ btnOffset, 0});
+	btnDec->setLocalZOrder(cfg->zOrder);
+	cc_fishNode->addChild(btnDec);
+
+	// 绑定触摸监听器
+	listenerIncDec = cocos2d::EventListenerTouchOneByOne::create();
+	listenerIncDec->setSwallowTouches(true);
+	listenerIncDec->onTouchBegan = [this](cocos2d::Touch * t, cocos2d::Event * e) {
+		auto&& tL = t->getLocation();
+		bool b = false;
+		{
+			auto&& p = btnInc->convertToNodeSpace(tL);
+			auto&& s = btnInc->getContentSize();
+			cocos2d::Rect r{ 0,0, s.width, s.height };
+			b = r.containsPoint(p);
+		}
+		if (b) {
+			if (coin < 1000) {
+				coin *= 10;
+				ChangeCoin();
+			}
+			return b;
+		}
+		else {
+			auto&& p = btnDec->convertToNodeSpace(tL);
+			auto&& s = btnDec->getContentSize();
+			cocos2d::Rect r{ 0,0, s.width, s.height };
+			b = r.containsPoint(p);
+		}
+		if (b) {
+			if (coin > 1) {
+				coin /= 10;
+				ChangeCoin();
+			}
+		}
+		return b;
+	};
+	cocos2d::Director::getInstance()->getEventDispatcher()->addEventListenerWithSceneGraphPriority(listenerIncDec, btnInc);
 }
 
 inline void PKG::CatchFish::Cannon::DrawUpdate() noexcept {
 	assert(body);
 	body->setRotation(-angle * (180.0f / float(M_PI)));
 }
+
+
+inline void PKG::CatchFish::Cannon::ChangeCoin() noexcept {
+	SetText_Coin();
+	auto&& pkg = xx::Make<PKG::Client_CatchFish::Bet>();
+	pkg->cannonId = id;
+	pkg->coin = coin;
+	::dialer->peer->SendPush(pkg);
+	::dialer->peer->Flush();
+}
+
+inline void PKG::CatchFish::Cannon::SetText_Coin() noexcept {
+	assert(!::catchFish->disposed);
+	if (!labelCoin) return;
+	labelCoin->setString(std::to_string(coin));
+}
+
 #endif

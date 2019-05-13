@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = '21c8600cd7c9d2de90ee00c942fd9a7c'
+PKG_PkgGenMd5_Value = 'afb5065555d5ca348ece3444ea38769b'
 
 --[[
 座位列表
@@ -591,6 +591,37 @@ PKG_Client_CatchFish_Enter = {
     end
 }
 BBuffer.Register( PKG_Client_CatchFish_Enter )
+--[[
+调整炮台倍率
+]]
+PKG_Client_CatchFish_Bet = {
+    typeName = "PKG_Client_CatchFish_Bet",
+    typeId = 87,
+    Create = function()
+        local o = {}
+        o.__proto = PKG_Client_CatchFish_Bet
+        o.__index = o
+        o.__newindex = o
+		o.__isReleased = false
+		o.Release = function()
+			o.__isReleased = true
+		end
+
+
+        o.cannonId = 0 -- Int32
+        o.coin = 0 -- Int64
+        return o
+    end,
+    FromBBuffer = function( bb, o )
+        o.cannonId = bb:ReadInt32()
+        o.coin = bb:ReadInt64()
+    end,
+    ToBBuffer = function( bb, o )
+        bb:WriteInt32( o.cannonId )
+        bb:WriteInt64( o.coin )
+    end
+}
+BBuffer.Register( PKG_Client_CatchFish_Bet )
 --[[
 开火
 ]]
@@ -2101,10 +2132,6 @@ PKG_CatchFish_Events_Fire = {
         子弹的发射角度
         ]]
         o.tarAngle = 0 -- Single
-        --[[
-        币值 / 倍率
-        ]]
-        o.coin = 0 -- Int64
         setmetatable( o, PKG_CatchFish_Events_Event.Create() )
         return o
     end,
@@ -2116,7 +2143,6 @@ PKG_CatchFish_Events_Fire = {
         o.cannonId = ReadInt32( bb )
         o.bulletId = ReadInt32( bb )
         o.tarAngle = bb:ReadSingle()
-        o.coin = bb:ReadInt64()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
@@ -2126,7 +2152,6 @@ PKG_CatchFish_Events_Fire = {
         WriteInt32( bb, o.cannonId )
         WriteInt32( bb, o.bulletId )
         bb:WriteSingle( o.tarAngle )
-        bb:WriteInt64( o.coin )
     end
 }
 BBuffer.Register( PKG_CatchFish_Events_Fire )
@@ -2184,6 +2209,10 @@ PKG_CatchFish_Events_CannonCoinChange = {
 
 
         --[[
+        炮台id
+        ]]
+        o.cannonId = 0 -- Int32
+        --[[
         币值 / 倍率
         ]]
         o.coin = 0 -- Int64
@@ -2193,11 +2222,13 @@ PKG_CatchFish_Events_CannonCoinChange = {
     FromBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
+        o.cannonId = bb:ReadInt32()
         o.coin = bb:ReadInt64()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
+        bb:WriteInt32( o.cannonId )
         bb:WriteInt64( o.coin )
     end
 }
