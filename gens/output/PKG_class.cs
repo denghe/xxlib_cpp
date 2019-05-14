@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "0914729708fa875dcb9ebe8d0d59f122"; 
+        public const string value = "55c3316575ef974aba9b52328fd2c767"; 
     }
 
 namespace CatchFish
@@ -606,6 +606,299 @@ namespace Client_CatchFish
         }
         public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
         {
+        }
+    }
+}
+namespace CatchFish_Calc
+{
+    /// <summary>
+    /// 鱼死计算
+    /// </summary>
+    public partial class HitCheck : xx.Object
+    {
+        /// <summary>
+        /// 碰撞数据流
+        /// </summary>
+        public xx.List<Calc.CatchFish.Hit> hits;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<HitCheck>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.hits);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.hits);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish_Calc.HitCheck\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"hits\":" + (hits == null ? "nil" : hits.ToString()));
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+}
+namespace Calc_CatchFish
+{
+    /// <summary>
+    /// 鱼死计算结果
+    /// </summary>
+    public partial class HitCheckResult : xx.Object
+    {
+        /// <summary>
+        /// 死鱼列表
+        /// </summary>
+        public xx.List<Calc.CatchFish.Fish> fishs;
+        /// <summary>
+        /// 打空的子弹列表
+        /// </summary>
+        public xx.List<Calc.CatchFish.Bullet> bullets;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<HitCheckResult>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.fishs);
+            bb.Write(this.bullets);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.fishs);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.bullets);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"Calc_CatchFish.HitCheckResult\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"fishs\":" + (fishs == null ? "nil" : fishs.ToString()));
+            s.Append(", \"bullets\":" + (bullets == null ? "nil" : bullets.ToString()));
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+}
+namespace Calc.CatchFish
+{
+    /// <summary>
+    /// 打击明细
+    /// </summary>
+    public partial struct Hit : xx.IObject
+    {
+        /// <summary>
+        /// 鱼id 鱼主键1/1
+        /// </summary>
+        public int fishId;
+        /// <summary>
+        /// 鱼币值
+        /// </summary>
+        public long fishCoin;
+        /// <summary>
+        /// 玩家id 子弹主键1/2
+        /// </summary>
+        public int playerId;
+        /// <summary>
+        /// 子弹id 子弹主键2/2
+        /// </summary>
+        public int bulletId;
+        /// <summary>
+        /// 子弹数量( 炸弹, 强火力数量会超过 1 )
+        /// </summary>
+        public int bulletCount;
+        /// <summary>
+        /// 子弹币值
+        /// </summary>
+        public long bulletCoin;
+
+        public ushort GetPackageId()
+        {
+            return xx.TypeId<Hit>.value;
+        }
+
+        public void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.fishId);
+            bb.Write(this.fishCoin);
+            bb.Write(this.playerId);
+            bb.Write(this.bulletId);
+            bb.Write(this.bulletCount);
+            bb.Write(this.bulletCoin);
+        }
+
+        public void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.fishId);
+            bb.Read(ref this.fishCoin);
+            bb.Read(ref this.playerId);
+            bb.Read(ref this.bulletId);
+            bb.Read(ref this.bulletCount);
+            bb.Read(ref this.bulletCoin);
+        }
+        public void ToString(System.Text.StringBuilder s)
+        {
+            s.Append("{ \"pkgTypeName\":\"Calc.CatchFish.Hit\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+        }
+        public void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"fishId\":" + fishId.ToString());
+            s.Append(", \"fishCoin\":" + fishCoin.ToString());
+            s.Append(", \"playerId\":" + playerId.ToString());
+            s.Append(", \"bulletId\":" + bulletId.ToString());
+            s.Append(", \"bulletCount\":" + bulletCount.ToString());
+            s.Append(", \"bulletCoin\":" + bulletCoin.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+    }
+    /// <summary>
+    /// 鱼被打死的明细
+    /// </summary>
+    public partial struct Fish : xx.IObject
+    {
+        public int fishId;
+        public int playerId;
+        public int bulletId;
+
+        public ushort GetPackageId()
+        {
+            return xx.TypeId<Fish>.value;
+        }
+
+        public void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.fishId);
+            bb.Write(this.playerId);
+            bb.Write(this.bulletId);
+        }
+
+        public void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.fishId);
+            bb.Read(ref this.playerId);
+            bb.Read(ref this.bulletId);
+        }
+        public void ToString(System.Text.StringBuilder s)
+        {
+            s.Append("{ \"pkgTypeName\":\"Calc.CatchFish.Fish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+        }
+        public void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"fishId\":" + fishId.ToString());
+            s.Append(", \"playerId\":" + playerId.ToString());
+            s.Append(", \"bulletId\":" + bulletId.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+    }
+    /// <summary>
+    /// 子弹打空明细
+    /// </summary>
+    public partial struct Bullet : xx.IObject
+    {
+        public int playerId;
+        public int bulletId;
+        public int bulletCount;
+
+        public ushort GetPackageId()
+        {
+            return xx.TypeId<Bullet>.value;
+        }
+
+        public void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.playerId);
+            bb.Write(this.bulletId);
+            bb.Write(this.bulletCount);
+        }
+
+        public void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.playerId);
+            bb.Read(ref this.bulletId);
+            bb.Read(ref this.bulletCount);
+        }
+        public void ToString(System.Text.StringBuilder s)
+        {
+            s.Append("{ \"pkgTypeName\":\"Calc.CatchFish.Bullet\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+        }
+        public void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"playerId\":" + playerId.ToString());
+            s.Append(", \"bulletId\":" + bulletId.ToString());
+            s.Append(", \"bulletCount\":" + bulletCount.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
         }
     }
 }
@@ -4109,6 +4402,11 @@ namespace CatchFish.Configs
             xx.Object.Register<Client_CatchFish.Bet>(87);
             xx.Object.Register<Client_CatchFish.Fire>(15);
             xx.Object.Register<Client_CatchFish.Hit>(16);
+            xx.Object.Register<CatchFish_Calc.HitCheck>(88);
+            xx.Object.Register<xx.List<Calc.CatchFish.Hit>>(89);
+            xx.Object.Register<Calc_CatchFish.HitCheckResult>(90);
+            xx.Object.Register<xx.List<Calc.CatchFish.Fish>>(91);
+            xx.Object.Register<xx.List<Calc.CatchFish.Bullet>>(92);
             xx.Object.Register<xx.Random>(17);
             xx.Object.Register<xx.List<CatchFish.Fish>>(18);
             xx.Object.Register<CatchFish.Fish>(19);

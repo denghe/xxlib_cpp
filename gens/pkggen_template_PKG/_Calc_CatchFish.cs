@@ -4,10 +4,13 @@ using TemplateLibrary;
 // Calc -> CatchFish
 namespace Calc_CatchFish
 {
-    [Desc("死鱼检查结果")]
-    class FishDieCheckResult
+    [Desc("鱼死计算结果")]
+    class HitCheckResult
     {
-        [Desc("判定结果表. ")]
-        List<Calc.CatchFish.Result> results;
+        [Desc("死鱼列表")]
+        List<Calc.CatchFish.Fish> fishs;
+
+        [Desc("打空的子弹列表")]
+        List<Calc.CatchFish.Bullet> bullets;
     }
 }

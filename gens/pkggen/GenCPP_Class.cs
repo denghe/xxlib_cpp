@@ -6,6 +6,20 @@ using System.Text;
 
 public static class GenCPP_Class
 {
+    public class TypeComparer : System.Collections.Generic.IComparer<Type>
+    {
+        public TemplateLibrary.TypeIds typeIds;
+        public int GetTypeId(Type t)
+        {
+            if (!typeIds.types.ContainsKey(t)) return 0;
+            return typeIds.types[t];
+        }
+        public int Compare(Type x, Type y)
+        {
+            return GetTypeId(x).CompareTo(GetTypeId(y));
+        }
+    }
+
     public static void Gen(Assembly asm, string outDir, string templateName, string md5, TemplateLibrary.Filter<TemplateLibrary.CppFilter> filter = null)
     {
         var sb = new StringBuilder();
@@ -17,7 +31,14 @@ namespace " + templateName + @" {
 		inline static const std::string value = """ + md5 + @""";
     };
 ");
+
         var ts = asm._GetTypes();
+        // 基于 typeIds 对 ts 排序 期望减少增加类带来的 filter 版生成物变化
+        var typeIds = new TemplateLibrary.TypeIds(asm);
+        var tc = new TypeComparer();
+        tc.typeIds = typeIds;
+        ts.Sort(tc);
+
 
         // predefines
 
@@ -321,7 +342,6 @@ namespace xx {");
         // 遍历所有 type 及成员数据类型 生成  BBuffer.Register< T >( typeId ) 函数组. 0 不能占. String 占掉 1. BBuffer 占掉 2. ( 这两个不生成 )
         // 在基础命名空间中造一个静态类 AllTypes 静态方法 Register
 
-        var typeIds = new TemplateLibrary.TypeIds(asm);
         foreach (var kv in typeIds.types)
         {
             if (filter != null && !filter.Contains(kv.Key)) continue;
