@@ -270,6 +270,19 @@ BBuffer.Register( " + cn + @" )");
 
         // 临时方案
         sb.Replace("`1", "");
-        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.lua"));
+
+        var outFN = Path.Combine(outDir, templateName + "_class.lua");
+        // 读入旧文件内容（如果存在的话），与刚生成的对比
+        if (File.Exists(outFN))
+        {
+            var oldTxt = File.ReadAllText(outFN);
+            if (Program.IsSame(oldTxt, sb.ToString()))
+            {
+                System.Console.WriteLine("文件内容无变化，跳过生成： " + outFN);
+                return;
+            }
+        }
+        sb._WriteToFile(outFN);
+        System.Console.WriteLine("已生成 " + outFN);
     }
 }

@@ -530,11 +530,21 @@ namespace " + templateName + @" {
 ");
 
         var outFN = Path.Combine(outDir, templateName + "_class.h");
+        // 读入旧文件内容（如果存在的话），与刚生成的对比
+        if (File.Exists(outFN))
+        {
+            var oldTxt = File.ReadAllText(outFN);
+            if (Program.IsSame(oldTxt, sb.ToString()))
+            {
+                System.Console.WriteLine("文件内容无变化，跳过生成： " + outFN);
+                return;
+            }
+        }
         sb._WriteToFile(outFN);
         System.Console.WriteLine("已生成 " + outFN);
 
         sb.Clear();
-        foreach(var c in cs)
+        foreach (var c in cs)
         {
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
@@ -545,5 +555,19 @@ namespace " + templateName + @" {
         outFN = Path.Combine(outDir, templateName + "_class.hpp");
         sb._WriteToFile(outFN);
         System.Console.WriteLine("已生成 " + outFN);
+
+        sb.Clear();
+        foreach (var c in cs)
+        {
+            if (c._Has<TemplateLibrary.AttachInclude>())
+            {
+                outFN = Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".h");
+                sb._WriteToFile(outFN);
+                System.Console.WriteLine("已生成 " + outFN);
+                outFN = Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".hpp");
+                sb._WriteToFile(outFN);
+                System.Console.WriteLine("已生成 " + outFN);
+            }
+        }
     }
 }
