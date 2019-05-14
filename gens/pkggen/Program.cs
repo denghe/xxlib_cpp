@@ -47,6 +47,8 @@ public static class Program
             }
 
             GenCPP_Class.Gen(asm, path, tn, md5);
+            GenCPP_Class.Gen(asm, path, tn, md5, new TemplateLibrary.Filter<TemplateLibrary.CppFilter>(asm));
+
             GenCPP_SQLite.Gen(asm, path, tn);
 
             GenLUA_Class.Gen(asm, path, tn, md5);

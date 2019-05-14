@@ -10,7 +10,7 @@ public static class GenLUA_Class
 {
     public static void Gen(Assembly asm, string outDir, string templateName, string md5)
     {
-        var filters = new TemplateLibrary.LuaFilters(asm);
+        var filter = new TemplateLibrary.Filter<TemplateLibrary.LuaFilter>(asm);
         var sb = new StringBuilder();
 
         sb.Append(@"
@@ -21,7 +21,7 @@ public static class GenLUA_Class
         for (int i = 0; i < es.Count; ++i)
         {
             var e = es[i];
-            if (!filters.Contains(e)) continue;
+            if (!filter.Contains(e)) continue;
             var en = e._GetTypeDecl_Lua(templateName);
             sb.Append(e._GetDesc()._GetComment_Lua(0) + @"
 " + en + @" = {");
@@ -46,7 +46,7 @@ public static class GenLUA_Class
         {
             if (kv.Key == typeof(string) || kv.Key == typeof(TemplateLibrary.BBuffer)) continue;
             var c = kv.Key;
-            if (!filters.Contains(c)) continue;
+            if (!filter.Contains(c)) continue;
             var typeId = (ushort)kv.Value;
             var cn = c._GetTypeDecl_Lua(templateName);
             var o = asm.CreateInstance(c.FullName);

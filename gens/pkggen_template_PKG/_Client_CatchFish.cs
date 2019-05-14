@@ -1,7 +1,7 @@
 ﻿#pragma warning disable 0169, 0414
 using TemplateLibrary;
 
-// Client -> Server
+// Client -> CatchFish
 namespace Client_CatchFish
 {
     [Desc("申请进入游戏. 成功返回 EnterSuccess. 失败直接被 T")]

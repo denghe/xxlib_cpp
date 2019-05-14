@@ -140,13 +140,31 @@ namespace TemplateLibrary
     }
 
     /// <summary>
-    /// Lua 生成物之命名空间过滤( 白名单 ), 用到 ILuaFilter 接口上
+    /// Lua 生成物之命名空间过滤( 白名单 ), 用到 生成配置 接口上
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Interface, AllowMultiple = true)]
     public class LuaFilter : System.Attribute
     {
         public LuaFilter(string v) { value = v; }
         public string value;
+        public override string ToString()
+        {
+            return value;
+        }
+    }
+
+    /// <summary>
+    /// CPP client 生成物之命名空间过滤( 白名单 ), 用到 生成配置 接口上
+    /// </summary>
+    [System.AttributeUsage(System.AttributeTargets.Interface, AllowMultiple = true)]
+    public class CppFilter : System.Attribute
+    {
+        public CppFilter(string v) { value = v; }
+        public string value;
+        public override string ToString()
+        {
+            return value;
+        }
     }
 
     /// <summary>

@@ -8,23 +8,23 @@ using System.Threading.Tasks;
 namespace TemplateLibrary
 {
     // 白名单
-    public class LuaFilters
+    public class Filter<T> where T : System.Attribute
     {
         HashSet<Type> depends = new HashSet<Type>();
         System.Collections.Generic.List<Type> ts = new System.Collections.Generic.List<Type>();
 
-        public LuaFilters(Assembly asm)
+        public Filter(Assembly asm)
         {
             // 扫出命名空间白名单
             var nss = new HashSet<string>();
             var types = asm._GetTypes();
-            var ifaces = types._GetInterfaces<TemplateLibrary.LuaFilter>();
+            var ifaces = types._GetInterfaces<T>();
             foreach (var iface in ifaces)
             {
-                var lfs = iface.GetCustomAttributes<TemplateLibrary.LuaFilter>();
+                var lfs = iface.GetCustomAttributes<T>();
                 foreach (var lf in lfs)
                 {
-                    nss.Add(lf.value);
+                    nss.Add(lf.ToString());
                 }
             }
             if (nss.Count == 0) return;

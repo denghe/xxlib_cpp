@@ -47,6 +47,10 @@
     <Compile Include="CatchFishStages.cs" />
     <Compile Include="CatchFishEvents.cs" />
     <Compile Include="Externals.cs" />
+    <Compile Include="Calc.cs" />
+    <Compile Include="PKG_Filters.cs" />
+    <Compile Include="_Calc_CatchFish.cs" />
+    <Compile Include="_CatchFish_Calc.cs" />
     <Compile Include="_Client_CatchFish.cs" />
     <Compile Include="_CatchFish_Client.cs" />
     <Compile Include="Generic.cs" />

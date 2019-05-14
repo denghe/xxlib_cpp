@@ -12,6 +12,6 @@ call "cfg_maker\bin\x64\Debug\cfg_maker.exe"
 xcopy output\cfg.bin ..\x64\Debug /y
 xcopy output\cfg.bin ..\x64\Release /y
 xcopy output\cfg.bin ..\..\xxlib_cocos_cpp\res /y
-xcopy output\PKG_class.h ..\..\xxlib_cocos_cpp\Classes /y
-xcopy output\PKG_class.hpp ..\..\xxlib_cocos_cpp\Classes /y
+xcopy output\PKG_class_filter.h ..\..\xxlib_cocos_cpp\Classes\PKG_class.h /y
+xcopy output\PKG_class_filter.hpp ..\..\xxlib_cocos_cpp\Classes\PKG_class.hpp /y
 pause

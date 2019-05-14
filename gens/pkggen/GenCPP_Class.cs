@@ -6,7 +6,7 @@ using System.Text;
 
 public static class GenCPP_Class
 {
-    public static void Gen(Assembly asm, string outDir, string templateName, string md5)
+    public static void Gen(Assembly asm, string outDir, string templateName, string md5, TemplateLibrary.Filter<TemplateLibrary.CppFilter> filter = null)
     {
         var sb = new StringBuilder();
 
@@ -25,6 +25,7 @@ namespace " + templateName + @" {
         for (int i = 0; i < cs.Count; ++i)
         {
             var c = cs[i];
+            if (filter != null && !filter.Contains(c)) continue;
 
             // namespace e_ns {
             if (c.Namespace != null && (i == 0 || (i > 0 && cs[i - 1].Namespace != c.Namespace))) // namespace 去重
@@ -55,6 +56,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         for (int i = 0; i < es.Count; ++i)
         {
             var e = es[i];
+            if (filter != null && !filter.Contains(e)) continue;
 
             // namespace e_ns {
             if (e.Namespace != null && (i == 0 || (i > 0 && es[i - 1].Namespace != e.Namespace))) // namespace 去重
@@ -93,6 +95,7 @@ namespace " + e.Namespace.Replace(".", "::") + @" {");
         for (int i = 0; i < ss.Count; ++i)
         {
             var c = ss[i];
+            if (filter != null && !filter.Contains(c)) continue;
             var o = asm.CreateInstance(c.FullName);
 
             // namespace e_ns {
@@ -156,6 +159,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         for (int i = 0; i < cs.Count; ++i)
         {
             var c = cs[i];
+            if (filter != null && !filter.Contains(c)) continue;
             var o = asm.CreateInstance(c.FullName);
 
             // namespace c_ns {
@@ -272,6 +276,7 @@ namespace xx {");
         cs = ts._GetStructs();
         foreach (var c in cs)
         {
+            if (filter != null && !filter.Contains(c)) continue;
             var ctn = c._GetTypeDecl_Cpp(templateName);
             var fs = c._GetFields();
 
@@ -319,6 +324,7 @@ namespace xx {");
         var typeIds = new TemplateLibrary.TypeIds(asm);
         foreach (var kv in typeIds.types)
         {
+            if (filter != null && !filter.Contains(kv.Key)) continue;
             var ct = kv.Key;
             if (ct._IsString() || ct._IsBBuffer() || ct._IsExternal() && !ct._GetExternalSerializable()) continue;
             var typeId = kv.Value;
@@ -337,6 +343,7 @@ namespace " + templateName + @" {");
         for (int i = 0; i < cs.Count; ++i)
         {
             var c = cs[i];
+            if (filter != null && !filter.Contains(c)) continue;
             var o = asm.CreateInstance(c.FullName);
 
             // namespace c_ns {
@@ -514,6 +521,7 @@ namespace " + templateName + @" {
         foreach (var kv in typeIds.types)
         {
             var ct = kv.Key;
+            if (filter != null && !filter.Contains(ct)) continue;
             if (ct._IsString() || ct._IsBBuffer() || ct._IsExternal() && !ct._GetExternalSerializable()) continue;
             var ctn = ct._GetTypeDecl_Cpp(templateName);
             var bt = ct.BaseType;
@@ -530,7 +538,7 @@ namespace " + templateName + @" {
 ");
 
         // 写文件。如果无变化就退出。后面的都不必做了
-        if (!sb._WriteToFile(Path.Combine(outDir, templateName + "_class.h"), 1)) return;
+        if (!sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h"), 1)) return;
 
         sb.Clear();
         foreach (var c in cs)
@@ -541,7 +549,7 @@ namespace " + templateName + @" {
 ");
             }
         }
-        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.hpp"));
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".hpp"));
 
         sb.Clear();
         foreach (var c in cs)
