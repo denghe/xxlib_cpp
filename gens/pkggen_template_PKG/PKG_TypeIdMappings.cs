@@ -38,11 +38,11 @@ interface ITypeIdMappings
 
     List<Calc.CatchFish.Hit> _89 { get; }
 
-    Calc_CatchFish.HitCheckResult _90 { get; }
-
     List<Calc.CatchFish.Fish> _91 { get; }
 
     List<Calc.CatchFish.Bullet> _92 { get; }
+
+    Calc_CatchFish.HitCheckResult _90 { get; }
 
     xx.Random _17 { get; }
 

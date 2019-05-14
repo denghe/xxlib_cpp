@@ -8,15 +8,9 @@ public static class GenCPP_Class
 {
     public class TypeComparer : System.Collections.Generic.IComparer<Type>
     {
-        public TemplateLibrary.TypeIds typeIds;
-        public int GetTypeId(Type t)
-        {
-            if (!typeIds.types.ContainsKey(t)) return 0;
-            return typeIds.types[t];
-        }
         public int Compare(Type x, Type y)
         {
-            return GetTypeId(x).CompareTo(GetTypeId(y));
+            return x.FullName.CompareTo(y.FullName);
         }
     }
 
@@ -33,10 +27,8 @@ namespace " + templateName + @" {
 ");
 
         var ts = asm._GetTypes();
-        // 基于 typeIds 对 ts 排序 期望减少增加类带来的 filter 版生成物变化
         var typeIds = new TemplateLibrary.TypeIds(asm);
         var tc = new TypeComparer();
-        tc.typeIds = typeIds;
         ts.Sort(tc);
 
 
