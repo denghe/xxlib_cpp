@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "afb5065555d5ca348ece3444ea38769b";
+		inline static const std::string value = "d3dcf5399903d8167009da64931ac7f4";
     };
 
 namespace Generic {
@@ -367,7 +367,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-#include "PKG_CatchFish_Item.h"
+#include <PKG_CatchFish_Item.h>
     };
     // 子弹 & 鱼 & 武器 的基类
     struct MoveItem : PKG::CatchFish::Item {
@@ -412,7 +412,7 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-#include "PKG_CatchFish_Stages_StageElement.h"
+#include <PKG_CatchFish_Stages_StageElement.h>
     };
 }
 namespace CatchFish::Configs {
@@ -469,7 +469,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Fish.h"
+#include <PKG_CatchFish_Fish.h>
     };
 }
 namespace CatchFish::Stages {
@@ -498,7 +498,7 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Stages_Emitter_RandomFishs.h"
+#include <PKG_CatchFish_Stages_Emitter_RandomFishs.h>
     };
 }
 namespace CatchFish::Configs {
@@ -753,7 +753,7 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Stages_Monitor_KeepFatFish.h"
+#include <PKG_CatchFish_Stages_Monitor_KeepFatFish.h>
     };
     // 监视器: 自动再生大鱼, 服务端预约下发
     struct Monitor_KeepBigFish : PKG::CatchFish::Stages::StageElement {
@@ -778,7 +778,7 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Stages_Monitor_KeepBigFish.h"
+#include <PKG_CatchFish_Stages_Monitor_KeepBigFish.h>
     };
     // 发射器: 从屏幕中间圆环批量出小鱼
     struct Emitter_RingFishs : PKG::CatchFish::Stages::StageElement {
@@ -807,7 +807,7 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Stages_Emitter_RingFishs.h"
+#include <PKG_CatchFish_Stages_Emitter_RingFishs.h>
     };
     // 发射器: 从屏幕中间 0 度开始旋转式出小鱼
     struct Emitter_CircleFishs : PKG::CatchFish::Stages::StageElement {
@@ -840,7 +840,7 @@ namespace CatchFish::Stages {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Stages_Emitter_CircleFishs.h"
+#include <PKG_CatchFish_Stages_Emitter_CircleFishs.h>
     };
 }
 namespace CatchFish::Configs {
@@ -877,7 +877,7 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Configs_Config.h"
+#include <PKG_CatchFish_Configs_Config.h>
     };
     // 炮台 & 子弹配置基类
     struct Cannon : PKG::CatchFish::Configs::Item {
@@ -952,7 +952,7 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Configs_SpriteFrame.h"
+#include <PKG_CatchFish_Configs_SpriteFrame.h>
     };
     // 物理建模 for 鱼与子弹碰撞检测
     struct Physics : xx::Object {
@@ -971,7 +971,7 @@ namespace CatchFish::Configs {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Configs_Physics.h"
+#include <PKG_CatchFish_Configs_Physics.h>
     };
 }
 namespace CatchFish::Events {
@@ -1281,7 +1281,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Scene.h"
+#include <PKG_CatchFish_Scene.h>
     };
     // 玩家 ( 存在于服务 players 容器. 被 Scene.players 弱引用 )
     struct Player : PKG::CatchFish::Item {
@@ -1320,7 +1320,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Player.h"
+#include <PKG_CatchFish_Player.h>
     };
     // 炮台基类. 下列属性适合大多数炮
     struct Cannon : PKG::CatchFish::Item {
@@ -1345,7 +1345,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Cannon.h"
+#include <PKG_CatchFish_Cannon.h>
     };
     // 子弹基类
     struct Bullet : PKG::CatchFish::MoveItem {
@@ -1364,7 +1364,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascadeCore(void* const& o = nullptr) noexcept;
-#include "PKG_CatchFish_Bullet.h"
+#include <PKG_CatchFish_Bullet.h>
     };
     // 武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )
     struct Weapon : PKG::CatchFish::MoveItem {
@@ -1455,7 +1455,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-#include "PKG_CatchFish_WayFish.h"
+#include <PKG_CatchFish_WayFish.h>
     };
     // 围绕目标鱼 圆周 旋转的小鱼( 实现自己的 Move 函数并附加几个计算参数, 被 BigFish Move 调用 )
     struct RoundFish : PKG::CatchFish::Fish {
@@ -1474,7 +1474,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-#include "PKG_CatchFish_RoundFish.h"
+#include <PKG_CatchFish_RoundFish.h>
     };
     // 一只大鱼, 身边围了几只小鱼. 分摊伤害. 随机直线慢移. 自动再生. 切换关卡时快速逃离
     struct BigFish : PKG::CatchFish::Fish {
@@ -1493,7 +1493,7 @@ namespace CatchFish {
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
-#include "PKG_CatchFish_BigFish.h"
+#include <PKG_CatchFish_BigFish.h>
     };
 }
 namespace CatchFish::Events {

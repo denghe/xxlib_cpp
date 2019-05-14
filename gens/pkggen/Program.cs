@@ -21,21 +21,6 @@ public static class Program
         return str;
     }
 
-    // 逐行对比, 如果行数相同 且最多有一行 不同，就认为是一样的. 换行符为 \r\n
-    public static bool IsSame(string a, string b)
-    {
-        var aLines = a.Split(new string[] { "\r\n" }, System.StringSplitOptions.None);
-        var bLines = b.Split(new string[] { "\r\n" }, System.StringSplitOptions.None);
-        if (aLines.Length != bLines.Length) return false;
-        int numDiffs = 0;
-        for (int i = 0; i < aLines.Length; ++i)
-        {
-            if (aLines[i] != bLines[i]) ++numDiffs;
-            if (numDiffs > 1) return false;
-        }
-        return true;
-    }
-
     static void Main(string[] args)
     {
 #if !DEBUG

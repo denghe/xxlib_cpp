@@ -133,7 +133,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
                 sb.Append(@"
-#include """ + c._GetTypeDecl_Lua(templateName) + @".h""");
+#include <" + c._GetTypeDecl_Lua(templateName) + @".h>");
             }
 
             // struct /
@@ -251,7 +251,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
                 sb.Append(@"
-#include """ + c._GetTypeDecl_Lua(templateName) + @".h""");
+#include <" + c._GetTypeDecl_Lua(templateName) + @".h>");
             }
             sb.Append(@"
     };");   // class }
@@ -529,44 +529,27 @@ namespace " + templateName + @" {
 }
 ");
 
-        var outFN = Path.Combine(outDir, templateName + "_class.h");
-        // 读入旧文件内容（如果存在的话），与刚生成的对比
-        if (File.Exists(outFN))
-        {
-            var oldTxt = File.ReadAllText(outFN);
-            if (Program.IsSame(oldTxt, sb.ToString()))
-            {
-                System.Console.WriteLine("文件内容无变化，跳过生成： " + outFN);
-                return;
-            }
-        }
-        sb._WriteToFile(outFN);
-        System.Console.WriteLine("已生成 " + outFN);
+        // 写文件。如果无变化就退出。后面的都不必做了
+        if (!sb._WriteToFile(Path.Combine(outDir, templateName + "_class.h"), false)) return;
 
         sb.Clear();
         foreach (var c in cs)
         {
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
-                sb.Append(@"#include """ + c._GetTypeDecl_Lua(templateName) + @".hpp""
+                sb.Append(@"#include <" + c._GetTypeDecl_Lua(templateName) + @".hpp>
 ");
             }
         }
-        outFN = Path.Combine(outDir, templateName + "_class.hpp");
-        sb._WriteToFile(outFN);
-        System.Console.WriteLine("已生成 " + outFN);
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.hpp"));
 
         sb.Clear();
         foreach (var c in cs)
         {
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
-                outFN = Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".h");
-                sb._WriteToFile(outFN);
-                System.Console.WriteLine("已生成 " + outFN);
-                outFN = Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".hpp");
-                sb._WriteToFile(outFN);
-                System.Console.WriteLine("已生成 " + outFN);
+                sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".h"));
+                sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".hpp"));
             }
         }
     }
