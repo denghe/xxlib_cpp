@@ -90,10 +90,6 @@ inline int Dialer::HandlePackagesOrUpdateScene() noexcept {
 			for (auto&& e : *fe->events) {
 				if (int r = HandleEvents(e)) return r;
 			}
-			// 依次处理私有事件集合
-			for (auto&& e : *fe->persionalEvents) {
-				if (int r = HandleEvents(e)) return r;
-			}
 			break;
 		}
 		default: {
@@ -225,7 +221,14 @@ inline int Dialer::Handle(PKG::CatchFish::Events::NoMoney_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::Refund_s o) noexcept {
-
+	// 私人信息
+	if (o->isPersonal) {
+		// 如果不是给当前玩家的直接退出
+		if (o->playerId != player->id) return 0;
+		// 退款
+		player->coin += o->coin;
+		return 0;
+	}
 	// 定位到目标玩家
 	for (auto&& p : catchFish->players) {
 		if (p->id == o->playerId) {

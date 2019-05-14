@@ -28,8 +28,5 @@ namespace CatchFish_Client
 
         [Desc("帧事件集合")]
         List<CatchFish.Events.Event> events;
-
-        [Desc("私有帧事件集合( 发送时会临时等于 player.events )")]
-        List<CatchFish.Events.Event> persionalEvents;
     }
 }

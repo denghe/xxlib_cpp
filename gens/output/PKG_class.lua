@@ -1,5 +1,5 @@
 ﻿
-PKG_PkgGenMd5_Value = 'afb5065555d5ca348ece3444ea38769b'
+PKG_PkgGenMd5_Value = '0914729708fa875dcb9ebe8d0d59f122'
 
 --[[
 座位列表
@@ -477,23 +477,15 @@ PKG_CatchFish_Client_FrameEvents = {
         帧事件集合
         ]]
         o.events = null -- List_PKG_CatchFish_Events_Event_
-        --[[
-        私有帧事件集合( 发送时会临时等于 player.events )
-        ]]
-        o.persionalEvents = null -- List_PKG_CatchFish_Events_Event_
         return o
     end,
     FromBBuffer = function( bb, o )
-        local ReadObject = bb.ReadObject
         o.frameNumber = bb:ReadInt32()
-        o.events = ReadObject( bb )
-        o.persionalEvents = ReadObject( bb )
+        o.events = bb:ReadObject()
     end,
     ToBBuffer = function( bb, o )
-        local WriteObject = bb.WriteObject
         bb:WriteInt32( o.frameNumber )
-        WriteObject( bb, o.events )
-        WriteObject( bb, o.persionalEvents )
+        bb:WriteObject( o.events )
     end
 }
 BBuffer.Register( PKG_CatchFish_Client_FrameEvents )
@@ -1748,7 +1740,7 @@ PKG_CatchFish_Events_NoMoney = {
 }
 BBuffer.Register( PKG_CatchFish_Events_NoMoney )
 --[[
-通知: 退钱( 常见于子弹打空 )
+通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )
 ]]
 PKG_CatchFish_Events_Refund = {
     typeName = "PKG_CatchFish_Events_Refund",
@@ -1768,6 +1760,10 @@ PKG_CatchFish_Events_Refund = {
         币值
         ]]
         o.coin = 0 -- Int64
+        --[[
+        是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )
+        ]]
+        o.isPersonal = false -- Boolean
         setmetatable( o, PKG_CatchFish_Events_Event.Create() )
         return o
     end,
@@ -1775,11 +1771,13 @@ PKG_CatchFish_Events_Refund = {
         local p = getmetatable( o )
         p.__proto.FromBBuffer( bb, p )
         o.coin = bb:ReadInt64()
+        o.isPersonal = bb:ReadBoolean()
     end,
     ToBBuffer = function( bb, o )
         local p = getmetatable( o )
         p.__proto.ToBBuffer( bb, p )
         bb:WriteInt64( o.coin )
+        bb:WriteBoolean( o.isPersonal )
     end
 }
 BBuffer.Register( PKG_CatchFish_Events_Refund )

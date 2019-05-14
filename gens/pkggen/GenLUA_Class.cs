@@ -271,6 +271,6 @@ BBuffer.Register( " + cn + @" )");
         // 临时方案
         sb.Replace("`1", "");
 
-        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.lua"), false);
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.lua"), 1);
     }
 }

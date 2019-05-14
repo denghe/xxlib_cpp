@@ -20,16 +20,12 @@ inline int PKG::CatchFish::Cannon::InitCascade(void* const& o) noexcept {
 #endif
 
 #ifndef CC_TARGET_PLATFORM
-inline void PKG::CatchFish::Cannon::MakeRefundEvent(int64_t const& coin, bool isPersional) noexcept {
+inline void PKG::CatchFish::Cannon::MakeRefundEvent(int64_t const& coin, bool isPersonal) noexcept {
 	auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-	refund->coin = coin;
 	refund->playerId = player->id;
-	if (isPersional) {
-		player->events->Add(std::move(refund));
-	}
-	else {
-		scene->frameEvents->events->Add(std::move(refund));
-	}
+	refund->coin = coin;
+	refund->isPersonal = isPersonal;
+	scene->frameEvents->events->Add(std::move(refund));
 }
 #endif
 
@@ -207,13 +203,13 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 #endif
 		if (!quantity) return -4;									// 剩余颗数为 0
 		if (frameNumber < fireCD) return -5;						// CD 中
-		if (bullets->len == cfg->numLimit) {						// 总颗数限制( 并不算是一种错误. 前后端子弹消失时间差可能导致 )
+		if (bullets->len == cfg->numLimit) {						// 总颗数限制
 #ifndef CC_TARGET_PLATFORM
-			MakeRefundEvent(coin, true);							// 生成专有发射取消事件通知( 没必要发送给其他玩家 )
+			return -6;
 #else
 			// todo: 看情况显示发射遇到上限?
-#endif
 			return 0;
+#endif
 		}
 		// todo: 更多发射限制检测
 
@@ -271,7 +267,7 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 		// 如果子弹生命周期已经到了
 		if (int r = bullet->Move()) {
 			player->coin += coin;									// 退钱
-			MakeRefundEvent(coin, true);							// 生成专有退款事件通知( 没必要发送给其他玩家 )
+			MakeRefundEvent(coin, true);							// 生成私有退款事件通知( 其他客户端收到后不理会 )
 			return 0;
 		}
 	}

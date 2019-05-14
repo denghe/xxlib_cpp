@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "d3dcf5399903d8167009da64931ac7f4";
+		inline static const std::string value = "0914729708fa875dcb9ebe8d0d59f122";
     };
 
 namespace Generic {
@@ -153,7 +153,7 @@ namespace CatchFish::Events {
     using NoMoney_s = std::shared_ptr<NoMoney>;
     using NoMoney_w = std::weak_ptr<NoMoney>;
 
-    // 通知: 退钱( 常见于子弹打空 )
+    // 通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )
     struct Refund;
     using Refund_s = std::shared_ptr<Refund>;
     using Refund_w = std::weak_ptr<Refund>;
@@ -1009,10 +1009,12 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 通知: 退钱( 常见于子弹打空 )
+    // 通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )
     struct Refund : PKG::CatchFish::Events::Event {
         // 币值
         int64_t coin = 0;
+        // 是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )
+        bool isPersonal = false;
 
         typedef Refund ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
@@ -1137,8 +1139,6 @@ namespace CatchFish_Client {
         int32_t frameNumber = 0;
         // 帧事件集合
         xx::List_s<PKG::CatchFish::Events::Event_s> events;
-        // 私有帧事件集合( 发送时会临时等于 player.events )
-        xx::List_s<PKG::CatchFish::Events::Event_s> persionalEvents;
 
         typedef FrameEvents ThisType;
         typedef xx::Object BaseType;
@@ -1916,22 +1916,16 @@ namespace CatchFish_Client {
     inline void FrameEvents::ToBBuffer(xx::BBuffer& bb) const noexcept {
         bb.Write(this->frameNumber);
         bb.Write(this->events);
-        bb.Write(this->persionalEvents);
     }
     inline int FrameEvents::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->frameNumber)) return r;
         bb.readLengthLimit = 0;
         if (int r = bb.Read(this->events)) return r;
-        bb.readLengthLimit = 0;
-        if (int r = bb.Read(this->persionalEvents)) return r;
         return 0;
     }
     inline int FrameEvents::InitCascade(void* const& o) noexcept {
         if (this->events) {
             if (int r = this->events->InitCascade(o)) return r;
-        }
-        if (this->persionalEvents) {
-            if (int r = this->persionalEvents->InitCascade(o)) return r;
         }
         return 0;
     }
@@ -1953,7 +1947,6 @@ namespace CatchFish_Client {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
         xx::Append(s, ", \"events\":", this->events);
-        xx::Append(s, ", \"persionalEvents\":", this->persionalEvents);
     }
 }
 namespace Client_CatchFish {
@@ -2880,10 +2873,12 @@ namespace CatchFish::Events {
     inline void Refund::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->coin);
+        bb.Write(this->isPersonal);
     }
     inline int Refund::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
+        if (int r = bb.Read(this->isPersonal)) return r;
         return 0;
     }
     inline int Refund::InitCascade(void* const& o) noexcept {
@@ -2907,6 +2902,7 @@ namespace CatchFish::Events {
     inline void Refund::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"coin\":", this->coin);
+        xx::Append(s, ", \"isPersonal\":", this->isPersonal);
     }
     inline uint16_t FishDead::GetTypeId() const noexcept {
         return 41;

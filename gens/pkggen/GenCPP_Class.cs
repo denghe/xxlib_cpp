@@ -530,7 +530,7 @@ namespace " + templateName + @" {
 ");
 
         // 写文件。如果无变化就退出。后面的都不必做了
-        if (!sb._WriteToFile(Path.Combine(outDir, templateName + "_class.h"), false)) return;
+        if (!sb._WriteToFile(Path.Combine(outDir, templateName + "_class.h"), 1)) return;
 
         sb.Clear();
         foreach (var c in cs)

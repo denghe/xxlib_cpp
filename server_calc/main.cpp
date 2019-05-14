@@ -8,6 +8,8 @@ xx::Uv uv;
 #include "PKG_class.hpp"
 #include "xx_random.hpp"
 
+// todo: listener for server_game connect
+
 
 int main() {
 	// todo

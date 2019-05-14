@@ -1350,21 +1350,18 @@ public static class GenExtensions
     /// 以 utf8 格式写文本到文件, 可选择是否附加 bom 头.
     /// numDiffs: 如果旧文件存在，就读入并与 sb 逐行对比。如果存在 <= numDiffs 的差异行，就不生成并覆盖
     /// </summary>
-    public static bool _WriteToFile(this StringBuilder sb, string fn, bool forceOverride = true, bool useBOM = true)
+    public static bool _WriteToFile(this StringBuilder sb, string fn, int numIgnoreLines = 0, bool useBOM = true)
     {
-        if (!forceOverride)
+        // 读入旧文件内容（如果存在的话），与刚生成的对比
+        if (File.Exists(fn))
         {
-            // 读入旧文件内容（如果存在的话），与刚生成的对比
-            if (File.Exists(fn))
+            var oldTxt = File.ReadAllText(fn);
+            if (numIgnoreLines == 0 && oldTxt == sb.ToString()
+                || oldTxt.IsSame(sb.ToString(), numIgnoreLines))
             {
-                var oldTxt = File.ReadAllText(fn);
-                if (oldTxt.IsSame(sb.ToString()))
-                {
-                    System.Console.WriteLine("文件内容无变化，跳过生成： " + fn);
-                    return false;
-                }
+                System.Console.WriteLine("文件内容无变化，跳过生成： " + fn);
+                return false;
             }
-
         }
         fn._Write(sb, useBOM);
         System.Console.WriteLine("已生成 " + fn);

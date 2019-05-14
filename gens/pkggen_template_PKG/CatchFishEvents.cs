@@ -58,11 +58,14 @@ namespace CatchFish
         [Desc("通知: 玩家破产")]
         class NoMoney : Event { }
 
-        [Desc("通知: 退钱( 常见于子弹打空 )")]
+        [Desc("通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )")]
         class Refund : Event
         {
             [Desc("币值")]
             long coin;
+
+            [Desc("是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )")]
+            bool isPersonal;
         }
 
 

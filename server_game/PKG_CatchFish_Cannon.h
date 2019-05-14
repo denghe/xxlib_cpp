@@ -30,7 +30,7 @@ virtual int Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
 virtual int SetCoin(PKG::Client_CatchFish::Bet_s& o) noexcept;
 
 // 生成退钱事件
-void MakeRefundEvent(int64_t const& coin, bool isPersional = false) noexcept;
+void MakeRefundEvent(int64_t const& coin, bool isPersonal = false) noexcept;
 #else
 virtual int Fire(int const& frameNumber) noexcept;
 

@@ -85,7 +85,6 @@ inline int Peer::ReceivePush(xx::Object_s&& msg) noexcept {
 			// 构建玩家上下文( 模拟已从db读到了数据 )
 			auto&& player = xx::Make<PKG::CatchFish::Player>();
 			xx::MakeTo(player->cannons);
-			xx::MakeTo(player->events);
 			player->scene = &scene;
 			player->id = ++::service->playerAutoId;
 			xx::Append(player->token, xx::Guid(true));

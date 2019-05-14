@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "afb5065555d5ca348ece3444ea38769b"; 
+        public const string value = "0914729708fa875dcb9ebe8d0d59f122"; 
     }
 
 namespace CatchFish
@@ -328,10 +328,6 @@ namespace CatchFish_Client
         /// 帧事件集合
         /// </summary>
         public xx.List<CatchFish.Events.Event> events;
-        /// <summary>
-        /// 私有帧事件集合( 发送时会临时等于 player.events )
-        /// </summary>
-        public xx.List<CatchFish.Events.Event> persionalEvents;
 
         public override ushort GetPackageId()
         {
@@ -342,7 +338,6 @@ namespace CatchFish_Client
         {
             bb.Write(this.frameNumber);
             bb.Write(this.events);
-            bb.Write(this.persionalEvents);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -350,8 +345,6 @@ namespace CatchFish_Client
             bb.Read(ref this.frameNumber);
             bb.readLengthLimit = 0;
             bb.Read(ref this.events);
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.persionalEvents);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -372,7 +365,6 @@ namespace CatchFish_Client
         {
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
             s.Append(", \"events\":" + (events == null ? "nil" : events.ToString()));
-            s.Append(", \"persionalEvents\":" + (persionalEvents == null ? "nil" : persionalEvents.ToString()));
         }
         public override string ToString()
         {
@@ -1999,7 +1991,7 @@ namespace CatchFish.Events
         }
     }
     /// <summary>
-    /// 通知: 退钱( 常见于子弹打空 )
+    /// 通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )
     /// </summary>
     public partial class Refund : CatchFish.Events.Event
     {
@@ -2007,6 +1999,10 @@ namespace CatchFish.Events
         /// 币值
         /// </summary>
         public long coin;
+        /// <summary>
+        /// 是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )
+        /// </summary>
+        public bool isPersonal = false;
 
         public override ushort GetPackageId()
         {
@@ -2017,12 +2013,14 @@ namespace CatchFish.Events
         {
             base.ToBBuffer(bb);
             bb.Write(this.coin);
+            bb.Write(this.isPersonal);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.coin);
+            bb.Read(ref this.isPersonal);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2043,6 +2041,7 @@ namespace CatchFish.Events
         {
             base.ToStringCore(s);
             s.Append(", \"coin\":" + coin.ToString());
+            s.Append(", \"isPersonal\":" + isPersonal.ToString());
         }
         public override string ToString()
         {

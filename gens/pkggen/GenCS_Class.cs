@@ -406,6 +406,6 @@ namespace " + c.Namespace + @"
 ");
 
 
-        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.cs"), false);
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class.cs"), 1);
     }
 }

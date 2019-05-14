@@ -31,7 +31,7 @@ inline void PKG::CatchFish::Player::DrawInit() noexcept {
 inline void PKG::CatchFish::Player::DrawUpdate_Coin() noexcept {
 	assert(!::catchFish->disposed);
 	if (!labelCoin) return;
-	if (!coin == lastCoin) return;
+	if (coin == lastCoin) return;
 	labelCoin->setString(std::to_string(coin));
 	lastCoin = coin;
 }

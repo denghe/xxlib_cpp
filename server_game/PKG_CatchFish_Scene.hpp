@@ -148,17 +148,14 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 			// 老玩家直接下发帧事件同步数据
 			else {
 				// 如果有数据就立即下发, 没有就慢发
-				if (frameEvents->events->len || plr->events->len || !(frameNumber & 0xF)) {
-					frameEvents->persionalEvents = plr->events;
+				if (frameEvents->events->len || !(frameNumber & 0xF)) {
 					plr->peer->SendPush(frameEvents);
 					plr->peer->Flush();
 				}
 			}
 		}
-		plr->events->Clear();			// 清除发送过的数据
 	}
 	frameEvents->events->Clear();		// 清除发送过的数据
-	frameEvents->persionalEvents.reset();
 	frameEnters.Clear();				// 清除发送过的数据
 #endif
 
