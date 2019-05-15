@@ -331,11 +331,7 @@ namespace xx
 	template<typename K>
 	TV& Dict<TK, TV>::operator[](K &&k) noexcept {
 		assert(buckets);
-		int idx = Find(k);
-		if (idx < 0) {
-			idx = Add(std::forward<K>(k), TV(), true).index;
-		}
-		return items[idx].value;
+		return items[Add(std::forward<K>(k), TV(), false).index].value;
 	}
 
 	template <typename TK, typename TV>
