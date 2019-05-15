@@ -6,16 +6,10 @@ using System.Text;
 
 public static class GenCPP_Class
 {
-    public class TypeComparer : System.Collections.Generic.IComparer<Type>
+    public static bool Gen(Assembly asm, string outDir, string templateName, string md5, TemplateLibrary.Filter<TemplateLibrary.CppFilter> filter = null, bool generateBak = false)
     {
-        public int Compare(Type x, Type y)
-        {
-            return x.FullName.CompareTo(y.FullName);
-        }
-    }
-
-    public static void Gen(Assembly asm, string outDir, string templateName, string md5, TemplateLibrary.Filter<TemplateLibrary.CppFilter> filter = null)
-    {
+        var ts = asm._GetTypes();
+        var typeIds = new TemplateLibrary.TypeIds(asm);
         var sb = new StringBuilder();
 
         // template namespace
@@ -25,12 +19,6 @@ namespace " + templateName + @" {
 		inline static const std::string value = """ + md5 + @""";
     };
 ");
-
-        var ts = asm._GetTypes();
-        var typeIds = new TemplateLibrary.TypeIds(asm);
-        var tc = new TypeComparer();
-        ts.Sort(tc);
-
 
         // predefines
 
@@ -104,7 +92,15 @@ namespace " + e.Namespace.Replace(".", "::") + @" {");
             }
         }
 
-        var ss = ts._GetStructs()._SortByInheritRelation();
+        var ss = ts._GetStructs();
+        if (!generateBak)
+        {
+            ss._SortByInheritRelation();
+        }
+        else
+        {
+            ss._SortByFullName();
+        }
         for (int i = 0; i < ss.Count; ++i)
         {
             var c = ss[i];
@@ -166,7 +162,16 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
 
 
 
-        cs = ts._GetClasss()._SortByInheritRelation();
+        cs = ts._GetClasss();
+        if (!generateBak)
+        {
+            cs._SortByInheritRelation();
+        }
+        else
+        {
+            cs._SortByFullName();
+        }
+
 
         // 预声明
         for (int i = 0; i < cs.Count; ++i)
@@ -356,7 +361,6 @@ namespace " + templateName + @" {");
         {
             var c = cs[i];
             if (filter != null && !filter.Contains(c)) continue;
-            var o = asm.CreateInstance(c.FullName);
 
             // namespace c_ns {
             if (c.Namespace != null && (i == 0 || (i > 0 && cs[i - 1].Namespace != c.Namespace))) // namespace 去重
@@ -389,7 +393,6 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
 
             // 定位到基类
             var bt = c.BaseType;
-            var btn = c._HasBaseType() ? bt._GetTypeDecl_Cpp(templateName) : "xx::Object";
             var fs = c._GetFields();
 
             sb.Append(@"
@@ -549,8 +552,18 @@ namespace " + templateName + @" {
 }
 ");
 
+        // 以命名空间排序版生成备份文件 用以对比是否发生改变. 如果.bak 经过生成对比发现无差异，就不必再生成了
+        if (generateBak)
+        {
+            return sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h.bak"));
+        }
+        else if (!Gen(asm, outDir, templateName, "", filter, true))
+        {
+            return false;
+        }
+
         // 写文件。如果无变化就退出。后面的都不必做了
-        if (!sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h"), 1)) return;
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h"));
 
         sb.Clear();
         foreach (var c in cs)
@@ -572,5 +585,7 @@ namespace " + templateName + @" {
                 sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".hpp"));
             }
         }
+
+        return true;
     }
 }

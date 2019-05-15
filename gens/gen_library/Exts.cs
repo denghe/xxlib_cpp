@@ -115,6 +115,23 @@ public static class GenExtensions
         return ts;
     }
 
+    class TypeComparer : Comparer<Type>
+    {
+        public override int Compare(Type x, Type y)
+        {
+            return x.FullName.CompareTo(y.FullName);
+        }
+    }
+
+    /// <summary>
+    /// 根据 FullName 排序
+    /// </summary>
+    public static List<Type> _SortByFullName(this List<Type> ts)
+    {
+        ts.Sort(new TypeComparer());
+        return ts;
+    }
+
     // todo: 根据继承关系及值类型成员引用关系排序( 当前为简化设计, 模板中并不支持值类型成员 )
 
 

@@ -4,6 +4,18 @@ using TemplateLibrary;
 // Calc
 namespace Calc
 {
+    [Desc("直接向总输入追加数据( 应对点杀之类需求 )")]
+    class Push
+    {
+        long value;
+    }
+
+    [Desc("直接向总输出追加数据( 应对点送之类需求 )")]
+    class Pop
+    {
+        long value;
+    }
+
     namespace CatchFish
     {
         [Desc("打击明细")]
@@ -45,5 +57,5 @@ namespace Calc
         }
     }
 
-    // todo: more game namespaces here about shared totalIO
+    // todo: more games here
 }
