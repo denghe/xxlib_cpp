@@ -12,6 +12,18 @@ inline int PKG::CatchFish::Scene::InitCascade(void* const& o) noexcept {
 #endif
 
 inline int PKG::CatchFish::Scene::Update() noexcept {
+#ifndef CC_TARGET_PLATFORM
+	// 如果到计算服务的连接未就绪, 无限等待			// todo: 超时处理
+	if (!service->IsAlive_CalcPeer()) {
+		xx::CoutTN("waiting Calc service...");
+		return 0;
+	}
+
+	// 如果正在等待计算服回调, 就直接返回. ( 正常情况下不该发生. 除非与 Calc 连接异常 )
+	if (calcResult) return calcResult > 0 ? 0 : calcResult;
+#endif
+
+	// 一开始就累加帧数, 确保后续步骤( 含追帧递归 )生命周期正确
 	++frameNumber;
 
 	// 遍历更新. 倒序扫描, 交换删除. 如果存在内部乱序删除的情况, 则需要 名单机制 或 标记机制 在更新结束之后挨个删掉
@@ -105,7 +117,7 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 		}
 	}
 
-	// 倒序遍历玩家，Update 返回非 0 则杀掉
+	// 倒序遍历玩家，Update 返回非 0 则杀掉( 玩家会进一步驱动 cannons, bullets )
 	auto&& ps = *players;
 	if (ps.len) {
 		for (size_t i = ps.len - 1; i != -1; --i) {
@@ -121,8 +133,46 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 		}
 	}
 
+#ifndef CC_TARGET_PLATFORM
+	// 将 hitChecks 发给 Calc 计算
+	service->calcPeer->SendRequest(hitChecks, [this](xx::Object_s&& msg)->int { return UpdateCalc(std::move(msg)); }, 1000);
+
+	// 清理 for next fill
+	hitChecks->hits->Clear();
+#endif
+
+	return 0;
+};
 
 #ifndef CC_TARGET_PLATFORM
+inline int PKG::CatchFish::Scene::UpdateCalc(xx::Object_s&& msg) noexcept {
+	// 超时检查
+	if (!msg) {
+		calcResult = -1;
+		return 0;
+	}
+
+	switch (msg->GetTypeId()) {
+	case xx::TypeId_v<PKG::Calc_CatchFish::HitCheckResult>: {
+		calcResult = Handle(xx::As<PKG::Calc_CatchFish::HitCheckResult>(msg));
+		break;
+	}
+	case xx::TypeId_v<PKG::Generic::Error>: {
+		xx::CoutTN("recv error: ", msg);
+		calcResult = -2;
+		break;
+	}
+	default:
+		xx::CoutTN("recv unhandled msg: ", msg);
+		calcResult = -3;
+		break;
+	}
+	return 0;
+}
+
+inline int PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s&& msg) noexcept {
+	// todo: 收到 Calc 结果回调后，令相应的鱼死掉( 子弹在 hit 请求产生时便已被移除 ), 同步玩家 coin, 生成各种 鱼死 & 退款 事件 
+
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
 
@@ -157,10 +207,10 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 	}
 	frameEvents->events->Clear();		// 清除发送过的数据
 	frameEnters.Clear();				// 清除发送过的数据
-#endif
 
 	return 0;
-};
+}
+#endif
 
 
 inline PKG::CatchFish::WayFish_s PKG::CatchFish::Scene::MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept {

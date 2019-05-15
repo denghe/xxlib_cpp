@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "a27747518b336fe920df86ae0fc4d523"; 
+        public const string value = "7a0438119916290bcc9c09179b56d718"; 
     }
 
 namespace CatchFish
@@ -612,6 +612,106 @@ namespace Client_CatchFish
 namespace CatchFish_Calc
 {
     /// <summary>
+    /// 直接向总输入追加数据( 应对点杀之类需求 )
+    /// </summary>
+    public partial class Push : xx.Object
+    {
+        public long value;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Push>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.value);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.value);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish_Calc.Push\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"value\":" + value.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+    /// <summary>
+    /// 直接向总输出追加数据( 应对点送之类需求 )
+    /// </summary>
+    public partial class Pop : xx.Object
+    {
+        public long value;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Pop>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            bb.Write(this.value);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            bb.Read(ref this.value);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish_Calc.Pop\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            s.Append(", \"value\":" + value.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+        }
+    }
+    /// <summary>
     /// 鱼死计算
     /// </summary>
     public partial class HitCheck : xx.Object
@@ -719,109 +819,6 @@ namespace Calc_CatchFish
         {
             s.Append(", \"fishs\":" + (fishs == null ? "nil" : fishs.ToString()));
             s.Append(", \"bullets\":" + (bullets == null ? "nil" : bullets.ToString()));
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-        }
-    }
-}
-namespace Calc
-{
-    /// <summary>
-    /// 直接向总输入追加数据( 应对点杀之类需求 )
-    /// </summary>
-    public partial class Push : xx.Object
-    {
-        public long value;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Push>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.value);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.Read(ref this.value);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"Calc.Push\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"value\":" + value.ToString());
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-        }
-    }
-    /// <summary>
-    /// 直接向总输出追加数据( 应对点送之类需求 )
-    /// </summary>
-    public partial class Pop : xx.Object
-    {
-        public long value;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Pop>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            bb.Write(this.value);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            bb.Read(ref this.value);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"Calc.Pop\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            s.Append(", \"value\":" + value.ToString());
         }
         public override string ToString()
         {
@@ -4505,13 +4502,13 @@ namespace CatchFish.Configs
             xx.Object.Register<Client_CatchFish.Bet>(87);
             xx.Object.Register<Client_CatchFish.Fire>(15);
             xx.Object.Register<Client_CatchFish.Hit>(16);
+            xx.Object.Register<CatchFish_Calc.Push>(93);
+            xx.Object.Register<CatchFish_Calc.Pop>(94);
             xx.Object.Register<CatchFish_Calc.HitCheck>(88);
             xx.Object.Register<xx.List<Calc.CatchFish.Hit>>(89);
             xx.Object.Register<Calc_CatchFish.HitCheckResult>(90);
             xx.Object.Register<xx.List<Calc.CatchFish.Fish>>(91);
             xx.Object.Register<xx.List<Calc.CatchFish.Bullet>>(92);
-            xx.Object.Register<Calc.Push>(93);
-            xx.Object.Register<Calc.Pop>(94);
             xx.Object.Register<xx.Random>(17);
             xx.Object.Register<xx.List<CatchFish.Fish>>(18);
             xx.Object.Register<CatchFish.Fish>(19);

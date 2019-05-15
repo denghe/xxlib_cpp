@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "a27747518b336fe920df86ae0fc4d523";
+		inline static const std::string value = "7a0438119916290bcc9c09179b56d718";
     };
 
 namespace Generic {
@@ -61,6 +61,16 @@ namespace Client_CatchFish {
 
 }
 namespace CatchFish_Calc {
+    // 直接向总输入追加数据( 应对点杀之类需求 )
+    struct Push;
+    using Push_s = std::shared_ptr<Push>;
+    using Push_w = std::weak_ptr<Push>;
+
+    // 直接向总输出追加数据( 应对点送之类需求 )
+    struct Pop;
+    using Pop_s = std::shared_ptr<Pop>;
+    using Pop_w = std::weak_ptr<Pop>;
+
     // 鱼死计算
     struct HitCheck;
     using HitCheck_s = std::shared_ptr<HitCheck>;
@@ -72,18 +82,6 @@ namespace Calc_CatchFish {
     struct HitCheckResult;
     using HitCheckResult_s = std::shared_ptr<HitCheckResult>;
     using HitCheckResult_w = std::weak_ptr<HitCheckResult>;
-
-}
-namespace Calc {
-    // 直接向总输入追加数据( 应对点杀之类需求 )
-    struct Push;
-    using Push_s = std::shared_ptr<Push>;
-    using Push_w = std::weak_ptr<Push>;
-
-    // 直接向总输出追加数据( 应对点送之类需求 )
-    struct Pop;
-    using Pop_s = std::shared_ptr<Pop>;
-    using Pop_w = std::weak_ptr<Pop>;
 
 }
 namespace Calc::CatchFish {
@@ -1332,6 +1330,40 @@ namespace Client_CatchFish {
     };
 }
 namespace CatchFish_Calc {
+    // 直接向总输入追加数据( 应对点杀之类需求 )
+    struct Push : xx::Object {
+        int64_t value = 0;
+
+        typedef Push ThisType;
+        typedef xx::Object BaseType;
+	    Push() = default;
+		Push(Push const&) = delete;
+		Push& operator=(Push const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
+    // 直接向总输出追加数据( 应对点送之类需求 )
+    struct Pop : xx::Object {
+        int64_t value = 0;
+
+        typedef Pop ThisType;
+        typedef xx::Object BaseType;
+	    Pop() = default;
+		Pop(Pop const&) = delete;
+		Pop& operator=(Pop const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+    };
     // 鱼死计算
     struct HitCheck : xx::Object {
         // 碰撞数据流
@@ -1364,42 +1396,6 @@ namespace Calc_CatchFish {
 	    HitCheckResult() = default;
 		HitCheckResult(HitCheckResult const&) = delete;
 		HitCheckResult& operator=(HitCheckResult const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
-}
-namespace Calc {
-    // 直接向总输入追加数据( 应对点杀之类需求 )
-    struct Push : xx::Object {
-        int64_t value = 0;
-
-        typedef Push ThisType;
-        typedef xx::Object BaseType;
-	    Push() = default;
-		Push(Push const&) = delete;
-		Push& operator=(Push const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
-    // 直接向总输出追加数据( 应对点送之类需求 )
-    struct Pop : xx::Object {
-        int64_t value = 0;
-
-        typedef Pop ThisType;
-        typedef xx::Object BaseType;
-	    Pop() = default;
-		Pop(Pop const&) = delete;
-		Pop& operator=(Pop const&) = delete;
 
         void ToString(std::string& s) const noexcept override;
         void ToStringCore(std::string& s) const noexcept override;
@@ -1857,13 +1853,13 @@ namespace xx {
     template<> struct TypeId<PKG::Client_CatchFish::Bet> { static const uint16_t value = 87; };
     template<> struct TypeId<PKG::Client_CatchFish::Fire> { static const uint16_t value = 15; };
     template<> struct TypeId<PKG::Client_CatchFish::Hit> { static const uint16_t value = 16; };
+    template<> struct TypeId<PKG::CatchFish_Calc::Push> { static const uint16_t value = 93; };
+    template<> struct TypeId<PKG::CatchFish_Calc::Pop> { static const uint16_t value = 94; };
     template<> struct TypeId<PKG::CatchFish_Calc::HitCheck> { static const uint16_t value = 88; };
     template<> struct TypeId<xx::List<PKG::Calc::CatchFish::Hit>> { static const uint16_t value = 89; };
     template<> struct TypeId<PKG::Calc_CatchFish::HitCheckResult> { static const uint16_t value = 90; };
     template<> struct TypeId<xx::List<PKG::Calc::CatchFish::Fish>> { static const uint16_t value = 91; };
     template<> struct TypeId<xx::List<PKG::Calc::CatchFish::Bullet>> { static const uint16_t value = 92; };
-    template<> struct TypeId<PKG::Calc::Push> { static const uint16_t value = 93; };
-    template<> struct TypeId<PKG::Calc::Pop> { static const uint16_t value = 94; };
     template<> struct TypeId<::xx::Random> { static const uint16_t value = 17; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Fish_s>> { static const uint16_t value = 18; };
     template<> struct TypeId<PKG::CatchFish::Fish> { static const uint16_t value = 19; };
@@ -2296,6 +2292,68 @@ namespace Client_CatchFish {
     }
 }
 namespace CatchFish_Calc {
+    inline uint16_t Push::GetTypeId() const noexcept {
+        return 93;
+    }
+    inline void Push::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        bb.Write(this->value);
+    }
+    inline int Push::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = bb.Read(this->value)) return r;
+        return 0;
+    }
+    inline int Push::InitCascade(void* const& o) noexcept {
+        return 0;
+    }
+    inline void Push::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish_Calc.Push\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void Push::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"value\":", this->value);
+    }
+    inline uint16_t Pop::GetTypeId() const noexcept {
+        return 94;
+    }
+    inline void Pop::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        bb.Write(this->value);
+    }
+    inline int Pop::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = bb.Read(this->value)) return r;
+        return 0;
+    }
+    inline int Pop::InitCascade(void* const& o) noexcept {
+        return 0;
+    }
+    inline void Pop::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish_Calc.Pop\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void Pop::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"value\":", this->value);
+    }
     inline uint16_t HitCheck::GetTypeId() const noexcept {
         return 88;
     }
@@ -2374,70 +2432,6 @@ namespace Calc_CatchFish {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"fishs\":", this->fishs);
         xx::Append(s, ", \"bullets\":", this->bullets);
-    }
-}
-namespace Calc {
-    inline uint16_t Push::GetTypeId() const noexcept {
-        return 93;
-    }
-    inline void Push::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        bb.Write(this->value);
-    }
-    inline int Push::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = bb.Read(this->value)) return r;
-        return 0;
-    }
-    inline int Push::InitCascade(void* const& o) noexcept {
-        return 0;
-    }
-    inline void Push::ToString(std::string& s) const noexcept {
-        if (this->toStringFlag)
-        {
-        	xx::Append(s, "[ \"***** recursived *****\" ]");
-        	return;
-        }
-        else this->SetToStringFlag();
-
-        xx::Append(s, "{ \"pkgTypeName\":\"Calc.Push\", \"pkgTypeId\":", GetTypeId());
-        ToStringCore(s);
-        xx::Append(s, " }");
-        
-        this->SetToStringFlag(false);
-    }
-    inline void Push::ToStringCore(std::string& s) const noexcept {
-        this->BaseType::ToStringCore(s);
-        xx::Append(s, ", \"value\":", this->value);
-    }
-    inline uint16_t Pop::GetTypeId() const noexcept {
-        return 94;
-    }
-    inline void Pop::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        bb.Write(this->value);
-    }
-    inline int Pop::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = bb.Read(this->value)) return r;
-        return 0;
-    }
-    inline int Pop::InitCascade(void* const& o) noexcept {
-        return 0;
-    }
-    inline void Pop::ToString(std::string& s) const noexcept {
-        if (this->toStringFlag)
-        {
-        	xx::Append(s, "[ \"***** recursived *****\" ]");
-        	return;
-        }
-        else this->SetToStringFlag();
-
-        xx::Append(s, "{ \"pkgTypeName\":\"Calc.Pop\", \"pkgTypeId\":", GetTypeId());
-        ToStringCore(s);
-        xx::Append(s, " }");
-        
-        this->SetToStringFlag(false);
-    }
-    inline void Pop::ToStringCore(std::string& s) const noexcept {
-        this->BaseType::ToStringCore(s);
-        xx::Append(s, ", \"value\":", this->value);
     }
 }
 namespace CatchFish {
@@ -4472,13 +4466,13 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Bet>(87);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Fire>(15);
 	        xx::BBuffer::Register<PKG::Client_CatchFish::Hit>(16);
+	        xx::BBuffer::Register<PKG::CatchFish_Calc::Push>(93);
+	        xx::BBuffer::Register<PKG::CatchFish_Calc::Pop>(94);
 	        xx::BBuffer::Register<PKG::CatchFish_Calc::HitCheck>(88);
 	        xx::BBuffer::Register<xx::List<PKG::Calc::CatchFish::Hit>>(89);
 	        xx::BBuffer::Register<PKG::Calc_CatchFish::HitCheckResult>(90);
 	        xx::BBuffer::Register<xx::List<PKG::Calc::CatchFish::Fish>>(91);
 	        xx::BBuffer::Register<xx::List<PKG::Calc::CatchFish::Bullet>>(92);
-	        xx::BBuffer::Register<PKG::Calc::Push>(93);
-	        xx::BBuffer::Register<PKG::Calc::Pop>(94);
 	        xx::BBuffer::Register<::xx::Random>(17);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Fish_s>>(18);
 	        xx::BBuffer::Register<PKG::CatchFish::Fish>(19);

@@ -59,6 +59,8 @@ inline int CatchFish::Init(std::string const& cfgName) noexcept {
 	xx::MakeTo(scene->rnd, 123);				// todo: 时间 seed ?
 	xx::MakeTo(scene->frameEvents);
 	xx::MakeTo(scene->frameEvents->events);
+	xx::MakeTo(scene->hitChecks);
+	xx::MakeTo(scene->hitChecks->hits);
 	scene->cfg = &*cfg;
 	scene->catchFish = this;
 	

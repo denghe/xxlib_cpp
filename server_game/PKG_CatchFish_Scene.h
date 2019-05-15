@@ -16,6 +16,16 @@ PKG::CatchFish_Client::FrameEvents_s frameEvents;
 
 // 记录本帧刚进入的新玩家( 帧结束时清空 ) 用以判断是下发完整同步还是帧事件同步
 xx::List<void*> frameEnters;
+
+// 记录本次 update 过程产生的各式 hit 计算请求
+PKG::CatchFish_Calc::HitCheck_s hitChecks;
+
+// 计算结果更新( 回调 )
+int UpdateCalc(xx::Object_s&& msg) noexcept;
+int Handle(PKG::Calc_CatchFish::HitCheckResult_s&& msg) noexcept;
+
+// hit 计算结果，同时也是执行标志位. 发起 Request 时该值为 1. 超时为 -1, 正常退出为 0
+int calcResult = 0;
 #else
 // 将 Scene 指针刷到所有子
 virtual int InitCascade(void* const& o = nullptr) noexcept override;

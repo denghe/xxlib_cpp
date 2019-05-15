@@ -43,10 +43,14 @@ struct Service {
 	// ...
 	// ...
 
-	inline int HandleRequest(xx::UvPeer_s const& peer, int const& serial, xx::Object_s&& msg) {
+	inline int OnReceiveRequest(xx::UvPeer_s const& peer, int const& serial, xx::Object_s&& msg) {
 		switch (msg->GetTypeId()) {
+		case xx::TypeId_v<PKG::CatchFish_Calc::Push>:
+			return HandleRequest(peer, serial, xx::As<PKG::CatchFish_Calc::Push>(msg));
+		case xx::TypeId_v<PKG::CatchFish_Calc::Pop>:
+			return HandleRequest(peer, serial, xx::As<PKG::CatchFish_Calc::Pop>(msg));
 		case xx::TypeId_v<PKG::CatchFish_Calc::HitCheck>:
-			return HandleRequest_HitCheck(peer, serial, xx::As<PKG::CatchFish_Calc::HitCheck>(msg));
+			return HandleRequest(peer, serial, xx::As<PKG::CatchFish_Calc::HitCheck>(msg));
 			// ...
 			// ...
 		default:
@@ -55,7 +59,19 @@ struct Service {
 		return 0;
 	}
 
-	inline int HandleRequest_HitCheck(xx::UvPeer_s const& peer, int const& serial, PKG::CatchFish_Calc::HitCheck_s&& msg) {
+	inline int HandleRequest(xx::UvPeer_s const& peer, int const& serial, PKG::CatchFish_Calc::Push_s&& msg) {
+		totalInput += msg->value;
+		// todo: log
+		return 0;
+	}
+
+	inline int HandleRequest(xx::UvPeer_s const& peer, int const& serial, PKG::CatchFish_Calc::Pop_s&& msg) {
+		totalOutput += msg->value;
+		// todo: log
+		return 0;
+	}
+
+	inline int HandleRequest(xx::UvPeer_s const& peer, int const& serial, PKG::CatchFish_Calc::HitCheck_s&& msg) {
 		// 依次处理所有 hit
 		for (auto&& hit : *msg->hits) {
 			Handle_Hit(hit);
@@ -108,11 +124,16 @@ struct Service {
 		}
 	}
 
-	// 忽略数量，进行一次鱼死判定
+	// 进行一次鱼死判定, 同时更新总输入输出
 	inline bool FishDieCheck(PKG::Calc::CatchFish::Hit const& hit) {
 		// todo: 根据胜率曲线配置加权随机
+		totalInput += hit.bulletCoin;
 		assert(hit.fishCoin <= 0x7FFFFFFF);
-		return rnd.Next((int)hit.fishCoin) == 0;
+		if (rnd.Next((int)hit.fishCoin) == 0) {
+			totalOutput += hit.fishCoin * hit.bulletCoin;
+			return true;
+		}
+		return false;
 	}
 
 	Service() {
@@ -123,21 +144,30 @@ struct Service {
 		xx::MakeTo(hitCheckResult->fishs);
 		xx::MakeTo(hitCheckResult->bullets);
 
-		xx::MakeTo(listener, uv, "0.0.0.0", 12333);
-		listener->onAccept = [this](auto p) {
-			p->onReceiveRequest = [this, p](auto s, auto m) { return HandleRequest(p, s, std::move(m)); };
+		xx::MakeTo(listener, uv, "0.0.0.0", 12333, 0);
+		listener->onAccept = [this](xx::UvPeer_s p) {
+			xx::CoutTN("accept: ", p->GetIP());
+			p->onDisconnect = [p] {
+				xx::CoutTN("disconnect: ", p->GetIP());
+			};
+			p->onReceiveRequest = [this, p](auto s, auto m) { return OnReceiveRequest(p, s, std::move(m)); };
 		};
-		xx::CoutTN("service running...");
+	}
+
+	inline void Run() {
+		xx::CoutTN("Calc service running...");
 		uv.Run();
 	}
 };
 
 int main() {
+	std::shared_ptr<Service> service;
 	try {
-		Service service;
+		xx::MakeTo(service);
 	}
 	catch (int const& r) {
-		xx::CoutTN("run service throw exception: r = ", r);
+		xx::CoutTN("create Calc service throw exception: r = ", r);
 	}
+	service->Run();
 	return 0;
 }

@@ -26,9 +26,47 @@
 		ticksPool += currTicks - lastTicks;
 		lastTicks = currTicks;
 		while (ticksPool > ticksPerFrame) {
+			// ensure calcPeer connect to Calc server
+			Dial_Calc();
+
 			// game frame loop
 			(void)catchFish->Update();
 			ticksPool -= ticksPerFrame;
 		}
 		});
+}
+
+
+inline bool Service::IsAlive_CalcPeer() {
+	return calcPeer && !calcPeer->Disposed();
+}
+
+inline void Service::Dial_Calc() {
+	if (dialing || IsAlive_CalcPeer()) return;
+	if (!calcDialer) {
+		xx::TryMakeTo(calcDialer, uv);
+		if (!calcDialer) {
+			xx::CoutTN("make calcDialer failed.");
+			return;
+		}
+		calcDialer->onAccept = [this](xx::UvPeer_s p) {
+			dialing = false;
+			if (!p) {
+				xx::CoutTN("dial to Calc timeout.");
+				return;
+			}
+			xx::CoutTN("connected: ", p->GetIP());
+			p->onDisconnect = [p] {
+				xx::CoutTN("disconnect: ", p->GetIP());
+			};
+			assert(!IsAlive_CalcPeer());
+			calcPeer = std::move(p);
+		};
+	}
+	if (int r = calcDialer->Dial("127.0.0.1", 12333, 200)) {			// todo: 读配置 / 启动参数
+		xx::CoutTN("calcDialer->Dial(\"127.0.0.1\", 12333) failed. r = ", r);
+	}
+	else {
+		dialing = true;
+	}
 }

@@ -34,6 +34,10 @@ interface ITypeIdMappings
 
     Client_CatchFish.Hit _16 { get; }
 
+    CatchFish_Calc.Push _93 { get; }
+
+    CatchFish_Calc.Pop _94 { get; }
+
     CatchFish_Calc.HitCheck _88 { get; }
 
     List<Calc.CatchFish.Hit> _89 { get; }
@@ -43,10 +47,6 @@ interface ITypeIdMappings
     List<Calc.CatchFish.Fish> _91 { get; }
 
     List<Calc.CatchFish.Bullet> _92 { get; }
-
-    Calc.Push _93 { get; }
-
-    Calc.Pop _94 { get; }
 
     xx.Random _17 { get; }
 
