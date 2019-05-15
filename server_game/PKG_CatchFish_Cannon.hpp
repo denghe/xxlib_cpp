@@ -19,16 +19,6 @@ inline int PKG::CatchFish::Cannon::InitCascade(void* const& o) noexcept {
 }
 #endif
 
-#ifndef CC_TARGET_PLATFORM
-inline void PKG::CatchFish::Cannon::MakeRefundEvent(int64_t const& coin, bool isPersonal) noexcept {
-	auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
-	refund->playerId = player->id;
-	refund->coin = coin;
-	refund->isPersonal = isPersonal;
-	scene->frameEvents->events->Add(std::move(refund));
-}
-#endif
-
 inline int PKG::CatchFish::Cannon::Update(int const& frameNumber) noexcept {
 
 	// 驱动子弹
@@ -41,7 +31,7 @@ inline int PKG::CatchFish::Cannon::Update(int const& frameNumber) noexcept {
 				auto&& coin = bs[i]->coin;
 				// 退钱 & 构造退钱事件包
 				player->coin += coin;
-				MakeRefundEvent(coin);
+				player->MakeRefundEvent(coin);
 				//xx::CoutN("bullet fly out the screen. refund " + coin);
 #endif
 				bs[bs.len - 1]->indexAtContainer = (int)i;
@@ -131,6 +121,18 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 						assert(f->indexAtContainer == j);
 						// 定位到鱼
 						if (f->id == o->fishId) {
+#if ENABLE_CALC_SERVICE
+							// 远程计算逻辑( 依赖 Calc 服务 )
+							// 构造 hit 计算数据
+							auto&& hit = scene->hitChecks->hits->Emplace();
+							hit.fishId = f->id;
+							hit.fishCoin = f->coin;
+							hit.playerId = player->id;
+							hit.bulletId = b->id;
+							hit.bulletCount = 1;		// 写死. 当前子弹就是单颗
+							hit.bulletCoin = b->coin;
+#else
+							// 本地计算逻辑( 不依赖 Calc 服务 )
 							// 先根据 1/coin 死亡比例 来判断是否打死
 							if (scene->serverRnd.Next((int)f->coin) == 0) {
 								// 算钱
@@ -154,6 +156,7 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 							else {
 								//xx::CoutN("hit fish not dead. ", o);
 							}
+#endif
 							break;
 						}
 					}
@@ -161,7 +164,7 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 					if (j == -1)
 					{
 						player->coin += b->coin;
-						MakeRefundEvent(b->coin);
+						player->MakeRefundEvent(b->coin);
 						//xx::CoutN("hit miss. refund = ", b->coin);
 					}
 				}
@@ -267,7 +270,7 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 		// 如果子弹生命周期已经到了
 		if (int r = bullet->Move()) {
 			player->coin += coin;									// 退钱
-			MakeRefundEvent(coin, true);							// 生成私有退款事件通知( 其他客户端收到后不理会 )
+			player->MakeRefundEvent(coin, true);					// 生成私有退款事件通知( 其他客户端收到后不理会 )
 			return 0;
 		}
 	}

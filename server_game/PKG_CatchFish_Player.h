@@ -22,6 +22,9 @@ int Kick(Args const& ... reason) noexcept;
 
 // 收包容器( 在适当的生命周期读取并处理 )
 std::deque<xx::Object_s> recvs;
+
+// 生成退钱事件
+void MakeRefundEvent(int64_t const& coin, bool isPersonal = false) noexcept;
 #else
 // 标识这个玩家是本人
 bool isSelf = false;

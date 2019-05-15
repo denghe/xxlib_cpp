@@ -134,11 +134,21 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 	}
 
 #ifndef CC_TARGET_PLATFORM
-	// 将 hitChecks 发给 Calc 计算
-	service->calcPeer->SendRequest(hitChecks, [this](xx::Object_s&& msg)->int { return UpdateCalc(std::move(msg)); }, 1000);
 
-	// 清理 for next fill
-	hitChecks->hits->Clear();
+	if (hitChecks->hits->len) {
+		// 设置标志位
+		calcResult = 1;
+
+		// 将 hitChecks 发给 Calc 计算
+		service->calcPeer->SendRequest(hitChecks, [this](xx::Object_s && msg)->int { return UpdateCalc(std::move(msg)); }, 1000);
+
+		// 清理 for next fill
+		hitChecks->hits->Clear();
+	}
+	else {
+		// 直接做后续 Update
+		calcResult = Handle(PKG::Calc_CatchFish::HitCheckResult_s());
+	}
 #endif
 
 	return 0;
@@ -171,7 +181,76 @@ inline int PKG::CatchFish::Scene::UpdateCalc(xx::Object_s&& msg) noexcept {
 }
 
 inline int PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s&& msg) noexcept {
-	// todo: 收到 Calc 结果回调后，令相应的鱼死掉( 子弹在 hit 请求产生时便已被移除 ), 同步玩家 coin, 生成各种 鱼死 & 退款 事件 
+	if (msg) {
+#if ENABLE_CALC_SERVICE
+		// 令相应的鱼死掉( 子弹在 hit 请求产生时便已被移除 ), 同步玩家 coin, 生成各种 鱼死 & 退款 事件
+		xx::CoutTN(msg);
+
+		for (auto&& f : *msg->fishs) {
+			// 放入待删除列表
+			fishIds.Add(f.fishId);
+
+			// 算钱
+			auto&& c = f.fishCoin * f.bulletCoin;
+
+			// 构造鱼死事件包
+			{
+				auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+				fishDead->bulletId = f.bulletId;
+				fishDead->coin = c;
+				fishDead->fishId = f.fishId;
+				fishDead->playerId = f.playerId;
+				frameEvents->events->Add(std::move(fishDead));
+			}
+
+			// 定位到玩家加钱( 这部分代码容忍 player 在 Calc 回调后找不到 )
+			for (auto&& p : *players) {
+				auto&& player = p.lock();
+				assert(player);
+				if (player->id == f.playerId) {
+					player->coin += c;
+				}
+			}
+		}
+
+		// 批量删鱼 by fishIds
+		auto&& fs = *fishs;
+		if (fs.len && fishIds.len) {
+			for (size_t j = fs.len - 1; j != -1; --j) {
+				auto&& f = fs[j];
+				assert(f->indexAtContainer == j);
+				// 如果 鱼id 存在于 fishIds
+				if (auto && idx = fishIds.Find(f->id); idx != -1) {
+					// 删鱼id
+					fishIds.SwapRemoveAt(idx);
+					// 删鱼
+					fs[fs.len - 1]->indexAtContainer = (int)j;
+					fs.SwapRemoveAt(j);
+				}
+				// 没鱼删了 直接退出
+				if (!fishIds.len) break;
+			}
+		}
+
+		// cleanup
+		fishIds.Clear();
+
+		for (auto&& b : *msg->bullets) {
+			// 定位到玩家退钱 & 生成退钱事件包
+			for (auto&& p : *players) {
+				auto&& player = p.lock();
+				assert(player);
+				if (player->id == b.playerId) {
+					auto&& c = b.bulletCoin * b.bulletCount;
+					player->coin += c;
+					player->MakeRefundEvent(c);
+				}
+			}
+		}
+
+		calcResult = 0;
+	}
+#endif
 
 	// 存帧序号
 	frameEvents->frameNumber = frameNumber;
@@ -213,6 +292,14 @@ inline int PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s&&
 #endif
 
 
+
+
+
+
+
+
+
+
 inline PKG::CatchFish::WayFish_s PKG::CatchFish::Scene::MakeRandomFish(int const& fishId, int64_t const& coin, float const& scaleFrom, float const& scaleTo) noexcept {
 	auto&& fishCfg = cfg->fishs->At(0);//rnd->Next((int)cfg->fishs->len));
 
@@ -249,6 +336,8 @@ inline PKG::CatchFish::WayFish_s PKG::CatchFish::Scene::MakeRandomFish(int const
 	fish->angle = p.angle;
 	return fish;
 }
+
+
 
 inline PKG::CatchFish::BigFish_s PKG::CatchFish::Scene::MakeRandomBigFish(int const& fishId) noexcept {
 	auto&& fishCfg = xx::As<PKG::CatchFish::Configs::BigFish>(cfg->fishs->At(1));

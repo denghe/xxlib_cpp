@@ -32,8 +32,10 @@ namespace Calc
         struct Fish
         {
             int fishId;
+            long fishCoin;
             int playerId;
             int bulletId;
+            long bulletCoin;
         }
 
         [Desc("子弹打空明细")]
@@ -42,6 +44,7 @@ namespace Calc
             int playerId;
             int bulletId;
             int bulletCount;
+            long bulletCoin;
         }
     }
 

@@ -35,7 +35,14 @@ inline void PKG::CatchFish::Player::DrawUpdate_Coin() noexcept {
 	labelCoin->setString(std::to_string(coin));
 	lastCoin = coin;
 }
-
+#else
+inline void PKG::CatchFish::Player::MakeRefundEvent(int64_t const& coin, bool isPersonal) noexcept {
+	auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
+	refund->playerId = id;
+	refund->coin = coin;
+	refund->isPersonal = isPersonal;
+	scene->frameEvents->events->Add(std::move(refund));
+}
 #endif
 
 inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {

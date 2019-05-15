@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "7a0438119916290bcc9c09179b56d718";
+		inline static const std::string value = "e23e074c756cfa1e9e43b88459485423";
     };
 
 namespace Generic {
@@ -376,14 +376,17 @@ namespace Calc::CatchFish {
     // 鱼被打死的明细
     struct Fish {
         int32_t fishId = 0;
+        int64_t fishCoin = 0;
         int32_t playerId = 0;
         int32_t bulletId = 0;
+        int64_t bulletCoin = 0;
     };
     // 子弹打空明细
     struct Bullet {
         int32_t playerId = 0;
         int32_t bulletId = 0;
         int32_t bulletCount = 0;
+        int64_t bulletCoin = 0;
     };
 }
 namespace CatchFish {
@@ -1796,31 +1799,31 @@ namespace xx {
 	template<>
 	struct BFuncs<PKG::Calc::CatchFish::Fish, void> {
 		static inline void WriteTo(BBuffer& bb, PKG::Calc::CatchFish::Fish const& in) noexcept {
-			bb.Write(in.fishId, in.playerId, in.bulletId);
+			bb.Write(in.fishId, in.fishCoin, in.playerId, in.bulletId, in.bulletCoin);
 		}
 		static inline int ReadFrom(BBuffer& bb, PKG::Calc::CatchFish::Fish& out) noexcept {
-			return bb.Read(out.fishId, out.playerId, out.bulletId);
+			return bb.Read(out.fishId, out.fishCoin, out.playerId, out.bulletId, out.bulletCoin);
 		}
 	};
 	template<>
 	struct SFuncs<PKG::Calc::CatchFish::Fish, void> {
 		static inline void WriteTo(std::string& s, PKG::Calc::CatchFish::Fish const& in) noexcept {
-			xx::Append(s, "{ \"structTypeName\":\"Calc.CatchFish.Fish\"", ", \"fishId\":", in.fishId, ", \"playerId\":", in.playerId, ", \"bulletId\":", in.bulletId, " }");
+			xx::Append(s, "{ \"structTypeName\":\"Calc.CatchFish.Fish\"", ", \"fishId\":", in.fishId, ", \"fishCoin\":", in.fishCoin, ", \"playerId\":", in.playerId, ", \"bulletId\":", in.bulletId, ", \"bulletCoin\":", in.bulletCoin, " }");
         }
     };
 	template<>
 	struct BFuncs<PKG::Calc::CatchFish::Bullet, void> {
 		static inline void WriteTo(BBuffer& bb, PKG::Calc::CatchFish::Bullet const& in) noexcept {
-			bb.Write(in.playerId, in.bulletId, in.bulletCount);
+			bb.Write(in.playerId, in.bulletId, in.bulletCount, in.bulletCoin);
 		}
 		static inline int ReadFrom(BBuffer& bb, PKG::Calc::CatchFish::Bullet& out) noexcept {
-			return bb.Read(out.playerId, out.bulletId, out.bulletCount);
+			return bb.Read(out.playerId, out.bulletId, out.bulletCount, out.bulletCoin);
 		}
 	};
 	template<>
 	struct SFuncs<PKG::Calc::CatchFish::Bullet, void> {
 		static inline void WriteTo(std::string& s, PKG::Calc::CatchFish::Bullet const& in) noexcept {
-			xx::Append(s, "{ \"structTypeName\":\"Calc.CatchFish.Bullet\"", ", \"playerId\":", in.playerId, ", \"bulletId\":", in.bulletId, ", \"bulletCount\":", in.bulletCount, " }");
+			xx::Append(s, "{ \"structTypeName\":\"Calc.CatchFish.Bullet\"", ", \"playerId\":", in.playerId, ", \"bulletId\":", in.bulletId, ", \"bulletCount\":", in.bulletCount, ", \"bulletCoin\":", in.bulletCoin, " }");
         }
     };
 	template<>

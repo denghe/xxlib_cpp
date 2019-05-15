@@ -34,10 +34,10 @@ struct Service {
 	// 当一帧的收包 & 处理阶段结束后, 将产生的 Hit 队列打包发送给 Calc 服务计算.
 	// Calc 依次处理, 以 fishId & playerId + bulletId 做 key, 逐个判断碰撞击打的成败. 
 	// key: fishId, value: Hit* 如果鱼已死, 则放入该字典. 存当前 Hit 数据以标识打死该鱼的玩家 & 子弹
-	// key: pair<playerId, bulletId>, value: bulletCount 如果子弹数量有富余( 鱼死了, 没用完 ), 就会创建一行记录来累加
+	// key: pair<playerId, bulletId>, value: bulletCount, bulletCoin 如果子弹数量有富余( 鱼死了, 没用完 ), 就会创建一行记录来累加
 	// 最后将这两个字典的结果序列化返回
 	xx::Dict<int, PKG::Calc::CatchFish::Hit const*> fishs;
-	xx::Dict<std::pair<int, int>, int> bullets;
+	xx::Dict<std::pair<int, int>, std::pair<int, int64_t>> bullets;
 	PKG::Calc_CatchFish::HitCheckResult_s hitCheckResult;
 
 	// ...
@@ -72,6 +72,8 @@ struct Service {
 	}
 
 	inline int HandleRequest(xx::UvPeer_s const& peer, int const& serial, PKG::CatchFish_Calc::HitCheck_s&& msg) {
+		xx::CoutTN(msg);
+
 		// 依次处理所有 hit
 		for (auto&& hit : *msg->hits) {
 			Handle_Hit(hit);
@@ -84,12 +86,15 @@ struct Service {
 			t.fishId = f.fishId;
 			t.playerId = f.playerId;
 			t.bulletId = f.bulletId;
+			t.fishCoin = f.fishCoin;
+			t.bulletCoin = f.bulletCoin;
 		}
 		for (auto&& o : bullets) {
 			auto&& t = hitCheckResult->bullets->Emplace();
 			t.playerId = o.key.first;
 			t.bulletId = o.key.second;
-			t.bulletCount = o.value;
+			t.bulletCount = o.value.first;
+			t.bulletCoin = o.value.second;
 		}
 
 		// 发送
@@ -106,7 +111,9 @@ struct Service {
 	inline void Handle_Hit(PKG::Calc::CatchFish::Hit const& hit) {
 		// 如果 fishId 已存在: 该 fish 已死, 子弹退回剩余次数
 		if (fishs.Find(hit.fishId) != -1) {
-			bullets[std::make_pair(hit.playerId, hit.bulletId)] += hit.bulletCount;
+			auto&& v = bullets[std::make_pair(hit.playerId, hit.bulletId)];
+			v.first += hit.bulletCount;
+			v.second = hit.bulletCoin;
 			return;
 		}
 		// 根据子弹数量来多次判定, 直到耗光或鱼死中断
@@ -116,7 +123,9 @@ struct Service {
 				fishs[hit.fishId] = &hit;
 				// 如果没有剩余数量就不记录了
 				if (auto && left = hit.bulletCount - i - 1) {	// - 1: 本次的扣除
-					bullets[std::make_pair(hit.playerId, hit.bulletId)] += left;
+					auto&& v = bullets[std::make_pair(hit.playerId, hit.bulletId)];
+					v.first += left;
+					v.second = hit.bulletCoin;
 				}
 				return;
 			}

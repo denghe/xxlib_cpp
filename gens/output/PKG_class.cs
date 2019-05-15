@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "7a0438119916290bcc9c09179b56d718"; 
+        public const string value = "e23e074c756cfa1e9e43b88459485423"; 
     }
 
 namespace CatchFish
@@ -915,8 +915,10 @@ namespace Calc.CatchFish
     public partial struct Fish : xx.IObject
     {
         public int fishId;
+        public long fishCoin;
         public int playerId;
         public int bulletId;
+        public long bulletCoin;
 
         public ushort GetPackageId()
         {
@@ -926,15 +928,19 @@ namespace Calc.CatchFish
         public void ToBBuffer(xx.BBuffer bb)
         {
             bb.Write(this.fishId);
+            bb.Write(this.fishCoin);
             bb.Write(this.playerId);
             bb.Write(this.bulletId);
+            bb.Write(this.bulletCoin);
         }
 
         public void FromBBuffer(xx.BBuffer bb)
         {
             bb.Read(ref this.fishId);
+            bb.Read(ref this.fishCoin);
             bb.Read(ref this.playerId);
             bb.Read(ref this.bulletId);
+            bb.Read(ref this.bulletCoin);
         }
         public void ToString(System.Text.StringBuilder s)
         {
@@ -945,8 +951,10 @@ namespace Calc.CatchFish
         public void ToStringCore(System.Text.StringBuilder s)
         {
             s.Append(", \"fishId\":" + fishId.ToString());
+            s.Append(", \"fishCoin\":" + fishCoin.ToString());
             s.Append(", \"playerId\":" + playerId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
+            s.Append(", \"bulletCoin\":" + bulletCoin.ToString());
         }
         public override string ToString()
         {
@@ -963,6 +971,7 @@ namespace Calc.CatchFish
         public int playerId;
         public int bulletId;
         public int bulletCount;
+        public long bulletCoin;
 
         public ushort GetPackageId()
         {
@@ -974,6 +983,7 @@ namespace Calc.CatchFish
             bb.Write(this.playerId);
             bb.Write(this.bulletId);
             bb.Write(this.bulletCount);
+            bb.Write(this.bulletCoin);
         }
 
         public void FromBBuffer(xx.BBuffer bb)
@@ -981,6 +991,7 @@ namespace Calc.CatchFish
             bb.Read(ref this.playerId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.bulletCount);
+            bb.Read(ref this.bulletCoin);
         }
         public void ToString(System.Text.StringBuilder s)
         {
@@ -993,6 +1004,7 @@ namespace Calc.CatchFish
             s.Append(", \"playerId\":" + playerId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"bulletCount\":" + bulletCount.ToString());
+            s.Append(", \"bulletCoin\":" + bulletCoin.ToString());
         }
         public override string ToString()
         {
