@@ -70,7 +70,10 @@ struct Service {
 			t.bulletId = f.bulletId;
 		}
 		for (auto&& o : bullets) {
-			//hitCheckResult->bullets
+			auto&& t = hitCheckResult->bullets->Emplace();
+			t.playerId = o.key.first;
+			t.bulletId = o.key.second;
+			t.bulletCount = o.value;
 		}
 
 		// 发送
