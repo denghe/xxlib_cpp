@@ -184,7 +184,6 @@ inline int PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s&&
 	if (msg) {
 #if ENABLE_CALC_SERVICE
 		// 令相应的鱼死掉( 子弹在 hit 请求产生时便已被移除 ), 同步玩家 coin, 生成各种 鱼死 & 退款 事件
-		xx::CoutTN(msg);
 
 		for (auto&& f : *msg->fishs) {
 			// 放入待删除列表

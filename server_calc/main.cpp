@@ -6,6 +6,7 @@
 #include "PKG_class.h"
 #include "PKG_class.hpp"
 #include "xx_random.hpp"
+#include <random>
 
 namespace std {
 	template<>
@@ -28,7 +29,10 @@ struct Service {
 	// 长时间后最终盈利 = (输入 - 输出) + (机器人总得 - 机器人总押)
 	int64_t totalInput = 0;
 	int64_t totalOutput = 0;
-	xx::Random rnd;
+	std::mt19937_64 rnd;
+	double ratio = 0.99;			// 先写死. 模拟读取到一行胜率配置. min max 控制波幅
+	double maxRatio = 1.1;
+	double minRatio = 0.99;
 
 	// 这里采用流式计算法, 省去两端组织 & 还原收发的数据. 每发生一次碰撞, 就产生一条 Hit 请求. 
 	// 当一帧的收包 & 处理阶段结束后, 将产生的 Hit 队列打包发送给 Calc 服务计算.
@@ -72,8 +76,6 @@ struct Service {
 	}
 
 	inline int HandleRequest(xx::UvPeer_s const& peer, int const& serial, PKG::CatchFish_Calc::HitCheck_s&& msg) {
-		xx::CoutTN(msg);
-
 		// 依次处理所有 hit
 		for (auto&& hit : *msg->hits) {
 			Handle_Hit(hit);
@@ -114,6 +116,7 @@ struct Service {
 			auto&& v = bullets[std::make_pair(hit.playerId, hit.bulletId)];
 			v.first += hit.bulletCount;
 			v.second = hit.bulletCoin;
+			xx::CoutTN(hit);			// 临时打印一下看看
 			return;
 		}
 		// 根据子弹数量来多次判定, 直到耗光或鱼死中断
@@ -135,10 +138,11 @@ struct Service {
 
 	// 进行一次鱼死判定, 同时更新总输入输出
 	inline bool FishDieCheck(PKG::Calc::CatchFish::Hit const& hit) {
-		// todo: 根据胜率曲线配置加权随机
 		totalInput += hit.bulletCoin;
-		assert(hit.fishCoin <= 0x7FFFFFFF);
-		if (rnd.Next((int)hit.fishCoin) == 0) {
+		auto r = (totalInput > totalOutput && double(totalOutput) / double(totalInput) < ratio) ? maxRatio : minRatio;
+		auto b = std::uniform_real_distribution(0.0, double(hit.fishCoin))(rnd);
+		xx::CoutTN("totalInput = ", totalInput, ", totalOutput = ", totalOutput, ", r = ", r, ", b = ", b);			// 临时打印一下看看
+		if (b <= r) {
 			totalOutput += hit.fishCoin * hit.bulletCoin;
 			return true;
 		}
@@ -148,6 +152,8 @@ struct Service {
 	Service() {
 		// todo: fill totalInput & totalOutput
 		// todo: win ratio config
+
+		rnd.seed(std::random_device()());
 
 		xx::MakeTo(hitCheckResult);
 		xx::MakeTo(hitCheckResult->fishs);
