@@ -29,10 +29,14 @@ struct Service {
 	// 长时间后最终盈利 = (输入 - 输出) + (机器人总得 - 机器人总押)
 	int64_t totalInput = 0;
 	int64_t totalOutput = 0;
+
+	// 随机数发生器
 	std::mt19937_64 rnd;
-	double ratio = 0.99;			// 先写死. 模拟读取到一行胜率配置. min max 控制波幅
+
+	// 先写死. 模拟读取到一行胜率配置. min max 控制波幅
+	double ratio = 1;			
 	double maxRatio = 1.1;
-	double minRatio = 0.99;
+	double minRatio = 0.95;
 
 	// 这里采用流式计算法, 省去两端组织 & 还原收发的数据. 每发生一次碰撞, 就产生一条 Hit 请求. 
 	// 当一帧的收包 & 处理阶段结束后, 将产生的 Hit 队列打包发送给 Calc 服务计算.
