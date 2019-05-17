@@ -1,53 +1,79 @@
-﻿#include "xx_uv.h"
-#include "xx_uv_lua.h"
+﻿#pragma once
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+#include <functional>
+#include <vector>
+#include <queue>
 
-void RunServer() {
-	//xx::Uv uv;
-	//auto&& listener = xx::Make<xx::UvListener>(uv, "0.0.0.0", 11111, 2);
-	//listener->onAccept = [](xx::UvPeer_s peer) {
-	//	xx::CoutN("SERVER: ", peer->GetIP(), " connected with ", (peer->IsKcp() ? "KCP" : "TCP"));
-	//	peer->onDisconnect = [peer] {
-	//		xx::CoutN("SERVER: ", peer->GetIP(), " disconnected.");
-	//	};
-	//	peer->onReceivePush = [peer](xx::Object_s && msg) {
-	//		xx::CoutN("SERVER: ", peer->GetIP(), " OnReceivePush ", msg);
-	//		return peer->SendPush(msg);	// echo
-	//	};
-	//};
-	//uv.Run();
-}
+namespace xx {
+	struct ThreadPool {
+		ThreadPool(size_t const& count = 4) {
+			for (size_t i = 0; i < count; ++i) {
+				ts.emplace_back([this]() {
+					while (true) {
+						std::function<void()> f;
+						{
+							std::unique_lock<std::mutex> lock(m);
+							c.wait(lock, [this] { return stoped || !fs.empty(); });
+							if (stoped && fs.empty()) return;
+							f = std::move(fs.front());
+							fs.pop();
+						}
+						f();
+					}
+					});
+			}
+		}
 
-void RunClient() {
-	xx::Uv uv;
-	auto&& dialer = xx::Make<xx::UvDialer>(uv);
-	dialer->onAccept = [](xx::UvPeer_s peer) {
-		if (!peer) {
-			xx::CoutN("dial timeout.");
+		int Add(std::function<void()>&& f) {
+			{
+				std::unique_lock<std::mutex> lock(m);
+				if (stoped) return -1;
+				fs.emplace(std::move(f));
+			}
+			c.notify_one();
+			return 0;
 		}
-		else {
-			xx::CoutN("CLIENT: connected.");
-			peer->onDisconnect = [peer] {
-				xx::CoutN("CLIENT: disconnected.");
-			};
-			peer->onReceivePush = [peer](xx::Object_s && msg) {
-				xx::CoutN("CLIENT: OnReceivePush ", msg);
-				return -1;
-			};
-			auto&& bb = xx::Make<xx::BBuffer>();
-			bb->Write(1u, 2u, 3u, 4u, 5u);
-			peer->SendPush(bb);
+
+		~ThreadPool() {
+			{
+				std::unique_lock<std::mutex> lock(m);
+				stoped = true;
+			}
+			c.notify_all();
+			for (auto&& t : ts) {
+				t.join();
+			}
 		}
+
+	protected:
+		std::vector<std::thread> ts;
+		std::queue<std::function<void()>> fs;
+		std::condition_variable c;
+		std::mutex m;
+		bool stoped = false;
 	};
-	dialer->Dial("127.0.0.1", 11111, 2000);
-	uv.Run();
 }
+
+#include <chrono>
+#include <atomic>
+#include <iostream>
 
 int main() {
-	std::thread t1(RunServer);
-	t1.detach();
-
-	std::thread t2(RunClient);
-	t2.join();
-
+	auto t = std::chrono::steady_clock::now();
+	std::atomic<int> n(0);
+	{
+		xx::ThreadPool tp(1000);
+		t = std::chrono::steady_clock::now();
+		for (int i = 0; i < 100000; ++i) {
+			tp.Add([&] {
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				++n;
+				});
+		}
+	}
+	std::cout << n << std::endl;
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>((std::chrono::steady_clock::now() - t)).count() << std::endl;
 	return 0;
 }
