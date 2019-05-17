@@ -121,7 +121,7 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 						assert(f->indexAtContainer == j);
 						// 定位到鱼
 						if (f->id == o->fishId) {
-#if ENABLE_CALC_SERVICE
+#if 1
 							// 远程计算逻辑( 依赖 Calc 服务 )
 							// 构造 hit 计算数据
 							auto&& hit = scene->hitChecks->hits->Emplace();
@@ -161,8 +161,7 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 						}
 					}
 					// 未找到鱼：退钱 & 构造退钱事件包
-					if (j == -1)
-					{
+					if (j == -1) {
 						player->coin += b->coin;
 						player->MakeRefundEvent(b->coin);
 						//xx::CoutN("hit miss. refund = ", b->coin);

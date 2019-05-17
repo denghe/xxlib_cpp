@@ -21,8 +21,13 @@ xx::List<void*> frameEnters;
 PKG::CatchFish_Calc::HitCheck_s hitChecks;
 
 // 计算结果更新( 回调 )
-int UpdateCalc(xx::Object_s&& msg) noexcept;
-int Handle(PKG::Calc_CatchFish::HitCheckResult_s&& msg) noexcept;
+void UpdateCalc(xx::Object_s&& msg) noexcept;
+
+// 计算结果的具体处理代码
+void Handle(PKG::Calc_CatchFish::HitCheckResult_s&& msg) noexcept;
+
+// 更新最后阶段：发包
+void UpdateEnd() noexcept;
 
 // hit 计算结果，同时也是执行标志位. 发起 Request 时该值为 1. 超时为 -1, 正常退出为 0
 int calcResult = 0;
@@ -33,6 +38,7 @@ xx::List<int> fishIds;
 // 将 Scene 指针刷到所有子
 virtual int InitCascade(void* const& o = nullptr) noexcept override;
 #endif
+
 // 随机生成一对具备合理显示效果的进出屏幕的关键点
 std::pair<xx::Pos, xx::Pos> MakeRandomInOutPoint(float const& itemRadius) noexcept;
 

@@ -53,6 +53,7 @@
 		if (b) {
 			if (this->peer) {
 				this->peer->Dispose(1);
+				token.clear();
 			}
 		}
 		return b;

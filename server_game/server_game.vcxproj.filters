@@ -93,6 +93,7 @@
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepFatFish.h" />
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepFatFish.hpp" />
     <ClInclude Include="..\gens\output\PKG_class.hpp" />
+    <ClInclude Include="PKG_CatchFish_Scene_MakeFishs.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

@@ -3,8 +3,6 @@
 #include "xx_uv.h"
 xx::Uv uv;
 
-#define ENABLE_CALC_SERVICE 1
-
 struct Service;
 Service* service;
 #include "CatchFish.h"
