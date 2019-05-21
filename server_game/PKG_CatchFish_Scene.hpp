@@ -141,7 +141,7 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 		calcResult = 1;
 
 		// 将 hitChecks 发给 Calc 计算
-		service->calcPeer->SendRequest(hitChecks, [this](xx::Object_s&& msg)->int { UpdateCalc(std::move(msg)); return 0; }, 1000);
+		service->calcPeer->SendRequest(hitChecks, [this](xx::Object_s && msg)->int { UpdateCalc(std::move(msg)); return 0; }, 1000);
 
 		// 清理 for next fill
 		hitChecks->hits->Clear();
@@ -156,7 +156,7 @@ inline int PKG::CatchFish::Scene::Update() noexcept {
 };
 
 #ifndef CC_TARGET_PLATFORM
-inline void PKG::CatchFish::Scene::UpdateCalc(xx::Object_s&& msg) noexcept {
+inline void PKG::CatchFish::Scene::UpdateCalc(xx::Object_s && msg) noexcept {
 	// 超时检查
 	if (!msg) {
 		calcResult = -1;
@@ -181,7 +181,7 @@ inline void PKG::CatchFish::Scene::UpdateCalc(xx::Object_s&& msg) noexcept {
 	}
 }
 
-inline void PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s&& msg) noexcept {
+inline void PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s && msg) noexcept {
 	// 令相应的鱼死掉( 子弹在 hit 请求产生时便已被移除 ), 同步玩家 coin, 生成各种 鱼死 & 退款 事件
 
 	for (auto&& f : *msg->fishs) {
@@ -291,7 +291,12 @@ inline void PKG::CatchFish::Scene::UpdateEnd() noexcept {
 				}
 			}
 		}
+
+		// 临时输出一下 players 的 coin
+		xx::Cout(" sit: ", plr->sit, " coin: ", plr->coin);
 	}
+	xx::CoutN();
+
 	frameEvents->events->Clear();		// 清除发送过的数据
 	frameEnters.Clear();				// 清除发送过的数据
 }

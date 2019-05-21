@@ -197,7 +197,7 @@ inline int PKG::CatchFish::Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexce
 	// 模拟客户端参数以兼容下方代码
 	auto frameNumber = o->frameNumber;
 #else
-inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
+inline int PKG::CatchFish::Cannon::Fire(int frameNumber) noexcept {
 	// 只有玩家本人发射行为受限
 	if (player->isSelf) {
 		// 如果金币不足, 失败
@@ -227,8 +227,6 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 
 	auto&& bullet = xx::TryMake<Bullet>();
 	if (!bullet) return -6;
-	bullet->indexAtContainer = (int)bullets->len;
-	bullets->Add(bullet);
 	bullet->scene = scene;
 	bullet->player = player;
 	bullet->cannon = this;
@@ -236,44 +234,19 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 	bullet->pos = pos + xx::Rotate(xx::Pos{ cfg->muzzleLen * cfg->scale ,0 }, angle);			// 计算炮口坐标
 	bullet->angle = angle;	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
 	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle);							// 计算出每帧移动增量
-	bullet->coin = coin;											// 存储发射时炮台的倍率
-	player->coin -= coin;											// 扣钱
-#ifdef CC_TARGET_PLATFORM
-	bullet->id = ++player->autoIncId;
-	bullet->DrawInit();
 
-	if (player->isSelf) {
-		// 如果是玩家本人就发包
-		auto&& pkg = xx::TryMake<PKG::Client_CatchFish::Fire>();
-		if (!pkg) return -9;
-		pkg->bulletId = bullet->id;
-		pkg->cannonId = this->id;
-		pkg->frameNumber = scene->frameNumber;
-		pkg->pos = bullet->pos;
-		::dialer->peer->SendPush(pkg);
-		::dialer->peer->Flush();
-	}
-	else if (scene->cfg->enableBulletFastForward) {
-		// 其他玩家: 子弹追帧并绘制( 追或不追, 这是个选项 )
-		auto&& times = scene->frameNumber - frameNumber;
-		assert(times >= 0);
-		while (--times > 0) {
-			if (int r = bullet->Move()) return 0;
-		}
-	}
-#else
+#ifndef CC_TARGET_PLATFORM
 	bullet->id = o->bulletId;
 
-	// 追帧. 令子弹轨迹运行至当前帧编号
+	// 追帧. 令子弹轨迹运行至当前帧编号. 如果已经消失就没必要继续创建了
 	while (frameNumber++ < scene->frameNumber) {
 		// 如果子弹生命周期已经到了
 		if (int r = bullet->Move()) {
-			player->coin += coin;									// 退钱
-			player->MakeRefundEvent(coin, true);					// 生成私有退款事件通知( 其他客户端收到后不理会 )
+			// 生成私有退款事件通知( 其他客户端收到后不理会 )
+			player->MakeRefundEvent(coin, true);
 			return 0;
 		}
 	}
-
 	// 创建发射事件
 	{
 		auto&& fire = xx::Make<PKG::CatchFish::Events::Fire>();
@@ -284,10 +257,34 @@ inline int PKG::CatchFish::Cannon::Fire(int const& frameNumber) noexcept {
 		fire->tarAngle = bullet->angle;
 		scene->frameEvents->events->Add(std::move(fire));
 	}
+#else
+	bullet->id = ++player->autoIncId;
 
-	//xx::CoutN("fire. ", o);
+	// 如果是玩家本人就发包
+	if (player->isSelf) {
+		auto&& pkg = xx::TryMake<PKG::Client_CatchFish::Fire>();
+		if (!pkg) return -9;
+		pkg->bulletId = bullet->id;
+		pkg->cannonId = this->id;
+		pkg->frameNumber = scene->frameNumber;
+		pkg->pos = bullet->pos;
+		::dialer->peer->SendPush(pkg);
+		::dialer->peer->Flush();
+	}
+	// 其他玩家: 子弹追帧并绘制( 追或不追, 这是个选项 )
+	else if (scene->cfg->enableBulletFastForward) {
+		while (frameNumber++ < scene->frameNumber) {
+			// 如果子弹生命周期已经到了
+			if (int r = bullet->Move()) return 0;
+		}
+	}
+	bullet->DrawInit();
 #endif
 
+	bullet->coin = coin;											// 存储发射时炮台的倍率
+	player->coin -= coin;											// 扣钱
+	bullet->indexAtContainer = (int)bullets->len;
+	bullets->Add(bullet);
 	return 0;
 }
 
