@@ -4,7 +4,7 @@
     {
         // BOSS: 大鱼周围环绕小鱼
         {
-            var s = NewStage(cfg, 60 * 60);                             // 关卡持续时长帧数
+            var s = NewStage(cfg, 60 * 6000);                           // 关卡持续时长帧数
             {
                 // 自动补 BOSS
                 var m = NewMonitor<PKG.CatchFish.Stages.Monitor_KeepBigFish>(s);

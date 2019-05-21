@@ -221,38 +221,49 @@ inline int Dialer::Handle(PKG::CatchFish::Events::NoMoney_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::Refund_s o) noexcept {
+	// 目标玩家应该被定位到
+	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+
 	// 私人信息
 	if (o->isPersonal) {
 		// 如果不是给当前玩家的直接退出
 		if (o->playerId != player->id) return 0;
 		// 退款
 		player->coin += o->coin;
-		return 0;
 	}
-	// 定位到目标玩家
-	for (auto&& p : catchFish->players) {
-		if (p->id == o->playerId) {
-			// 退款
-			p->coin += o->coin;
-			break;
+	else {
+		// 定位到目标玩家
+		for (auto&& p : catchFish->players) {
+			if (p->id == o->playerId) {
+				// 退款
+				p->coin += o->coin;
+				break;
+			}
 		}
 	}
 	return 0;
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
+	// 目标玩家应该被定位到
+	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+
+	// 定位到目标玩家
 	for (auto&& p : catchFish->players) {
 		if (p->id == o->playerId) {
-			// 鱼在不在都要加钱
+			// 鱼在不在都要加钱( 有可能收到包的时候 目标鱼 已经消失 )
 			p->coin += o->coin;
+
+			// todo: 判断如果 o->fishDeads 有数据，或者 打死鱼的是 特殊子弹（比如炸弹），还要进一步处理
+
+			// 试定位到目标鱼
 			auto&& fs = *player->scene->fishs;
 			for (auto&& f : fs) {
 				if (f->id == o->fishId) {
+					// todo: 特效
+					// 删鱼
 					fs[fs.len - 1]->indexAtContainer = f->indexAtContainer;
 					fs.SwapRemoveAt(f->indexAtContainer);
-
-					// todo: 判断如果 o->fishDeads 有数据，还要进一步处理
-					// todo: 特效
 					break;
 				}
 			}
@@ -267,8 +278,16 @@ inline int Dialer::Handle(PKG::CatchFish::Events::PushWeapon_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::PushFish_s o) noexcept {
+	// 该包无视 playerId
+	assert(o->playerId == 0);
+
+	// 确保服务器下发 id 不重复
+	assert(o->born && o->born->fish && !catchFish->scene->fishs->Exists([&](PKG::CatchFish::Fish_s const& f) { return f->id == o->born->fish->id; }));
+
 	// 如果太晚收到预约包就断线重连
 	if (o->born->beginFrameNumber <= catchFish->scene->frameNumber) return -2;
+
+	// 放入预约再生队列
 	catchFish->scene->borns->Add(std::move(o->born));
 	return 0;
 }
@@ -294,7 +313,10 @@ inline int Dialer::Handle(PKG::CatchFish::Events::CloseAutoFire_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
-	// 如果是自己发射的就忽略绘制
+	// 目标玩家应该被定位到
+	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+
+	// 如果是自己发射的就忽略( 本地已经处理过了 )
 	if (o->playerId == player->id) return 0;
 
 	// 定位到目标玩家
@@ -320,6 +342,9 @@ inline int Dialer::Handle(PKG::CatchFish::Events::CannonSwitch_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::CannonCoinChange_s o) noexcept {
+	// 目标玩家应该被定位到
+	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+
 	// 如果是自己的就忽略
 	if (o->playerId == player->id) return 0;
 

@@ -105,6 +105,7 @@ struct Service {
 
 		// 发送
 		peer->SendResponse(serial, hitCheckResult);
+		xx::CoutTN(hitCheckResult);			// 临时打印一下看看
 
 		// 各式 cleanup
 		hitCheckResult->fishs->Clear();
