@@ -85,12 +85,12 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 				auto&& c = cannons->At(i);
 				// 找到了就试着改倍率. 失败直接踢掉
 				if (c->id == o->cannonId) {
-					if (int r = c->SetCoin(o)) return Kick("Bet failed. r = ", r," pkg = ", o);
+					if (int r = c->SetCoin(o)) return Kick("Bet failed. r = ",r ,", pkg = ", o);
 					break;
 				}
 			}
 			// 未找到炮台, 直接踢掉
-			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
+			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, ", pkg = ", o);
 
 			//  操作成功, 需要重置超时时间
 			success = true;
@@ -108,12 +108,12 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 				auto&& c = cannons->At(i);
 				// 找到了就试着射击. 失败直接踢掉
 				if (c->id == o->cannonId) {
-					if (int r = c->Fire(o)) return Kick("Fire failed. r = ", r, "pkg = ", o);
+					if (int r = c->Fire(o)) return Kick("Fire failed. r = ", r, ", pkg = ", o);
 					break;
 				}
 			}
 			// 未找到炮台, 直接踢掉
-			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
+			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, ", pkg = ", o);
 
 			//  操作成功, 需要重置超时时间
 			success = true;
@@ -128,12 +128,12 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 				auto&& c = cannons->At(i);
 				// 找到了就试着检测. 失败直接踢掉
 				if (c->id == o->cannonId) {
-					if (int r = c->Hit(o)) return Kick("Hit failed. r = ", r, "pkg = ", o);
+					if (int r = c->Hit(o)) return Kick("Hit failed. r = ", r, ", pkg = ", o);
 					break;
 				}
 			}
 			// 未找到炮台, 直接踢掉
-			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, "pkg = ", o);
+			if (i == -1) return Kick("can't find cannon id = ", o->cannonId, ", pkg = ", o);
 
 			//  操作成功, 需要重置超时时间
 			success = true;

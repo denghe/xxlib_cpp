@@ -302,9 +302,13 @@ inline void PKG::CatchFish::Scene::UpdateEnd() noexcept {
 		}
 
 		// 临时输出一下 players 的 coin
-		xx::Cout(" sit: ", plr->sit, " coin: ", plr->coin);
+		if (frameNumber % 120 == 0) {
+			xx::Cout(" sit: ", plr->sit, " coin: ", plr->coin);
+		}
 	}
-	xx::CoutN();
+	if (frameNumber % 120 == 0) {
+		xx::CoutN();
+	}
 
 	frameEvents->events->Clear();		// 清除发送过的数据
 	frameEnters.Clear();				// 清除发送过的数据

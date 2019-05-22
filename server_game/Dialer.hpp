@@ -316,8 +316,9 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 	// 目标玩家应该被定位到
 	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
 
-	// 如果是自己发射的就忽略( 本地已经处理过了 )
-	if (o->playerId == player->id) return 0;
+	// 当前是 server fire mode. 无本地行为. 注释掉
+	//// 如果是自己发射的就忽略( 本地已经处理过了 )
+	//if (o->playerId == player->id) return 0;
 
 	// 定位到目标玩家
 	for (auto&& p : catchFish->players) {
@@ -326,8 +327,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 			for (auto&& c : *p->cannons) {
 				if (c->id == o->cannonId) {
 					// 发射
-					c->angle = o->tarAngle;
-					(void)c->Fire(o->frameNumber);
+					(void)c->Fire(o);
 					break;
 				}
 			}
