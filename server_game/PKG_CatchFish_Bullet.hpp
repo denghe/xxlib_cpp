@@ -14,10 +14,22 @@ inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
 inline int PKG::CatchFish::Bullet::Move() noexcept {
 	pos += moveInc;
 
-	// 飞出屏幕就消失
-	auto&& w = ::designSize_2.x + cfg->maxRadius;
-	auto&& h = ::designSize_2.y + cfg->maxRadius;
-	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
+	//子弹飞出屏幕就反弹
+	auto& w = ::designSize_2.x;
+	auto& h = ::designSize_2.y;
+	if (pos.x > w || pos.x < -w)
+	{
+		moveInc.x = -moveInc.x;
+		angle = GetAngle({ 0,0 }, moveInc);
+	}
+
+	if (pos.y > h || pos.y < -h)
+	{
+		moveInc.y = -moveInc.y;
+		angle = GetAngle({ 0,0 }, moveInc);
+	}
+
+
 	return 0;
 }
 
@@ -25,7 +37,7 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 	if (int r = Move()) return r;
 #ifdef CC_TARGET_PLATFORM
 	// 遍历所有鱼
-	auto&& fs = *scene->fishs;
+	auto && fs = *scene->fishs;
 	if (fs.len) {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
