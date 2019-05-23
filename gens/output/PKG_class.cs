@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "4ebc983511d2e9691ffaf1525b173664"; 
+        public const string value = "908d46750b92700f3f94165fabcdc454"; 
     }
 
 namespace CatchFish
@@ -4097,6 +4097,10 @@ namespace CatchFish.Configs
         /// 子弹每帧前进距离
         /// </summary>
         public float distance;
+        /// <summary>
+        /// 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
+        /// </summary>
+        public bool enableBulletBounce = false;
 
         public override ushort GetPackageId()
         {
@@ -4114,6 +4118,7 @@ namespace CatchFish.Configs
             bb.Write(this.radius);
             bb.Write(this.maxRadius);
             bb.Write(this.distance);
+            bb.Write(this.enableBulletBounce);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -4127,6 +4132,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.radius);
             bb.Read(ref this.maxRadius);
             bb.Read(ref this.distance);
+            bb.Read(ref this.enableBulletBounce);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -4154,6 +4160,7 @@ namespace CatchFish.Configs
             s.Append(", \"radius\":" + radius.ToString());
             s.Append(", \"maxRadius\":" + maxRadius.ToString());
             s.Append(", \"distance\":" + distance.ToString());
+            s.Append(", \"enableBulletBounce\":" + enableBulletBounce.ToString());
         }
         public override string ToString()
         {

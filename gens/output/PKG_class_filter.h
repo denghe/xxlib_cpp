@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "4ebc983511d2e9691ffaf1525b173664";
+		inline static const std::string value = "908d46750b92700f3f94165fabcdc454";
     };
 
 namespace Generic {
@@ -929,6 +929,8 @@ namespace CatchFish::Configs {
         int32_t maxRadius = 0;
         // 子弹每帧前进距离
         float distance = 0;
+        // 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
+        bool enableBulletBounce = false;
 
         typedef Cannon ThisType;
         typedef PKG::CatchFish::Configs::Item BaseType;
@@ -3853,6 +3855,7 @@ namespace CatchFish::Configs {
         bb.Write(this->radius);
         bb.Write(this->maxRadius);
         bb.Write(this->distance);
+        bb.Write(this->enableBulletBounce);
     }
     inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
@@ -3864,6 +3867,7 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->radius)) return r;
         if (int r = bb.Read(this->maxRadius)) return r;
         if (int r = bb.Read(this->distance)) return r;
+        if (int r = bb.Read(this->enableBulletBounce)) return r;
         return 0;
     }
     inline int Cannon::InitCascade(void* const& o) noexcept {
@@ -3894,6 +3898,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"radius\":", this->radius);
         xx::Append(s, ", \"maxRadius\":", this->maxRadius);
         xx::Append(s, ", \"distance\":", this->distance);
+        xx::Append(s, ", \"enableBulletBounce\":", this->enableBulletBounce);
     }
     inline uint16_t Weapon::GetTypeId() const noexcept {
         return 64;
