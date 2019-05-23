@@ -24,7 +24,8 @@ namespace Client_CatchFish
         int frameNumber;
         int cannonId;
         int bulletId;
-        xx.Pos pos;
+        float angle;
+        // todo: more
     }
 
     [Desc("碰撞检测")]

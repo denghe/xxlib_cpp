@@ -190,15 +190,16 @@ inline void PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s 
 		fishIds.Add(f.fishId);
 
 		// 算钱
-		auto&& c = f.fishCoin * f.bulletCoin;
+		auto&& c = f.fishCoin * f.bulletCoin;	// 数量只可能是 1
 
 		// 构造鱼死事件包
 		{
 			auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
-			fishDead->bulletId = f.bulletId;
-			fishDead->coin = c;
-			fishDead->fishId = f.fishId;
 			fishDead->playerId = f.playerId;
+			fishDead->cannonId = f.cannonId;
+			fishDead->bulletId = f.bulletId;
+			fishDead->fishId = f.fishId;
+			fishDead->coin = c;
 			frameEvents->events->Add(std::move(fishDead));
 		}
 

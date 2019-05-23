@@ -15,10 +15,13 @@ namespace Calc
             [Desc("鱼币值")]
             long fishCoin;
 
-            [Desc("玩家id 子弹主键1/2")]
+            [Desc("玩家id 子弹主键1/3")]
             int playerId;
 
-            [Desc("子弹id 子弹主键2/2")]
+            [Desc("炮台id 子弹主键2/3")]
+            int cannonId;
+
+            [Desc("子弹id 子弹主键3/3")]
             int bulletId;
 
             [Desc("子弹数量( 炸弹, 强火力数量会超过 1 )")]
@@ -34,6 +37,7 @@ namespace Calc
             int fishId;
             long fishCoin;
             int playerId;
+            int cannonId;
             int bulletId;
             long bulletCoin;
         }
@@ -42,6 +46,7 @@ namespace Calc
         struct Bullet
         {
             int playerId;
+            int cannonId;
             int bulletId;
             int bulletCount;
             long bulletCoin;

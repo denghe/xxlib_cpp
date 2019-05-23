@@ -224,21 +224,12 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Refund_s o) noexcept {
 	// 目标玩家应该被定位到
 	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
 
-	// 私人信息
-	if (o->isPersonal) {
-		// 如果不是给当前玩家的直接退出
-		if (o->playerId != player->id) return 0;
-		// 退款
-		player->coin += o->coin;
-	}
-	else {
-		// 定位到目标玩家
-		for (auto&& p : catchFish->players) {
-			if (p->id == o->playerId) {
-				// 退款
-				p->coin += o->coin;
-				break;
-			}
+	// 定位到目标玩家
+	for (auto&& p : catchFish->players) {
+		if (p->id == o->playerId) {
+			// 退款
+			p->coin += o->coin;
+			break;
 		}
 	}
 	return 0;
@@ -316,9 +307,8 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 	// 目标玩家应该被定位到
 	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
 
-	// 当前是 server fire mode. 无本地行为. 注释掉
-	//// 如果是自己发射的就忽略( 本地已经处理过了 )
-	//if (o->playerId == player->id) return 0;
+	// 如果是自己发射的就忽略( 本地已经处理过了 )
+	if (o->playerId == player->id) return 0;
 
 	// 定位到目标玩家
 	for (auto&& p : catchFish->players) {
@@ -327,7 +317,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Fire_s o) noexcept {
 			for (auto&& c : *p->cannons) {
 				if (c->id == o->cannonId) {
 					// 发射
-					(void)c->Fire(o);
+					(void)c->Fire(*o);
 					break;
 				}
 			}

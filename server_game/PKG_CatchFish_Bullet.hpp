@@ -13,11 +13,23 @@ inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
 
 inline int PKG::CatchFish::Bullet::Move() noexcept {
 	pos += moveInc;
-
+#ifdef CC_TARGET_PLATFORM
 	// 飞出屏幕就消失
 	auto&& w = ::designSize_2.x + cfg->maxRadius;
 	auto&& h = ::designSize_2.y + cfg->maxRadius;
-	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) return -1;
+	if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
+		// 如果是本人: 发子弹撤销包
+		if (player->isSelf) {
+			auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
+			o->bulletId = id;
+			o->cannonId = cannon->id;
+			o->fishId = 0;
+			::dialer->peer->SendPush(o);
+			::dialer->peer->Flush();
+		}
+		return -1;
+	}
+#endif
 	return 0;
 }
 
@@ -30,13 +42,15 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
 			if (fs[i]->HitCheck(this)) {
-				// 发命中检查包
-				auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
-				o->bulletId = id;
-				o->cannonId = cannon->id;
-				o->fishId = fs[i]->id;
-				::dialer->peer->SendPush(o);
-				::dialer->peer->Flush();
+				// 如果是本人: 发命中检查包
+				if (player->isSelf) {
+					auto&& o = xx::Make<PKG::Client_CatchFish::Hit>();
+					o->bulletId = id;
+					o->cannonId = cannon->id;
+					o->fishId = fs[i]->id;
+					::dialer->peer->SendPush(o);
+					::dialer->peer->Flush();
+				}
 				// todo: 播放子弹爆炸特效?
 				return -1;
 			}

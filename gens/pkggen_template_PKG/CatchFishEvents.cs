@@ -61,11 +61,8 @@ namespace CatchFish
         [Desc("通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )")]
         class Refund : Event
         {
-            [Desc("币值")]
+            [Desc("退款金额( coin * count )")]
             long coin;
-
-            [Desc("是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )")]
-            bool isPersonal;
         }
 
 
@@ -75,14 +72,17 @@ namespace CatchFish
             [Desc("鱼id")]
             int fishId;
 
+            [Desc("炮台id")]
+            int cannonId;
+
             [Desc("子弹id")]
             int bulletId;
 
             [Desc("金币所得( fish.coin * bullet.coin 或 server 计算牵连鱼之后的综合结果 )")]
             long coin;
 
-            [Desc("牵连死的鱼")]
-            List<FishDead> fishDeads;
+            [Desc("牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )")]
+            List<int> ids;
         }
 
         // todo: 预约: 炸弹爆炸
@@ -132,8 +132,8 @@ namespace CatchFish
             [Desc("子弹id")]
             int bulletId;
 
-            [Desc("子弹的发射角度")]
-            float tarAngle;
+            [Desc("发射角度")]
+            float angle;
         }
 
         [Desc("转发: 切换炮台")]

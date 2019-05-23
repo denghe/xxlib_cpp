@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "a2deeacc985fa22b3e8675069070308e";
+		inline static const std::string value = "4ebc983511d2e9691ffaf1525b173664";
     };
 
 namespace Generic {
@@ -564,8 +564,8 @@ namespace CatchFish::Events {
         int32_t cannonId = 0;
         // 子弹id
         int32_t bulletId = 0;
-        // 子弹的发射角度
-        float tarAngle = 0;
+        // 发射角度
+        float angle = 0;
 
         typedef Fire ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
@@ -1029,12 +1029,14 @@ namespace CatchFish::Events {
     struct FishDead : PKG::CatchFish::Events::Event {
         // 鱼id
         int32_t fishId = 0;
+        // 炮台id
+        int32_t cannonId = 0;
         // 子弹id
         int32_t bulletId = 0;
         // 金币所得( fish.coin * bullet.coin 或 server 计算牵连鱼之后的综合结果 )
         int64_t coin = 0;
-        // 牵连死的鱼
-        xx::List_s<PKG::CatchFish::Events::FishDead_s> fishDeads;
+        // 牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )
+        xx::List_s<int32_t> ids;
 
         typedef FishDead ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
@@ -1224,7 +1226,7 @@ namespace Client_CatchFish {
         int32_t frameNumber = 0;
         int32_t cannonId = 0;
         int32_t bulletId = 0;
-        ::xx::Pos pos;
+        float angle = 0;
 
         typedef Fire ThisType;
         typedef xx::Object BaseType;
@@ -1587,10 +1589,8 @@ namespace CatchFish::Configs {
 namespace CatchFish::Events {
     // 通知: 退钱( 常见于子弹并发打中某鱼产生 miss 或鱼id未找到 或子弹生命周期结束 )
     struct Refund : PKG::CatchFish::Events::Event {
-        // 币值
+        // 退款金额( coin * count )
         int64_t coin = 0;
-        // 是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )
-        bool isPersonal = false;
 
         typedef Refund ThisType;
         typedef PKG::CatchFish::Events::Event BaseType;
@@ -1690,7 +1690,7 @@ namespace xx {
     template<> struct TypeId<PKG::CatchFish::Events::NoMoney> { static const uint16_t value = 39; };
     template<> struct TypeId<PKG::CatchFish::Events::Refund> { static const uint16_t value = 40; };
     template<> struct TypeId<PKG::CatchFish::Events::FishDead> { static const uint16_t value = 41; };
-    template<> struct TypeId<xx::List<PKG::CatchFish::Events::FishDead_s>> { static const uint16_t value = 42; };
+    template<> struct TypeId<xx::List<int32_t>> { static const uint16_t value = 54; };
     template<> struct TypeId<PKG::CatchFish::Events::PushWeapon> { static const uint16_t value = 43; };
     template<> struct TypeId<PKG::CatchFish::Events::PushFish> { static const uint16_t value = 44; };
     template<> struct TypeId<PKG::CatchFish::Events::OpenAutoLock> { static const uint16_t value = 45; };
@@ -1702,7 +1702,6 @@ namespace xx {
     template<> struct TypeId<PKG::CatchFish::Events::CannonSwitch> { static const uint16_t value = 51; };
     template<> struct TypeId<PKG::CatchFish::Events::CannonCoinChange> { static const uint16_t value = 52; };
     template<> struct TypeId<PKG::CatchFish::Events::DebugInfo> { static const uint16_t value = 53; };
-    template<> struct TypeId<xx::List<int32_t>> { static const uint16_t value = 54; };
     template<> struct TypeId<xx::List<PKG::CatchFish::Stages::StageElement_s>> { static const uint16_t value = 74; };
     template<> struct TypeId<PKG::CatchFish::Stages::StageElement> { static const uint16_t value = 75; };
     template<> struct TypeId<PKG::CatchFish::Stages::Emitter_RandomFishs> { static const uint16_t value = 76; };
@@ -2022,13 +2021,13 @@ namespace Client_CatchFish {
         bb.Write(this->frameNumber);
         bb.Write(this->cannonId);
         bb.Write(this->bulletId);
-        bb.Write(this->pos);
+        bb.Write(this->angle);
     }
     inline int Fire::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = bb.Read(this->frameNumber)) return r;
         if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
-        if (int r = bb.Read(this->pos)) return r;
+        if (int r = bb.Read(this->angle)) return r;
         return 0;
     }
     inline int Fire::InitCascade(void* const& o) noexcept {
@@ -2053,7 +2052,7 @@ namespace Client_CatchFish {
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
         xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"bulletId\":", this->bulletId);
-        xx::Append(s, ", \"pos\":", this->pos);
+        xx::Append(s, ", \"angle\":", this->angle);
     }
     inline uint16_t Hit::GetTypeId() const noexcept {
         return 16;
@@ -2871,12 +2870,10 @@ namespace CatchFish::Events {
     inline void Refund::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->coin);
-        bb.Write(this->isPersonal);
     }
     inline int Refund::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
-        if (int r = bb.Read(this->isPersonal)) return r;
         return 0;
     }
     inline int Refund::InitCascade(void* const& o) noexcept {
@@ -2900,7 +2897,6 @@ namespace CatchFish::Events {
     inline void Refund::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"coin\":", this->coin);
-        xx::Append(s, ", \"isPersonal\":", this->isPersonal);
     }
     inline uint16_t FishDead::GetTypeId() const noexcept {
         return 41;
@@ -2908,23 +2904,25 @@ namespace CatchFish::Events {
     inline void FishDead::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->fishId);
+        bb.Write(this->cannonId);
         bb.Write(this->bulletId);
         bb.Write(this->coin);
-        bb.Write(this->fishDeads);
+        bb.Write(this->ids);
     }
     inline int FishDead::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->fishId)) return r;
+        if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
         if (int r = bb.Read(this->coin)) return r;
         bb.readLengthLimit = 0;
-        if (int r = bb.Read(this->fishDeads)) return r;
+        if (int r = bb.Read(this->ids)) return r;
         return 0;
     }
     inline int FishDead::InitCascade(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
-        if (this->fishDeads) {
-            if (int r = this->fishDeads->InitCascade(o)) return r;
+        if (this->ids) {
+            if (int r = this->ids->InitCascade(o)) return r;
         }
         return 0;
     }
@@ -2945,9 +2943,10 @@ namespace CatchFish::Events {
     inline void FishDead::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"fishId\":", this->fishId);
+        xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"bulletId\":", this->bulletId);
         xx::Append(s, ", \"coin\":", this->coin);
-        xx::Append(s, ", \"fishDeads\":", this->fishDeads);
+        xx::Append(s, ", \"ids\":", this->ids);
     }
     inline uint16_t PushWeapon::GetTypeId() const noexcept {
         return 43;
@@ -3189,14 +3188,14 @@ namespace CatchFish::Events {
         bb.Write(this->frameNumber);
         bb.Write(this->cannonId);
         bb.Write(this->bulletId);
-        bb.Write(this->tarAngle);
+        bb.Write(this->angle);
     }
     inline int Fire::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->frameNumber)) return r;
         if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
-        if (int r = bb.Read(this->tarAngle)) return r;
+        if (int r = bb.Read(this->angle)) return r;
         return 0;
     }
     inline int Fire::InitCascade(void* const& o) noexcept {
@@ -3222,7 +3221,7 @@ namespace CatchFish::Events {
         xx::Append(s, ", \"frameNumber\":", this->frameNumber);
         xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"bulletId\":", this->bulletId);
-        xx::Append(s, ", \"tarAngle\":", this->tarAngle);
+        xx::Append(s, ", \"angle\":", this->angle);
     }
     inline uint16_t CannonSwitch::GetTypeId() const noexcept {
         return 51;
@@ -4153,7 +4152,7 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::CatchFish::Events::NoMoney>(39);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Refund>(40);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::FishDead>(41);
-	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Events::FishDead_s>>(42);
+	        xx::BBuffer::Register<xx::List<int32_t>>(54);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::PushWeapon>(43);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::PushFish>(44);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::OpenAutoLock>(45);
@@ -4165,7 +4164,6 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::CatchFish::Events::CannonSwitch>(51);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::CannonCoinChange>(52);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::DebugInfo>(53);
-	        xx::BBuffer::Register<xx::List<int32_t>>(54);
 	        xx::BBuffer::Register<xx::List<PKG::CatchFish::Stages::StageElement_s>>(74);
 	        xx::BBuffer::Register<PKG::CatchFish::Stages::StageElement>(75);
 	        xx::BBuffer::Register<PKG::CatchFish::Stages::Emitter_RandomFishs>(76);

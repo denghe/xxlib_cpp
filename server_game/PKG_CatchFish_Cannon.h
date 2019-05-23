@@ -29,7 +29,8 @@ virtual int Hit(PKG::Client_CatchFish::Hit_s& o) noexcept;
 // player 在遍历 recvs 的时候定位到炮台就 call 这个函数来修改炮台倍率
 virtual int SetCoin(PKG::Client_CatchFish::Bet_s& o) noexcept;
 #else
-virtual int Fire(PKG::CatchFish::Events::Fire_s const& o) noexcept;
+virtual int Fire(PKG::CatchFish::Events::Fire const& o) noexcept;
+virtual int Fire(xx::Pos const& tarPos) noexcept;
 
 int InitCascade(void* const& o) noexcept override;
 virtual void DrawInit() noexcept;

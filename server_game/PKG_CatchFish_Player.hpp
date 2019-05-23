@@ -36,11 +36,10 @@ inline void PKG::CatchFish::Player::DrawUpdate_Coin() noexcept {
 	lastCoin = coin;
 }
 #else
-inline void PKG::CatchFish::Player::MakeRefundEvent(int64_t const& coin, bool isPersonal) noexcept {
+inline void PKG::CatchFish::Player::MakeRefundEvent(int64_t const& coin, int const& count) noexcept {
 	auto&& refund = xx::Make<PKG::CatchFish::Events::Refund>();
 	refund->playerId = id;
-	refund->coin = coin;
-	refund->isPersonal = isPersonal;
+	refund->coin = coin * count;
 	scene->frameEvents->events->Add(std::move(refund));
 }
 #endif

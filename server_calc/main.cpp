@@ -7,16 +7,21 @@
 #include "PKG_class.hpp"
 #include "xx_random.hpp"
 #include <random>
+#include <tuple>
 
 namespace std {
 	template<>
-	struct hash<std::pair<int, int>> {
-		std::size_t operator()(std::pair<int, int> const& in) const noexcept {
+	struct hash<std::tuple<int, int, int>> {
+		std::size_t operator()(std::tuple<int, int, int> const& in) const noexcept {
 			static_assert(sizeof(std::size_t) >= 8);
-			return (std::size_t)in.first | ((std::size_t)in.second << 32);
+			return (std::size_t)std::get<0>(in) | ((std::size_t)std::get<2>(in) << 32);	// 1 是 cannonId 极少冲突
 		}
 	};
 }
+
+// todo: 增强断线重连或消息重发的兼容性。
+// game_server 在连接上来之后，需要先汇报自己的 id，无脑信任。 id 与 peer 对应起来，如果 peer 对应已存在，则踢掉旧的, 换新的 peer
+// 每个计算请求附带一个编号，该编号与 id peer 对应起来，每次收到请求后更新，如果收到重复的或更小的编号，则补发 cache 数据, 不再重复计算
 
 struct Service {
 	xx::Uv uv;
@@ -45,7 +50,7 @@ struct Service {
 	// key: pair<playerId, bulletId>, value: bulletCount, bulletCoin 如果子弹数量有富余( 鱼死了, 没用完 ), 就会创建一行记录来累加
 	// 最后将这两个字典的结果序列化返回
 	xx::Dict<int, PKG::Calc::CatchFish::Hit const*> fishs;
-	xx::Dict<std::pair<int, int>, std::pair<int, int64_t>> bullets;
+	xx::Dict<std::tuple<int, int, int>, std::pair<int, int64_t>> bullets;
 	PKG::Calc_CatchFish::HitCheckResult_s hitCheckResult;
 
 	// ...
@@ -91,21 +96,22 @@ struct Service {
 			auto&& f = *o.value;
 			t.fishId = f.fishId;
 			t.playerId = f.playerId;
+			t.cannonId = f.cannonId;
 			t.bulletId = f.bulletId;
 			t.fishCoin = f.fishCoin;
 			t.bulletCoin = f.bulletCoin;
 		}
 		for (auto&& o : bullets) {
 			auto&& t = hitCheckResult->bullets->Emplace();
-			t.playerId = o.key.first;
-			t.bulletId = o.key.second;
+			t.playerId = std::get<0>(o.key);
+			t.cannonId = std::get<1>(o.key);
+			t.bulletId = std::get<2>(o.key);
 			t.bulletCount = o.value.first;
 			t.bulletCoin = o.value.second;
 		}
 
 		// 发送
 		peer->SendResponse(serial, hitCheckResult);
-		xx::CoutTN(hitCheckResult);			// 临时打印一下看看
 
 		// 各式 cleanup
 		hitCheckResult->fishs->Clear();
@@ -118,10 +124,9 @@ struct Service {
 	inline void Handle_Hit(PKG::Calc::CatchFish::Hit const& hit) {
 		// 如果 fishId 已存在: 该 fish 已死, 子弹退回剩余次数
 		if (fishs.Find(hit.fishId) != -1) {
-			auto&& v = bullets[std::make_pair(hit.playerId, hit.bulletId)];
+			auto&& v = bullets[std::make_tuple(hit.playerId, hit.cannonId, hit.bulletId)];
 			v.first += hit.bulletCount;
 			v.second = hit.bulletCoin;
-			xx::CoutTN(hit);			// 临时打印一下看看
 			return;
 		}
 		// 根据子弹数量来多次判定, 直到耗光或鱼死中断
@@ -131,7 +136,7 @@ struct Service {
 				fishs[hit.fishId] = &hit;
 				// 如果没有剩余数量就不记录了
 				if (auto && left = hit.bulletCount - i - 1) {	// - 1: 本次的扣除
-					auto&& v = bullets[std::make_pair(hit.playerId, hit.bulletId)];
+					auto&& v = bullets[std::make_tuple(hit.playerId, hit.cannonId, hit.bulletId)];
 					v.first += left;
 					v.second = hit.bulletCoin;
 				}
@@ -146,7 +151,10 @@ struct Service {
 		totalInput += hit.bulletCoin;
 		auto r = (totalInput > totalOutput && double(totalOutput) / double(totalInput) < ratio) ? maxRatio : minRatio;
 		auto b = std::uniform_real_distribution(0.0, double(hit.fishCoin))(rnd);
-		xx::CoutTN("totalInput = ", totalInput, ", totalOutput = ", totalOutput, ", r = ", r, ", b = ", b);			// 临时打印一下看看
+
+		// 临时打印一下看看
+		xx::CoutTN("totalInput = ", totalInput, ", totalOutput = ", totalOutput, ", fix = ", r, ", fish.coin = ", hit.fishCoin, ", rnd = ", b);
+
 		if (b <= r) {
 			totalOutput += hit.fishCoin * hit.bulletCoin;
 			return true;

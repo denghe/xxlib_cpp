@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "e23e074c756cfa1e9e43b88459485423"; 
+        public const string value = "4ebc983511d2e9691ffaf1525b173664"; 
     }
 
 namespace CatchFish
@@ -496,7 +496,7 @@ namespace Client_CatchFish
         public int frameNumber;
         public int cannonId;
         public int bulletId;
-        public xx.Pos pos;
+        public float angle;
 
         public override ushort GetPackageId()
         {
@@ -508,7 +508,7 @@ namespace Client_CatchFish
             bb.Write(this.frameNumber);
             bb.Write(this.cannonId);
             bb.Write(this.bulletId);
-            ((xx.IObject)this.pos).ToBBuffer(bb);
+            bb.Write(this.angle);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -516,7 +516,7 @@ namespace Client_CatchFish
             bb.Read(ref this.frameNumber);
             bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
-            ((xx.IObject)this.pos).FromBBuffer(bb);
+            bb.Read(ref this.angle);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -538,7 +538,7 @@ namespace Client_CatchFish
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
             s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
-            s.Append(", \"pos\":" + pos.ToString());
+            s.Append(", \"angle\":" + angle.ToString());
         }
         public override string ToString()
         {
@@ -847,11 +847,15 @@ namespace Calc.CatchFish
         /// </summary>
         public long fishCoin;
         /// <summary>
-        /// 玩家id 子弹主键1/2
+        /// 玩家id 子弹主键1/3
         /// </summary>
         public int playerId;
         /// <summary>
-        /// 子弹id 子弹主键2/2
+        /// 炮台id 子弹主键2/3
+        /// </summary>
+        public int cannonId;
+        /// <summary>
+        /// 子弹id 子弹主键3/3
         /// </summary>
         public int bulletId;
         /// <summary>
@@ -873,6 +877,7 @@ namespace Calc.CatchFish
             bb.Write(this.fishId);
             bb.Write(this.fishCoin);
             bb.Write(this.playerId);
+            bb.Write(this.cannonId);
             bb.Write(this.bulletId);
             bb.Write(this.bulletCount);
             bb.Write(this.bulletCoin);
@@ -883,6 +888,7 @@ namespace Calc.CatchFish
             bb.Read(ref this.fishId);
             bb.Read(ref this.fishCoin);
             bb.Read(ref this.playerId);
+            bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.bulletCount);
             bb.Read(ref this.bulletCoin);
@@ -898,6 +904,7 @@ namespace Calc.CatchFish
             s.Append(", \"fishId\":" + fishId.ToString());
             s.Append(", \"fishCoin\":" + fishCoin.ToString());
             s.Append(", \"playerId\":" + playerId.ToString());
+            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"bulletCount\":" + bulletCount.ToString());
             s.Append(", \"bulletCoin\":" + bulletCoin.ToString());
@@ -917,6 +924,7 @@ namespace Calc.CatchFish
         public int fishId;
         public long fishCoin;
         public int playerId;
+        public int cannonId;
         public int bulletId;
         public long bulletCoin;
 
@@ -930,6 +938,7 @@ namespace Calc.CatchFish
             bb.Write(this.fishId);
             bb.Write(this.fishCoin);
             bb.Write(this.playerId);
+            bb.Write(this.cannonId);
             bb.Write(this.bulletId);
             bb.Write(this.bulletCoin);
         }
@@ -939,6 +948,7 @@ namespace Calc.CatchFish
             bb.Read(ref this.fishId);
             bb.Read(ref this.fishCoin);
             bb.Read(ref this.playerId);
+            bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.bulletCoin);
         }
@@ -953,6 +963,7 @@ namespace Calc.CatchFish
             s.Append(", \"fishId\":" + fishId.ToString());
             s.Append(", \"fishCoin\":" + fishCoin.ToString());
             s.Append(", \"playerId\":" + playerId.ToString());
+            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"bulletCoin\":" + bulletCoin.ToString());
         }
@@ -969,6 +980,7 @@ namespace Calc.CatchFish
     public partial struct Bullet : xx.IObject
     {
         public int playerId;
+        public int cannonId;
         public int bulletId;
         public int bulletCount;
         public long bulletCoin;
@@ -981,6 +993,7 @@ namespace Calc.CatchFish
         public void ToBBuffer(xx.BBuffer bb)
         {
             bb.Write(this.playerId);
+            bb.Write(this.cannonId);
             bb.Write(this.bulletId);
             bb.Write(this.bulletCount);
             bb.Write(this.bulletCoin);
@@ -989,6 +1002,7 @@ namespace Calc.CatchFish
         public void FromBBuffer(xx.BBuffer bb)
         {
             bb.Read(ref this.playerId);
+            bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.bulletCount);
             bb.Read(ref this.bulletCoin);
@@ -1002,6 +1016,7 @@ namespace Calc.CatchFish
         public void ToStringCore(System.Text.StringBuilder s)
         {
             s.Append(", \"playerId\":" + playerId.ToString());
+            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"bulletCount\":" + bulletCount.ToString());
             s.Append(", \"bulletCoin\":" + bulletCoin.ToString());
@@ -2401,13 +2416,9 @@ namespace CatchFish.Events
     public partial class Refund : CatchFish.Events.Event
     {
         /// <summary>
-        /// 币值
+        /// 退款金额( coin * count )
         /// </summary>
         public long coin;
-        /// <summary>
-        /// 是否为私人消息( 当服务器收到发射请求并追帧计算后发现子弹已到期，就不会再广播该消息从而导致必须针对该玩家单独通知退款 )
-        /// </summary>
-        public bool isPersonal = false;
 
         public override ushort GetPackageId()
         {
@@ -2418,14 +2429,12 @@ namespace CatchFish.Events
         {
             base.ToBBuffer(bb);
             bb.Write(this.coin);
-            bb.Write(this.isPersonal);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.coin);
-            bb.Read(ref this.isPersonal);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2446,7 +2455,6 @@ namespace CatchFish.Events
         {
             base.ToStringCore(s);
             s.Append(", \"coin\":" + coin.ToString());
-            s.Append(", \"isPersonal\":" + isPersonal.ToString());
         }
         public override string ToString()
         {
@@ -2469,6 +2477,10 @@ namespace CatchFish.Events
         /// </summary>
         public int fishId;
         /// <summary>
+        /// 炮台id
+        /// </summary>
+        public int cannonId;
+        /// <summary>
         /// 子弹id
         /// </summary>
         public int bulletId;
@@ -2477,9 +2489,9 @@ namespace CatchFish.Events
         /// </summary>
         public long coin;
         /// <summary>
-        /// 牵连死的鱼
+        /// 牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )
         /// </summary>
-        public xx.List<CatchFish.Events.FishDead> fishDeads;
+        public xx.List<int> ids;
 
         public override ushort GetPackageId()
         {
@@ -2490,19 +2502,21 @@ namespace CatchFish.Events
         {
             base.ToBBuffer(bb);
             bb.Write(this.fishId);
+            bb.Write(this.cannonId);
             bb.Write(this.bulletId);
             bb.Write(this.coin);
-            bb.Write(this.fishDeads);
+            bb.Write(this.ids);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.fishId);
+            bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.coin);
             bb.readLengthLimit = 0;
-            bb.Read(ref this.fishDeads);
+            bb.Read(ref this.ids);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2523,9 +2537,10 @@ namespace CatchFish.Events
         {
             base.ToStringCore(s);
             s.Append(", \"fishId\":" + fishId.ToString());
+            s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"coin\":" + coin.ToString());
-            s.Append(", \"fishDeads\":" + (fishDeads == null ? "nil" : fishDeads.ToString()));
+            s.Append(", \"ids\":" + (ids == null ? "nil" : ids.ToString()));
         }
         public override string ToString()
         {
@@ -2927,9 +2942,9 @@ namespace CatchFish.Events
         /// </summary>
         public int bulletId;
         /// <summary>
-        /// 子弹的发射角度
+        /// 发射角度
         /// </summary>
-        public float tarAngle;
+        public float angle;
 
         public override ushort GetPackageId()
         {
@@ -2942,7 +2957,7 @@ namespace CatchFish.Events
             bb.Write(this.frameNumber);
             bb.Write(this.cannonId);
             bb.Write(this.bulletId);
-            bb.Write(this.tarAngle);
+            bb.Write(this.angle);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -2951,7 +2966,7 @@ namespace CatchFish.Events
             bb.Read(ref this.frameNumber);
             bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
-            bb.Read(ref this.tarAngle);
+            bb.Read(ref this.angle);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -2974,7 +2989,7 @@ namespace CatchFish.Events
             s.Append(", \"frameNumber\":" + frameNumber.ToString());
             s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
-            s.Append(", \"tarAngle\":" + tarAngle.ToString());
+            s.Append(", \"angle\":" + angle.ToString());
         }
         public override string ToString()
         {
@@ -4549,7 +4564,7 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Events.NoMoney>(39);
             xx.Object.Register<CatchFish.Events.Refund>(40);
             xx.Object.Register<CatchFish.Events.FishDead>(41);
-            xx.Object.Register<xx.List<CatchFish.Events.FishDead>>(42);
+            xx.Object.Register<xx.List<int>>(54);
             xx.Object.Register<CatchFish.Events.PushWeapon>(43);
             xx.Object.Register<CatchFish.Events.PushFish>(44);
             xx.Object.Register<CatchFish.Events.OpenAutoLock>(45);
@@ -4561,7 +4576,6 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Events.CannonSwitch>(51);
             xx.Object.Register<CatchFish.Events.CannonCoinChange>(52);
             xx.Object.Register<CatchFish.Events.DebugInfo>(53);
-            xx.Object.Register<xx.List<int>>(54);
             xx.Object.Register<xx.List<CatchFish.Stages.StageElement>>(74);
             xx.Object.Register<CatchFish.Stages.StageElement>(75);
             xx.Object.Register<CatchFish.Stages.Emitter_RandomFishs>(76);

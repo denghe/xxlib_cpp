@@ -24,7 +24,7 @@ int Kick(Args const& ... reason) noexcept;
 std::deque<xx::Object_s> recvs;
 
 // 生成退钱事件
-void MakeRefundEvent(int64_t const& coin, bool isPersonal = false) noexcept;
+void MakeRefundEvent(int64_t const& coin, int const& count = 1) noexcept;
 #else
 // 标识这个玩家是本人
 bool isSelf = false;
