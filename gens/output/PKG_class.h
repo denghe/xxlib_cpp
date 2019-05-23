@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "4ebc983511d2e9691ffaf1525b173664";
+		inline static const std::string value = "7d60e467c11161538e196e387ee7a8a7";
     };
 
 namespace Generic {
@@ -1006,6 +1006,8 @@ namespace CatchFish::Configs {
         int32_t maxRadius = 0;
         // 子弹每帧前进距离
         float distance = 0;
+        // 是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹
+        int32_t move_status = 0;
 
         typedef Cannon ThisType;
         typedef PKG::CatchFish::Configs::Item BaseType;
@@ -1534,6 +1536,8 @@ namespace CatchFish {
     struct Bullet : PKG::CatchFish::MoveItem {
         // 金币 / 倍率( 记录炮台开火时的 Bet 值 )
         int64_t coin = 0;
+        // 是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹
+        int32_t move_status = 0;
 
         typedef Bullet ThisType;
         typedef PKG::CatchFish::MoveItem BaseType;
@@ -2747,10 +2751,12 @@ namespace CatchFish {
     inline void Bullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->coin);
+        bb.Write(this->move_status);
     }
     inline int Bullet::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
+        if (int r = bb.Read(this->move_status)) return r;
         return 0;
     }
     inline int Bullet::InitCascadeCore(void* const& o) noexcept {
@@ -2774,6 +2780,7 @@ namespace CatchFish {
     inline void Bullet::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"coin\":", this->coin);
+        xx::Append(s, ", \"move_status\":", this->move_status);
     }
     inline uint16_t Fish::GetTypeId() const noexcept {
         return 19;
@@ -4201,6 +4208,7 @@ namespace CatchFish::Configs {
         bb.Write(this->radius);
         bb.Write(this->maxRadius);
         bb.Write(this->distance);
+        bb.Write(this->move_status);
     }
     inline int Cannon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
@@ -4212,6 +4220,7 @@ namespace CatchFish::Configs {
         if (int r = bb.Read(this->radius)) return r;
         if (int r = bb.Read(this->maxRadius)) return r;
         if (int r = bb.Read(this->distance)) return r;
+        if (int r = bb.Read(this->move_status)) return r;
         return 0;
     }
     inline int Cannon::InitCascade(void* const& o) noexcept {
@@ -4242,6 +4251,7 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"radius\":", this->radius);
         xx::Append(s, ", \"maxRadius\":", this->maxRadius);
         xx::Append(s, ", \"distance\":", this->distance);
+        xx::Append(s, ", \"move_status\":", this->move_status);
     }
     inline uint16_t Weapon::GetTypeId() const noexcept {
         return 64;

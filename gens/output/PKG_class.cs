@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "4ebc983511d2e9691ffaf1525b173664"; 
+        public const string value = "7d60e467c11161538e196e387ee7a8a7"; 
     }
 
 namespace CatchFish
@@ -1555,6 +1555,10 @@ namespace CatchFish
         /// 金币 / 倍率( 记录炮台开火时的 Bet 值 )
         /// </summary>
         public long coin;
+        /// <summary>
+        /// 是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹
+        /// </summary>
+        public int move_status;
 
         public override ushort GetPackageId()
         {
@@ -1565,12 +1569,14 @@ namespace CatchFish
         {
             base.ToBBuffer(bb);
             bb.Write(this.coin);
+            bb.Write(this.move_status);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.coin);
+            bb.Read(ref this.move_status);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1591,6 +1597,7 @@ namespace CatchFish
         {
             base.ToStringCore(s);
             s.Append(", \"coin\":" + coin.ToString());
+            s.Append(", \"move_status\":" + move_status.ToString());
         }
         public override string ToString()
         {
@@ -4097,6 +4104,10 @@ namespace CatchFish.Configs
         /// 子弹每帧前进距离
         /// </summary>
         public float distance;
+        /// <summary>
+        /// 是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹
+        /// </summary>
+        public int move_status;
 
         public override ushort GetPackageId()
         {
@@ -4114,6 +4125,7 @@ namespace CatchFish.Configs
             bb.Write(this.radius);
             bb.Write(this.maxRadius);
             bb.Write(this.distance);
+            bb.Write(this.move_status);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -4127,6 +4139,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.radius);
             bb.Read(ref this.maxRadius);
             bb.Read(ref this.distance);
+            bb.Read(ref this.move_status);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -4154,6 +4167,7 @@ namespace CatchFish.Configs
             s.Append(", \"radius\":" + radius.ToString());
             s.Append(", \"maxRadius\":" + maxRadius.ToString());
             s.Append(", \"distance\":" + distance.ToString());
+            s.Append(", \"move_status\":" + move_status.ToString());
         }
         public override string ToString()
         {

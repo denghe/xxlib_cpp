@@ -226,6 +226,7 @@ inline int PKG::CatchFish::Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexce
 	bullet->angle = angle;	// 角度沿用炮台的( 在发射前炮台已经调整了角度 )
 	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle);							// 计算出每帧移动增量
 	bullet->indexAtContainer = (int)bullets->len;
+	bullet->move_status = cfg->move_status;
 	bullets->Add(bullet);
 
 	// 创建发射事件
