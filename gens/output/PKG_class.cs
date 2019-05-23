@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "7d60e467c11161538e196e387ee7a8a7"; 
+        public const string value = "3f47372cc72672c6c94998f5ff496e87"; 
     }
 
 namespace CatchFish
@@ -1556,9 +1556,9 @@ namespace CatchFish
         /// </summary>
         public long coin;
         /// <summary>
-        /// 是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹
+        /// 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
         /// </summary>
-        public int move_status;
+        public bool enableBulletBounce = false;
 
         public override ushort GetPackageId()
         {
@@ -1569,14 +1569,14 @@ namespace CatchFish
         {
             base.ToBBuffer(bb);
             bb.Write(this.coin);
-            bb.Write(this.move_status);
+            bb.Write(this.enableBulletBounce);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.coin);
-            bb.Read(ref this.move_status);
+            bb.Read(ref this.enableBulletBounce);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1597,7 +1597,7 @@ namespace CatchFish
         {
             base.ToStringCore(s);
             s.Append(", \"coin\":" + coin.ToString());
-            s.Append(", \"move_status\":" + move_status.ToString());
+            s.Append(", \"enableBulletBounce\":" + enableBulletBounce.ToString());
         }
         public override string ToString()
         {
@@ -4105,9 +4105,9 @@ namespace CatchFish.Configs
         /// </summary>
         public float distance;
         /// <summary>
-        /// 是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹
+        /// 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
         /// </summary>
-        public int move_status;
+        public bool enableBulletBounce = false;
 
         public override ushort GetPackageId()
         {
@@ -4125,7 +4125,7 @@ namespace CatchFish.Configs
             bb.Write(this.radius);
             bb.Write(this.maxRadius);
             bb.Write(this.distance);
-            bb.Write(this.move_status);
+            bb.Write(this.enableBulletBounce);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
@@ -4139,7 +4139,7 @@ namespace CatchFish.Configs
             bb.Read(ref this.radius);
             bb.Read(ref this.maxRadius);
             bb.Read(ref this.distance);
-            bb.Read(ref this.move_status);
+            bb.Read(ref this.enableBulletBounce);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -4167,7 +4167,7 @@ namespace CatchFish.Configs
             s.Append(", \"radius\":" + radius.ToString());
             s.Append(", \"maxRadius\":" + maxRadius.ToString());
             s.Append(", \"distance\":" + distance.ToString());
-            s.Append(", \"move_status\":" + move_status.ToString());
+            s.Append(", \"enableBulletBounce\":" + enableBulletBounce.ToString());
         }
         public override string ToString()
         {

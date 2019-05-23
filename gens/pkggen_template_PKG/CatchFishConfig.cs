@@ -110,8 +110,8 @@ namespace CatchFish
             [Desc("子弹每帧前进距离")]
             float distance;
 
-            [Desc("是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹")]
-            int move_status;
+            [Desc("是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹")]
+            bool enableBulletBounce;
 
             // 基类 frames 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
         }

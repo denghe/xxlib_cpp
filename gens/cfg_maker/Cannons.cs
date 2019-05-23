@@ -27,7 +27,7 @@ public static class Cannons
             c.radius = 6;
             c.maxRadius = 200;
             c.distance = 720 / 60;  // 1秒钟上下穿越屏幕?
-            c.move_status = 0;
+            c.enableBulletBounce = true;
 
         }
     }

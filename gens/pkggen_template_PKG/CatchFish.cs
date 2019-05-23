@@ -164,8 +164,8 @@ namespace CatchFish
         [Desc("金币 / 倍率( 记录炮台开火时的 Bet 值 )")]
         long coin;
 
-        [Desc("是否开启子弹到屏幕边缘时反弹,0:不反弹,1:反弹")]
-        int move_status;
+        [Desc("是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹")]
+        bool enableBulletBounce;
     }
 
     [AttachInclude, CustomInitCascade, Desc("鱼基类( 支持每帧 pos += moveInc 简单移动 )")]
