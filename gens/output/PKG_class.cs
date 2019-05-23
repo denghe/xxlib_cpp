@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "3f47372cc72672c6c94998f5ff496e87"; 
+        public const string value = "908d46750b92700f3f94165fabcdc454"; 
     }
 
 namespace CatchFish
@@ -1555,10 +1555,6 @@ namespace CatchFish
         /// 金币 / 倍率( 记录炮台开火时的 Bet 值 )
         /// </summary>
         public long coin;
-        /// <summary>
-        /// 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
-        /// </summary>
-        public bool enableBulletBounce = false;
 
         public override ushort GetPackageId()
         {
@@ -1569,14 +1565,12 @@ namespace CatchFish
         {
             base.ToBBuffer(bb);
             bb.Write(this.coin);
-            bb.Write(this.enableBulletBounce);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.coin);
-            bb.Read(ref this.enableBulletBounce);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1597,7 +1591,6 @@ namespace CatchFish
         {
             base.ToStringCore(s);
             s.Append(", \"coin\":" + coin.ToString());
-            s.Append(", \"enableBulletBounce\":" + enableBulletBounce.ToString());
         }
         public override string ToString()
         {

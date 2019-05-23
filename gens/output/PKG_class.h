@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "3f47372cc72672c6c94998f5ff496e87";
+		inline static const std::string value = "908d46750b92700f3f94165fabcdc454";
     };
 
 namespace Generic {
@@ -1536,8 +1536,6 @@ namespace CatchFish {
     struct Bullet : PKG::CatchFish::MoveItem {
         // 金币 / 倍率( 记录炮台开火时的 Bet 值 )
         int64_t coin = 0;
-        // 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
-        bool enableBulletBounce = false;
 
         typedef Bullet ThisType;
         typedef PKG::CatchFish::MoveItem BaseType;
@@ -2751,12 +2749,10 @@ namespace CatchFish {
     inline void Bullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->coin);
-        bb.Write(this->enableBulletBounce);
     }
     inline int Bullet::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->coin)) return r;
-        if (int r = bb.Read(this->enableBulletBounce)) return r;
         return 0;
     }
     inline int Bullet::InitCascadeCore(void* const& o) noexcept {
@@ -2780,7 +2776,6 @@ namespace CatchFish {
     inline void Bullet::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"coin\":", this->coin);
-        xx::Append(s, ", \"enableBulletBounce\":", this->enableBulletBounce);
     }
     inline uint16_t Fish::GetTypeId() const noexcept {
         return 19;

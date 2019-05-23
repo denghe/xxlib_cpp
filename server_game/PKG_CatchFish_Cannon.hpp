@@ -269,7 +269,6 @@ inline int PKG::CatchFish::Cannon::Fire(PKG::CatchFish::Events::Fire const& o) n
 	bullet->pos = pos + xx::Rotate(xx::Pos{ cfg->muzzleLen * cfg->scale ,0 }, angle);			// 计算炮口坐标
 	bullet->angle = angle;
 	bullet->moveInc = xx::Rotate(xx::Pos{ cfg->distance ,0 }, angle);							// 计算出每帧移动增量
-	bullet->enableBulletBounce = cfg->enableBulletBounce;
 
 	// 非自己的子弹：子弹坐标追帧同步
 	if (!player->isSelf && scene->cfg->enableBulletFastForward) {
