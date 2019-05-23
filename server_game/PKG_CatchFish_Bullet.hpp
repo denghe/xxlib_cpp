@@ -14,7 +14,7 @@ inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
 inline int PKG::CatchFish::Bullet::Move() noexcept {
 	pos += moveInc;
 #ifdef CC_TARGET_PLATFORM
-	if (enableBulletBounce == 0) {
+	if (!enableBulletBounce) {
 		// 飞出屏幕就消失
 		auto&& w = ::designSize_2.x + cfg->maxRadius;
 		auto&& h = ::designSize_2.y + cfg->maxRadius;
@@ -31,7 +31,7 @@ inline int PKG::CatchFish::Bullet::Move() noexcept {
 			return -1;
 		}
 	}
-	else if(enableBulletBounce == 1)
+	else
 	{
 		//飞出屏幕边缘就反弹
 		auto&& w = ::designSize_2.x;
