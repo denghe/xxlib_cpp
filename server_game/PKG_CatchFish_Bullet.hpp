@@ -12,12 +12,11 @@ inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
 #endif
 
 inline int PKG::CatchFish::Bullet::Move() noexcept {
-	pos += moveInc;
-#ifdef CC_TARGET_PLATFORM
 	if (!cfg->enableBulletBounce) {
+#ifdef CC_TARGET_PLATFORM
 		// 飞出屏幕就消失
-		auto&& w = ::designSize_2.x + cfg->maxRadius;
-		auto&& h = ::designSize_2.y + cfg->maxRadius;
+		auto&& w = ::designSize_2.x + cfg->radius;
+		auto&& h = ::designSize_2.y + cfg->radius;
 		if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
 			// 如果是本人: 发子弹撤销包
 			if (player->isSelf) {
@@ -30,21 +29,31 @@ inline int PKG::CatchFish::Bullet::Move() noexcept {
 			}
 			return -1;
 		}
-	}else{
+#endif
+		pos += moveInc;
+	}
+	else {
 		// 飞出屏幕边缘就反弹
-		auto&& w = ::designSize_2.x;
-		auto&& h = ::designSize_2.y;
-		if (pos.x > w || pos.x < -w){
+		auto w = ::designSize_2.x - cfg->radius * cfg->scale;		// todo: 补一个子弹反弹半径配置. 受 scale 影响
+		auto h = ::designSize_2.y - cfg->radius * cfg->scale;
+		auto p = pos + moveInc;
+		if (p.x > w || p.x < -w) {
 			angle = angle > 0 ? M_PI - angle : -angle - M_PI;
 			moveInc.x = -moveInc.x;
+			pos.x = p.x > 0 ? w - (p.x - pos.x) : -w - (p.x - pos.x);
 		}
-		if (pos.y > h || pos.y < -h){
+		else {
+			pos.x = p.x;
+		}
+		if (p.y > h || p.y < -h) {
 			angle = -angle;
 			moveInc.y = -moveInc.y;
+			pos.y = p.y > 0 ? h - (p.y - pos.y) : -h - (p.y - pos.y);
 		}
-
+		else {
+			pos.y = p.y;
+		}
 	}
-#endif
 	return 0;
 }
 
@@ -52,7 +61,7 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 	if (int r = Move()) return r;
 #ifdef CC_TARGET_PLATFORM
 	// 遍历所有鱼
-	auto && fs = *scene->fishs;
+	auto&& fs = *scene->fishs;
 	if (fs.len) {
 		for (size_t i = fs.len - 1; i != -1; --i) {
 			// 命中检查
