@@ -60,6 +60,7 @@ inline int PKG::CatchFish::Cannon::Update(int const& frameNumber) noexcept {
 			if (cc_touchs.len) {
 				auto tloc = cc_fishNode->convertTouchToNodeSpace(cc_touchs[0]);
 				tpos = { tloc.x, tloc.y };
+				angle = xx::GetAngle(pos, tpos);	// 手工模式不管有没有打出子弹，炮管始终转向
 				fire = true;
 			}
 		}

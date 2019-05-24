@@ -15,8 +15,8 @@ inline int PKG::CatchFish::Bullet::Move() noexcept {
 	if (!cfg->enableBulletBounce) {
 #ifdef CC_TARGET_PLATFORM
 		// 飞出屏幕就消失
-		auto&& w = ::designSize_2.x + cfg->radius;
-		auto&& h = ::designSize_2.y + cfg->radius;
+		auto&& w = ::designSize_2.x + cfg->maxRadius;
+		auto&& h = ::designSize_2.y + cfg->maxRadius;
 		if (pos.x > w || pos.x < -w || pos.y > h || pos.y < -h) {
 			// 如果是本人: 发子弹撤销包
 			if (player->isSelf) {
@@ -34,7 +34,7 @@ inline int PKG::CatchFish::Bullet::Move() noexcept {
 	}
 	else {
 		// 飞出屏幕边缘就反弹
-		auto w = ::designSize_2.x - cfg->radius * cfg->scale;		// todo: 补一个子弹反弹半径配置. 受 scale 影响
+		auto w = ::designSize_2.x - cfg->radius * cfg->scale;
 		auto h = ::designSize_2.y - cfg->radius * cfg->scale;
 		auto p = pos + moveInc;
 		if (p.x > w || p.x < -w) {
