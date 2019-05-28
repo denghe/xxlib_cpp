@@ -270,4 +270,53 @@ namespace CatchFish
         [Desc("围在身边的小鱼( Update, HitCheck 时级联处理 )")]
         List<RoundFish> childs;
     }
+
+    [AttachInclude, Desc("色彩覆盖鱼, 打死后可能爆炸或得到某种武器/炮台. 切换炮台可能导致倍率基数发生变化( 如果支持倍率切换的话 )")]
+    class ColorFish : Fish
+    {
+    }
+
+    [Desc("炸弹鱼( 红 )")]
+    class BombFish : ColorFish
+    {
+    }
+
+    [Desc("狂暴鱼( 黄 )")]
+    class FuryFish : ColorFish
+    {
+    }
+
+    [Desc("钻头鱼( 蓝 )")]
+    class DrillFish : ColorFish
+    {
+    }
+
+
+    [Desc("炸弹子弹")]
+    class BombBullet : Bullet
+    {
+        // todo: 坐标?
+    }
+
+
+    [Desc("狂暴子弹")]
+    class FuryBullet : Bullet
+    {
+    }
+
+    [Desc("钻头子弹")]
+    class DrillBullet : Bullet
+    {
+    }
+
+    [Desc("狂暴炮台")]
+    class FuryCannon : Cannon
+    {
+    }
+
+    [Desc("钻头炮台")]
+    class DrillCannon : Cannon
+    {
+        // todo: 相关状态变量
+    }
 }

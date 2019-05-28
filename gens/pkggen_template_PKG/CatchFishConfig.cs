@@ -110,7 +110,7 @@ namespace CatchFish
             [Desc("子弹每帧前进距离")]
             float distance;
 
-            [Desc("是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹")]
+            [Desc("是否开启子弹到屏幕边缘时反弹, false: 不反弹, true: 反弹")]
             bool enableBulletBounce;
 
             // 基类 frames 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
@@ -119,11 +119,14 @@ namespace CatchFish
         [Desc("打爆部分特殊鱼出现的特殊武器配置基类")]
         class Weapon : Item
         {
-            [Desc("每帧移动距离")]
-            float distance;
+            [Desc("展示文本( 为简化设计先这样 )")]
+            string txt;
 
             [Desc("展示时长 ( 帧数 )")]
             float showNumFrames;
+
+            [Desc("每帧移动距离")]
+            float distance;
 
             [Desc("飞到玩家坐标之后变化出来的炮台 cfg 之基类")]
             Cannon cannon;
@@ -168,6 +171,7 @@ namespace CatchFish
         }
 
 
+
         [Desc("小鱼环绕的大鱼的特殊配置")]
         class BigFish : Fish
         {
@@ -179,6 +183,48 @@ namespace CatchFish
 
             [Desc("小鱼前进角速度")]
             float childsAngleInc;
+        }
+
+
+        [Desc("彩色鱼特殊配置( 红: 炸弹  黄：狂暴  蓝：钻头 )")]
+        class ColorFish : Fish
+        {
+            [Desc("红色数值")]
+            byte r;
+            [Desc("绿色数值")]
+            byte g;
+            [Desc("蓝色数值")]
+            byte b;
+
+            [Desc("死后掉落的武器的配置")]
+            Weapon weapon;
+        }
+
+        [Desc("炸弹鱼. 死后变为 1 粒基础 cannon 的特殊子弹. 下一帧爆炸. 无 weapon 配置")]
+        class BombFish : ColorFish
+        {
+            [Desc("爆炸半径")]
+            float explodeRadius;
+        }
+
+        [Desc("狂暴炮台( 炮台打出数量有限的大威力子弹. 威力用每 Fire 子弹数量体现. 增加单发与鱼死亡检测次数, 显得更容易打死鱼 )")]
+        class FuryCannon : Cannon
+        {
+            [Desc("打击次数( hitCount = coin / fireCount )")]
+            int hitCount;
+
+            [Desc("发射次数( fireCount = coin / hitCount )")]
+            int fireCount;
+        }
+
+        [Desc("钻头炮台( 穿刺 )")]
+        class DrillCannon : Cannon
+        {
+            [Desc("碰撞CD: 限定一定时间范围内，子弹与鱼的碰撞检测次数。需要在子弹上背负 fishId : timeoutFN 白名单. 超时时间 = scene.FN + hitCD. 目标鱼不在名单内或 timeoutFN >= scene.FN 则可进行 hit. 同时记录到名单或刷新 timeoutFN")]
+            int hitCD;
+
+            [Desc("打击次数( 每次碰撞执行的 hit 次数. 消耗子弹相应的 coin. 如果剩余 coin 耗尽则消失 )")]
+            int hitCount;
         }
     }
 }
