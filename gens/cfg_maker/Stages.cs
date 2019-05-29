@@ -2,9 +2,29 @@
 {
     public static void Fill(PKG.CatchFish.Configs.Config cfg)
     {
+        // 随机小鱼 + 炸弹
+        {
+            var s = NewStage(cfg, 60 * 60);                             // 关卡持续时长帧数
+            {
+                var e = NewElement<PKG.CatchFish.Stages.Emitter_RandomFishs>(s);
+                e.cfg_bornTicksInterval = 20;                           // 每隔多少帧刷 1 只
+                e.cfg_coin = 3;
+                e.cfg_scaleFrom = 2;                                    // 体积范围
+                e.cfg_scaleTo = 3;
+            }
+            {
+                // 自动补炸弹
+                var m = NewMonitor<PKG.CatchFish.Stages.Monitor_KeepBombFish>(s);
+                m.cfg_bornTicksInterval = 0;
+                m.cfg_numFishsLimit = 1;                                // 总只数限制
+                m.cfg_bornDelayFrameNumber = 120;                       // 预约 xx 帧 后再生( 预约时间太短客户端容易掉线 )
+                m.cfg_endTicks -= m.cfg_bornDelayFrameNumber;           // 监视器结束时间 应早于 关卡结束时间 - 预约延迟
+            }
+        }
+
         // BOSS: 大鱼周围环绕小鱼
         {
-            var s = NewStage(cfg, 60 * 6000);                           // 关卡持续时长帧数
+            var s = NewStage(cfg, 60 * 60);                             // 关卡持续时长帧数
             {
                 // 自动补 BOSS
                 var m = NewMonitor<PKG.CatchFish.Stages.Monitor_KeepBigFish>(s);

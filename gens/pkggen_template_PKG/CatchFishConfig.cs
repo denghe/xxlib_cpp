@@ -186,9 +186,12 @@ namespace CatchFish
         }
 
 
-        [Desc("彩色鱼特殊配置( 红: 炸弹  黄：狂暴  蓝：钻头 )")]
+        [Desc("彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头 )")]
         class ColorFish : Fish
         {
+            [Desc("每帧移动距离")]
+            float moveFrameDistance;
+
             [Desc("红色数值")]
             byte r;
             [Desc("绿色数值")]

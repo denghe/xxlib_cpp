@@ -298,6 +298,9 @@ inline int PKG::CatchFish::Cannon::Fire(xx::Pos const& tarPos) noexcept {
 	// 总颗数限制
 	if (bullets->len == cfg->numLimit) return -5;
 
+	// 置 cd
+	fireCD = scene->frameNumber + cfg->fireCD;
+
 	// 模拟 Events::Fire 结构体 call 发射函数. 只用到 bulletId & tarAngle 这两个属性
 	PKG::CatchFish::Events::Fire f;
 	f.bulletId = ++player->autoIncId;

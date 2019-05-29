@@ -96,6 +96,37 @@ inline PKG::CatchFish::BigFish_s PKG::CatchFish::Scene::MakeRandomBigFish(int co
 
 
 
+inline PKG::CatchFish::BombFish_s PKG::CatchFish::Scene::MakeRandomBombFish(int const& fishId) noexcept {
+	auto&& fishCfg = xx::As<PKG::CatchFish::Configs::BombFish>(cfg->fishs->At(2));
+	assert(fishCfg);
+
+	auto&& fish = xx::Make<PKG::CatchFish::BombFish>();
+	fish->scene = this;
+	fish->id = fishId;
+	fish->cfgId = fishCfg->id;
+	fish->cfg = &*fishCfg;
+	if (fishCfg->minCoin < fishCfg->maxCoin) {
+		fish->coin = rnd->Next((int)fishCfg->minCoin, (int)fishCfg->maxCoin + 1);
+	}
+	else {
+		fish->coin = fishCfg->minCoin;
+	}
+	fish->scale = 1;
+	fish->speedScale = 1;
+	fish->spriteFrameIndex = 0;
+	fish->frameRatio = 1;
+
+	float fishRadius = fishCfg->maxDetectRadius * fishCfg->scale * fish->scale;
+	auto&& posFromTo = MakeRandomInOutPoint(fishRadius);
+	fish->angle = xx::GetAngle(posFromTo);
+	fish->pos = posFromTo.first;
+	fish->moveInc = xx::Rotate({ fishCfg->moveFrameDistance, 0 }, fish->angle);
+
+	return fish;
+}
+
+
+
 
 // 生成一条随机角度的进出口( 主用于体积大于 cfg ways 设定的移动对象 )
 // -45 ~ 45, 135 ~ 225 在这两段角度之间随机一个角度值,  + 180 之后的 45 度范围内再次随机一个角度, 用旋转函数转为两个坐标点. 连为1根直线, 最后找出安全出生框与直线的交点

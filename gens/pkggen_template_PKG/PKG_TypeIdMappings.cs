@@ -94,6 +94,24 @@ interface ITypeIdMappings
 
     List<CatchFish.RoundFish> _84 { get; }
 
+    CatchFish.ColorFish _95 { get; }
+
+    CatchFish.BombFish _96 { get; }
+
+    CatchFish.FuryFish _97 { get; }
+
+    CatchFish.DrillFish _98 { get; }
+
+    CatchFish.BombBullet _99 { get; }
+
+    CatchFish.FuryBullet _100 { get; }
+
+    CatchFish.DrillBullet _101 { get; }
+
+    CatchFish.FuryCannon _102 { get; }
+
+    CatchFish.DrillCannon _103 { get; }
+
     CatchFish.Events.Enter _37 { get; }
 
     CatchFish.Events.Leave _38 { get; }
@@ -104,7 +122,7 @@ interface ITypeIdMappings
 
     CatchFish.Events.FishDead _41 { get; }
 
-    List<CatchFish.Events.FishDead> _42 { get; }
+    List<int> _54 { get; }
 
     CatchFish.Events.PushWeapon _43 { get; }
 
@@ -128,8 +146,6 @@ interface ITypeIdMappings
 
     CatchFish.Events.DebugInfo _53 { get; }
 
-    List<int> _54 { get; }
-
     List<CatchFish.Stages.StageElement> _74 { get; }
 
     CatchFish.Stages.StageElement _75 { get; }
@@ -139,6 +155,8 @@ interface ITypeIdMappings
     CatchFish.Stages.Monitor_KeepFatFish _77 { get; }
 
     CatchFish.Stages.Monitor_KeepBigFish _86 { get; }
+
+    CatchFish.Stages.Monitor_KeepBombFish _108 { get; }
 
     CatchFish.Stages.Emitter_RingFishs _78 { get; }
 
@@ -179,5 +197,13 @@ interface ITypeIdMappings
     List<List<xx.Pos>> _73 { get; }
 
     CatchFish.Configs.BigFish _85 { get; }
+
+    CatchFish.Configs.ColorFish _104 { get; }
+
+    CatchFish.Configs.BombFish _105 { get; }
+
+    CatchFish.Configs.FuryCannon _106 { get; }
+
+    CatchFish.Configs.DrillCannon _107 { get; }
 
 }

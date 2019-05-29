@@ -48,5 +48,8 @@ PKG::CatchFish::WayFish_s MakeRandomFish(int const& fishId, int64_t const& coin,
 // 生成随机直线 BigFish
 PKG::CatchFish::BigFish_s MakeRandomBigFish(int const& fishId) noexcept;
 
+// 生成随机直线 BombFish
+PKG::CatchFish::BombFish_s MakeRandomBombFish(int const& fishId) noexcept;
+
 // 帧逻辑更新
 int Update() noexcept;

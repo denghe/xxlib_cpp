@@ -8,9 +8,8 @@ public static class Fishs
 {
     public static void Fill(PKG.CatchFish.Configs.Config cfg)
     {
-        var f1 = new PKG.CatchFish.Configs.Fish();
-        f1.id = cfg.fishs.dataLen;
-        cfg.fishs.Add(f1);
+        // 一般 / 通用鱼
+        var f1 = cfg.NewFish<PKG.CatchFish.Configs.Fish>();
         f1.minCoin = 1;
         f1.maxCoin = 3;
         f1.minDetectRadius = 6;
@@ -21,28 +20,101 @@ public static class Fishs
         f1.shadowScale = 1;
         FillFishFrames(f1, "xiaochouyu_move", 30, "xiaochouyu_die", 10, 2.5f);
 
+        // 小鱼环绕鱼
+        {
+            var f2 = cfg.NewFish<PKG.CatchFish.Configs.BigFish>();
+            f2.minCoin = 50;
+            f2.maxCoin = 50;
+            f2.minDetectRadius = f1.minDetectRadius;
+            f2.maxDetectRadius = f1.maxDetectRadius;
+            f2.scale = 6;
+            f2.zOrder = 4;
+            f2.shadowOffset = new xx.Pos { x = 10, y = 10 };
+            f2.shadowScale = f1.shadowScale;
+            f2.frames = f1.frames;
+            f2.moveFrames = f1.moveFrames;
+            f2.dieFrames = f1.dieFrames;
 
-        var f2 = new PKG.CatchFish.Configs.BigFish();
-        f2.id = cfg.fishs.dataLen;
-        cfg.fishs.Add(f2);
-        f2.minCoin = 50;
-        f2.maxCoin = 50;
-        f2.minDetectRadius = f1.minDetectRadius;
-        f2.maxDetectRadius = f1.maxDetectRadius;
-        f2.scale = 6;
-        f2.zOrder = 4;
-        f2.shadowOffset = new xx.Pos { x = 10, y = 10 };
-        f2.shadowScale = f1.shadowScale;
-        f2.frames = f1.frames;
-        f2.moveFrames = f1.moveFrames;
-        f2.dieFrames = f1.dieFrames;
+            f2.moveFrameDistance = 2.5f;
+            f2.numChilds = 16;
+            f2.childsAngleInc = (float)(Math.PI / 90.0);
+        }
 
-        f2.moveFrameDistance = 2.5f;
-        f2.numChilds = 16;
-        f2.childsAngleInc = (float)(Math.PI / 90.0);
+        // 炸弹鱼
+        {
+            var f3 = cfg.NewFish<PKG.CatchFish.Configs.BombFish>();
+            f3.minCoin = 100;
+            f3.maxCoin = 100;
+            f3.minDetectRadius = f1.minDetectRadius;
+            f3.maxDetectRadius = f1.maxDetectRadius;
+            f3.scale = 7;
+            f3.zOrder = 5;
+            f3.shadowOffset = new xx.Pos { x = 12, y = 12 };
+            f3.shadowScale = f1.shadowScale;
+            f3.frames = f1.frames;
+            f3.moveFrames = f1.moveFrames;
+            f3.dieFrames = f1.dieFrames;
+
+            f3.moveFrameDistance = 0.8f;
+            f3.weapon = null;
+            f3.explodeRadius = 300;
+            f3.r = 255;
+            f3.g = 0;
+            f3.b = 0;
+        }
+
+        // todo
+        //// 狂暴鱼
+        //{
+        //    var f4 = cfg.NewFish<PKG.CatchFish.Configs.ColorFish>();
+        //    f4.minCoin = 500;
+        //    f4.maxCoin = 500;
+        //    f4.minDetectRadius = f1.minDetectRadius;
+        //    f4.maxDetectRadius = f1.maxDetectRadius;
+        //    f4.scale = 7;
+        //    f4.zOrder = 5;
+        //    f4.shadowOffset = new xx.Pos { x = 12, y = 12 };
+        //    f4.shadowScale = f1.shadowScale;
+        //    f4.frames = f1.frames;
+        //    f4.moveFrames = f1.moveFrames;
+        //    f4.dieFrames = f1.dieFrames;
+
+        //    f4.weapon = null;   // todo: 去 weapons 定位
+        //    f4.r = 0;
+        //    f4.g = 255;
+        //    f4.b = 0;
+        //}
+
+        //// 钻头鱼
+        //{
+        //    var f5 = cfg.NewFish<PKG.CatchFish.Configs.ColorFish>();
+        //    f5.minCoin = 500;
+        //    f5.maxCoin = 500;
+        //    f5.minDetectRadius = f1.minDetectRadius;
+        //    f5.maxDetectRadius = f1.maxDetectRadius;
+        //    f5.scale = 7;
+        //    f5.zOrder = 5;
+        //    f5.shadowOffset = new xx.Pos { x = 12, y = 12 };
+        //    f5.shadowScale = f1.shadowScale;
+        //    f5.frames = f1.frames;
+        //    f5.moveFrames = f1.moveFrames;
+        //    f5.dieFrames = f1.dieFrames;
+
+        //    f5.weapon = null;   // todo: 去 weapons 定位
+        //    f5.r = 0;
+        //    f5.g = 0;
+        //    f5.b = 255;
+        //}
     }
 
 
+    public static T NewFish<T>(this PKG.CatchFish.Configs.Config cfg) where T : PKG.CatchFish.Configs.Fish, new()
+    {
+        var f = new T();
+        f.id = cfg.fishs.dataLen;
+        cfg.fishs.Add(f);
+        return f;
+    }
 
     public static string GetFrameName(string name, int i)
     {

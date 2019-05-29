@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "908d46750b92700f3f94165fabcdc454"; 
+        public const string value = "0ccd1c464c6d3a664af881129becb50e"; 
     }
 
 namespace CatchFish
@@ -2149,6 +2149,456 @@ namespace CatchFish
             base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
+    /// <summary>
+    /// 色彩覆盖鱼, 打死后可能爆炸或得到某种武器/炮台. 切换炮台可能导致倍率基数发生变化( 如果支持倍率切换的话 )
+    /// </summary>
+    public partial class ColorFish : CatchFish.Fish
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<ColorFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.ColorFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 炸弹鱼( 红 )
+    /// </summary>
+    public partial class BombFish : CatchFish.ColorFish
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<BombFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.BombFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 狂暴鱼( 绿 )
+    /// </summary>
+    public partial class FuryFish : CatchFish.ColorFish
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<FuryFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.FuryFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 钻头鱼( 蓝 )
+    /// </summary>
+    public partial class DrillFish : CatchFish.ColorFish
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DrillFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.DrillFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 炸弹子弹
+    /// </summary>
+    public partial class BombBullet : CatchFish.Bullet
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<BombBullet>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.BombBullet\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 狂暴子弹
+    /// </summary>
+    public partial class FuryBullet : CatchFish.Bullet
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<FuryBullet>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.FuryBullet\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 钻头子弹
+    /// </summary>
+    public partial class DrillBullet : CatchFish.Bullet
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DrillBullet>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.DrillBullet\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 狂暴炮台
+    /// </summary>
+    public partial class FuryCannon : CatchFish.Cannon
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<FuryCannon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.FuryCannon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 钻头炮台
+    /// </summary>
+    public partial class DrillCannon : CatchFish.Cannon
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DrillCannon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.DrillCannon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
 }
 namespace CatchFish.Events
 {
@@ -3418,7 +3868,7 @@ namespace CatchFish.Stages
     public partial class Monitor_KeepFatFish : CatchFish.Stages.Emitter_RandomFishs
     {
         /// <summary>
-        /// 配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
+        /// 配置: 鱼总数限制
         /// </summary>
         public int cfg_numFishsLimit;
         /// <summary>
@@ -3486,7 +3936,7 @@ namespace CatchFish.Stages
         /// </summary>
         public int cfg_bornTicksInterval;
         /// <summary>
-        /// 配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )
+        /// 配置: 鱼总数限制
         /// </summary>
         public int cfg_numFishsLimit;
         /// <summary>
@@ -3542,6 +3992,56 @@ namespace CatchFish.Stages
             s.Append(", \"cfg_numFishsLimit\":" + cfg_numFishsLimit.ToString());
             s.Append(", \"cfg_bornDelayFrameNumber\":" + cfg_bornDelayFrameNumber.ToString());
             s.Append(", \"bornAvaliableTicks\":" + bornAvaliableTicks.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 监视器: 自动再生炸弹, 服务端预约下发
+    /// </summary>
+    public partial class Monitor_KeepBombFish : CatchFish.Stages.Monitor_KeepBigFish
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<Monitor_KeepBombFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Stages.Monitor_KeepBombFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
         }
         public override string ToString()
         {
@@ -4098,7 +4598,7 @@ namespace CatchFish.Configs
         /// </summary>
         public float distance;
         /// <summary>
-        /// 是否开启子弹到屏幕边缘时反弹,false:不反弹,true:反弹
+        /// 是否开启子弹到屏幕边缘时反弹, false: 不反弹, true: 反弹
         /// </summary>
         public bool enableBulletBounce = false;
 
@@ -4179,13 +4679,17 @@ namespace CatchFish.Configs
     public partial class Weapon : CatchFish.Configs.Item
     {
         /// <summary>
-        /// 每帧移动距离
+        /// 展示文本( 为简化设计先这样 )
         /// </summary>
-        public float distance;
+        public string txt;
         /// <summary>
         /// 展示时长 ( 帧数 )
         /// </summary>
         public float showNumFrames;
+        /// <summary>
+        /// 每帧移动距离
+        /// </summary>
+        public float distance;
         /// <summary>
         /// 飞到玩家坐标之后变化出来的炮台 cfg 之基类
         /// </summary>
@@ -4199,16 +4703,19 @@ namespace CatchFish.Configs
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
-            bb.Write(this.distance);
+            bb.Write(this.txt);
             bb.Write(this.showNumFrames);
+            bb.Write(this.distance);
             bb.Write(this.cannon);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
-            bb.Read(ref this.distance);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.txt);
             bb.Read(ref this.showNumFrames);
+            bb.Read(ref this.distance);
             bb.Read(ref this.cannon);
         }
         public override void ToString(System.Text.StringBuilder s)
@@ -4229,8 +4736,10 @@ namespace CatchFish.Configs
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
-            s.Append(", \"distance\":" + distance.ToString());
+            if (txt != null) s.Append(", \"txt\":\"" + txt.ToString() + "\"");
+            else s.Append(", \"txt\":nil");
             s.Append(", \"showNumFrames\":" + showNumFrames.ToString());
+            s.Append(", \"distance\":" + distance.ToString());
             s.Append(", \"cannon\":" + (cannon == null ? "nil" : cannon.ToString()));
         }
         public override string ToString()
@@ -4515,6 +5024,276 @@ namespace CatchFish.Configs
             base.MySqlAppend(sb, ignoreReadOnly);
         }
     }
+    /// <summary>
+    /// 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头 )
+    /// </summary>
+    public partial class ColorFish : CatchFish.Configs.Fish
+    {
+        /// <summary>
+        /// 每帧移动距离
+        /// </summary>
+        public float moveFrameDistance;
+        /// <summary>
+        /// 红色数值
+        /// </summary>
+        public byte r;
+        /// <summary>
+        /// 绿色数值
+        /// </summary>
+        public byte g;
+        /// <summary>
+        /// 蓝色数值
+        /// </summary>
+        public byte b;
+        /// <summary>
+        /// 死后掉落的武器的配置
+        /// </summary>
+        public CatchFish.Configs.Weapon weapon;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<ColorFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.moveFrameDistance);
+            bb.Write(this.r);
+            bb.Write(this.g);
+            bb.Write(this.b);
+            bb.Write(this.weapon);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.moveFrameDistance);
+            bb.Read(ref this.r);
+            bb.Read(ref this.g);
+            bb.Read(ref this.b);
+            bb.Read(ref this.weapon);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.ColorFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"moveFrameDistance\":" + moveFrameDistance.ToString());
+            s.Append(", \"r\":" + r.ToString());
+            s.Append(", \"g\":" + g.ToString());
+            s.Append(", \"b\":" + b.ToString());
+            s.Append(", \"weapon\":" + (weapon == null ? "nil" : weapon.ToString()));
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 炸弹鱼. 死后变为 1 粒基础 cannon 的特殊子弹. 下一帧爆炸. 无 weapon 配置
+    /// </summary>
+    public partial class BombFish : CatchFish.Configs.ColorFish
+    {
+        /// <summary>
+        /// 爆炸半径
+        /// </summary>
+        public float explodeRadius;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<BombFish>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.explodeRadius);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.explodeRadius);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.BombFish\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"explodeRadius\":" + explodeRadius.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 狂暴炮台( 炮台打出数量有限的大威力子弹. 威力用每 Fire 子弹数量体现. 增加单发与鱼死亡检测次数, 显得更容易打死鱼 )
+    /// </summary>
+    public partial class FuryCannon : CatchFish.Configs.Cannon
+    {
+        /// <summary>
+        /// 打击次数( hitCount = coin / fireCount )
+        /// </summary>
+        public int hitCount;
+        /// <summary>
+        /// 发射次数( fireCount = coin / hitCount )
+        /// </summary>
+        public int fireCount;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<FuryCannon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.hitCount);
+            bb.Write(this.fireCount);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.hitCount);
+            bb.Read(ref this.fireCount);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.FuryCannon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"hitCount\":" + hitCount.ToString());
+            s.Append(", \"fireCount\":" + fireCount.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 钻头炮台( 穿刺 )
+    /// </summary>
+    public partial class DrillCannon : CatchFish.Configs.Cannon
+    {
+        /// <summary>
+        /// 碰撞CD: 限定一定时间范围内，子弹与鱼的碰撞检测次数。需要在子弹上背负 fishId : timeoutFN 白名单. 超时时间 = scene.FN + hitCD. 目标鱼不在名单内或 timeoutFN >= scene.FN 则可进行 hit. 同时记录到名单或刷新 timeoutFN
+        /// </summary>
+        public int hitCD;
+        /// <summary>
+        /// 打击次数( 每次碰撞执行的 hit 次数. 消耗子弹相应的 coin. 如果剩余 coin 耗尽则消失 )
+        /// </summary>
+        public int hitCount;
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DrillCannon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+            bb.Write(this.hitCD);
+            bb.Write(this.hitCount);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+            bb.Read(ref this.hitCD);
+            bb.Read(ref this.hitCount);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.DrillCannon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+            s.Append(", \"hitCD\":" + hitCD.ToString());
+            s.Append(", \"hitCount\":" + hitCount.ToString());
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
 }
     public static class AllTypes
     {
@@ -4566,6 +5345,15 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.RoundFish>(82);
             xx.Object.Register<CatchFish.BigFish>(83);
             xx.Object.Register<xx.List<CatchFish.RoundFish>>(84);
+            xx.Object.Register<CatchFish.ColorFish>(95);
+            xx.Object.Register<CatchFish.BombFish>(96);
+            xx.Object.Register<CatchFish.FuryFish>(97);
+            xx.Object.Register<CatchFish.DrillFish>(98);
+            xx.Object.Register<CatchFish.BombBullet>(99);
+            xx.Object.Register<CatchFish.FuryBullet>(100);
+            xx.Object.Register<CatchFish.DrillBullet>(101);
+            xx.Object.Register<CatchFish.FuryCannon>(102);
+            xx.Object.Register<CatchFish.DrillCannon>(103);
             xx.Object.Register<CatchFish.Events.Enter>(37);
             xx.Object.Register<CatchFish.Events.Leave>(38);
             xx.Object.Register<CatchFish.Events.NoMoney>(39);
@@ -4588,6 +5376,7 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Stages.Emitter_RandomFishs>(76);
             xx.Object.Register<CatchFish.Stages.Monitor_KeepFatFish>(77);
             xx.Object.Register<CatchFish.Stages.Monitor_KeepBigFish>(86);
+            xx.Object.Register<CatchFish.Stages.Monitor_KeepBombFish>(108);
             xx.Object.Register<CatchFish.Stages.Emitter_RingFishs>(78);
             xx.Object.Register<CatchFish.Stages.Emitter_CircleFishs>(81);
             xx.Object.Register<CatchFish.Configs.Config>(57);
@@ -4608,6 +5397,10 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.Configs.Physics>(72);
             xx.Object.Register<xx.List<xx.List<xx.Pos>>>(73);
             xx.Object.Register<CatchFish.Configs.BigFish>(85);
+            xx.Object.Register<CatchFish.Configs.ColorFish>(104);
+            xx.Object.Register<CatchFish.Configs.BombFish>(105);
+            xx.Object.Register<CatchFish.Configs.FuryCannon>(106);
+            xx.Object.Register<CatchFish.Configs.DrillCannon>(107);
         }
     }
 }

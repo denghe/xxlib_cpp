@@ -276,45 +276,45 @@ namespace CatchFish
     {
     }
 
-    [Desc("炸弹鱼( 红 )")]
+    [AttachInclude, Desc("炸弹鱼( 红 )")]
     class BombFish : ColorFish
     {
     }
 
-    [Desc("狂暴鱼( 黄 )")]
+    [AttachInclude, Desc("狂暴鱼( 绿 )")]
     class FuryFish : ColorFish
     {
     }
 
-    [Desc("钻头鱼( 蓝 )")]
+    [AttachInclude, Desc("钻头鱼( 蓝 )")]
     class DrillFish : ColorFish
     {
     }
 
 
-    [Desc("炸弹子弹")]
+    [AttachInclude, Desc("炸弹子弹")]
     class BombBullet : Bullet
     {
         // todo: 坐标?
     }
 
 
-    [Desc("狂暴子弹")]
+    [AttachInclude, Desc("狂暴子弹")]
     class FuryBullet : Bullet
     {
     }
 
-    [Desc("钻头子弹")]
+    [AttachInclude, Desc("钻头子弹")]
     class DrillBullet : Bullet
     {
     }
 
-    [Desc("狂暴炮台")]
+    [AttachInclude, Desc("狂暴炮台")]
     class FuryCannon : Cannon
     {
     }
 
-    [Desc("钻头炮台")]
+    [AttachInclude, Desc("钻头炮台")]
     class DrillCannon : Cannon
     {
         // todo: 相关状态变量

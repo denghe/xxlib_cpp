@@ -38,7 +38,7 @@ inline int PKG::CatchFish::Bullet::Move() noexcept {
 		auto h = ::designSize_2.y - cfg->radius * cfg->scale;
 		auto p = pos + moveInc;
 		if (p.x > w || p.x < -w) {
-			angle = angle > 0 ? M_PI - angle : -angle - M_PI;
+			angle = angle > 0 ? (float)M_PI - angle : -angle - (float)M_PI;
 			moveInc.x = -moveInc.x;
 			pos.x = p.x > 0 ? w - (p.x - pos.x) : -w - (p.x - pos.x);
 		}

@@ -58,7 +58,7 @@ namespace CatchFish
         [AttachInclude, CustomInitCascade, Desc("监视器: 自动再生肥鱼, 服务端预约下发")]
         class Monitor_KeepFatFish : Emitter_RandomFishs
         {
-            [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
+            [Desc("配置: 鱼总数限制")]
             int cfg_numFishsLimit;
 
             [Desc("配置: 预约延迟")]
@@ -71,7 +71,7 @@ namespace CatchFish
             [Desc("配置: 两条鱼生成帧间隔")]
             int cfg_bornTicksInterval;
 
-            [Desc("配置: 鱼总数限制( 可优化为鱼创建 & 析构时去 + - 同步分类统计表. 这个表似乎也可以用个下标来定位元素, 下标存放在 fish 类里面, 可以是个数组 )")]
+            [Desc("配置: 鱼总数限制")]
             int cfg_numFishsLimit;
 
             [Desc("配置: 预约延迟")]
@@ -79,6 +79,11 @@ namespace CatchFish
 
             [Desc("记录下次生成需要的帧编号( 在生成时令该值 = Stage.ticks + cfg_bornTicksInterval )")]
             int bornAvaliableTicks;
+        }
+
+        [AttachInclude, CustomInitCascade, Desc("监视器: 自动再生炸弹, 服务端预约下发")]
+        class Monitor_KeepBombFish : Monitor_KeepBigFish
+        {
         }
 
         [AttachInclude, CustomInitCascade, Desc("发射器: 从屏幕中间圆环批量出小鱼")]

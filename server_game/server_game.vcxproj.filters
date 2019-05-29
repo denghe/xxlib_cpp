@@ -94,6 +94,26 @@
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepFatFish.hpp" />
     <ClInclude Include="..\gens\output\PKG_class.hpp" />
     <ClInclude Include="PKG_CatchFish_Scene_MakeFishs.hpp" />
+    <ClInclude Include="PKG_CatchFish_BombBullet.hpp" />
+    <ClInclude Include="PKG_CatchFish_BombFish.h" />
+    <ClInclude Include="PKG_CatchFish_BombFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_ColorFish.h" />
+    <ClInclude Include="PKG_CatchFish_ColorFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_DrillBullet.h" />
+    <ClInclude Include="PKG_CatchFish_DrillBullet.hpp" />
+    <ClInclude Include="PKG_CatchFish_DrillCannon.h" />
+    <ClInclude Include="PKG_CatchFish_DrillCannon.hpp" />
+    <ClInclude Include="PKG_CatchFish_DrillFish.h" />
+    <ClInclude Include="PKG_CatchFish_DrillFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_FuryBullet.h" />
+    <ClInclude Include="PKG_CatchFish_FuryBullet.hpp" />
+    <ClInclude Include="PKG_CatchFish_FuryCannon.h" />
+    <ClInclude Include="PKG_CatchFish_FuryCannon.hpp" />
+    <ClInclude Include="PKG_CatchFish_FuryFish.h" />
+    <ClInclude Include="PKG_CatchFish_FuryFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_BombBullet.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBombFish.h" />
+    <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBombFish.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis">

@@ -64,10 +64,11 @@ public static class Program
         cfg.normalFishMaxRadius = 150;
         cfg.enableBulletFastForward = false;
 
-        Fishs.Fill(cfg);
+        // 有前后依赖
         Cannons.Fill(cfg);
+        Weapons.Fill(cfg);
+        Fishs.Fill(cfg);
         Stages.Fill(cfg);
-        // todo: more fill
 
         // cfg 序列化存盘
         var bb = new xx.BBuffer();
