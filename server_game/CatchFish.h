@@ -6,9 +6,7 @@
 #include <cmath>
 
 struct CatchFish;
-#ifndef CC_TARGET_PLATFORM
-struct Peer;
-#else
+#ifdef CC_TARGET_PLATFORM
 struct Panel_Player;
 #endif
 #ifdef CC_TARGET_PLATFORM
@@ -26,6 +24,25 @@ inline xx::List<cocos2d::Touch*> cc_touchs;
 
 #ifndef CC_TARGET_PLATFORM
 struct Peer;
+
+// hit 计算相关
+namespace std {
+	template<>
+	struct hash<std::tuple<int, int, int>> {
+		std::size_t operator()(std::tuple<int, int, int> const& in) const noexcept {
+			static_assert(sizeof(std::size_t) >= 8);
+			return (std::size_t)std::get<0>(in) | ((std::size_t)std::get<2>(in) << 32);	// 1 是 cannonId 极少冲突
+		}
+	};
+}
+namespace PKG::CatchFish {
+	struct Bullet;
+}
+struct BulletHitResult {
+	PKG::CatchFish::Bullet* bullet = nullptr;
+	int count = 0;				// 应退子弹数量
+	xx::List<int> fishIds;		// 死鱼 id 列表
+};
 #endif
 #include "xx_pos.h"
 #include "xx_random.h"

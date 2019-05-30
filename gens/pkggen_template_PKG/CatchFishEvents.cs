@@ -70,7 +70,7 @@ namespace CatchFish
         class FishDead : Event
         {
             [Desc("鱼id")]
-            int fishId;
+            int fishId;             // todo: 这个可以简化掉
 
             [Desc("炮台id")]
             int cannonId;
@@ -84,6 +84,13 @@ namespace CatchFish
             [Desc("牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )")]
             List<int> ids;
         }
+
+        // todo: 下发 服务器创建的 bullet. 例如炸弹鱼变的. 含有 cannonId, bulletId, pos, coin. 如果炸死鱼, 将下发 FishDead, 指向该 bullet.
+        //class PushBullet : Event
+        //{
+        //    [Desc("已于 server 端构造好的, 无牵挂的, 能干净下发的实例")]
+        //    Bullet bullet;
+        //}
 
         // todo: 预约: 炸弹爆炸
 

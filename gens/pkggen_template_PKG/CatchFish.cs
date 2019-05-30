@@ -69,9 +69,6 @@ namespace CatchFish
 
         [Desc("位于容器时的下标 ( 用于快速交换删除. 部分类型不一定用到 )")]
         int indexAtContainer;
-
-        //[Desc("级联更新逻辑")]
-        //int Update([ConstRef]int frameNumber) { return 0; }
     }
 
     [Desc("座位列表")]
@@ -295,7 +292,6 @@ namespace CatchFish
     [AttachInclude, Desc("炸弹子弹")]
     class BombBullet : Bullet
     {
-        // todo: 坐标?
     }
 
 

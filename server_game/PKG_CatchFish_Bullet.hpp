@@ -1,17 +1,4 @@
-﻿#ifdef CC_TARGET_PLATFORM
-inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
-	scene = (Scene*)o;
-	assert(player);
-	assert(cannon);
-	assert(cfg);
-
-	if (int r = InitCascadeCore(o)) return r;
-	DrawInit();
-	return 0;
-}
-#endif
-
-inline int PKG::CatchFish::Bullet::Move() noexcept {
+﻿inline int PKG::CatchFish::Bullet::Move() noexcept {
 	if (!cfg->enableBulletBounce) {
 #ifdef CC_TARGET_PLATFORM
 		// 飞出屏幕就消失
@@ -85,7 +72,65 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 	return 0;
 };
 
-#ifdef CC_TARGET_PLATFORM
+#ifndef CC_TARGET_PLATFORM
+inline int PKG::CatchFish::Bullet::Hit(BulletHitResult const& h) noexcept {
+	// 当前这种子弹只能命中 1 只鱼. 炸弹等片伤的需要重载该函数
+
+	// 处理所有鱼死结算( 子弹在 hit 请求产生时便已被移除 ), 玩家 +coin, 生成各种 鱼死 事件
+	auto&& fs = *scene->fishs;
+	for (auto&& fid : h.fishIds) {
+		// 定位到目标鱼
+		assert(fs.len);
+		size_t j = fs.len - 1;
+		for (; j != -1; --j) {
+			auto&& f = fs[j];
+			if (f->id == fid) {
+				// 令鱼死. 如果死成功就结算( 失败可能：炸弹之类的将转变为 bullet, 当前帧不算被打死 )
+				if (f->Die()) {
+					// 算钱
+					auto&& c = f->coin * coin;
+					// 加钱
+					player->coin += c;
+					// 构造鱼死事件包
+					{
+						auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+						fishDead->playerId = player->id;
+						fishDead->cannonId = cannon->id;
+						fishDead->bulletId = id;
+						fishDead->fishId = f->id;
+						fishDead->coin = c;
+						scene->frameEvents->events->Add(std::move(fishDead));
+					}
+
+					// 删鱼
+					fs[fs.len - 1]->indexAtContainer = (int)j;
+					fs.SwapRemoveAt(j);
+				}
+				break;
+			}
+		}
+		assert(j != -1);
+	}
+
+	// 处理退款
+	if (h.count) {
+		player->MakeRefundEvent(coin, h.count);
+	}
+
+	// 子弹消失
+	return -1;
+}
+#else
+inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {
+	scene = (Scene*)o;
+	assert(player);
+	assert(cannon);
+	assert(cfg);
+
+	if (int r = InitCascadeCore(o)) return r;
+	DrawInit();
+	return 0;
+}
 inline void PKG::CatchFish::Bullet::DrawInit() noexcept {
 	assert(!body);
 	body = cocos2d::Sprite::create();

@@ -31,7 +31,7 @@ inline int PKG::CatchFish::Fish::Update(int const& frameNumber) noexcept {
 	return 0;
 };
 
-int PKG::CatchFish::Fish::HitCheck(PKG::CatchFish::Bullet* const& bullet) noexcept {
+inline int PKG::CatchFish::Fish::HitCheck(PKG::CatchFish::Bullet* const& bullet) noexcept {
 	// 计算出鱼中心与子弹中心的距离
 	auto d = pos - bullet->pos;
 	auto&& d2 = d.x * d.x + d.y * d.y;
@@ -54,6 +54,10 @@ int PKG::CatchFish::Fish::HitCheck(PKG::CatchFish::Bullet* const& bullet) noexce
 		return 1;
 	}
 	return 0;
+}
+
+inline int PKG::CatchFish::Fish::Die() noexcept {
+	return 1;
 }
 
 #ifdef CC_TARGET_PLATFORM

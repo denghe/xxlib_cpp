@@ -183,77 +183,33 @@ inline void PKG::CatchFish::Scene::UpdateCalc(xx::Object_s && msg) noexcept {
 }
 
 inline void PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s && msg) noexcept {
-	// 令相应的鱼死掉( 子弹在 hit 请求产生时便已被移除 ), 同步玩家 coin, 生成各种 鱼死 & 退款 事件
-
+	// 整理合并
+	for (auto&& b : *msg->bullets) {
+		auto key = std::make_tuple(b.playerId, b.cannonId, b.bulletId);
+		auto&& v = bullets[key];
+		assert(v.bullet && v.bullet->coin == b.bulletCoin);
+		v.count += b.bulletCount;
+	}
 	for (auto&& f : *msg->fishs) {
-		// 放入待删除列表
-		fishIds.Add(f.fishId);
-
-		// 算钱
-		auto&& c = f.fishCoin * f.bulletCoin;	// 数量只可能是 1
-
-		// 构造鱼死事件包
-		{
-			auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
-			fishDead->playerId = f.playerId;
-			fishDead->cannonId = f.cannonId;
-			fishDead->bulletId = f.bulletId;
-			fishDead->fishId = f.fishId;
-			fishDead->coin = c;
-			frameEvents->events->Add(std::move(fishDead));
-		}
-
-		// 定位到玩家加钱
-		auto&& j = players->len - 1;
-		for (; j != -1; --j) {
-			auto&& player = players->At(j).lock();
-			assert(player);
-			if (player->id == f.playerId) {
-				player->coin += c;
-				break;
-			}
-		}
-		assert(j != -1);
+		auto key = std::make_tuple(f.playerId, f.cannonId, f.bulletId);
+		auto&& v = bullets[key];
+		v.fishIds.Add(f.fishId);
 	}
 
-	// 批量删鱼 by fishIds
-	auto&& fs = *fishs;
-	if (fs.len && fishIds.len) {
-		for (size_t j = fs.len - 1; j != -1; --j) {
-			auto&& f = fs[j];
-			assert(f->indexAtContainer == j);
-			// 如果 鱼id 存在于 fishIds
-			if (auto && idx = fishIds.Find(f->id); idx != -1) {
-				// 删鱼id
-				fishIds.SwapRemoveAt(idx);
-				// 删鱼
-				fs[fs.len - 1]->indexAtContainer = (int)j;
-				fs.SwapRemoveAt(j);
-			}
-			// 没鱼删了 直接退出
-			if (!fishIds.len) break;
+	// 依次处理
+	for (auto&& b : bullets) {
+		// 打击处理( 会根据参数定位到 fish 并 Die, 会 refund )
+		if (b.value.bullet->Hit(b.value)) {
+			// 删子弹
+			auto&& bs = *b.value.bullet->cannon->bullets;
+			auto idx = b.value.bullet->indexAtContainer;
+			bs[bs.len - 1]->indexAtContainer = idx;
+			bs.SwapRemoveAt(idx);
 		}
 	}
 
 	// cleanup
-	fishIds.Clear();
-
-	// 批量退钱
-	for (auto&& b : *msg->bullets) {
-		// 定位到玩家退钱 & 生成退钱事件包
-		auto&& j = players->len - 1;
-		for (; j != -1; --j) {
-			auto&& player = players->At(j).lock();
-			assert(player);
-			if (player->id == b.playerId) {
-				auto&& c = b.bulletCoin * b.bulletCount;
-				player->coin += c;
-				player->MakeRefundEvent(c);	// todo: 为退钱增加 bulletId 以便与鱼死关联？
-				break;
-			}
-		}
-		assert(j != -1);
-	}
+	bullets.Clear();
 
 	UpdateEnd();
 }

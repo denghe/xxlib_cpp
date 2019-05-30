@@ -13,6 +13,9 @@ virtual int Move() noexcept;
 // 碰撞检测。如果与传入子弹相撞则返回 1
 virtual int HitCheck(Bullet* const& bullet) noexcept;
 
+// 令鱼死。返回 1: 成功. 0: 失败. 通常非炸弹等状态改变鱼会返回 1
+virtual int Die() noexcept;
+
 #ifdef CC_TARGET_PLATFORM
 virtual int InitCascade(void* const& o) noexcept override;
 

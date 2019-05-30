@@ -32,8 +32,9 @@ void UpdateEnd() noexcept;
 // hit 计算结果，同时也是执行标志位. 发起 Request 时该值为 1. 超时为 -1, 正常退出为 0
 int calcResult = 0;
 
-// 辅助计算容器
-xx::List<int> fishIds;
+// calc 相关. key: playerId, cannonId, bulletId
+xx::Dict<std::tuple<int, int, int>, BulletHitResult> bullets;
+
 #else
 // 将 Scene 指针刷到所有子
 virtual int InitCascade(void* const& o = nullptr) noexcept override;

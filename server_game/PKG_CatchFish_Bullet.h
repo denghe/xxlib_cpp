@@ -15,7 +15,10 @@ virtual int Update(int const& frameNumber) noexcept override;
 // 移动子弹。如果生命周期结束将返回非 0
 int Move() noexcept;
 
-#ifdef CC_TARGET_PLATFORM
+#ifndef CC_TARGET_PLATFORM
+// 处理碰撞结果. 返回 0 表示子弹继续存活. 非 0 表示子弹应该被移除
+virtual int Hit(BulletHitResult const& h) noexcept;
+#else
 
 int InitCascade(void* const& o) noexcept override;
 

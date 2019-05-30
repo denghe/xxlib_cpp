@@ -181,6 +181,8 @@ inline void CatchFish::Cleanup(PKG::CatchFish::Player_s p) noexcept {
 		}
 	}
 
+	// todo: 结算 & 保存. 剩余子弹, weapon, cannon 变 coin
+
 	// 生成离开事件
 	{
 		auto&& e = xx::Make<PKG::CatchFish::Events::Leave>();
