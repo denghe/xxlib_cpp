@@ -39,7 +39,7 @@ namespace PKG::CatchFish {
 	struct Bullet;
 }
 struct BulletHitResult {
-	PKG::CatchFish::Bullet* bullet = nullptr;
+	std::shared_ptr<PKG::CatchFish::Bullet> bullet;
 	int count = 0;				// 应退子弹数量
 	xx::List<int> fishIds;		// 死鱼 id 列表
 };

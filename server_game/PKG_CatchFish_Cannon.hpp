@@ -107,10 +107,6 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 					player->coin += b->coin;
 					player->MakeRefundEvent(b->coin);
 					//xx::CoutN("hit cancel. refund = ", b->coin);
-
-					// 删子弹
-					bs[bs.len - 1]->indexAtContainer = (int)i;
-					bs.SwapRemoveAt(i);
 				}
 				else {
 					// 从鱼队列定位鱼. 如果找到就 fish die check
@@ -131,23 +127,24 @@ inline int PKG::CatchFish::Cannon::Hit(PKG::Client_CatchFish::Hit_s& o) noexcept
 								hit.bulletCount = 1;		// 写死. 当前子弹就是单颗
 								hit.bulletCoin = b->coin;
 
-								// 将子弹放入字典备查. 不删
-								scene->bullets[std::make_tuple(hit.playerId, hit.cannonId, hit.bulletId)].bullet = &*b;
+								// 将子弹放入字典备查. 删子弹之后继续存在于字典
+								scene->bullets[std::make_tuple(hit.playerId, hit.cannonId, hit.bulletId)].bullet = b;
 								break;
 							}
 						}
-						// 未找到鱼：退钱 & 构造退钱事件包, 删子弹退出
+						// 未找到鱼：退钱 & 构造退钱事件包
 						if (j == -1) {
 							player->coin += b->coin;
 							player->MakeRefundEvent(b->coin);
 							//xx::CoutN("hit miss. refund = ", b->coin);
-
-							// 删子弹
-							bs[bs.len - 1]->indexAtContainer = (int)i;
-							bs.SwapRemoveAt(i);
 						}
 					}
 				}
+
+				//xx::CoutN("hit bullet success. ", o);
+				// 删子弹退出
+				bs[bs.len - 1]->indexAtContainer = (int)i;
+				bs.SwapRemoveAt(i);
 				return 0;
 			}
 		}
@@ -180,6 +177,10 @@ inline int PKG::CatchFish::Cannon::Fire(PKG::Client_CatchFish::Fire_s& o) noexce
 	// todo: 更多发射限制检测
 
 	// 检测通过, 开始发射
+
+	// 同步自增 id 以免断线重连后发射的子弹 id 重复
+	player->autoIncId = o->bulletId;
+
 	// 剩余颗数 -1
 	if (quantity != -1) {
 		--quantity;

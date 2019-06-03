@@ -39,7 +39,7 @@ struct Service {
 	std::mt19937_64 rnd;
 
 	// 先写死. 模拟读取到一行胜率配置. min max 控制波幅
-	double ratio = 1;			
+	double ratio = 0.9;
 	double maxRatio = 1.1;
 	double minRatio = 0.95;
 
@@ -153,7 +153,7 @@ struct Service {
 		auto b = std::uniform_real_distribution(0.0, double(hit.fishCoin))(rnd);
 
 		// 临时打印一下看看
-		xx::CoutTN("totalInput = ", totalInput, ", totalOutput = ", totalOutput, ", fix = ", r, ", fish.coin = ", hit.fishCoin, ", rnd = ", b);
+		xx::CoutTN("totalInput = ", totalInput, ", totalOutput = ", totalOutput, ", fix = ", r, /*", fish.coin = ", hit.fishCoin, ", rnd = ", b,*/ ", cfg ratio = ", ratio, ", curr ratio = ",(double(totalOutput) / double(totalInput)) );
 
 		if (b <= r) {
 			totalOutput += hit.fishCoin * hit.bulletCoin;
@@ -189,6 +189,38 @@ struct Service {
 };
 
 int main() {
+
+	//{
+	//	int64_t totalInput = 0;
+	//	int64_t totalOutput = 0;
+
+	//	std::mt19937_64 rnd;
+	//	std::mt19937_64 rnd2;
+
+	//	double ratio = 0.9;
+	//	double maxRatio = 1.10;
+	//	double minRatio = 0.90;
+
+
+	//	while (true) {
+	//		auto bulletCoin = std::uniform_int_distribution(1, 1000)(rnd2);
+	//		auto fishCoin = std::uniform_int_distribution(5, 500)(rnd2);
+
+	//		totalInput += bulletCoin;
+	//		auto r = (totalInput > totalOutput && double(totalOutput) / double(totalInput) < ratio) ? maxRatio : minRatio;
+	//		auto b = std::uniform_real_distribution(0.0, (double)fishCoin)(rnd);
+
+	//		// 临时打印一下看看
+	//		xx::CoutTN("totalInput = ", totalInput, ", totalOutput = ", totalOutput, ", fix = ", r, /*", fish.coin = ", hit.fishCoin, ", rnd = ", b,*/ ", cfg ratio = ", ratio, ", curr ratio = ", (double(totalOutput) / double(totalInput)));
+
+	//		if (b <= r) {
+	//			totalOutput += fishCoin * bulletCoin;
+	//		}
+	//	}
+	//}
+
+
+
 	std::shared_ptr<Service> service;
 	try {
 		xx::MakeTo(service);

@@ -199,13 +199,7 @@ inline void PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s 
 	// 依次处理
 	for (auto&& b : bullets) {
 		// 打击处理( 会根据参数定位到 fish 并 Die, 会 refund )
-		if (b.value.bullet->Hit(b.value)) {
-			// 删子弹
-			auto&& bs = *b.value.bullet->cannon->bullets;
-			auto idx = b.value.bullet->indexAtContainer;
-			bs[bs.len - 1]->indexAtContainer = idx;
-			bs.SwapRemoveAt(idx);
-		}
+		(void)b.value.bullet->Hit(b.value);
 	}
 
 	// cleanup
