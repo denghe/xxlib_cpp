@@ -52,6 +52,16 @@ inline int PKG::CatchFish::Player::Update(int const& frameNumber) noexcept {
 	if (timeoutFrameNumber < scene->frameNumber) return -1;
 #endif
 
+	auto&& ws = *this->weapons;
+	if (ws.len) {
+		for (size_t i = ws.len - 1; i != -1; --i) {
+			if (ws[i]->Update(frameNumber)) {
+				ws[ws.len - 1]->indexAtContainer = (int)i;
+				ws.SwapRemoveAt(i);
+			}
+		}
+	}
+
 	auto&& cs = *this->cannons;
 	if (cs.len) {
 		for (size_t i = cs.len - 1; i != -1; --i) {

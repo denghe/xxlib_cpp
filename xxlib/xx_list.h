@@ -182,7 +182,7 @@ namespace xx
 			}
 			len--;
 			buf[len].~T();
-			memset(&buf[len], 0, sizeof(T));		// cleanup memory ( sometimes need it )
+			//memset(&buf[len], 0, sizeof(T));		// cleanup memory ( sometimes need it )
 		}
 
 

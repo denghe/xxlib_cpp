@@ -1,4 +1,6 @@
-﻿inline PKG::CatchFish::Configs::ColorFish* PKG::CatchFish::BombFish::Cfg() const noexcept {
+﻿#ifndef CC_TARGET_PLATFORM
+
+inline PKG::CatchFish::Configs::ColorFish* PKG::CatchFish::BombFish::Cfg() const noexcept {
 	assert(dynamic_cast<PKG::CatchFish::Configs::ColorFish*>(this->cfg));
 	return (PKG::CatchFish::Configs::ColorFish*)this->cfg;
 }
@@ -27,3 +29,5 @@ inline int PKG::CatchFish::BombFish::Die(PKG::CatchFish::Bullet* const& b) noexc
 
 	return 0;
 }
+
+#endif
