@@ -42,7 +42,7 @@ public static class Fishs
 
         // 炸弹鱼
         {
-            var f3 = cfg.NewFish<PKG.CatchFish.Configs.BombFish>();
+            var f3 = cfg.NewFish<PKG.CatchFish.Configs.ColorFish>();
             f3.minCoin = 100;
             f3.maxCoin = 100;
             f3.minDetectRadius = f1.minDetectRadius;
@@ -56,55 +56,16 @@ public static class Fishs
             f3.dieFrames = f1.dieFrames;
 
             f3.moveFrameDistance = 0.8f;
-            f3.weapon = null;
-            f3.explodeRadius = 300;
             f3.r = 255;
             f3.g = 0;
             f3.b = 0;
+            f3.weapon = cfg.weapons.FirstOrDefault(w => w.id == 0);
         }
 
         // todo
+        //// 闪电鱼
         //// 狂暴鱼
-        //{
-        //    var f4 = cfg.NewFish<PKG.CatchFish.Configs.ColorFish>();
-        //    f4.minCoin = 500;
-        //    f4.maxCoin = 500;
-        //    f4.minDetectRadius = f1.minDetectRadius;
-        //    f4.maxDetectRadius = f1.maxDetectRadius;
-        //    f4.scale = 7;
-        //    f4.zOrder = 5;
-        //    f4.shadowOffset = new xx.Pos { x = 12, y = 12 };
-        //    f4.shadowScale = f1.shadowScale;
-        //    f4.frames = f1.frames;
-        //    f4.moveFrames = f1.moveFrames;
-        //    f4.dieFrames = f1.dieFrames;
-
-        //    f4.weapon = null;   // todo: 去 weapons 定位
-        //    f4.r = 0;
-        //    f4.g = 255;
-        //    f4.b = 0;
-        //}
-
         //// 钻头鱼
-        //{
-        //    var f5 = cfg.NewFish<PKG.CatchFish.Configs.ColorFish>();
-        //    f5.minCoin = 500;
-        //    f5.maxCoin = 500;
-        //    f5.minDetectRadius = f1.minDetectRadius;
-        //    f5.maxDetectRadius = f1.maxDetectRadius;
-        //    f5.scale = 7;
-        //    f5.zOrder = 5;
-        //    f5.shadowOffset = new xx.Pos { x = 12, y = 12 };
-        //    f5.shadowScale = f1.shadowScale;
-        //    f5.frames = f1.frames;
-        //    f5.moveFrames = f1.moveFrames;
-        //    f5.dieFrames = f1.dieFrames;
-
-        //    f5.weapon = null;   // todo: 去 weapons 定位
-        //    f5.r = 0;
-        //    f5.g = 0;
-        //    f5.b = 255;
-        //}
     }
 
 

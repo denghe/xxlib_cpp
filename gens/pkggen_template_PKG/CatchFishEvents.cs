@@ -94,7 +94,7 @@ namespace CatchFish
 
         // todo: 预约: 炸弹爆炸
 
-        [Desc("通知: 下发已生效 Weapon, 需要判断 flyFrameNumber, 放入 player.weapon 队列")]
+        [Desc("通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列")]
         class PushWeapon : Event
         {
             [Desc("已于 server 端构造好的, 无牵挂的, 能干净下发的实例")]

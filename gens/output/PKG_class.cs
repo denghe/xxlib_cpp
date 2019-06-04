@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "0ccd1c464c6d3a664af881129becb50e"; 
+        public const string value = "511b727469384e37968b38d3b7310fad"; 
     }
 
 namespace CatchFish
@@ -1705,9 +1705,13 @@ namespace CatchFish
         /// </summary>
         public int cfgId;
         /// <summary>
-        /// 开始飞行的帧编号
+        /// 开始起作用的帧编号( 和预约下发相关 )
         /// </summary>
-        public int flyFrameNumber;
+        public int beginFrameNumber;
+        /// <summary>
+        /// 币值 / 倍率( 填充自死鱼 )
+        /// </summary>
+        public long coin;
 
         public override ushort GetPackageId()
         {
@@ -1718,14 +1722,16 @@ namespace CatchFish
         {
             base.ToBBuffer(bb);
             bb.Write(this.cfgId);
-            bb.Write(this.flyFrameNumber);
+            bb.Write(this.beginFrameNumber);
+            bb.Write(this.coin);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.cfgId);
-            bb.Read(ref this.flyFrameNumber);
+            bb.Read(ref this.beginFrameNumber);
+            bb.Read(ref this.coin);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -1746,7 +1752,8 @@ namespace CatchFish
         {
             base.ToStringCore(s);
             s.Append(", \"cfgId\":" + cfgId.ToString());
-            s.Append(", \"flyFrameNumber\":" + flyFrameNumber.ToString());
+            s.Append(", \"beginFrameNumber\":" + beginFrameNumber.ToString());
+            s.Append(", \"coin\":" + coin.ToString());
         }
         public override string ToString()
         {
@@ -2350,14 +2357,14 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 炸弹子弹
+    /// 闪电鱼( 白 )
     /// </summary>
-    public partial class BombBullet : CatchFish.Bullet
+    public partial class LightFish : CatchFish.ColorFish
     {
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<BombBullet>.value;
+            return xx.TypeId<LightFish>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
@@ -2378,7 +2385,7 @@ namespace CatchFish
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.BombBullet\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.LightFish\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -2400,14 +2407,14 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 狂暴子弹
+    /// 炸弹鱼武器
     /// </summary>
-    public partial class FuryBullet : CatchFish.Bullet
+    public partial class BombWeapon : CatchFish.Weapon
     {
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<FuryBullet>.value;
+            return xx.TypeId<BombWeapon>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
@@ -2428,7 +2435,7 @@ namespace CatchFish
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.FuryBullet\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.BombWeapon\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -2450,14 +2457,14 @@ namespace CatchFish
         }
     }
     /// <summary>
-    /// 钻头子弹
+    /// 狂暴鱼武器
     /// </summary>
-    public partial class DrillBullet : CatchFish.Bullet
+    public partial class FuryWeapon : CatchFish.Weapon
     {
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<DrillBullet>.value;
+            return xx.TypeId<FuryWeapon>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
@@ -2478,7 +2485,107 @@ namespace CatchFish
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.DrillBullet\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.FuryWeapon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 钻头鱼武器
+    /// </summary>
+    public partial class DrillWeapon : CatchFish.Weapon
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DrillWeapon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.DrillWeapon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 闪电鱼武器
+    /// </summary>
+    public partial class LightWeapon : CatchFish.Weapon
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<LightWeapon>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.LightWeapon\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -2579,6 +2686,106 @@ namespace CatchFish
             else __toStringing = true;
 
             s.Append("{ \"pkgTypeName\":\"CatchFish.DrillCannon\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 狂暴子弹
+    /// </summary>
+    public partial class FuryBullet : CatchFish.Bullet
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<FuryBullet>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.FuryBullet\", \"pkgTypeId\":" + GetPackageId());
+            ToStringCore(s);
+            s.Append(" }");
+
+            __toStringing = false;
+        }
+        public override void ToStringCore(System.Text.StringBuilder s)
+        {
+            base.ToStringCore(s);
+        }
+        public override string ToString()
+        {
+            var sb = new System.Text.StringBuilder();
+            ToString(sb);
+            return sb.ToString();
+        }
+        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
+        {
+            base.MySqlAppend(sb, ignoreReadOnly);
+        }
+    }
+    /// <summary>
+    /// 钻头子弹
+    /// </summary>
+    public partial class DrillBullet : CatchFish.Bullet
+    {
+
+        public override ushort GetPackageId()
+        {
+            return xx.TypeId<DrillBullet>.value;
+        }
+
+        public override void ToBBuffer(xx.BBuffer bb)
+        {
+            base.ToBBuffer(bb);
+        }
+
+        public override void FromBBuffer(xx.BBuffer bb)
+        {
+            base.FromBBuffer(bb);
+        }
+        public override void ToString(System.Text.StringBuilder s)
+        {
+            if (__toStringing)
+            {
+        	    s.Append("[ \"***** recursived *****\" ]");
+        	    return;
+            }
+            else __toStringing = true;
+
+            s.Append("{ \"pkgTypeName\":\"CatchFish.DrillBullet\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -3004,7 +3211,7 @@ namespace CatchFish.Events
         }
     }
     /// <summary>
-    /// 通知: 下发已生效 Weapon, 需要判断 flyFrameNumber, 放入 player.weapon 队列
+    /// 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列
     /// </summary>
     public partial class PushWeapon : CatchFish.Events.Event
     {
@@ -4674,86 +4881,6 @@ namespace CatchFish.Configs
         }
     }
     /// <summary>
-    /// 打爆部分特殊鱼出现的特殊武器配置基类
-    /// </summary>
-    public partial class Weapon : CatchFish.Configs.Item
-    {
-        /// <summary>
-        /// 展示文本( 为简化设计先这样 )
-        /// </summary>
-        public string txt;
-        /// <summary>
-        /// 展示时长 ( 帧数 )
-        /// </summary>
-        public float showNumFrames;
-        /// <summary>
-        /// 每帧移动距离
-        /// </summary>
-        public float distance;
-        /// <summary>
-        /// 飞到玩家坐标之后变化出来的炮台 cfg 之基类
-        /// </summary>
-        public CatchFish.Configs.Cannon cannon;
-
-        public override ushort GetPackageId()
-        {
-            return xx.TypeId<Weapon>.value;
-        }
-
-        public override void ToBBuffer(xx.BBuffer bb)
-        {
-            base.ToBBuffer(bb);
-            bb.Write(this.txt);
-            bb.Write(this.showNumFrames);
-            bb.Write(this.distance);
-            bb.Write(this.cannon);
-        }
-
-        public override void FromBBuffer(xx.BBuffer bb)
-        {
-            base.FromBBuffer(bb);
-            bb.readLengthLimit = 0;
-            bb.Read(ref this.txt);
-            bb.Read(ref this.showNumFrames);
-            bb.Read(ref this.distance);
-            bb.Read(ref this.cannon);
-        }
-        public override void ToString(System.Text.StringBuilder s)
-        {
-            if (__toStringing)
-            {
-        	    s.Append("[ \"***** recursived *****\" ]");
-        	    return;
-            }
-            else __toStringing = true;
-
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.Weapon\", \"pkgTypeId\":" + GetPackageId());
-            ToStringCore(s);
-            s.Append(" }");
-
-            __toStringing = false;
-        }
-        public override void ToStringCore(System.Text.StringBuilder s)
-        {
-            base.ToStringCore(s);
-            if (txt != null) s.Append(", \"txt\":\"" + txt.ToString() + "\"");
-            else s.Append(", \"txt\":nil");
-            s.Append(", \"showNumFrames\":" + showNumFrames.ToString());
-            s.Append(", \"distance\":" + distance.ToString());
-            s.Append(", \"cannon\":" + (cannon == null ? "nil" : cannon.ToString()));
-        }
-        public override string ToString()
-        {
-            var sb = new System.Text.StringBuilder();
-            ToString(sb);
-            return sb.ToString();
-        }
-        public override void MySqlAppend(System.Text.StringBuilder sb, bool ignoreReadOnly)
-        {
-            base.MySqlAppend(sb, ignoreReadOnly);
-        }
-    }
-    /// <summary>
     /// 精灵帧
     /// </summary>
     public partial class SpriteFrame : xx.Object
@@ -5025,7 +5152,7 @@ namespace CatchFish.Configs
         }
     }
     /// <summary>
-    /// 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头 )
+    /// 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头  白: 闪电 )
     /// </summary>
     public partial class ColorFish : CatchFish.Configs.Fish
     {
@@ -5046,7 +5173,7 @@ namespace CatchFish.Configs
         /// </summary>
         public byte b;
         /// <summary>
-        /// 死后掉落的武器的配置
+        /// 鱼死后变的 weapon( 根据这个来选择创建相应类型的 Fish )
         /// </summary>
         public CatchFish.Configs.Weapon weapon;
 
@@ -5110,30 +5237,55 @@ namespace CatchFish.Configs
         }
     }
     /// <summary>
-    /// 炸弹鱼. 死后变为 1 粒基础 cannon 的特殊子弹. 下一帧爆炸. 无 weapon 配置
+    /// 打爆彩色鱼出现的特殊武器配置基类
     /// </summary>
-    public partial class BombFish : CatchFish.Configs.ColorFish
+    public partial class Weapon : CatchFish.Configs.Item
     {
         /// <summary>
-        /// 爆炸半径
+        /// 展示文本( 为简化设计先这样 )
+        /// </summary>
+        public string txt;
+        /// <summary>
+        /// 展示时长 ( 帧数 )
+        /// </summary>
+        public int showNumFrames;
+        /// <summary>
+        /// 每帧移动距离
+        /// </summary>
+        public float distance;
+        /// <summary>
+        /// 爆炸半径( for bomb, light... )
         /// </summary>
         public float explodeRadius;
+        /// <summary>
+        /// 飞到玩家坐标之后变化出来的炮台 cfg 之基类
+        /// </summary>
+        public CatchFish.Configs.Cannon cannon;
 
         public override ushort GetPackageId()
         {
-            return xx.TypeId<BombFish>.value;
+            return xx.TypeId<Weapon>.value;
         }
 
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
+            bb.Write(this.txt);
+            bb.Write(this.showNumFrames);
+            bb.Write(this.distance);
             bb.Write(this.explodeRadius);
+            bb.Write(this.cannon);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
+            bb.readLengthLimit = 0;
+            bb.Read(ref this.txt);
+            bb.Read(ref this.showNumFrames);
+            bb.Read(ref this.distance);
             bb.Read(ref this.explodeRadius);
+            bb.Read(ref this.cannon);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -5144,7 +5296,7 @@ namespace CatchFish.Configs
             }
             else __toStringing = true;
 
-            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.BombFish\", \"pkgTypeId\":" + GetPackageId());
+            s.Append("{ \"pkgTypeName\":\"CatchFish.Configs.Weapon\", \"pkgTypeId\":" + GetPackageId());
             ToStringCore(s);
             s.Append(" }");
 
@@ -5153,7 +5305,12 @@ namespace CatchFish.Configs
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
+            if (txt != null) s.Append(", \"txt\":\"" + txt.ToString() + "\"");
+            else s.Append(", \"txt\":nil");
+            s.Append(", \"showNumFrames\":" + showNumFrames.ToString());
+            s.Append(", \"distance\":" + distance.ToString());
             s.Append(", \"explodeRadius\":" + explodeRadius.ToString());
+            s.Append(", \"cannon\":" + (cannon == null ? "nil" : cannon.ToString()));
         }
         public override string ToString()
         {
@@ -5172,13 +5329,9 @@ namespace CatchFish.Configs
     public partial class FuryCannon : CatchFish.Configs.Cannon
     {
         /// <summary>
-        /// 打击次数( hitCount = coin / fireCount )
+        /// 打击次数( fireCount = coin / hitCount )
         /// </summary>
         public int hitCount;
-        /// <summary>
-        /// 发射次数( fireCount = coin / hitCount )
-        /// </summary>
-        public int fireCount;
 
         public override ushort GetPackageId()
         {
@@ -5189,14 +5342,12 @@ namespace CatchFish.Configs
         {
             base.ToBBuffer(bb);
             bb.Write(this.hitCount);
-            bb.Write(this.fireCount);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
             bb.Read(ref this.hitCount);
-            bb.Read(ref this.fireCount);
         }
         public override void ToString(System.Text.StringBuilder s)
         {
@@ -5217,7 +5368,6 @@ namespace CatchFish.Configs
         {
             base.ToStringCore(s);
             s.Append(", \"hitCount\":" + hitCount.ToString());
-            s.Append(", \"fireCount\":" + fireCount.ToString());
         }
         public override string ToString()
         {
@@ -5349,11 +5499,15 @@ namespace CatchFish.Configs
             xx.Object.Register<CatchFish.BombFish>(96);
             xx.Object.Register<CatchFish.FuryFish>(97);
             xx.Object.Register<CatchFish.DrillFish>(98);
-            xx.Object.Register<CatchFish.BombBullet>(99);
-            xx.Object.Register<CatchFish.FuryBullet>(100);
-            xx.Object.Register<CatchFish.DrillBullet>(101);
+            xx.Object.Register<CatchFish.LightFish>(109);
+            xx.Object.Register<CatchFish.BombWeapon>(110);
+            xx.Object.Register<CatchFish.FuryWeapon>(111);
+            xx.Object.Register<CatchFish.DrillWeapon>(112);
+            xx.Object.Register<CatchFish.LightWeapon>(113);
             xx.Object.Register<CatchFish.FuryCannon>(102);
             xx.Object.Register<CatchFish.DrillCannon>(103);
+            xx.Object.Register<CatchFish.FuryBullet>(100);
+            xx.Object.Register<CatchFish.DrillBullet>(101);
             xx.Object.Register<CatchFish.Events.Enter>(37);
             xx.Object.Register<CatchFish.Events.Leave>(38);
             xx.Object.Register<CatchFish.Events.NoMoney>(39);
@@ -5398,7 +5552,6 @@ namespace CatchFish.Configs
             xx.Object.Register<xx.List<xx.List<xx.Pos>>>(73);
             xx.Object.Register<CatchFish.Configs.BigFish>(85);
             xx.Object.Register<CatchFish.Configs.ColorFish>(104);
-            xx.Object.Register<CatchFish.Configs.BombFish>(105);
             xx.Object.Register<CatchFish.Configs.FuryCannon>(106);
             xx.Object.Register<CatchFish.Configs.DrillCannon>(107);
         }

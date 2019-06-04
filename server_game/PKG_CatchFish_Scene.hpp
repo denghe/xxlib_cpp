@@ -257,7 +257,7 @@ inline void PKG::CatchFish::Scene::UpdateEnd() noexcept {
 			xx::Cout(" sit: ", plr->sit, " coin: ", plr->coin);
 		}
 	}
-	if (frameNumber % 120 == 0) {
+	if (frameNumber % 120 == 0 && players->len) {
 		xx::CoutN();
 	}
 

@@ -265,6 +265,26 @@ inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
 }
 
 inline int Dialer::Handle(PKG::CatchFish::Events::PushWeapon_s o) noexcept {
+	// 目标玩家应该被定位到
+	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+
+	// 定位到目标玩家
+	for (auto&& p : catchFish->players) {
+		if (p->id == o->playerId) {
+			// 如果太晚收到预约包就断线重连
+			if (o->weapon->beginFrameNumber <= catchFish->scene->frameNumber) return -2;
+
+			// 放入武器队列
+			p->weapons->Add(std::move(o->weapon));
+
+			// 初始化 & 绘制啥的
+			auto&& w = p->weapons->At(p->weapons->len - 1);
+			w->player = &*p;
+			w->InitCascade(p->scene);
+
+			break;
+		}
+	}
 	return 0;
 }
 

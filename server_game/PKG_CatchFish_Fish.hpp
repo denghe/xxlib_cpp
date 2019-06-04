@@ -56,7 +56,7 @@ inline int PKG::CatchFish::Fish::HitCheck(PKG::CatchFish::Bullet* const& bullet)
 	return 0;
 }
 
-inline int PKG::CatchFish::Fish::Die() noexcept {
+inline int PKG::CatchFish::Fish::Die(PKG::CatchFish::Bullet* const& b) noexcept {
 	return 1;
 }
 

@@ -116,22 +116,6 @@ namespace CatchFish
             // 基类 frames 帧集合 ( 包含炮身, 底座, 开火火焰, 子弹, 爆炸, 渔网等, 客户端显示代码自行硬编码定位 )
         }
 
-        [Desc("打爆部分特殊鱼出现的特殊武器配置基类")]
-        class Weapon : Item
-        {
-            [Desc("展示文本( 为简化设计先这样 )")]
-            string txt;
-
-            [Desc("展示时长 ( 帧数 )")]
-            float showNumFrames;
-
-            [Desc("每帧移动距离")]
-            float distance;
-
-            [Desc("飞到玩家坐标之后变化出来的炮台 cfg 之基类")]
-            Cannon cannon;
-        }
-
         [AttachInclude, CustomInitCascade, Desc("精灵帧")]
         class SpriteFrame
         {
@@ -170,8 +154,6 @@ namespace CatchFish
 
         }
 
-
-
         [Desc("小鱼环绕的大鱼的特殊配置")]
         class BigFish : Fish
         {
@@ -185,8 +167,7 @@ namespace CatchFish
             float childsAngleInc;
         }
 
-
-        [Desc("彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头 )")]
+        [Desc("彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头  白: 闪电 )")]
         class ColorFish : Fish
         {
             [Desc("每帧移动距离")]
@@ -199,25 +180,34 @@ namespace CatchFish
             [Desc("蓝色数值")]
             byte b;
 
-            [Desc("死后掉落的武器的配置")]
+            [Desc("鱼死后变的 weapon( 根据这个来选择创建相应类型的 Fish )")]
             Weapon weapon;
         }
 
-        [Desc("炸弹鱼. 死后变为 1 粒基础 cannon 的特殊子弹. 下一帧爆炸. 无 weapon 配置")]
-        class BombFish : ColorFish
+        [Desc("打爆彩色鱼出现的特殊武器配置基类")]
+        class Weapon : Item
         {
-            [Desc("爆炸半径")]
+            [Desc("展示文本( 为简化设计先这样 )")]
+            string txt;
+
+            [Desc("展示时长 ( 帧数 )")]
+            int showNumFrames;
+
+            [Desc("每帧移动距离")]
+            float distance;
+
+            [Desc("爆炸半径( for bomb, light... )")]
             float explodeRadius;
+
+            [Desc("飞到玩家坐标之后变化出来的炮台 cfg 之基类")]
+            Cannon cannon;
         }
 
         [Desc("狂暴炮台( 炮台打出数量有限的大威力子弹. 威力用每 Fire 子弹数量体现. 增加单发与鱼死亡检测次数, 显得更容易打死鱼 )")]
         class FuryCannon : Cannon
         {
-            [Desc("打击次数( hitCount = coin / fireCount )")]
+            [Desc("打击次数( fireCount = coin / hitCount )")]
             int hitCount;
-
-            [Desc("发射次数( fireCount = coin / hitCount )")]
-            int fireCount;
         }
 
         [Desc("钻头炮台( 穿刺 )")]

@@ -4,6 +4,7 @@
 #include <PKG_CatchFish_Cannon.hpp>
 #include <PKG_CatchFish_Bullet.hpp>
 #include <PKG_CatchFish_Fish.hpp>
+#include <PKG_CatchFish_Weapon.hpp>
 #include <PKG_CatchFish_WayFish.hpp>
 #include <PKG_CatchFish_RoundFish.hpp>
 #include <PKG_CatchFish_BigFish.hpp>
@@ -11,11 +12,15 @@
 #include <PKG_CatchFish_BombFish.hpp>
 #include <PKG_CatchFish_FuryFish.hpp>
 #include <PKG_CatchFish_DrillFish.hpp>
-#include <PKG_CatchFish_BombBullet.hpp>
-#include <PKG_CatchFish_FuryBullet.hpp>
-#include <PKG_CatchFish_DrillBullet.hpp>
+#include <PKG_CatchFish_LightFish.hpp>
+#include <PKG_CatchFish_BombWeapon.hpp>
+#include <PKG_CatchFish_FuryWeapon.hpp>
+#include <PKG_CatchFish_DrillWeapon.hpp>
+#include <PKG_CatchFish_LightWeapon.hpp>
 #include <PKG_CatchFish_FuryCannon.hpp>
 #include <PKG_CatchFish_DrillCannon.hpp>
+#include <PKG_CatchFish_FuryBullet.hpp>
+#include <PKG_CatchFish_DrillBullet.hpp>
 #include <PKG_CatchFish_Stages_StageElement.hpp>
 #include <PKG_CatchFish_Stages_Emitter_RandomFishs.hpp>
 #include <PKG_CatchFish_Stages_Monitor_KeepFatFish.hpp>

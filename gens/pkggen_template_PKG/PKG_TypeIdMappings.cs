@@ -102,15 +102,23 @@ interface ITypeIdMappings
 
     CatchFish.DrillFish _98 { get; }
 
-    CatchFish.BombBullet _99 { get; }
+    CatchFish.LightFish _109 { get; }
 
-    CatchFish.FuryBullet _100 { get; }
+    CatchFish.BombWeapon _110 { get; }
 
-    CatchFish.DrillBullet _101 { get; }
+    CatchFish.FuryWeapon _111 { get; }
+
+    CatchFish.DrillWeapon _112 { get; }
+
+    CatchFish.LightWeapon _113 { get; }
 
     CatchFish.FuryCannon _102 { get; }
 
     CatchFish.DrillCannon _103 { get; }
+
+    CatchFish.FuryBullet _100 { get; }
+
+    CatchFish.DrillBullet _101 { get; }
 
     CatchFish.Events.Enter _37 { get; }
 
@@ -199,8 +207,6 @@ interface ITypeIdMappings
     CatchFish.Configs.BigFish _85 { get; }
 
     CatchFish.Configs.ColorFish _104 { get; }
-
-    CatchFish.Configs.BombFish _105 { get; }
 
     CatchFish.Configs.FuryCannon _106 { get; }
 

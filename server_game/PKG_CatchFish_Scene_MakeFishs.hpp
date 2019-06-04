@@ -97,7 +97,7 @@ inline PKG::CatchFish::BigFish_s PKG::CatchFish::Scene::MakeRandomBigFish(int co
 
 
 inline PKG::CatchFish::BombFish_s PKG::CatchFish::Scene::MakeRandomBombFish(int const& fishId) noexcept {
-	auto&& fishCfg = xx::As<PKG::CatchFish::Configs::BombFish>(cfg->fishs->At(2));
+	auto&& fishCfg = xx::As<PKG::CatchFish::Configs::ColorFish>(cfg->fishs->At(2));
 	assert(fishCfg);
 
 	auto&& fish = xx::Make<PKG::CatchFish::BombFish>();

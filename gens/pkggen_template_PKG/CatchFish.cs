@@ -184,14 +184,17 @@ namespace CatchFish
         int frameRatio;
     }
 
-    [Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
+    [AttachInclude, CustomInitCascade, Desc("武器基类 ( 有一些特殊鱼死后会变做 某种武器 / 炮台，死时有个滞空展示时间，被用于解决网络同步延迟。所有端应该在展示时间结束前收到该预约。展示完成后武器将飞向炮台变为附加炮台 )")]
     class Weapon : MoveItem
     {
         [Desc("配置id")]
         int cfgId;
 
-        [Desc("开始飞行的帧编号")]
-        int flyFrameNumber;
+        [Desc("开始起作用的帧编号( 和预约下发相关 )")]
+        int beginFrameNumber;
+
+        [Desc("币值 / 倍率( 填充自死鱼 )")]
+        long coin;
     }
 
     [Desc("预约出鱼")]
@@ -268,10 +271,12 @@ namespace CatchFish
         List<RoundFish> childs;
     }
 
+
     [AttachInclude, Desc("色彩覆盖鱼, 打死后可能爆炸或得到某种武器/炮台. 切换炮台可能导致倍率基数发生变化( 如果支持倍率切换的话 )")]
     class ColorFish : Fish
     {
     }
+
 
     [AttachInclude, Desc("炸弹鱼( 红 )")]
     class BombFish : ColorFish
@@ -288,9 +293,40 @@ namespace CatchFish
     {
     }
 
+    [AttachInclude, Desc("闪电鱼( 白 )")]
+    class LightFish : ColorFish
+    {
+    }
 
-    [AttachInclude, Desc("炸弹子弹")]
-    class BombBullet : Bullet
+
+    [AttachInclude, CustomInitCascade, Desc("炸弹鱼武器")]
+    class BombWeapon : Weapon
+    {
+    }
+
+    [AttachInclude, CustomInitCascade, Desc("狂暴鱼武器")]
+    class FuryWeapon : Weapon
+    {
+    }
+
+    [AttachInclude, CustomInitCascade, Desc("钻头鱼武器")]
+    class DrillWeapon : Weapon
+    {
+    }
+
+    [AttachInclude, CustomInitCascade, Desc("闪电鱼武器")]
+    class LightWeapon : Weapon
+    {
+    }
+
+
+    [AttachInclude, Desc("狂暴炮台")]
+    class FuryCannon : Cannon
+    {
+    }
+
+    [AttachInclude, Desc("钻头炮台")]
+    class DrillCannon : Cannon
     {
     }
 
@@ -303,16 +339,5 @@ namespace CatchFish
     [AttachInclude, Desc("钻头子弹")]
     class DrillBullet : Bullet
     {
-    }
-
-    [AttachInclude, Desc("狂暴炮台")]
-    class FuryCannon : Cannon
-    {
-    }
-
-    [AttachInclude, Desc("钻头炮台")]
-    class DrillCannon : Cannon
-    {
-        // todo: 相关状态变量
     }
 }

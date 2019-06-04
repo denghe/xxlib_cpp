@@ -85,8 +85,8 @@ inline void PKG::CatchFish::Bullet::Bill(BulletHitResult const& h) noexcept {
 		for (; j != -1; --j) {
 			auto&& f = fs[j];
 			if (f->id == fid) {
-				// 令鱼死. 如果死成功就结算( 失败可能：炸弹之类的将转变为 bullet, 当前帧不算被打死 )
-				if (f->Die()) {
+				// 令鱼死. 如果死成功就结算( 失败可能：炸弹之类的将转变为 weapon, 当前帧不算被打死. weapon 计入 player 资产 )
+				if (f->Die(&*h.bullet)) {
 					// 算钱
 					auto&& c = f->coin * coin;
 					// 加钱

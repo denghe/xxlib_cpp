@@ -111,10 +111,10 @@
     <ClInclude Include="..\xxlib\xx_uv_lua.h" />
     <ClInclude Include="PKG_CatchFish_BigFish.h" />
     <ClInclude Include="PKG_CatchFish_BigFish.hpp" />
-    <ClInclude Include="PKG_CatchFish_BombBullet.h" />
-    <ClInclude Include="PKG_CatchFish_BombBullet.hpp" />
     <ClInclude Include="PKG_CatchFish_BombFish.h" />
     <ClInclude Include="PKG_CatchFish_BombFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_BombWeapon.h" />
+    <ClInclude Include="PKG_CatchFish_BombWeapon.hpp" />
     <ClInclude Include="PKG_CatchFish_Bullet.h" />
     <ClInclude Include="PKG_CatchFish_Bullet.hpp" />
     <ClInclude Include="PKG_CatchFish_Cannon.h" />
@@ -137,6 +137,8 @@
     <ClInclude Include="PKG_CatchFish_DrillCannon.hpp" />
     <ClInclude Include="PKG_CatchFish_DrillFish.h" />
     <ClInclude Include="PKG_CatchFish_DrillFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_DrillWeapon.h" />
+    <ClInclude Include="PKG_CatchFish_DrillWeapon.hpp" />
     <ClInclude Include="PKG_CatchFish_Fish.h" />
     <ClInclude Include="PKG_CatchFish_Fish.hpp" />
     <ClInclude Include="PKG_CatchFish_FuryBullet.h" />
@@ -145,7 +147,13 @@
     <ClInclude Include="PKG_CatchFish_FuryCannon.hpp" />
     <ClInclude Include="PKG_CatchFish_FuryFish.h" />
     <ClInclude Include="PKG_CatchFish_FuryFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_FuryWeapon.h" />
+    <ClInclude Include="PKG_CatchFish_FuryWeapon.hpp" />
     <ClInclude Include="PKG_CatchFish_Item.h" />
+    <ClInclude Include="PKG_CatchFish_LightFish.h" />
+    <ClInclude Include="PKG_CatchFish_LightFish.hpp" />
+    <ClInclude Include="PKG_CatchFish_LightWeapon.h" />
+    <ClInclude Include="PKG_CatchFish_LightWeapon.hpp" />
     <ClInclude Include="PKG_CatchFish_RoundFish.h" />
     <ClInclude Include="PKG_CatchFish_RoundFish.hpp" />
     <ClInclude Include="PKG_CatchFish_Scene_MakeFishs.hpp" />
@@ -170,6 +178,8 @@
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RingFishs.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_Monitor_KeepBigFish.hpp" />
     <ClInclude Include="PKG_CatchFish_Stages_Emitter_RandomFishs.hpp" />
+    <ClInclude Include="PKG_CatchFish_Weapon.h" />
+    <ClInclude Include="PKG_CatchFish_Weapon.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\xxlib\lua.natvis" />

@@ -192,20 +192,30 @@ namespace CatchFish {
     using DrillFish_s = std::shared_ptr<DrillFish>;
     using DrillFish_w = std::weak_ptr<DrillFish>;
 
-    // 炸弹子弹
-    struct BombBullet;
-    using BombBullet_s = std::shared_ptr<BombBullet>;
-    using BombBullet_w = std::weak_ptr<BombBullet>;
+    // 闪电鱼( 白 )
+    struct LightFish;
+    using LightFish_s = std::shared_ptr<LightFish>;
+    using LightFish_w = std::weak_ptr<LightFish>;
 
-    // 狂暴子弹
-    struct FuryBullet;
-    using FuryBullet_s = std::shared_ptr<FuryBullet>;
-    using FuryBullet_w = std::weak_ptr<FuryBullet>;
+    // 炸弹鱼武器
+    struct BombWeapon;
+    using BombWeapon_s = std::shared_ptr<BombWeapon>;
+    using BombWeapon_w = std::weak_ptr<BombWeapon>;
 
-    // 钻头子弹
-    struct DrillBullet;
-    using DrillBullet_s = std::shared_ptr<DrillBullet>;
-    using DrillBullet_w = std::weak_ptr<DrillBullet>;
+    // 狂暴鱼武器
+    struct FuryWeapon;
+    using FuryWeapon_s = std::shared_ptr<FuryWeapon>;
+    using FuryWeapon_w = std::weak_ptr<FuryWeapon>;
+
+    // 钻头鱼武器
+    struct DrillWeapon;
+    using DrillWeapon_s = std::shared_ptr<DrillWeapon>;
+    using DrillWeapon_w = std::weak_ptr<DrillWeapon>;
+
+    // 闪电鱼武器
+    struct LightWeapon;
+    using LightWeapon_s = std::shared_ptr<LightWeapon>;
+    using LightWeapon_w = std::weak_ptr<LightWeapon>;
 
     // 狂暴炮台
     struct FuryCannon;
@@ -216,6 +226,16 @@ namespace CatchFish {
     struct DrillCannon;
     using DrillCannon_s = std::shared_ptr<DrillCannon>;
     using DrillCannon_w = std::weak_ptr<DrillCannon>;
+
+    // 狂暴子弹
+    struct FuryBullet;
+    using FuryBullet_s = std::shared_ptr<FuryBullet>;
+    using FuryBullet_w = std::weak_ptr<FuryBullet>;
+
+    // 钻头子弹
+    struct DrillBullet;
+    using DrillBullet_s = std::shared_ptr<DrillBullet>;
+    using DrillBullet_w = std::weak_ptr<DrillBullet>;
 
 }
 namespace CatchFish::Events {
@@ -249,7 +269,7 @@ namespace CatchFish::Events {
     using FishDead_s = std::shared_ptr<FishDead>;
     using FishDead_w = std::weak_ptr<FishDead>;
 
-    // 通知: 下发已生效 Weapon, 需要判断 flyFrameNumber, 放入 player.weapon 队列
+    // 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列
     struct PushWeapon;
     using PushWeapon_s = std::shared_ptr<PushWeapon>;
     using PushWeapon_w = std::weak_ptr<PushWeapon>;
@@ -368,11 +388,6 @@ namespace CatchFish::Configs {
     using Cannon_s = std::shared_ptr<Cannon>;
     using Cannon_w = std::weak_ptr<Cannon>;
 
-    // 打爆部分特殊鱼出现的特殊武器配置基类
-    struct Weapon;
-    using Weapon_s = std::shared_ptr<Weapon>;
-    using Weapon_w = std::weak_ptr<Weapon>;
-
     // 精灵帧
     struct SpriteFrame;
     using SpriteFrame_s = std::shared_ptr<SpriteFrame>;
@@ -393,15 +408,15 @@ namespace CatchFish::Configs {
     using BigFish_s = std::shared_ptr<BigFish>;
     using BigFish_w = std::weak_ptr<BigFish>;
 
-    // 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头 )
+    // 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头  白: 闪电 )
     struct ColorFish;
     using ColorFish_s = std::shared_ptr<ColorFish>;
     using ColorFish_w = std::weak_ptr<ColorFish>;
 
-    // 炸弹鱼. 死后变为 1 粒基础 cannon 的特殊子弹. 下一帧爆炸. 无 weapon 配置
-    struct BombFish;
-    using BombFish_s = std::shared_ptr<BombFish>;
-    using BombFish_w = std::weak_ptr<BombFish>;
+    // 打爆彩色鱼出现的特殊武器配置基类
+    struct Weapon;
+    using Weapon_s = std::shared_ptr<Weapon>;
+    using Weapon_w = std::weak_ptr<Weapon>;
 
     // 狂暴炮台( 炮台打出数量有限的大威力子弹. 威力用每 Fire 子弹数量体现. 增加单发与鱼死亡检测次数, 显得更容易打死鱼 )
     struct FuryCannon;
@@ -516,23 +531,6 @@ namespace CatchFish {
         int InitCascade(void* const& o = nullptr) noexcept override;
 #include <PKG_CatchFish_BigFish.h>
     };
-    // 炸弹子弹
-    struct BombBullet : PKG::CatchFish::Bullet {
-
-        typedef BombBullet ThisType;
-        typedef PKG::CatchFish::Bullet BaseType;
-	    BombBullet() = default;
-		BombBullet(BombBullet const&) = delete;
-		BombBullet& operator=(BombBullet const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-#include <PKG_CatchFish_BombBullet.h>
-    };
     // 炸弹鱼( 红 )
     struct BombFish : PKG::CatchFish::ColorFish {
 
@@ -549,6 +547,23 @@ namespace CatchFish {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
 #include <PKG_CatchFish_BombFish.h>
+    };
+    // 炸弹鱼武器
+    struct BombWeapon : PKG::CatchFish::Weapon {
+
+        typedef BombWeapon ThisType;
+        typedef PKG::CatchFish::Weapon BaseType;
+	    BombWeapon() = default;
+		BombWeapon(BombWeapon const&) = delete;
+		BombWeapon& operator=(BombWeapon const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
+#include <PKG_CatchFish_BombWeapon.h>
     };
     // 子弹基类
     struct Bullet : PKG::CatchFish::MoveItem {
@@ -635,24 +650,6 @@ namespace CatchFish::Configs {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 炸弹鱼. 死后变为 1 粒基础 cannon 的特殊子弹. 下一帧爆炸. 无 weapon 配置
-    struct BombFish : PKG::CatchFish::Configs::ColorFish {
-        // 爆炸半径
-        float explodeRadius = 0;
-
-        typedef BombFish ThisType;
-        typedef PKG::CatchFish::Configs::ColorFish BaseType;
-	    BombFish() = default;
-		BombFish(BombFish const&) = delete;
-		BombFish& operator=(BombFish const&) = delete;
-
-        void ToString(std::string& s) const noexcept override;
-        void ToStringCore(std::string& s) const noexcept override;
-        uint16_t GetTypeId() const noexcept override;
-        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
-        int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
-    };
     // 炮台 & 子弹配置基类
     struct Cannon : PKG::CatchFish::Configs::Item {
         // 初始角度
@@ -687,7 +684,7 @@ namespace CatchFish::Configs {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头 )
+    // 彩色鱼特殊配置( 红: 炸弹  绿：狂暴  蓝：钻头  白: 闪电 )
     struct ColorFish : PKG::CatchFish::Configs::Fish {
         // 每帧移动距离
         float moveFrameDistance = 0;
@@ -697,7 +694,7 @@ namespace CatchFish::Configs {
         uint8_t g = 0;
         // 蓝色数值
         uint8_t b = 0;
-        // 死后掉落的武器的配置
+        // 鱼死后变的 weapon( 根据这个来选择创建相应类型的 Fish )
         PKG::CatchFish::Configs::Weapon_s weapon;
 
         typedef ColorFish ThisType;
@@ -830,10 +827,8 @@ namespace CatchFish::Configs {
     };
     // 狂暴炮台( 炮台打出数量有限的大威力子弹. 威力用每 Fire 子弹数量体现. 增加单发与鱼死亡检测次数, 显得更容易打死鱼 )
     struct FuryCannon : PKG::CatchFish::Configs::Cannon {
-        // 打击次数( hitCount = coin / fireCount )
+        // 打击次数( fireCount = coin / hitCount )
         int32_t hitCount = 0;
-        // 发射次数( fireCount = coin / hitCount )
-        int32_t fireCount = 0;
 
         typedef FuryCannon ThisType;
         typedef PKG::CatchFish::Configs::Cannon BaseType;
@@ -912,14 +907,16 @@ namespace CatchFish::Configs {
         int InitCascadeCore(void* const& o = nullptr) noexcept;
 #include <PKG_CatchFish_Configs_SpriteFrame.h>
     };
-    // 打爆部分特殊鱼出现的特殊武器配置基类
+    // 打爆彩色鱼出现的特殊武器配置基类
     struct Weapon : PKG::CatchFish::Configs::Item {
         // 展示文本( 为简化设计先这样 )
         std::string_s txt;
         // 展示时长 ( 帧数 )
-        float showNumFrames = 0;
+        int32_t showNumFrames = 0;
         // 每帧移动距离
         float distance = 0;
+        // 爆炸半径( for bomb, light... )
+        float explodeRadius = 0;
         // 飞到玩家坐标之后变化出来的炮台 cfg 之基类
         PKG::CatchFish::Configs::Cannon_s cannon;
 
@@ -988,6 +985,23 @@ namespace CatchFish {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
 #include <PKG_CatchFish_DrillFish.h>
+    };
+    // 钻头鱼武器
+    struct DrillWeapon : PKG::CatchFish::Weapon {
+
+        typedef DrillWeapon ThisType;
+        typedef PKG::CatchFish::Weapon BaseType;
+	    DrillWeapon() = default;
+		DrillWeapon(DrillWeapon const&) = delete;
+		DrillWeapon& operator=(DrillWeapon const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
+#include <PKG_CatchFish_DrillWeapon.h>
     };
 }
 namespace CatchFish::Events {
@@ -1277,7 +1291,7 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 通知: 下发已生效 Weapon, 需要判断 flyFrameNumber, 放入 player.weapon 队列
+    // 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列
     struct PushWeapon : PKG::CatchFish::Events::Event {
         // 已于 server 端构造好的, 无牵挂的, 能干净下发的实例
         PKG::CatchFish::Weapon_s weapon;
@@ -1415,6 +1429,23 @@ namespace CatchFish {
         int InitCascade(void* const& o = nullptr) noexcept override;
 #include <PKG_CatchFish_FuryFish.h>
     };
+    // 狂暴鱼武器
+    struct FuryWeapon : PKG::CatchFish::Weapon {
+
+        typedef FuryWeapon ThisType;
+        typedef PKG::CatchFish::Weapon BaseType;
+	    FuryWeapon() = default;
+		FuryWeapon(FuryWeapon const&) = delete;
+		FuryWeapon& operator=(FuryWeapon const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
+#include <PKG_CatchFish_FuryWeapon.h>
+    };
     // 场景元素的共通基类
     struct Item : xx::Object {
         // 标识码
@@ -1435,6 +1466,40 @@ namespace CatchFish {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
 #include <PKG_CatchFish_Item.h>
+    };
+    // 闪电鱼( 白 )
+    struct LightFish : PKG::CatchFish::ColorFish {
+
+        typedef LightFish ThisType;
+        typedef PKG::CatchFish::ColorFish BaseType;
+	    LightFish() = default;
+		LightFish(LightFish const&) = delete;
+		LightFish& operator=(LightFish const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascade(void* const& o = nullptr) noexcept override;
+#include <PKG_CatchFish_LightFish.h>
+    };
+    // 闪电鱼武器
+    struct LightWeapon : PKG::CatchFish::Weapon {
+
+        typedef LightWeapon ThisType;
+        typedef PKG::CatchFish::Weapon BaseType;
+	    LightWeapon() = default;
+		LightWeapon(LightWeapon const&) = delete;
+		LightWeapon& operator=(LightWeapon const&) = delete;
+
+        void ToString(std::string& s) const noexcept override;
+        void ToStringCore(std::string& s) const noexcept override;
+        uint16_t GetTypeId() const noexcept override;
+        void ToBBuffer(xx::BBuffer& bb) const noexcept override;
+        int FromBBuffer(xx::BBuffer& bb) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
+#include <PKG_CatchFish_LightWeapon.h>
     };
     // 子弹 & 鱼 & 武器 的基类
     struct MoveItem : PKG::CatchFish::Item {
@@ -1825,8 +1890,10 @@ namespace CatchFish {
     struct Weapon : PKG::CatchFish::MoveItem {
         // 配置id
         int32_t cfgId = 0;
-        // 开始飞行的帧编号
-        int32_t flyFrameNumber = 0;
+        // 开始起作用的帧编号( 和预约下发相关 )
+        int32_t beginFrameNumber = 0;
+        // 币值 / 倍率( 填充自死鱼 )
+        int64_t coin = 0;
 
         typedef Weapon ThisType;
         typedef PKG::CatchFish::MoveItem BaseType;
@@ -1839,7 +1906,8 @@ namespace CatchFish {
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
-        int InitCascade(void* const& o = nullptr) noexcept override;
+        int InitCascadeCore(void* const& o = nullptr) noexcept;
+#include <PKG_CatchFish_Weapon.h>
     };
 }
 namespace CatchFish_Calc {
@@ -2200,11 +2268,15 @@ namespace xx {
     template<> struct TypeId<PKG::CatchFish::BombFish> { static const uint16_t value = 96; };
     template<> struct TypeId<PKG::CatchFish::FuryFish> { static const uint16_t value = 97; };
     template<> struct TypeId<PKG::CatchFish::DrillFish> { static const uint16_t value = 98; };
-    template<> struct TypeId<PKG::CatchFish::BombBullet> { static const uint16_t value = 99; };
-    template<> struct TypeId<PKG::CatchFish::FuryBullet> { static const uint16_t value = 100; };
-    template<> struct TypeId<PKG::CatchFish::DrillBullet> { static const uint16_t value = 101; };
+    template<> struct TypeId<PKG::CatchFish::LightFish> { static const uint16_t value = 109; };
+    template<> struct TypeId<PKG::CatchFish::BombWeapon> { static const uint16_t value = 110; };
+    template<> struct TypeId<PKG::CatchFish::FuryWeapon> { static const uint16_t value = 111; };
+    template<> struct TypeId<PKG::CatchFish::DrillWeapon> { static const uint16_t value = 112; };
+    template<> struct TypeId<PKG::CatchFish::LightWeapon> { static const uint16_t value = 113; };
     template<> struct TypeId<PKG::CatchFish::FuryCannon> { static const uint16_t value = 102; };
     template<> struct TypeId<PKG::CatchFish::DrillCannon> { static const uint16_t value = 103; };
+    template<> struct TypeId<PKG::CatchFish::FuryBullet> { static const uint16_t value = 100; };
+    template<> struct TypeId<PKG::CatchFish::DrillBullet> { static const uint16_t value = 101; };
     template<> struct TypeId<PKG::CatchFish::Events::Enter> { static const uint16_t value = 37; };
     template<> struct TypeId<PKG::CatchFish::Events::Leave> { static const uint16_t value = 38; };
     template<> struct TypeId<PKG::CatchFish::Events::NoMoney> { static const uint16_t value = 39; };
@@ -2249,7 +2321,6 @@ namespace xx {
     template<> struct TypeId<xx::List<xx::List_s<::xx::Pos>>> { static const uint16_t value = 73; };
     template<> struct TypeId<PKG::CatchFish::Configs::BigFish> { static const uint16_t value = 85; };
     template<> struct TypeId<PKG::CatchFish::Configs::ColorFish> { static const uint16_t value = 104; };
-    template<> struct TypeId<PKG::CatchFish::Configs::BombFish> { static const uint16_t value = 105; };
     template<> struct TypeId<PKG::CatchFish::Configs::FuryCannon> { static const uint16_t value = 106; };
     template<> struct TypeId<PKG::CatchFish::Configs::DrillCannon> { static const uint16_t value = 107; };
 }
@@ -3150,15 +3221,17 @@ namespace CatchFish {
     inline void Weapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->cfgId);
-        bb.Write(this->flyFrameNumber);
+        bb.Write(this->beginFrameNumber);
+        bb.Write(this->coin);
     }
     inline int Weapon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->cfgId)) return r;
-        if (int r = bb.Read(this->flyFrameNumber)) return r;
+        if (int r = bb.Read(this->beginFrameNumber)) return r;
+        if (int r = bb.Read(this->coin)) return r;
         return 0;
     }
-    inline int Weapon::InitCascade(void* const& o) noexcept {
+    inline int Weapon::InitCascadeCore(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
@@ -3179,7 +3252,8 @@ namespace CatchFish {
     inline void Weapon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"cfgId\":", this->cfgId);
-        xx::Append(s, ", \"flyFrameNumber\":", this->flyFrameNumber);
+        xx::Append(s, ", \"beginFrameNumber\":", this->beginFrameNumber);
+        xx::Append(s, ", \"coin\":", this->coin);
     }
     inline uint16_t FishBorn::GetTypeId() const noexcept {
         return 23;
@@ -3507,21 +3581,21 @@ namespace CatchFish {
     inline void DrillFish::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
-    inline uint16_t BombBullet::GetTypeId() const noexcept {
-        return 99;
+    inline uint16_t LightFish::GetTypeId() const noexcept {
+        return 109;
     }
-    inline void BombBullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
+    inline void LightFish::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
     }
-    inline int BombBullet::FromBBuffer(xx::BBuffer& bb) noexcept {
+    inline int LightFish::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         return 0;
     }
-    inline int BombBullet::InitCascade(void* const& o) noexcept {
+    inline int LightFish::InitCascade(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
-    inline void BombBullet::ToString(std::string& s) const noexcept {
+    inline void LightFish::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, "[ \"***** recursived *****\" ]");
@@ -3529,30 +3603,30 @@ namespace CatchFish {
         }
         else this->SetToStringFlag();
 
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.BombBullet\", \"pkgTypeId\":", GetTypeId());
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.LightFish\", \"pkgTypeId\":", GetTypeId());
         ToStringCore(s);
         xx::Append(s, " }");
         
         this->SetToStringFlag(false);
     }
-    inline void BombBullet::ToStringCore(std::string& s) const noexcept {
+    inline void LightFish::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
-    inline uint16_t FuryBullet::GetTypeId() const noexcept {
-        return 100;
+    inline uint16_t BombWeapon::GetTypeId() const noexcept {
+        return 110;
     }
-    inline void FuryBullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
+    inline void BombWeapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
     }
-    inline int FuryBullet::FromBBuffer(xx::BBuffer& bb) noexcept {
+    inline int BombWeapon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         return 0;
     }
-    inline int FuryBullet::InitCascade(void* const& o) noexcept {
+    inline int BombWeapon::InitCascadeCore(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
-    inline void FuryBullet::ToString(std::string& s) const noexcept {
+    inline void BombWeapon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, "[ \"***** recursived *****\" ]");
@@ -3560,30 +3634,30 @@ namespace CatchFish {
         }
         else this->SetToStringFlag();
 
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.FuryBullet\", \"pkgTypeId\":", GetTypeId());
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.BombWeapon\", \"pkgTypeId\":", GetTypeId());
         ToStringCore(s);
         xx::Append(s, " }");
         
         this->SetToStringFlag(false);
     }
-    inline void FuryBullet::ToStringCore(std::string& s) const noexcept {
+    inline void BombWeapon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
-    inline uint16_t DrillBullet::GetTypeId() const noexcept {
-        return 101;
+    inline uint16_t FuryWeapon::GetTypeId() const noexcept {
+        return 111;
     }
-    inline void DrillBullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
+    inline void FuryWeapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
     }
-    inline int DrillBullet::FromBBuffer(xx::BBuffer& bb) noexcept {
+    inline int FuryWeapon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         return 0;
     }
-    inline int DrillBullet::InitCascade(void* const& o) noexcept {
+    inline int FuryWeapon::InitCascadeCore(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
         return 0;
     }
-    inline void DrillBullet::ToString(std::string& s) const noexcept {
+    inline void FuryWeapon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, "[ \"***** recursived *****\" ]");
@@ -3591,13 +3665,75 @@ namespace CatchFish {
         }
         else this->SetToStringFlag();
 
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.DrillBullet\", \"pkgTypeId\":", GetTypeId());
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.FuryWeapon\", \"pkgTypeId\":", GetTypeId());
         ToStringCore(s);
         xx::Append(s, " }");
         
         this->SetToStringFlag(false);
     }
-    inline void DrillBullet::ToStringCore(std::string& s) const noexcept {
+    inline void FuryWeapon::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+    }
+    inline uint16_t DrillWeapon::GetTypeId() const noexcept {
+        return 112;
+    }
+    inline void DrillWeapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        this->BaseType::ToBBuffer(bb);
+    }
+    inline int DrillWeapon::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int DrillWeapon::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
+    inline void DrillWeapon::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.DrillWeapon\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void DrillWeapon::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+    }
+    inline uint16_t LightWeapon::GetTypeId() const noexcept {
+        return 113;
+    }
+    inline void LightWeapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        this->BaseType::ToBBuffer(bb);
+    }
+    inline int LightWeapon::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int LightWeapon::InitCascadeCore(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
+    inline void LightWeapon::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.LightWeapon\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void LightWeapon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
     inline uint16_t FuryCannon::GetTypeId() const noexcept {
@@ -3660,6 +3796,68 @@ namespace CatchFish {
         this->SetToStringFlag(false);
     }
     inline void DrillCannon::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+    }
+    inline uint16_t FuryBullet::GetTypeId() const noexcept {
+        return 100;
+    }
+    inline void FuryBullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        this->BaseType::ToBBuffer(bb);
+    }
+    inline int FuryBullet::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int FuryBullet::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
+    inline void FuryBullet::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.FuryBullet\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void FuryBullet::ToStringCore(std::string& s) const noexcept {
+        this->BaseType::ToStringCore(s);
+    }
+    inline uint16_t DrillBullet::GetTypeId() const noexcept {
+        return 101;
+    }
+    inline void DrillBullet::ToBBuffer(xx::BBuffer& bb) const noexcept {
+        this->BaseType::ToBBuffer(bb);
+    }
+    inline int DrillBullet::FromBBuffer(xx::BBuffer& bb) noexcept {
+        if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        return 0;
+    }
+    inline int DrillBullet::InitCascade(void* const& o) noexcept {
+        if (int r = this->BaseType::InitCascade(o)) return r;
+        return 0;
+    }
+    inline void DrillBullet::ToString(std::string& s) const noexcept {
+        if (this->toStringFlag)
+        {
+        	xx::Append(s, "[ \"***** recursived *****\" ]");
+        	return;
+        }
+        else this->SetToStringFlag();
+
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.DrillBullet\", \"pkgTypeId\":", GetTypeId());
+        ToStringCore(s);
+        xx::Append(s, " }");
+        
+        this->SetToStringFlag(false);
+    }
+    inline void DrillBullet::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
     }
 }
@@ -4876,54 +5074,6 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"distance\":", this->distance);
         xx::Append(s, ", \"enableBulletBounce\":", this->enableBulletBounce);
     }
-    inline uint16_t Weapon::GetTypeId() const noexcept {
-        return 64;
-    }
-    inline void Weapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
-        this->BaseType::ToBBuffer(bb);
-        bb.Write(this->txt);
-        bb.Write(this->showNumFrames);
-        bb.Write(this->distance);
-        bb.Write(this->cannon);
-    }
-    inline int Weapon::FromBBuffer(xx::BBuffer& bb) noexcept {
-        if (int r = this->BaseType::FromBBuffer(bb)) return r;
-        bb.readLengthLimit = 0;
-        if (int r = bb.Read(this->txt)) return r;
-        if (int r = bb.Read(this->showNumFrames)) return r;
-        if (int r = bb.Read(this->distance)) return r;
-        if (int r = bb.Read(this->cannon)) return r;
-        return 0;
-    }
-    inline int Weapon::InitCascade(void* const& o) noexcept {
-        if (int r = this->BaseType::InitCascade(o)) return r;
-        if (this->cannon) {
-            if (int r = this->cannon->InitCascade(o)) return r;
-        }
-        return 0;
-    }
-    inline void Weapon::ToString(std::string& s) const noexcept {
-        if (this->toStringFlag)
-        {
-        	xx::Append(s, "[ \"***** recursived *****\" ]");
-        	return;
-        }
-        else this->SetToStringFlag();
-
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Configs.Weapon\", \"pkgTypeId\":", GetTypeId());
-        ToStringCore(s);
-        xx::Append(s, " }");
-        
-        this->SetToStringFlag(false);
-    }
-    inline void Weapon::ToStringCore(std::string& s) const noexcept {
-        this->BaseType::ToStringCore(s);
-        if (this->txt) xx::Append(s, ", \"txt\":\"", this->txt, "\"");
-        else xx::Append(s, ", \"txt\":nil");
-        xx::Append(s, ", \"showNumFrames\":", this->showNumFrames);
-        xx::Append(s, ", \"distance\":", this->distance);
-        xx::Append(s, ", \"cannon\":", this->cannon);
-    }
     inline uint16_t SpriteFrame::GetTypeId() const noexcept {
         return 69;
     }
@@ -5139,23 +5289,35 @@ namespace CatchFish::Configs {
         xx::Append(s, ", \"b\":", this->b);
         xx::Append(s, ", \"weapon\":", this->weapon);
     }
-    inline uint16_t BombFish::GetTypeId() const noexcept {
-        return 105;
+    inline uint16_t Weapon::GetTypeId() const noexcept {
+        return 64;
     }
-    inline void BombFish::ToBBuffer(xx::BBuffer& bb) const noexcept {
+    inline void Weapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
+        bb.Write(this->txt);
+        bb.Write(this->showNumFrames);
+        bb.Write(this->distance);
         bb.Write(this->explodeRadius);
+        bb.Write(this->cannon);
     }
-    inline int BombFish::FromBBuffer(xx::BBuffer& bb) noexcept {
+    inline int Weapon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        bb.readLengthLimit = 0;
+        if (int r = bb.Read(this->txt)) return r;
+        if (int r = bb.Read(this->showNumFrames)) return r;
+        if (int r = bb.Read(this->distance)) return r;
         if (int r = bb.Read(this->explodeRadius)) return r;
+        if (int r = bb.Read(this->cannon)) return r;
         return 0;
     }
-    inline int BombFish::InitCascade(void* const& o) noexcept {
+    inline int Weapon::InitCascade(void* const& o) noexcept {
         if (int r = this->BaseType::InitCascade(o)) return r;
+        if (this->cannon) {
+            if (int r = this->cannon->InitCascade(o)) return r;
+        }
         return 0;
     }
-    inline void BombFish::ToString(std::string& s) const noexcept {
+    inline void Weapon::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, "[ \"***** recursived *****\" ]");
@@ -5163,15 +5325,20 @@ namespace CatchFish::Configs {
         }
         else this->SetToStringFlag();
 
-        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Configs.BombFish\", \"pkgTypeId\":", GetTypeId());
+        xx::Append(s, "{ \"pkgTypeName\":\"CatchFish.Configs.Weapon\", \"pkgTypeId\":", GetTypeId());
         ToStringCore(s);
         xx::Append(s, " }");
         
         this->SetToStringFlag(false);
     }
-    inline void BombFish::ToStringCore(std::string& s) const noexcept {
+    inline void Weapon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
+        if (this->txt) xx::Append(s, ", \"txt\":\"", this->txt, "\"");
+        else xx::Append(s, ", \"txt\":nil");
+        xx::Append(s, ", \"showNumFrames\":", this->showNumFrames);
+        xx::Append(s, ", \"distance\":", this->distance);
         xx::Append(s, ", \"explodeRadius\":", this->explodeRadius);
+        xx::Append(s, ", \"cannon\":", this->cannon);
     }
     inline uint16_t FuryCannon::GetTypeId() const noexcept {
         return 106;
@@ -5179,12 +5346,10 @@ namespace CatchFish::Configs {
     inline void FuryCannon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
         bb.Write(this->hitCount);
-        bb.Write(this->fireCount);
     }
     inline int FuryCannon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
         if (int r = bb.Read(this->hitCount)) return r;
-        if (int r = bb.Read(this->fireCount)) return r;
         return 0;
     }
     inline int FuryCannon::InitCascade(void* const& o) noexcept {
@@ -5208,7 +5373,6 @@ namespace CatchFish::Configs {
     inline void FuryCannon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
         xx::Append(s, ", \"hitCount\":", this->hitCount);
-        xx::Append(s, ", \"fireCount\":", this->fireCount);
     }
     inline uint16_t DrillCannon::GetTypeId() const noexcept {
         return 107;
@@ -5301,11 +5465,15 @@ namespace PKG {
 	        xx::BBuffer::Register<PKG::CatchFish::BombFish>(96);
 	        xx::BBuffer::Register<PKG::CatchFish::FuryFish>(97);
 	        xx::BBuffer::Register<PKG::CatchFish::DrillFish>(98);
-	        xx::BBuffer::Register<PKG::CatchFish::BombBullet>(99);
-	        xx::BBuffer::Register<PKG::CatchFish::FuryBullet>(100);
-	        xx::BBuffer::Register<PKG::CatchFish::DrillBullet>(101);
+	        xx::BBuffer::Register<PKG::CatchFish::LightFish>(109);
+	        xx::BBuffer::Register<PKG::CatchFish::BombWeapon>(110);
+	        xx::BBuffer::Register<PKG::CatchFish::FuryWeapon>(111);
+	        xx::BBuffer::Register<PKG::CatchFish::DrillWeapon>(112);
+	        xx::BBuffer::Register<PKG::CatchFish::LightWeapon>(113);
 	        xx::BBuffer::Register<PKG::CatchFish::FuryCannon>(102);
 	        xx::BBuffer::Register<PKG::CatchFish::DrillCannon>(103);
+	        xx::BBuffer::Register<PKG::CatchFish::FuryBullet>(100);
+	        xx::BBuffer::Register<PKG::CatchFish::DrillBullet>(101);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Enter>(37);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::Leave>(38);
 	        xx::BBuffer::Register<PKG::CatchFish::Events::NoMoney>(39);
@@ -5350,7 +5518,6 @@ namespace PKG {
 	        xx::BBuffer::Register<xx::List<xx::List_s<::xx::Pos>>>(73);
 	        xx::BBuffer::Register<PKG::CatchFish::Configs::BigFish>(85);
 	        xx::BBuffer::Register<PKG::CatchFish::Configs::ColorFish>(104);
-	        xx::BBuffer::Register<PKG::CatchFish::Configs::BombFish>(105);
 	        xx::BBuffer::Register<PKG::CatchFish::Configs::FuryCannon>(106);
 	        xx::BBuffer::Register<PKG::CatchFish::Configs::DrillCannon>(107);
         }

@@ -12,6 +12,9 @@ inline int PKG::CatchFish::Player::InitCascade(void* const& o) noexcept {
 	for (auto&& cannon : *cannons) {
 		cannon->player = this;
 	}
+	for (auto&& weapon : *weapons) {
+		weapon->player = this;
+	}
 
 	// 开始瀑布初始化
 	return InitCascadeCore(o);
