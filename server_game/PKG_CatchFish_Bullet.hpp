@@ -73,7 +73,7 @@ inline int PKG::CatchFish::Bullet::Update(int const& frameNumber) noexcept {
 };
 
 #ifndef CC_TARGET_PLATFORM
-inline int PKG::CatchFish::Bullet::Hit(BulletHitResult const& h) noexcept {
+inline void PKG::CatchFish::Bullet::Bill(BulletHitResult const& h) noexcept {
 	// 当前这种子弹只能命中 1 只鱼. 炸弹等片伤的需要重载该函数
 
 	// 处理所有鱼死结算( 子弹在 hit 请求产生时便已被移除 ), 玩家 +coin, 生成各种 鱼死 事件
@@ -114,11 +114,9 @@ inline int PKG::CatchFish::Bullet::Hit(BulletHitResult const& h) noexcept {
 
 	// 处理退款
 	if (h.count) {
+		player->coin += coin * h.count;
 		player->MakeRefundEvent(coin, h.count);
 	}
-
-	// 子弹消失
-	return -1;
 }
 #else
 inline int PKG::CatchFish::Bullet::InitCascade(void* const& o) noexcept {

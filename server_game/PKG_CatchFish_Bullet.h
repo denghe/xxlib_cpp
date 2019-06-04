@@ -16,8 +16,8 @@ virtual int Update(int const& frameNumber) noexcept override;
 int Move() noexcept;
 
 #ifndef CC_TARGET_PLATFORM
-// 处理碰撞结果. 返回 0 表示子弹继续存活. 非 0 表示子弹应该被移除
-virtual int Hit(BulletHitResult const& h) noexcept;
+// 结算
+virtual void Bill(BulletHitResult const& h) noexcept;
 #else
 
 int InitCascade(void* const& o) noexcept override;

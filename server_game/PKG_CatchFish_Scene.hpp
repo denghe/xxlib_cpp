@@ -198,8 +198,8 @@ inline void PKG::CatchFish::Scene::Handle(PKG::Calc_CatchFish::HitCheckResult_s 
 
 	// 依次处理
 	for (auto&& b : bullets) {
-		// 打击处理( 会根据参数定位到 fish 并 Die, 会 refund )
-		(void)b.value.bullet->Hit(b.value);
+		// 结算( 会根据参数定位到 fish 并 Die, 会 refund )
+		b.value.bullet->Bill(b.value);
 	}
 
 	// cleanup
