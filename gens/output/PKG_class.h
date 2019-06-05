@@ -1,7 +1,7 @@
 ﻿#pragma once
 namespace PKG {
 	struct PkgGenMd5 {
-		inline static const std::string value = "511b727469384e37968b38d3b7310fad";
+		inline static const std::string value = "8a9f3cba0ef0c5ae1221ec2135850f5a";
     };
 
 namespace Generic {
@@ -269,7 +269,7 @@ namespace CatchFish::Events {
     using FishDead_s = std::shared_ptr<FishDead>;
     using FishDead_w = std::weak_ptr<FishDead>;
 
-    // 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列
+    // 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列, 令 fishId 的鱼死掉
     struct PushWeapon;
     using PushWeapon_s = std::shared_ptr<PushWeapon>;
     using PushWeapon_w = std::weak_ptr<PushWeapon>;
@@ -887,15 +887,15 @@ namespace CatchFish::Events {
     };
     // 通知: 鱼被打死
     struct FishDead : PKG::CatchFish::Events::Event {
-        // 鱼id
-        int32_t fishId = 0;
+        // 武器id( 非 0 则鱼被 weapon 打死. 为 0 则鱼被 cannon bullet 打死 )
+        int32_t weaponId = 0;
         // 炮台id
         int32_t cannonId = 0;
         // 子弹id
         int32_t bulletId = 0;
-        // 金币所得( fish.coin * bullet.coin 或 server 计算牵连鱼之后的综合结果 )
+        // 金币总收入( fishs.coin * bullet.coin + left bullet coin )
         int64_t coin = 0;
-        // 牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )
+        // 死鱼id列表
         xx::List_s<int32_t> ids;
 
         typedef FishDead ThisType;
@@ -911,8 +911,10 @@ namespace CatchFish::Events {
         int FromBBuffer(xx::BBuffer& bb) noexcept override;
         int InitCascade(void* const& o = nullptr) noexcept override;
     };
-    // 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列
+    // 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列, 令 fishId 的鱼死掉
     struct PushWeapon : PKG::CatchFish::Events::Event {
+        // 死鱼id
+        int32_t fishId = 0;
         // 已于 server 端构造好的, 无牵挂的, 能干净下发的实例
         PKG::CatchFish::Weapon_s weapon;
 
@@ -4082,7 +4084,7 @@ namespace CatchFish::Events {
     }
     inline void FishDead::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
-        bb.Write(this->fishId);
+        bb.Write(this->weaponId);
         bb.Write(this->cannonId);
         bb.Write(this->bulletId);
         bb.Write(this->coin);
@@ -4090,7 +4092,7 @@ namespace CatchFish::Events {
     }
     inline int FishDead::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
-        if (int r = bb.Read(this->fishId)) return r;
+        if (int r = bb.Read(this->weaponId)) return r;
         if (int r = bb.Read(this->cannonId)) return r;
         if (int r = bb.Read(this->bulletId)) return r;
         if (int r = bb.Read(this->coin)) return r;
@@ -4121,7 +4123,7 @@ namespace CatchFish::Events {
     }
     inline void FishDead::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
-        xx::Append(s, ", \"fishId\":", this->fishId);
+        xx::Append(s, ", \"weaponId\":", this->weaponId);
         xx::Append(s, ", \"cannonId\":", this->cannonId);
         xx::Append(s, ", \"bulletId\":", this->bulletId);
         xx::Append(s, ", \"coin\":", this->coin);
@@ -4132,10 +4134,12 @@ namespace CatchFish::Events {
     }
     inline void PushWeapon::ToBBuffer(xx::BBuffer& bb) const noexcept {
         this->BaseType::ToBBuffer(bb);
+        bb.Write(this->fishId);
         bb.Write(this->weapon);
     }
     inline int PushWeapon::FromBBuffer(xx::BBuffer& bb) noexcept {
         if (int r = this->BaseType::FromBBuffer(bb)) return r;
+        if (int r = bb.Read(this->fishId)) return r;
         if (int r = bb.Read(this->weapon)) return r;
         return 0;
     }
@@ -4162,6 +4166,7 @@ namespace CatchFish::Events {
     }
     inline void PushWeapon::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);
+        xx::Append(s, ", \"fishId\":", this->fishId);
         xx::Append(s, ", \"weapon\":", this->weapon);
     }
     inline uint16_t PushFish::GetTypeId() const noexcept {

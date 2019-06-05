@@ -24,6 +24,7 @@ inline int PKG::CatchFish::BombFish::Die(PKG::CatchFish::Bullet* const& b) noexc
 	// event PushWeapon
 	auto&& pw = xx::Make<PKG::CatchFish::Events::PushWeapon>();
 	pw->playerId = p->id;
+	pw->fishId = id;
 	pw->weapon = w;
 	scene->frameEvents->events->Add(pw);
 

@@ -56,7 +56,27 @@ inline int PKG::CatchFish::Fish::HitCheck(PKG::CatchFish::Bullet* const& bullet)
 	return 0;
 }
 
+// todo: Die(PKG::CatchFish::Weapon* const& w)
+
 inline int PKG::CatchFish::Fish::Die(PKG::CatchFish::Bullet* const& b) noexcept {
+#ifndef CC_TARGET_PLATFORM
+	// 算钱
+	auto&& c = b->coin * coin;
+	// 加钱
+	b->player->coin += c;
+	// 构造鱼死事件包
+	{
+		auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
+		fishDead->playerId = b->player->id;
+		fishDead->weaponId = 0;						// 被子弹打死的该值为 0
+		fishDead->cannonId = b->cannon->id;
+		fishDead->bulletId = b->id;
+		fishDead->coin = c;
+		xx::MakeTo(fishDead->ids);
+		fishDead->ids->Add(id);
+		scene->frameEvents->events->Add(std::move(fishDead));
+	}
+#endif
 	return 1;
 }
 

@@ -237,7 +237,7 @@ inline int Dialer::Handle(PKG::CatchFish::Events::Refund_s o) noexcept {
 
 inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
 	// 目标玩家应该被定位到
-	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+	assert(catchFish->players.Exists([&](auto p) { return p->id == o->playerId; }));
 
 	// 定位到目标玩家
 	for (auto&& p : catchFish->players) {
@@ -245,17 +245,46 @@ inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
 			// 鱼在不在都要加钱( 有可能收到包的时候 目标鱼 已经消失 )
 			p->coin += o->coin;
 
-			// todo: 判断如果 o->fishDeads 有数据，或者 打死鱼的是 特殊子弹（比如炸弹），还要进一步处理
+			if (o->weaponId) {
+				auto&& ws = *player->weapons;
+				assert(ws.Exists([&](auto w) { return w->id == o->weaponId; }));
+				for (auto&& w : ws) {
+					if (w->id == o->weaponId) {
+						// todo: 播放 weapon 爆炸消失特效
+						// 删 weapon
+						ws[ws.len - 1]->indexAtContainer = w->indexAtContainer;
+						ws.SwapRemoveAt(w->indexAtContainer);
+						break;
+					}
+				}
+			}
+			else {
+				for (auto&& c : *p->cannons) {
+					if (c->id == o->cannonId) {
+						for (auto&& b : *c->bullets) {
+							if (b->id == o->bulletId) {
+
+								// todo: call bullet 的 hit fish 特效
+
+								break;
+							}
+						}
+						break;
+					}
+				}
+			}
 
 			// 试定位到目标鱼
 			auto&& fs = *player->scene->fishs;
-			for (auto&& f : fs) {
-				if (f->id == o->fishId) {
-					// todo: 特效
-					// 删鱼
-					fs[fs.len - 1]->indexAtContainer = f->indexAtContainer;
-					fs.SwapRemoveAt(f->indexAtContainer);
-					break;
+			for (auto&& fishId : *o->ids) {
+				for (auto&& f : fs) {
+					if (f->id == fishId) {
+						// todo: 特效
+						// 删鱼
+						fs[fs.len - 1]->indexAtContainer = f->indexAtContainer;
+						fs.SwapRemoveAt(f->indexAtContainer);
+						break;
+					}
 				}
 			}
 			break;
@@ -267,6 +296,18 @@ inline int Dialer::Handle(PKG::CatchFish::Events::FishDead_s o) noexcept {
 inline int Dialer::Handle(PKG::CatchFish::Events::PushWeapon_s o) noexcept {
 	// 目标玩家应该被定位到
 	assert(catchFish->players.Exists([&](PKG::CatchFish::Player_s const& p) { return p->id == o->playerId; }));
+
+	// 试定位到目标鱼
+	auto&& fs = *player->scene->fishs;
+	for (auto&& f : fs) {
+		if (f->id == o->fishId) {
+			// todo: 特效
+			// 删鱼
+			fs[fs.len - 1]->indexAtContainer = f->indexAtContainer;
+			fs.SwapRemoveAt(f->indexAtContainer);
+			break;
+		}
+	}
 
 	// 定位到目标玩家
 	for (auto&& p : catchFish->players) {

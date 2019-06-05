@@ -85,27 +85,11 @@ inline void PKG::CatchFish::Bullet::Bill(BulletHitResult const& h) noexcept {
 		for (; j != -1; --j) {
 			auto&& f = fs[j];
 			if (f->id == fid) {
-				// 令鱼死. 如果死成功就结算( 失败可能：炸弹之类的将转变为 weapon, 当前帧不算被打死. weapon 计入 player 资产 )
-				if (f->Die(&*h.bullet)) {
-					// 算钱
-					auto&& c = f->coin * coin;
-					// 加钱
-					player->coin += c;
-					// 构造鱼死事件包
-					{
-						auto&& fishDead = xx::Make<PKG::CatchFish::Events::FishDead>();
-						fishDead->playerId = player->id;
-						fishDead->cannonId = cannon->id;
-						fishDead->bulletId = id;
-						fishDead->fishId = f->id;
-						fishDead->coin = c;
-						scene->frameEvents->events->Add(std::move(fishDead));
-					}
-
-					// 删鱼
-					fs[fs.len - 1]->indexAtContainer = (int)j;
-					fs.SwapRemoveAt(j);
-				}
+				// 令鱼死. 可能是给玩家加钱并生成鱼死事件. 可能是鱼变成 weapon	// todo: PushWeapon 携带死鱼 id 方便 client 删
+				(void)f->Die(&*h.bullet);
+				// 删鱼
+				fs[fs.len - 1]->indexAtContainer = (int)j;
+				fs.SwapRemoveAt(j);
 				break;
 			}
 		}

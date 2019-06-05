@@ -69,8 +69,8 @@ namespace CatchFish
         [Desc("通知: 鱼被打死")]
         class FishDead : Event
         {
-            [Desc("鱼id")]
-            int fishId;             // todo: 这个可以简化掉
+            [Desc("武器id( 非 0 则鱼被 weapon 打死. 为 0 则鱼被 cannon bullet 打死 )")]
+            int weaponId;
 
             [Desc("炮台id")]
             int cannonId;
@@ -78,10 +78,10 @@ namespace CatchFish
             [Desc("子弹id")]
             int bulletId;
 
-            [Desc("金币所得( fish.coin * bullet.coin 或 server 计算牵连鱼之后的综合结果 )")]
+            [Desc("金币总收入( fishs.coin * bullet.coin + left bullet coin )")]
             long coin;
 
-            [Desc("牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )")]
+            [Desc("死鱼id列表")]
             List<int> ids;
         }
 
@@ -94,9 +94,12 @@ namespace CatchFish
 
         // todo: 预约: 炸弹爆炸
 
-        [Desc("通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列")]
+        [Desc("通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列, 令 fishId 的鱼死掉")]
         class PushWeapon : Event
         {
+            [Desc("死鱼id")]
+            int fishId;
+
             [Desc("已于 server 端构造好的, 无牵挂的, 能干净下发的实例")]
             Weapon weapon;
         }

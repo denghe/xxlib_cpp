@@ -3,7 +3,7 @@ namespace PKG
 {
     public static class PkgGenMd5
     {
-        public const string value = "511b727469384e37968b38d3b7310fad"; 
+        public const string value = "8a9f3cba0ef0c5ae1221ec2135850f5a"; 
     }
 
 namespace CatchFish
@@ -3130,9 +3130,9 @@ namespace CatchFish.Events
     public partial class FishDead : CatchFish.Events.Event
     {
         /// <summary>
-        /// 鱼id
+        /// 武器id( 非 0 则鱼被 weapon 打死. 为 0 则鱼被 cannon bullet 打死 )
         /// </summary>
-        public int fishId;
+        public int weaponId;
         /// <summary>
         /// 炮台id
         /// </summary>
@@ -3142,11 +3142,11 @@ namespace CatchFish.Events
         /// </summary>
         public int bulletId;
         /// <summary>
-        /// 金币所得( fish.coin * bullet.coin 或 server 计算牵连鱼之后的综合结果 )
+        /// 金币总收入( fishs.coin * bullet.coin + left bullet coin )
         /// </summary>
         public long coin;
         /// <summary>
-        /// 牵连死的鱼id( 片伤时不为空: coin = 所有死鱼金币所得 + 剩余子弹 * 子弹币值 )
+        /// 死鱼id列表
         /// </summary>
         public xx.List<int> ids;
 
@@ -3158,7 +3158,7 @@ namespace CatchFish.Events
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
-            bb.Write(this.fishId);
+            bb.Write(this.weaponId);
             bb.Write(this.cannonId);
             bb.Write(this.bulletId);
             bb.Write(this.coin);
@@ -3168,7 +3168,7 @@ namespace CatchFish.Events
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
-            bb.Read(ref this.fishId);
+            bb.Read(ref this.weaponId);
             bb.Read(ref this.cannonId);
             bb.Read(ref this.bulletId);
             bb.Read(ref this.coin);
@@ -3193,7 +3193,7 @@ namespace CatchFish.Events
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
-            s.Append(", \"fishId\":" + fishId.ToString());
+            s.Append(", \"weaponId\":" + weaponId.ToString());
             s.Append(", \"cannonId\":" + cannonId.ToString());
             s.Append(", \"bulletId\":" + bulletId.ToString());
             s.Append(", \"coin\":" + coin.ToString());
@@ -3211,10 +3211,14 @@ namespace CatchFish.Events
         }
     }
     /// <summary>
-    /// 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列
+    /// 通知: 下发已生效 Weapon, 需要判断 beginFrameNumber, 放入 player.weapon 队列, 令 fishId 的鱼死掉
     /// </summary>
     public partial class PushWeapon : CatchFish.Events.Event
     {
+        /// <summary>
+        /// 死鱼id
+        /// </summary>
+        public int fishId;
         /// <summary>
         /// 已于 server 端构造好的, 无牵挂的, 能干净下发的实例
         /// </summary>
@@ -3228,12 +3232,14 @@ namespace CatchFish.Events
         public override void ToBBuffer(xx.BBuffer bb)
         {
             base.ToBBuffer(bb);
+            bb.Write(this.fishId);
             bb.Write(this.weapon);
         }
 
         public override void FromBBuffer(xx.BBuffer bb)
         {
             base.FromBBuffer(bb);
+            bb.Read(ref this.fishId);
             bb.Read(ref this.weapon);
         }
         public override void ToString(System.Text.StringBuilder s)
@@ -3254,6 +3260,7 @@ namespace CatchFish.Events
         public override void ToStringCore(System.Text.StringBuilder s)
         {
             base.ToStringCore(s);
+            s.Append(", \"fishId\":" + fishId.ToString());
             s.Append(", \"weapon\":" + (weapon == null ? "nil" : weapon.ToString()));
         }
         public override string ToString()
