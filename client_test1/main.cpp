@@ -126,34 +126,8 @@ inline std::pair<int, int> CalcLine(Iter&& cursor, Iter&& end) {
 		if (cs && symbol != cs) break;
 		++n;
 	}
-	if (n < 3) return std::make_pair(symbol, n);
 TheEnd:
 	return std::make_pair(symbol, n);
-}
-
-template<typename Iter>
-inline std::pair<int, int> CalcLine2(Iter&& begin, Iter&& end) {
-	int back = 0;
-	int c = 0;
-	while (begin != end) {
-		auto p = grid[*begin];
-		if (!p) {
-			c++;
-			if (c > 2 && !back) break;
-		}
-		else {
-			if (!back) {
-				back = p;
-				c++;
-			}
-			else if (back == p) {
-				c++;
-			}
-			else break;
-		}
-		begin++;
-	}
-	return std::make_pair(back, c);
 }
 
 inline void Calc() {
@@ -168,6 +142,7 @@ inline void Calc() {
 			results.push_back(Result{ i, 1, r2.first, r2.second });
 		}
 	}
+	// todo: 全屏特殊判断
 }
 int main() {
 	Init();
