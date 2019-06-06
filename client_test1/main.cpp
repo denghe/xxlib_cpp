@@ -53,17 +53,30 @@
 #include <array>
 #include <random>
 #include <cassert>
+#include <vector>
+#include <chrono>
+
+struct Result {
+	int index;			// 线下标. -1 代表全屏
+	int direction;		// 方向( 0: 从左到右. 1: 从右到左 )
+	int symbol;			// 中奖符号
+	int count;			// 符号个数
+	void Dump() {
+		std::cout << index << (direction ? " <-- " : " --> ") << symbol << "*" << count << std::endl;
+	}
+};
+
+inline std::vector<Result> results;
 
 inline std::array<int, 15> grid;
 inline std::array<std::array<int, 5>, 9> lines;
-//inline std::array<std::array<int, 5>, 1> lines;
 inline int numSymbols = 8;
 
 inline std::mt19937_64 rnd;
 inline std::uniform_int_distribution gen(0, numSymbols - 1);
 
 inline void Init() {
-	rnd.seed(std::random_device()());
+	//rnd.seed(std::random_device()());
 
 	lines[0] = { 5, 6, 7, 8, 9 };
 	lines[1] = { 0, 1, 2, 3, 4 };
@@ -74,7 +87,6 @@ inline void Init() {
 	lines[6] = { 10, 11, 7, 13, 14 };
 	lines[7] = { 5, 11, 12, 13, 9 };
 	lines[8] = { 5, 1, 2, 3, 9 };
-	//lines[0] = { 0, 1, 2, 3, 4 };
 }
 
 inline void Fill() {
@@ -119,134 +131,166 @@ TheEnd:
 	return std::make_pair(symbol, n);
 }
 
-inline void Calc(std::vector<std::pair<int, int>>& results) {
-	for (auto&& line : lines) {
+template<typename Iter>
+inline std::pair<int, int> CalcLine2(Iter&& begin, Iter&& end) {
+	int back = 0;
+	int c = 0;
+	while (begin != end) {
+		auto p = grid[*begin];
+		if (!p) {
+			c++;
+			if (c > 2 && !back) break;
+		}
+		else {
+			if (!back) {
+				back = p;
+				c++;
+			}
+			else if (back == p) {
+				c++;
+			}
+			else break;
+		}
+		begin++;
+	}
+	return std::make_pair(back, c);
+}
+
+inline void Calc() {
+	for (int i = 0; i < lines.size(); ++i) {
+		auto&& line = lines[i];
 		auto r1 = CalcLine(line.begin(), line.end());
 		auto r2 = CalcLine(line.rbegin(), line.rend());
 		if (r1.second >= 3) {
-			results.push_back(r1);
+			results.push_back(Result{ i, 0, r1.first, r1.second });
 		}
 		if (r2.second >= 3 && r1 != r2) {
-			results.push_back(r2);
+			results.push_back(Result{ i, 1, r2.first, r2.second });
 		}
 	}
 }
 int main() {
 	Init();
-	std::vector<std::pair<int, int>> results;
 	results.reserve(lines.size() * 2);
-	for (int i = 0; i < 9; ++i) {
-		Fill();
-		Dump();
-		Calc(results);
-		for (auto&& r : results) {
-			std::cout << "found " << r.first << "*" << r.second << std::endl;
-		}
-		std::cout << std::endl;
+	Fill();
+	Dump();
+	Calc();
+	auto t = std::chrono::steady_clock::now();
+	for (int i = 0; i < 10000000; ++i) {
 		results.clear();
+		//Fill();
+		//Dump();
+		Calc();
 	}
+	for (auto&& r : results) {
+		r.Dump();
+	}
+	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t).count() << std::endl;
 }
 
-int Test() {
-	Init();
-	std::vector<std::pair<int, int>> results;
-	results.reserve(lines.size() * 2);
-	{
-		grid = { 2, 0, 0, 0, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 2, 0, 0, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 2, 2, 0, 0, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 2, 2, 0, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 2, 2, 2, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 1, 1, 1, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
-	}
-	{
-		grid = { 1, 1, 0, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 2 && results[0] == std::make_pair(1, 3) && results[1] == std::make_pair(2, 3));
-	}
-	{
-		grid = { 1, 0, 1, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
-	}
-	{
-		grid = { 1, 0, 0, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 2 && results[0] == std::make_pair(1, 3) && results[1] == std::make_pair(2, 4));
-	}
-	{
-		grid = { 0, 1, 1, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
-	}
-	{
-		grid = { 0, 1, 0, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 2 && results[0] == std::make_pair(1, 3) && results[1] == std::make_pair(2, 3));
-	}
-	{
-		grid = { 0, 0, 1, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
-	}
-	{
-		grid = { 0, 0, 0, 2, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 2 && results[0] == std::make_pair(0, 3) && results[1] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 0, 0, 0, 0, 2 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 2 && results[0] == std::make_pair(0, 4) && results[1] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 0, 0, 0, 2, 0 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 2 && results[0] == std::make_pair(0, 3) && results[1] == std::make_pair(2, 5));
-	}
-	{
-		grid = { 0, 0, 0, 0, 0 };
-		results.clear();
-		Calc(results);
-		assert(results.size() == 1 && results[0] == std::make_pair(0, 5));
-	}
 
-	return 0;
-}
+
+
+//int Test() {//inline std::array<std::array<int, 5>, 1> lines;
+	//lines[0] = { 0, 1, 2, 3, 4 };
+//	Init();
+//	results.reserve(lines.size() * 2);
+//	{
+//		grid = { 2, 0, 0, 0, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 2, 0, 0, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 2, 2, 0, 0, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 2, 2, 0, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 2, 2, 2, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 1, 1, 1, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
+//	}
+//	{
+//		grid = { 1, 1, 0, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 2 && results[0] == std::make_pair(1, 3) && results[1] == std::make_pair(2, 3));
+//	}
+//	{
+//		grid = { 1, 0, 1, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
+//	}
+//	{
+//		grid = { 1, 0, 0, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 2 && results[0] == std::make_pair(1, 3) && results[1] == std::make_pair(2, 4));
+//	}
+//	{
+//		grid = { 0, 1, 1, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
+//	}
+//	{
+//		grid = { 0, 1, 0, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 2 && results[0] == std::make_pair(1, 3) && results[1] == std::make_pair(2, 3));
+//	}
+//	{
+//		grid = { 0, 0, 1, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(1, 3));
+//	}
+//	{
+//		grid = { 0, 0, 0, 2, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 2 && results[0] == std::make_pair(0, 3) && results[1] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 0, 0, 0, 0, 2 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 2 && results[0] == std::make_pair(0, 4) && results[1] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 0, 0, 0, 2, 0 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 2 && results[0] == std::make_pair(0, 3) && results[1] == std::make_pair(2, 5));
+//	}
+//	{
+//		grid = { 0, 0, 0, 0, 0 };
+//		results.clear();
+//		Calc();
+//		assert(results.size() == 1 && results[0] == std::make_pair(0, 5));
+//	}
+//
+//	return 0;
+//}
