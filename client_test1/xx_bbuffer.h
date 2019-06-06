@@ -73,7 +73,7 @@ namespace xx {
 		BBuffer& operator=(BBuffer const&) = delete;
 
 		// unsafe: direct change field value( for Read )
-		inline void Reset(uint8_t* const& buf = nullptr, size_t const& len = 0, size_t const& cap = 0, size_t const& offset = 0) {
+		inline void Reset(uint8_t* const& buf = nullptr, size_t const& len = 0, size_t const& cap = 0, size_t const& offset = 0) noexcept {
 			this->buf = buf;
 			this->len = len;
 			this->cap = cap;
@@ -249,7 +249,7 @@ namespace xx {
 			}
 			Reserve(len + sizeof(T) + 1);
 			while (u >= 1 << 7) {
-				buf[len++] = uint8_t(u & 0x7fu | 0x80u);
+				buf[len++] = uint8_t((u & 0x7fu) | 0x80u);
 				u >>= 7;
 			};
 			buf[len++] = uint8_t(u);

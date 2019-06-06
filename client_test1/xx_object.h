@@ -135,7 +135,12 @@ namespace xx {
 	struct BBuffer;
 
 	struct Object {
-		virtual ~Object() {}
+		Object() = default;
+		virtual ~Object() = default;
+		Object(Object const&) = delete;
+		Object& operator=(Object const&) = delete;
+		Object(Object &&) = delete;
+		Object& operator=(Object &&) = delete;
 
 		// 序列化相关
 		inline virtual uint16_t GetTypeId() const noexcept { return 0; }
@@ -147,7 +152,7 @@ namespace xx {
 		inline virtual void ToStringCore(std::string& s) const noexcept {};
 		bool toStringFlag = false;
 		inline void SetToStringFlag(bool const& b = true) const noexcept {
-			((Object*)this)->toStringFlag = b;
+			const_cast<Object*>(this)->toStringFlag = b;
 		}
 
 		// 级联相关( 主用于遍历调用生成物派生类 override 的代码 )
@@ -687,18 +692,15 @@ namespace xx {
 
 	// 移动时是否可使用 memmove 的标志 基础适配模板
 	template<typename T, typename ENABLED = void>
-	struct IsTrivial {
-		static const bool value = false;
-	};
+	struct IsTrivial : std::false_type {};
 
 	template<typename T>
 	constexpr bool IsTrivial_v = IsTrivial<T>::value;
 
-	// 适配 std::is_trivial<T>::value
+	// 适配 std::is_trivial<T>::value 或 智能指针( 看上去其实现可以直接 memcpy )
 	template<typename T>
-	struct IsTrivial<T, std::enable_if_t<std::is_trivial_v<T>>> {
-		static const bool value = true;
-	};
+	struct IsTrivial<T, std::enable_if_t<(IsShared_v<T> || IsWeak_v<T>) || std::is_trivial_v<T>>> : std::true_type {};
+
 
 
 

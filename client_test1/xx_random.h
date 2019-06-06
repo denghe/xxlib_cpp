@@ -81,10 +81,10 @@ namespace xx {
 		// object's interface
 
 		virtual uint16_t GetTypeId() const noexcept override;
-		inline void ToBBuffer(BBuffer& bb) const noexcept;
-		inline int FromBBuffer(BBuffer& bb) noexcept;
+		inline void ToBBuffer(BBuffer& bb) const noexcept override;
+		inline int FromBBuffer(BBuffer& bb) noexcept override;
 
-		inline void ToString(std::string& s) const noexcept;
+		inline void ToString(std::string& s) const noexcept override;
 	};
 
 	using Random_s = std::shared_ptr<Random>;

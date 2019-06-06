@@ -65,7 +65,7 @@ namespace xx
 			assert(newBuf);
 
 			if constexpr (IsTrivial_v<T>) {
-				::memcpy(newBuf, buf, len * sizeof(T));
+				::memcpy((void*)newBuf, (void*)buf, len * sizeof(T));
 			}
 			else {
 				for (size_t i = 0; i < len; ++i) {
@@ -182,6 +182,7 @@ namespace xx
 			}
 			len--;
 			buf[len].~T();
+			//memset(&buf[len], 0, sizeof(T));		// cleanup memory ( sometimes need it )
 		}
 
 
@@ -240,6 +241,15 @@ namespace xx
 				if (v == buf[i]) return i;
 			}
 			return size_t(-1);
+		}
+
+		// 如果存在符合条件的就返回 true
+		bool Exists(std::function<bool(T const& v)>&& cond) const noexcept {
+			if (!cond) return false;
+			for (size_t i = 0; i < len; ++i) {
+				if (cond(buf[i])) return true;
+			}
+			return false;
 		}
 
 		// 支持 for( auto&& c : list ) 语法.
