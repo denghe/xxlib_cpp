@@ -53,8 +53,10 @@
 #include <array>
 #include <random>
 #include <cassert>
-#include <vector>
 #include <chrono>
+#include <vector>
+//#include "xx_bbuffer.h"
+//#include "xx_list.h"
 
 struct Result {
 	int index;			// 线下标. -1 代表全屏
@@ -67,6 +69,7 @@ struct Result {
 };
 
 inline std::vector<Result> results;
+//inline xx::List<Result> results;
 
 inline std::array<int, 15> grid;
 inline std::array<std::array<int, 5>, 9> lines;
@@ -137,9 +140,11 @@ inline void Calc() {
 		auto&& r2 = CalcLine(line.rbegin(), line.rend());
 		if (r1.second >= 3) {
 			results.push_back(Result{ i, 0, r1.first, r1.second });
+			//results.Add(Result{ i, 0, r1.first, r1.second });
 		}
 		if (r2.second >= 3 && r1 != r2) {
 			results.push_back(Result{ i, 1, r2.first, r2.second });
+			//results.Add(Result{ i, 1, r2.first, r2.second });
 		}
 	}
 	// todo: 全屏特殊判断
@@ -147,6 +152,7 @@ inline void Calc() {
 int main() {
 	Init();
 	results.reserve(lines.size() * 2);
+	//results.Reserve(lines.size() * 2);
 	//Fill();
 	grid = { 6,4,0,2,4,6,1,6,4,2,1,7,0,3,4 };
 	Dump();
@@ -154,6 +160,7 @@ int main() {
 	auto t = std::chrono::steady_clock::now();
 	for (int i = 0; i < 10000000; ++i) {
 		results.clear();
+		//results.len = 0;
 		//Fill();
 		//Dump();
 		Calc();

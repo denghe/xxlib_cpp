@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ikcp.c" />
+    <ClCompile Include="main2.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="xx_list.h" />
