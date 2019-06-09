@@ -133,8 +133,8 @@ TheEnd:
 inline void Calc() {
 	for (int i = 0; i < lines.size(); ++i) {
 		auto&& line = lines[i];
-		auto r1 = CalcLine(line.begin(), line.end());
-		auto r2 = CalcLine(line.rbegin(), line.rend());
+		auto&& r1 = CalcLine(line.begin(), line.end());
+		auto&& r2 = CalcLine(line.rbegin(), line.rend());
 		if (r1.second >= 3) {
 			results.push_back(Result{ i, 0, r1.first, r1.second });
 		}
@@ -147,7 +147,8 @@ inline void Calc() {
 int main() {
 	Init();
 	results.reserve(lines.size() * 2);
-	Fill();
+	//Fill();
+	grid = { 6,4,0,2,4,6,1,6,4,2,1,7,0,3,4 };
 	Dump();
 	Calc();
 	auto t = std::chrono::steady_clock::now();
