@@ -91,13 +91,15 @@ int main() {
 	Result_t results[18];
 	int resultsLen = 0;
 
-	clock_t currClock = clock();
-	for (int i = 0; i < 10000000; ++i) {
-		resultsLen = 0;
-		Calc(results, &resultsLen, grid, lines);
+	for (int j = 0; j < 10; ++j) {
+		clock_t currClock = clock();
+		for (int i = 0; i < 10000000; ++i) {
+			resultsLen = 0;
+			Calc(results, &resultsLen, grid, lines);
+		}
+		double sec = (double)(clock() - currClock) / CLOCKS_PER_SEC;
+		printf("%g\n", sec);
 	}
-	double sec = (double)(clock() - currClock) / CLOCKS_PER_SEC;
-	printf("%g\n", sec);
 
 	for (int i = 0; i < resultsLen; ++i) {
 		struct Result* r = results + i;

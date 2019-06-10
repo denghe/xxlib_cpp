@@ -84,13 +84,15 @@ int main() {
 	Results results;
 	int resultsLen = 0;
 
-	auto currClock = (int64_t)clock();
-	for (int i = 0; i < 10000000; ++i) {
-		resultsLen = 0;
-		Calc((Result*)&results, resultsLen, grid, lines);
+	for (int j = 0; j < 10; ++j) {
+		auto currClock = (int64_t)clock();
+		for (int i = 0; i < 10000000; ++i) {
+			resultsLen = 0;
+			Calc((Result*)& results, resultsLen, grid, lines);
+		}
+		auto sec = (double)((int64_t)clock() - currClock) / CLOCKS_PER_SEC;
+		printf("%g\n", sec);
 	}
-	auto sec = (double)((int64_t)clock() - currClock) / CLOCKS_PER_SEC;
-	printf("%g\n", sec);
 
 	for (int i = 0; i < resultsLen; ++i) {
 		auto&& r = results[i];
