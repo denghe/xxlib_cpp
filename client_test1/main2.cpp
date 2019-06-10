@@ -5,61 +5,48 @@
 #include <time.h>
 #include <array>
 
-inline void CalcLine(int& symbol, int& count, int const* cursor, std::array<int, 15> const& grid) noexcept {
-	symbol = grid[*cursor];
-	count = 1;
-	auto end = cursor + 5;
-	if (!symbol) {
-		while (++cursor != end) {
-			if ((symbol = grid[*cursor])) break;
-			++count;
-		}
-		if (count >= 3) {
-			symbol = 0;
-			return;
-		}
-		++count;
-	}
-	while (++cursor != end) {
-		int s = grid[*cursor];
-		if (s && symbol != s) break;
-		++count;
-	}
-}
-inline void CalcLineReverse(int& symbol, int& count, int const* cursor, std::array<int, 15> const& grid) noexcept {
-	symbol = grid[*cursor];
-	count = 1;
-	auto end = cursor - 5;
-	if (!symbol) {
-		while (--cursor != end) {
-			if ((symbol = grid[*cursor])) break;
-			++count;
-		}
-		if (count >= 3) {
-			symbol = 0;
-			return;
-		}
-		++count;
-	}
-	while (--cursor != end) {
-		int s = grid[*cursor];
-		if (s && symbol != s) break;
-		++count;
-	}
-}
-
 struct Result {
 	int index;
 	int direction;
 	int symbol;
 	int count;
 };
+const int gridCount = 15;
+const int lineCount = 5;
+const int linesCount = 9;
+using Grid = std::array<int, gridCount>;
+using Line = std::array<int, lineCount>;
+using Lines = std::array<Line, linesCount>;
+using Results = std::array<Result, linesCount * 2>;
 
-inline void Calc(Result* results, int& resultsLen, std::array<int, 15> const& grid, std::array<std::array<int, 5>, 9> const& lines) noexcept {
+template<int offset, int step = (offset > 0 ? 1 : -1)>
+inline void CalcLine(int& symbol, int& count, int const* __restrict cursor, Grid const& grid) noexcept {
+	symbol = grid[*cursor];
+	count = 1;
+	auto end = cursor + offset;
+	if (!symbol) {
+		while ((cursor += step) != end) {
+			if ((symbol = grid[*cursor])) break;
+			++count;
+		}
+		if (count >= 3) {
+			symbol = 0;
+			return;
+		}
+		++count;
+	}
+	while ((cursor += step) != end) {
+		int s = grid[*cursor];
+		if (s && symbol != s) break;
+		++count;
+	}
+}
+
+inline void Calc(Result* results, int& resultsLen, Grid const& grid, Lines const& lines) noexcept {
 	int s1, c1, s2, c2;
 	for (size_t i = 0; i < lines.size(); ++i) {
-		CalcLine(s1, c1, lines[i].data(), grid);
-		CalcLineReverse(s2, c2, lines[i].data() + lines[i].size() - 1, grid);
+		CalcLine<lineCount>(s1, c1, lines[i].data(), grid);
+		CalcLine<-lineCount>(s2, c2, lines[i].data() + lines[i].size() - 1, grid);
 		if (c1 >= 3) {
 			auto&& r = results[resultsLen++];
 			r.index = (int)i;
@@ -78,12 +65,12 @@ inline void Calc(Result* results, int& resultsLen, std::array<int, 15> const& gr
 }
 
 int main() {
-	std::array<int, 15> grid = {
+	Grid grid = {
 		6, 4, 0, 2, 4,
 		6, 1, 6, 4, 2,
 		1, 7, 0, 3, 4
 	};
-	std::array<std::array<int, 5>, 9> lines = {
+	Lines lines = {
 		5, 6, 7, 8, 9,
 		0, 1, 2, 3, 4,
 		10, 11, 12, 13, 14,
@@ -94,20 +81,20 @@ int main() {
 		5, 11, 12, 13, 9,
 		5, 1, 2, 3, 9,
 	};
-	Result results[18];
+	Results results;
 	int resultsLen = 0;
 
 	auto currClock = (int64_t)clock();
 	for (int i = 0; i < 10000000; ++i) {
 		resultsLen = 0;
-		Calc(results, resultsLen, grid, lines);
+		Calc((Result*)&results, resultsLen, grid, lines);
 	}
 	auto sec = (double)((int64_t)clock() - currClock) / CLOCKS_PER_SEC;
 	printf("%g\n", sec);
 
 	for (int i = 0; i < resultsLen; ++i) {
-		auto r = results + i;
-		printf("%d %s %d %d\n", r->index, (r->direction ? "<--" : "-->"), r->symbol, r->count);
+		auto&& r = results[i];
+		printf("%d %s %d %d\n", r.index, (r.direction ? "<--" : "-->"), r.symbol, r.count);
 	}
 	return 0;
 }
