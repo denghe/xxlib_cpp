@@ -11,16 +11,16 @@ struct Result {
 	int symbol;
 	int count;
 };
-const int gridCount = 15;
-const int lineCount = 5;
-const int linesCount = 9;
-using Grid = std::array<int, gridCount>;
-using Line = std::array<int, lineCount>;
-using Lines = std::array<Line, linesCount>;
-using Results = std::array<Result, linesCount * 2>;
+const int gridLen = 15;
+const int lineLen = 5;
+const int linesLen = 9;
+using Grid = std::array<int, gridLen>;
+using Line = std::array<int, lineLen>;
+using Lines = std::array<Line, linesLen>;
+using Results = std::array<Result, linesLen * 2>;
 
 template<int offset, int step = (offset > 0 ? 1 : -1)>
-inline void CalcLine(int& symbol, int& count, int const* __restrict cursor, Grid const& grid) noexcept {
+inline void CalcLine(int& symbol, int& count, int const* cursor, Grid const& grid) noexcept {
 	symbol = grid[*cursor];
 	count = 1;
 	auto end = cursor + offset;
@@ -44,9 +44,9 @@ inline void CalcLine(int& symbol, int& count, int const* __restrict cursor, Grid
 
 inline void Calc(Result* results, int& resultsLen, Grid const& grid, Lines const& lines) noexcept {
 	int s1, c1, s2, c2;
-	for (size_t i = 0; i < lines.size(); ++i) {
-		CalcLine<lineCount>(s1, c1, lines[i].data(), grid);
-		CalcLine<-lineCount>(s2, c2, lines[i].data() + lines[i].size() - 1, grid);
+	for (size_t i = 0; i < linesLen; ++i) {
+		CalcLine<lineLen>(s1, c1, (int*)&lines[i], grid);
+		CalcLine<-lineLen>(s2, c2, (int*)&lines[i] + lineLen - 1, grid);
 		if (c1 >= 3) {
 			auto&& r = results[resultsLen++];
 			r.index = (int)i;
