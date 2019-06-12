@@ -24,7 +24,7 @@
 另外, 存在所有格子同时判定的情况，比如全部都是相同符号或符合某种分类
 
 符号列表:
-0, 1, 2, 3, ......
+0, 1, 2, 3, ......9
 
 奖励表:
 .......
@@ -55,8 +55,6 @@
 #include <cassert>
 #include <chrono>
 #include <vector>
-//#include "xx_bbuffer.h"
-//#include "xx_list.h"
 
 struct Result {
 	int index;			// 线下标. -1 代表全屏
@@ -69,18 +67,14 @@ struct Result {
 };
 
 inline std::vector<Result> results;
-//inline xx::List<Result> results;
-
 inline std::array<int, 15> grid;
 inline std::array<std::array<int, 5>, 9> lines;
-inline int numSymbols = 8;
+inline int numSymbols = 9;
 
 inline std::mt19937_64 rnd;
 inline std::uniform_int_distribution gen(0, numSymbols - 1);
 
 inline void Init() {
-	//rnd.seed(std::random_device()());
-
 	lines[0] = { 5, 6, 7, 8, 9 };
 	lines[1] = { 0, 1, 2, 3, 4 };
 	lines[2] = { 10, 11, 12, 13, 14 };
@@ -90,6 +84,9 @@ inline void Init() {
 	lines[6] = { 10, 11, 7, 13, 14 };
 	lines[7] = { 5, 11, 12, 13, 9 };
 	lines[8] = { 5, 1, 2, 3, 9 };
+
+	rnd.seed(std::random_device()());
+	results.reserve(lines.size() * 2);
 }
 
 inline void Fill() {
@@ -140,35 +137,21 @@ inline void Calc() {
 		auto&& r2 = CalcLine(line.rbegin(), line.rend());
 		if (r1.second >= 3) {
 			results.push_back(Result{ i, 0, r1.first, r1.second });
-			//results.Add(Result{ i, 0, r1.first, r1.second });
 		}
 		if (r2.second >= 3 && r1 != r2) {
 			results.push_back(Result{ i, 1, r2.first, r2.second });
-			//results.Add(Result{ i, 1, r2.first, r2.second });
 		}
 	}
 	// todo: 全屏特殊判断
 }
 int main() {
 	Init();
-	results.reserve(lines.size() * 2);
-	//results.Reserve(lines.size() * 2);
-	//Fill();
-	grid = { 6,4,0,2,4,6,1,6,4,2,1,7,0,3,4 };
+	Fill();
 	Dump();
 	Calc();
-	auto t = std::chrono::steady_clock::now();
-	for (int i = 0; i < 10000000; ++i) {
-		results.clear();
-		//results.len = 0;
-		//Fill();
-		//Dump();
-		Calc();
-	}
 	for (auto&& r : results) {
 		r.Dump();
 	}
-	std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t).count() << std::endl;
 }
 
 

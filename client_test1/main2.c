@@ -11,7 +11,7 @@ typedef struct Result {
 	int count;
 } Result_t;
 
-static void CalcLine(int* __restrict symbol, int*  __restrict count, int*  __restrict cursor, int*  __restrict grid) {
+static void CalcLine(int* __restrict symbol, int* __restrict count, int* __restrict cursor, int* __restrict grid) {
 	int* end = cursor + 5;
 	*symbol = grid[*cursor];
 	*count = 1;
@@ -32,7 +32,7 @@ static void CalcLine(int* __restrict symbol, int*  __restrict count, int*  __res
 		++* count;
 	}
 }
-static void CalcLineReverse(int*  __restrict symbol, int*  __restrict count, int*  __restrict cursor, int*  __restrict grid) {
+static void CalcLineReverse(int* __restrict symbol, int* __restrict count, int* __restrict cursor, int* __restrict grid) {
 	int* end = cursor - 5;
 	*symbol = grid[*cursor];
 	*count = 1;
@@ -53,7 +53,7 @@ static void CalcLineReverse(int*  __restrict symbol, int*  __restrict count, int
 		++* count;
 	}
 }
-static void Calc(Result_t*  __restrict results, int*  __restrict resultsLen, int*  __restrict grid, int*  __restrict lines) {
+static void Calc(Result_t* __restrict results, int* __restrict resultsLen, int* __restrict grid, int* __restrict lines) {
 	int symbol1, count1, symbol2, count2;
 	for (int i = 0; i < 9; ++i) {
 		CalcLine(&symbol1, &count1, lines + i * 5, grid);
