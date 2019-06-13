@@ -239,6 +239,7 @@ int main() {
 	for (g.value = 0; g.value <= 0b111111111111111111111111111111; ++g.value) {
 		if ((g.value & 0b11111111111111111111111) == 0) {
 			std::cout << ".";
+			std::cout.flush();
 		}
 		grid = {
 			g.c0, g.c1, g.c2, g.c3, g.c4,
