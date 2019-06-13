@@ -55,6 +55,9 @@
 #include <cassert>
 #include <chrono>
 #include <vector>
+#include <map>
+#include <string>
+#include <unordered_set>
 
 struct Result {
 	int index;			// 线下标. -1 代表全屏
@@ -66,36 +69,25 @@ struct Result {
 	}
 };
 
-inline std::vector<Result> results;
-inline std::array<int, 15> grid;
-inline std::array<std::array<int, 5>, 9> lines;
-inline int numSymbols = 9;
+const int gridLen = 15;
+const int lineLen = 5;
+const int linesLen = 9;
+using Grid = std::array<int, gridLen>;
+using Line = std::array<int, lineLen>;
+using Lines = std::array<Line, linesLen>;
+using Results = std::array<Result, linesLen * 2>;
 
-inline std::mt19937_64 rnd;
-inline std::uniform_int_distribution gen(0, numSymbols - 1);
 
-inline void Init() {
-	lines[0] = { 5, 6, 7, 8, 9 };
-	lines[1] = { 0, 1, 2, 3, 4 };
-	lines[2] = { 10, 11, 12, 13, 14 };
-	lines[3] = { 0, 6, 12, 8, 4 };
-	lines[4] = { 10, 6, 2, 8, 14 };
-	lines[5] = { 0, 1, 7, 3, 4 };
-	lines[6] = { 10, 11, 7, 13, 14 };
-	lines[7] = { 5, 11, 12, 13, 9 };
-	lines[8] = { 5, 1, 2, 3, 9 };
+//inline std::mt19937_64 rnd;
+//inline std::uniform_int_distribution gen(0, numSymbols - 1);
+//rnd.seed(std::random_device()());
+//inline void Fill() {
+//	for (auto&& v : grid) {
+//		v = gen(rnd);
+//	}
+//}
 
-	rnd.seed(std::random_device()());
-	results.reserve(lines.size() * 2);
-}
-
-inline void Fill() {
-	for (auto&& v : grid) {
-		v = gen(rnd);
-	}
-}
-
-inline void Dump() {
+inline void Dump(Grid const& grid) {
 	for (int j = 0; j < 3; ++j) {
 		for (int i = 0; i < 5; ++i) {
 			std::cout << grid[j * 5 + i] << " ";
@@ -104,56 +96,241 @@ inline void Dump() {
 	}
 }
 
-template<typename Iter>
-inline std::pair<int, int> CalcLine(Iter&& cursor, Iter&& end) {
-	auto symbol = grid[*cursor];
-	int n = 1;
+template<int offset, int step = (offset > 0 ? 1 : -1)>
+inline void CalcLine(int& symbol, int& count, int const* cursor, Grid const& grid) noexcept {
+	symbol = grid[*cursor];
+	count = 1;
+	auto end = cursor + offset;
+	// 如果 0 打头, 向后找出一个非 0 的来...
+	if (!symbol) {
+		while ((cursor += step) != end) {
+			if ((symbol = grid[*cursor])) break;
+			++count;
+		}
+		// 3 个 0 优先判定
+		if (count >= 3) {
+			symbol = 0;
+			return;
+		}
+		++count;
+	}
+	// 继续数当前符号个数
+	while ((cursor += step) != end) {
+		int s = grid[*cursor];
+		if (s && symbol != s) break;
+		++count;
+	}
+}
+
+inline void CalcGrid(int& symbol, int& count, Grid const& grid) noexcept {
+	int cursor = 0;
+	symbol = grid[cursor];
+	count = 1;
+	const auto end = grid.size();
 	// 如果 0 打头, 向后找出一个非 0 的来...
 	if (!symbol) {
 		while (++cursor != end) {
-			if ((symbol = grid[*cursor])) break;
-			++n;
+			if ((symbol = grid[cursor])) break;
+			++count;
 		}
-		if (n >= 3) {	// 3 个 0 优先判定
-			symbol = 0;
-			goto TheEnd;
-		}
-		++n;
+		if (cursor == end) return;
+		++count;
 	}
 	// 继续数当前符号个数
 	while (++cursor != end) {
-		auto&& cs = grid[*cursor];
-		if (cs && symbol != cs) break;
-		++n;
+		int s = grid[cursor];
+		if (s && symbol != s) break;
+		++count;
 	}
-TheEnd:
-	return std::make_pair(symbol, n);
 }
 
-inline void Calc() {
-	for (int i = 0; i < lines.size(); ++i) {
-		auto&& line = lines[i];
-		auto&& r1 = CalcLine(line.begin(), line.end());
-		auto&& r2 = CalcLine(line.rbegin(), line.rend());
-		if (r1.second >= 3) {
-			results.push_back(Result{ i, 0, r1.first, r1.second });
+inline void Calc(Result* results, int& resultsLen, Grid const& grid, Lines const& lines) noexcept {
+	int s1, c1, s2, c2;
+	CalcGrid(s1, c1, grid);
+	if (c1 == 15) {
+		auto&& r = results[resultsLen++];
+		r.index = -1;
+		r.direction = 0;
+		r.symbol = s1;
+		r.count = c1;
+		return;
+	}
+	// 这里不需要总类全屏特殊判断
+	for (size_t i = 0; i < linesLen; ++i) {
+		CalcLine<lineLen>(s1, c1, (int*)& lines[i], grid);
+		CalcLine<-lineLen>(s2, c2, (int*)& lines[i] + lineLen - 1, grid);
+		if (c1 >= 3) {
+			auto&& r = results[resultsLen++];
+			r.index = (int)i;
+			r.direction = 0;
+			r.symbol = s1;
+			r.count = c1;
 		}
-		if (r2.second >= 3 && r1 != r2) {
-			results.push_back(Result{ i, 1, r2.first, r2.second });
+		if (c2 >= 3 && (s1 != s2/* && c1 != c2*/)) {
+			auto&& r = results[resultsLen++];
+			r.index = (int)i;
+			r.direction = 1;
+			r.symbol = s2;
+			r.count = c2;
 		}
 	}
-	// todo: 全屏特殊判断
 }
+
+union GridValues {
+	struct {
+		uint8_t c0 : 2;
+		uint8_t c1 : 2;
+		uint8_t c2 : 2;
+		uint8_t c3 : 2;
+		uint8_t c4 : 2;
+		uint8_t c5 : 2;
+		uint8_t c6 : 2;
+		uint8_t c7 : 2;
+		uint8_t c8 : 2;
+		uint8_t c9 : 2;
+		uint8_t c10 : 2;
+		uint8_t c11 : 2;
+		uint8_t c12 : 2;
+		uint8_t c13 : 2;
+		uint8_t c14 : 2;
+		uint8_t c__ : 2;
+	};
+	uint32_t value;
+};
+
+union ShapeNums {
+	struct {
+		uint8_t n3 : 8;
+		uint8_t n4 : 8;
+		uint8_t n5 : 8;
+		uint8_t n15 : 8;
+	};
+	uint32_t value;
+};
+
+union MaskKey {
+	struct {
+		uint8_t index : 4;
+		uint8_t direction : 1;
+		uint8_t count : 3;
+	};
+	char value;
+};
+
 int main() {
-	Init();
-	Fill();
-	Dump();
-	Calc();
-	for (auto&& r : results) {
-		r.Dump();
+	Lines lines = {
+		5, 6, 7, 8, 9,
+		0, 1, 2, 3, 4,
+		10, 11, 12, 13, 14,
+		0, 6, 12, 8, 4,
+		10, 6, 2, 8, 14,
+		0, 1, 7, 3, 4,
+		10, 11, 7, 13, 14,
+		5, 11, 12, 13, 9,
+		5, 1, 2, 3, 9,
+	};
+	Grid grid;
+	std::array<int, 4> counts;
+	std::map<uint32_t, int> shapes;
+	std::map<uint32_t, std::unordered_set<std::string>> shapesResults;
+	Results results;
+	int resultsLen = 0;
+	GridValues g;
+	for (g.value = 0; g.value <= 0b111111111111111111111111111111; ++g.value) {
+		if ((g.value & 0b11111111111111111111111) == 0) {
+			std::cout << ".";
+		}
+		grid = {
+			g.c0, g.c1, g.c2, g.c3, g.c4,
+			g.c5, g.c6, g.c7, g.c8, g.c9,
+			g.c10, g.c11, g.c12, g.c13, g.c14,
+		};
+		resultsLen = 0;
+		Calc((Result*)& results, resultsLen, grid, lines);
+		if (!resultsLen) continue;
+		if (results[0].index == -1) continue;		// ignore full screen
+		
+		counts.fill(0);
+		std::string maskKeys;
+		for (int i = 0; i < resultsLen; ++i) {
+			++counts[results[i].count - 3];
+			MaskKey k;
+			k.index = results[i].index;
+			k.direction = results[i].direction;
+			k.count = results[i].count;
+			maskKeys.append(&k.value, 1);
+		}
+		auto key = counts[0] | counts[1] << 8 | counts[2] << 16;
+		++shapes[key];
+
+		shapesResults[key].insert(std::move(maskKeys));
 	}
+
+	std::cout << shapes.size() << std::endl;
+
+	size_t siz = 0;
+	ShapeNums n;
+	std::string s;
+	for (auto&& iter : shapes) {
+		n.value = iter.first;
+		s.clear();
+		if (n.n3) {
+			s.append("3*");
+			s.append(std::to_string(n.n3));
+		}
+		if (n.n4) {
+			if (s.size()) {
+				s.append(", ");
+			}
+			s.append("4*");
+			s.append(std::to_string(n.n4));
+		}
+		if (n.n5) {
+			if (s.size()) {
+				s.append(", ");
+			}
+			s.append("5*");
+			s.append(std::to_string(n.n5));
+		}
+		if (n.n15) {
+			if (s.size()) {
+				s.append(", ");
+			}
+			s.append("15*");
+			s.append(std::to_string(n.n5));
+		}
+		auto&& numResults = shapesResults[iter.first].size();
+		siz += numResults;
+		s = s + " : " + std::to_string(iter.second) + ", shapesResults.size() = " + std::to_string(numResults);
+		std::cout << s << std::endl;
+	}
+	std::cout << "total shapesResults 's size = " << siz << std::endl;
+	//Dump(grids[17]);
 }
 
+
+
+
+
+/*
+
+线型组合分析( 不考虑全屏 )
+3*18
+11022
+11022
+11022
+
+3*17
+2 2 0 1 0
+0 3 0 1 0
+0 3 0 1 0
+
+..... 约 997 种 shape
+
+
+
+
+*/
 
 
 
