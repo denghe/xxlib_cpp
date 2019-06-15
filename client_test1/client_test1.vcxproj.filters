@@ -18,6 +18,7 @@
     <ClInclude Include="xx_bbuffer.h" />
     <ClInclude Include="xx_dict.h" />
     <ClInclude Include="xx_uv_lua.h" />
+    <ClInclude Include="xx_file.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="xx.natvis" />

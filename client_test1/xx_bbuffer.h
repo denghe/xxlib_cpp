@@ -445,6 +445,27 @@ namespace xx {
 		}
 	};
 
+
+	// 适配 literal char[len] string  ( 写入 32b长度 + 内容. 不写入末尾 0 )
+	template<size_t len>
+	struct BFuncs<char[len], void> {
+		static inline void WriteTo(BBuffer& bb, char const(&in)[len]) noexcept {
+			bb.Write((size_t)(len - 1));
+			bb.AddRange((uint8_t*)in, len - 1);
+		}
+		static inline int ReadFrom(BBuffer& bb, char (&out)[len]) noexcept {
+			size_t readLen = 0;
+			if (auto r = bb.Read(readLen)) return r;
+			if (bb.readLengthLimit && bb.readLengthLimit < readLen) return -18;
+			if (bb.offset + readLen > bb.len) return -19;
+			if (readLen >= len) return -20;
+			memcpy(out, bb.buf + bb.offset, readLen);
+			out[readLen] = 0;
+			bb.offset += readLen;
+			return 0;
+		}
+	};
+
 	// 适配 std::string ( 写入 32b长度 + 内容 )
 	template<>
 	struct BFuncs<std::string, void> {

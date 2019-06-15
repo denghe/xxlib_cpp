@@ -48,6 +48,7 @@
 对所有格子随机填充符号, 统计出最终倍数
 */
 
+#pragma execution_character_set("utf-8")
 
 #include <iostream>
 #include <array>
@@ -55,9 +56,10 @@
 #include <cassert>
 #include <chrono>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <unordered_set>
+#include <xx_file.h>
 
 struct Result {
 	int index;			// 线下标. -1 代表全屏
@@ -217,6 +219,7 @@ union MaskKey {
 	char value;
 };
 
+
 int main() {
 	Lines lines = {
 		5, 6, 7, 8, 9,
@@ -231,8 +234,8 @@ int main() {
 	};
 	Grid grid;
 	std::array<int, 4> counts;
-	std::map<uint32_t, int> shapes;
-	std::map<uint32_t, std::unordered_set<std::string>> shapesResults;
+	std::unordered_map<uint32_t, int> shapes;
+	std::unordered_map<uint32_t, std::unordered_set<std::string>> shapesResults;
 	Results results;
 	int resultsLen = 0;
 	GridValues g;
@@ -306,7 +309,12 @@ int main() {
 		std::cout << s << std::endl;
 	}
 	std::cout << "total shapesResults 's size = " << siz << std::endl;
-	//Dump(grids[17]);
+	
+
+	auto&& path = xx::GetCurrentPath() / L"huga.bin";
+	xx::BBuffer bb;
+	// todo
+	xx::WriteAllBytes(path, bb);
 }
 
 

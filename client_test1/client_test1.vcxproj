@@ -44,12 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)libuv;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)libuv;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -108,6 +108,7 @@
     <ClInclude Include="ikcp.h" />
     <ClInclude Include="xx_bbuffer.h" />
     <ClInclude Include="xx_dict.h" />
+    <ClInclude Include="xx_file.h" />
     <ClInclude Include="xx_list.h" />
     <ClInclude Include="xx_object.h" />
     <ClInclude Include="xx_pos.h" />

@@ -186,7 +186,9 @@ namespace xx
 		for (int i = buckets[targetBucket]; i >= 0; i = nodes[i].next) {
 			if (nodes[i].hashCode == hashCode && items[i].key == k) {
 				if (override) {                      // 允许覆盖 value
-					items[i].value.~TV();
+					if constexpr (!std::is_pod_v<TV>) {
+						items[i].value.~TV();
+					}
 					new (&items[i].value) TV(std::forward<V>(v));
 					return DictAddResult{ true, i };
 				}
@@ -256,9 +258,13 @@ namespace xx
 			auto newItems = (Data*)malloc(bucketsLen * sizeof(Data));
 			for (int i = 0; i < count; ++i) {
 				new (&newItems[i].key) TK((TK&&)items[i].key);
-				items[i].key.TK::~TK();
+				if constexpr (!std::is_pod_v<TK>) {
+					items[i].key.TK::~TK();
+				}
 				new (&newItems[i].value) TV((TV&&)items[i].value);
-				items[i].value.TV::~TV();
+				if constexpr (!std::is_pod_v<TV>) {
+					items[i].value.TV::~TV();
+				}
 			}
 			free(items);
 			items = newItems;
@@ -304,8 +310,12 @@ namespace xx
 		freeList = idx;
 		freeCount++;
 
-		items[idx].key.~TK();
-		items[idx].value.~TV();
+		if constexpr (!std::is_pod_v<TK>) {
+			items[idx].key.~TK();
+		}
+		if constexpr (!std::is_pod_v<TV>) {
+			items[idx].value.~TV();
+		}
 		items[idx].prev = -2;           // foreach 时的无效标志
 	}
 
@@ -348,8 +358,12 @@ namespace xx
 		assert(buckets);
 		for (int i = 0; i < count; ++i) {
 			if (items[i].prev != -2) {
-				items[i].key.~TK();
-				items[i].value.~TV();
+				if constexpr (!std::is_pod_v<TK>) {
+					items[i].key.~TK();
+				}
+				if constexpr (!std::is_pod_v<TV>) {
+					items[i].value.~TV();
+				}
 				items[i].prev = -2;
 			}
 		}

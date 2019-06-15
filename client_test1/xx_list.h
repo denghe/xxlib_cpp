@@ -82,14 +82,18 @@ namespace xx
 		size_t Resize(size_t const& len) noexcept {
 			if (len == this->len) return len;
 			else if (len < this->len) {
-				for (size_t i = len; i < this->len; ++i) {
-					buf[i].~T();
+				if constexpr (!std::is_pod_v<T>) {
+					for (size_t i = len; i < this->len; ++i) {
+						buf[i].~T();
+					}
 				}
 			}
 			else {	// len > this->len
 				Reserve(len);
-				for (size_t i = this->len; i < len; ++i) {
-					new (buf + i) T();
+				if constexpr (!std::is_pod_v<T>) {
+					for (size_t i = this->len; i < len; ++i) {
+						new (buf + i) T();
+					}
 				}
 			}
 			auto rtv = this->len;
@@ -137,8 +141,10 @@ namespace xx
 		void Clear(bool const& freeBuf = false) noexcept {
 			if (!buf) return;
 			if (len) {
-				for (size_t i = len - 1; i != (size_t)-1; --i) {
-					buf[i].~T();
+				if constexpr (!std::is_pod_v<T>) {
+					for (size_t i = len - 1; i != (size_t)-1; --i) {
+						buf[i].~T();
+					}
 				}
 				len = 0;
 			}
@@ -169,7 +175,9 @@ namespace xx
 				for (size_t i = idx; i < len; ++i) {
 					buf[i] = (T&&)buf[i + 1];
 				}
-				buf[len].~T();
+				if constexpr (!std::is_pod_v<T>) {
+					buf[len].~T();
+				}
 			}
 		}
 
@@ -181,8 +189,9 @@ namespace xx
 				std::swap(buf[idx], buf[len - 1]);
 			}
 			len--;
-			buf[len].~T();
-			//memset(&buf[len], 0, sizeof(T));		// cleanup memory ( sometimes need it )
+			if constexpr (!std::is_pod_v<T>) {
+				buf[len].~T();
+			}
 		}
 
 
@@ -206,7 +215,9 @@ namespace xx
 					for (size_t i = len - 1; i > idx; --i) {
 						buf[i] = (T&&)buf[i - 1];
 					}
-					buf[idx].~T();
+					if constexpr (!std::is_pod_v<T>) {
+						buf[idx].~T();
+					}
 				}
 			}
 			else idx = len;
