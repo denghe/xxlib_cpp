@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "xx_list.h"
 
 namespace xx {
@@ -37,7 +37,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä Buffer
+	// é€‚é… Buffer
 	template<>
 	struct IsTrivial<Buffer, void> {
 		static const bool value = true;
@@ -48,11 +48,11 @@ namespace xx {
 	using BBuffer_w = std::weak_ptr<BBuffer>;
 
 	struct BBuffer : Buffer {
-		size_t offset = 0;													// ¶ÁÖ¸ÕëÆ«ÒÆÁ¿
-		size_t offsetRoot = 0;												// offsetÖµĞ´ÈëĞŞÕı
-		size_t readLengthLimit = 0;											// Ö÷ÓÃÓÚ´«µİ¸øÈİÆ÷Àà½øĞĞ³¤¶ÈºÏ·¨Ğ£Ñé
+		size_t offset = 0;													// è¯»æŒ‡é’ˆåç§»é‡
+		size_t offsetRoot = 0;												// offsetå€¼å†™å…¥ä¿®æ­£
+		size_t readLengthLimit = 0;											// ä¸»ç”¨äºä¼ é€’ç»™å®¹å™¨ç±»è¿›è¡Œé•¿åº¦åˆæ³•æ ¡éªŒ
 
-		// todo: ÕâĞ©ÈİÆ÷¸ÄÎªÖ¸Õë, XxxxxRoot º¯ÊıÖĞ¼ì²â²¢´´½¨
+		// todo: è¿™äº›å®¹å™¨æ”¹ä¸ºæŒ‡é’ˆ, XxxxxRoot å‡½æ•°ä¸­æ£€æµ‹å¹¶åˆ›å»º
 		std::unordered_map<void*, size_t> ptrs;
 		std::unordered_map<size_t, std::shared_ptr<Object>> objIdxs;
 		std::unordered_map<size_t, std::shared_ptr<std::string>> strIdxs;
@@ -66,7 +66,7 @@ namespace xx {
 		inline BBuffer& operator=(BBuffer&& o) noexcept {
 			this->Buffer::operator=(std::move(o));
 			std::swap(offset, o.offset);
-			// ptrs, objIdxs, strIdxs ÒòÎªÊÇÁÙÊ±Êı¾İ, ²»ĞèÒª´¦Àí
+			// ptrs, objIdxs, strIdxs å› ä¸ºæ˜¯ä¸´æ—¶æ•°æ®, ä¸éœ€è¦å¤„ç†
 			return *this;
 		}
 		BBuffer(BBuffer const&) = delete;
@@ -343,7 +343,7 @@ namespace xx {
 		return 0;
 	}
 
-	// ÊÊÅä 1 ×Ö½Ú³¤¶ÈµÄ ÊıÖµ »ò float( ÕâĞ©ÀàĞÍÖ±½Ó memcpy )
+	// é€‚é… 1 å­—èŠ‚é•¿åº¦çš„ æ•°å€¼ æˆ– float( è¿™äº›ç±»å‹ç›´æ¥ memcpy )
 	template<typename T>
 	struct BFuncs<T, std::enable_if_t< (std::is_arithmetic_v<T> && sizeof(T) == 1) || (std::is_floating_point_v<T> && sizeof(T) == 4) >> {
 		static inline void WriteTo(BBuffer& bb, T const &in) noexcept {
@@ -359,7 +359,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä 2+ ×Ö½ÚÕûÊı( ±ä³¤¶ÁĞ´ )
+	// é€‚é… 2+ å­—èŠ‚æ•´æ•°( å˜é•¿è¯»å†™ )
 	template<typename T>
 	struct BFuncs<T, std::enable_if_t<std::is_integral_v<T> && sizeof(T) >= 2>> {
 		static inline void WriteTo(BBuffer& bb, T const &in) noexcept {
@@ -370,7 +370,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä enum( ¸ù¾İÔ­Ê¼Êı¾İÀàĞÍµ÷ÉÏÃæµÄÊÊÅä )
+	// é€‚é… enum( æ ¹æ®åŸå§‹æ•°æ®ç±»å‹è°ƒä¸Šé¢çš„é€‚é… )
 	template<typename T>
 	struct BFuncs<T, std::enable_if_t<std::is_enum_v<T>>> {
 		typedef std::underlying_type_t<T> UT;
@@ -382,7 +382,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä double
+	// é€‚é… double
 	template<>
 	struct BFuncs<double, void> {
 		static inline void WriteTo(BBuffer& bb, double const &in) noexcept {
@@ -413,8 +413,8 @@ namespace xx {
 			}
 		}
 		static inline int ReadFrom(BBuffer& bb, double &out) noexcept {
-			if (bb.offset >= bb.len) return -13;	// È·±£»¹ÓĞ 1 ×Ö½Ú¿É¶Á
-			switch (bb.buf[bb.offset++]) {			// Ìø¹ı 1 ×Ö½Ú
+			if (bb.offset >= bb.len) return -13;	// ç¡®ä¿è¿˜æœ‰ 1 å­—èŠ‚å¯è¯»
+			switch (bb.buf[bb.offset++]) {			// è·³è¿‡ 1 å­—èŠ‚
 			case 0:
 				out = 0;
 				return 0;
@@ -446,7 +446,7 @@ namespace xx {
 	};
 
 
-	// ÊÊÅä literal char[len] string  ( Ğ´Èë 32b³¤¶È + ÄÚÈİ. ²»Ğ´ÈëÄ©Î² 0 )
+	// é€‚é… literal char[len] string  ( å†™å…¥ 32bé•¿åº¦ + å†…å®¹. ä¸å†™å…¥æœ«å°¾ 0 )
 	template<size_t len>
 	struct BFuncs<char[len], void> {
 		static inline void WriteTo(BBuffer& bb, char const(&in)[len]) noexcept {
@@ -466,7 +466,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä std::string ( Ğ´Èë 32b³¤¶È + ÄÚÈİ )
+	// é€‚é… std::string ( å†™å…¥ 32bé•¿åº¦ + å†…å®¹ )
 	template<>
 	struct BFuncs<std::string, void> {
 		static inline void WriteTo(BBuffer& bb, std::string const& in) noexcept {
@@ -484,7 +484,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä std::shared_ptr<T>
+	// é€‚é… std::shared_ptr<T>
 	template<typename T>
 	struct BFuncs<std::shared_ptr<T>, std::enable_if_t<std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>>> {
 		static inline void WriteTo(BBuffer& bb, std::shared_ptr<T> const& in) noexcept {
@@ -495,7 +495,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä std::weak_ptr<T>
+	// é€‚é… std::weak_ptr<T>
 	template<typename T>
 	struct BFuncs<std::weak_ptr<T>, std::enable_if_t<std::is_base_of_v<Object, T> || std::is_same_v<std::string, T>>> {
 		static inline void WriteTo(BBuffer& bb, std::weak_ptr<T> const& in) noexcept {
@@ -514,7 +514,7 @@ namespace xx {
 		}
 	};
 
-	// ÊÊÅä Guid
+	// é€‚é… Guid
 	template<>
 	struct BFuncs<Guid, void> {
 		static inline void WriteTo(BBuffer& bb, Guid const& in) noexcept {
@@ -528,7 +528,7 @@ namespace xx {
 		}
 	};
 
-	// todo: ÊÊÅä std::optional<T>
+	// todo: é€‚é… std::optional<T>
 
 	template<typename ...TS>
 	void BBuffer::Write(TS const& ...vs) noexcept {

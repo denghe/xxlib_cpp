@@ -5,7 +5,7 @@
 
 namespace xx
 {
-	inline int ReadAllBytes(std::wstring const& path, BBuffer& bb) noexcept {
+	inline int ReadAllBytes(std::filesystem::path const& path, BBuffer& bb) noexcept {
 		std::ifstream f(path, std::ifstream::binary);
 		if (!f) return -1;						// not found? no permission? locked?
 		xx::ScopeGuard sg([&] { f.close(); });
@@ -19,7 +19,7 @@ namespace xx
 		return 0;
 	}
 
-	inline int WriteAllBytes(std::wstring const& path, char const* const& buf, size_t const& len) noexcept {
+	inline int WriteAllBytes(std::filesystem::path const& path, char const* const& buf, size_t const& len) noexcept {
 		std::ofstream f(path, std::ios::binary | std::ios::trunc);
 		if (!f) return -1;						// no create permission? exists readonly?
 		xx::ScopeGuard sg([&] { f.close(); });
@@ -28,13 +28,20 @@ namespace xx
 		return 0;
 	}
 
-	inline int WriteAllBytes(std::wstring const& path, BBuffer const& bb) noexcept {
+	inline int WriteAllBytes(std::filesystem::path const& path, BBuffer const& bb) noexcept {
 		return WriteAllBytes(path, (char*)bb.buf, bb.len);
+	}
+
+	template<size_t len>
+	inline int WriteAllBytes(std::filesystem::path const& path, char const(&s)[len]) noexcept {
+		return WriteAllBytes(path, s, len - 1);
 	}
 
 	inline std::filesystem::path GetCurrentPath() {
 		return std::filesystem::absolute("./");
 	}
+
+
 	// todo: more
 
 	//std::cout << std::filesystem::current_path() << std::endl;
