@@ -108,7 +108,8 @@ inline void Dump(Grid const& grid) {
 }
 
 template<int offset, int step = (offset > 0 ? 1 : -1)>
-inline void CalcLine(int& symbol, int& count, int const* cursor, Grid const& grid) noexcept {
+inline uint16_t CalcLine(int& symbol, int& count, int const* cursor, Grid const& grid) noexcept {
+	uint16_t mask = (1 << *cursor);
 	symbol = grid[*cursor];
 	count = 1;
 	auto end = cursor + offset;
@@ -116,21 +117,25 @@ inline void CalcLine(int& symbol, int& count, int const* cursor, Grid const& gri
 	if (!symbol) {
 		while ((cursor += step) != end) {
 			if ((symbol = grid[*cursor])) break;
+			mask |= (1 << *cursor);
 			++count;
 		}
 		// 3 个 0 优先判定
 		if (count >= 3) {
 			symbol = 0;
-			return;
+			return mask;
 		}
+		mask |= (1 << *cursor);
 		++count;
 	}
 	// 继续数当前符号个数
 	while ((cursor += step) != end) {
 		int s = grid[*cursor];
 		if (s && symbol != s) break;
+		mask |= (1 << *cursor);
 		++count;
 	}
+	return mask;
 }
 
 inline void CalcGrid(int& symbol, int& count, Grid const& grid) noexcept {
@@ -155,7 +160,8 @@ inline void CalcGrid(int& symbol, int& count, Grid const& grid) noexcept {
 	}
 }
 
-inline void Calc(Result* results, int& resultsLen, Grid const& grid, Lines const& lines) noexcept {
+inline uint16_t Calc(Result* results, int& resultsLen, Grid const& grid, Lines const& lines) noexcept {
+	uint16_t m = 0, m1, m2;
 	int s1, c1, s2, c2;
 	CalcGrid(s1, c1, grid);
 	if (c1 == 15) {
@@ -164,18 +170,19 @@ inline void Calc(Result* results, int& resultsLen, Grid const& grid, Lines const
 		r.direction = 0;
 		r.symbol = s1;
 		r.count = c1;
-		return;
+		return 0b0111111111111111;
 	}
 	// 这里不需要总类全屏特殊判断
 	for (size_t i = 0; i < linesLen; ++i) {
-		CalcLine<lineLen>(s1, c1, (int*)& lines[i], grid);
-		CalcLine<-lineLen>(s2, c2, (int*)& lines[i] + lineLen - 1, grid);
+		m1 = CalcLine<lineLen>(s1, c1, (int*)& lines[i], grid);
+		m2 = CalcLine<-lineLen>(s2, c2, (int*)& lines[i] + lineLen - 1, grid);
 		if (c1 >= 3) {
 			auto&& r = results[resultsLen++];
 			r.index = (int)i;
 			r.direction = 0;
 			r.symbol = s1;
 			r.count = c1;
+			m |= m1;
 		}
 		if (c2 >= 3 && (s1 != s2/* && c1 != c2*/)) {
 			auto&& r = results[resultsLen++];
@@ -183,8 +190,10 @@ inline void Calc(Result* results, int& resultsLen, Grid const& grid, Lines const
 			r.direction = 1;
 			r.symbol = s2;
 			r.count = c2;
+			m |= m2;
 		}
 	}
+	return m;
 }
 
 union GridValues {
@@ -241,8 +250,8 @@ inline int CalcLineZeroMask(int const& count, int const* const& line, Grid const
 }
 
 // 返回二进制的 0 分布图
-inline int CalcGridZeroMask(Grid const& grid) noexcept {
-	int rtv = 0;
+inline uint16_t CalcGridZeroMask(Grid const& grid) noexcept {
+	uint16_t rtv = 0;
 	for (int i = 0; i < grid.size(); ++i) {
 		if (!grid[i]) {
 			rtv |= (1 << i);
@@ -292,112 +301,112 @@ inline void CalcAvgZeroCount() noexcept {
 
 
 
-//int main() {
-//	Lines lines = {
-//		5, 6, 7, 8, 9,
-//		0, 1, 2, 3, 4,
-//		10, 11, 12, 13, 14,
-//		0, 6, 12, 8, 4,
-//		10, 6, 2, 8, 14,
-//		0, 1, 7, 3, 4,
-//		10, 11, 7, 13, 14,
-//		5, 11, 12, 13, 9,
-//		5, 1, 2, 3, 9,
-//	};
-//	Grid grid;
-//	std::array<int, 4> counts;
-//	std::unordered_map<uint32_t, int> shapes;
-//	std::unordered_map<uint32_t, std::unordered_set<std::string>> shapesResults;
-//	Results results;
-//	int resultsLen = 0;
-//	GridValues g;
-//	for (g.value = 0; g.value <= 0b111111111111111111111111111111; ++g.value) {
-//		if ((g.value & 0b11111111111111111111111) == 0) {
-//			std::cout << ".";
-//			std::cout.flush();
-//		}
-//		grid = {
-//			g.c0, g.c1, g.c2, g.c3, g.c4,
-//			g.c5, g.c6, g.c7, g.c8, g.c9,
-//			g.c10, g.c11, g.c12, g.c13, g.c14,
-//		};
-//		resultsLen = 0;
-//		Calc((Result*)& results, resultsLen, grid, lines);
-//		if (!resultsLen) continue;
-//		if (results[0].index == -1) continue;		// ignore full screen
-//		
-//		counts.fill(0);
-//		std::string masks;
-//		auto zeroMask = (uint16_t)CalcGridZeroMask(grid);
-//		masks.append((char*)& zeroMask, sizeof(zeroMask));
-//		for (int i = 0; i < resultsLen; ++i) {
-//			++counts[results[i].count - 3];
-//			LineMask m;
-//			m.index = results[i].index;
-//			m.direction = results[i].direction;
-//			m.count = results[i].count;
-//			masks.append((char*)&m.value, sizeof(m.value));
-//		}
-//
-//		auto key = counts[0] | counts[1] << 8 | counts[2] << 16;
-//		++shapes[key];
-//
-//		shapesResults[key].insert(std::move(masks));
-//	}
-//
-//	std::cout << shapes.size() << std::endl;
-//
-//	size_t siz = 0;
-//	ShapeNums n;
-//	std::string s;
-//	for (auto&& iter : shapes) {
-//		n.value = iter.first;
-//		s.clear();
-//		if (n.n3) {
-//			s.append("3*");
-//			s.append(std::to_string(n.n3));
-//		}
-//		if (n.n4) {
-//			if (s.size()) {
-//				s.append(", ");
-//			}
-//			s.append("4*");
-//			s.append(std::to_string(n.n4));
-//		}
-//		if (n.n5) {
-//			if (s.size()) {
-//				s.append(", ");
-//			}
-//			s.append("5*");
-//			s.append(std::to_string(n.n5));
-//		}
-//		if (n.n15) {
-//			if (s.size()) {
-//				s.append(", ");
-//			}
-//			s.append("15*");
-//			s.append(std::to_string(n.n5));
-//		}
-//		auto&& numResults = shapesResults[iter.first].size();
-//		siz += numResults;
-//		s = s + " : " + std::to_string(iter.second) + ", shapesResults.size() = " + std::to_string(numResults);
-//		std::cout << s << std::endl;
-//
-//
-//	}
-//	std::cout << "total shapesResults 's size = " << siz << std::endl;
-//	
-//	xx::BBuffer bb;
-//	for (auto&& iter : shapesResults) {
-//		bb.Write(iter.first);				// 3x4y5z
-//		bb.Write(iter.second.size());		// len
-//		for (auto&& str : iter.second) {	// masks( grid zero mask 2 bytes + LineMask 1 byte * n
-//			bb.Write(str);
-//		}
-//	}
-//	xx::WriteAllBytes("huga.bin", bb);
-//	std::cout << "bb.len = " << bb.len << std::endl;		// 最终输出 482131 KB
-//}
+int Gen() {
+	Lines lines = {
+		5, 6, 7, 8, 9,
+		0, 1, 2, 3, 4,
+		10, 11, 12, 13, 14,
+		0, 6, 12, 8, 4,
+		10, 6, 2, 8, 14,
+		0, 1, 7, 3, 4,
+		10, 11, 7, 13, 14,
+		5, 11, 12, 13, 9,
+		5, 1, 2, 3, 9,
+	};
+	Grid grid;
+	std::array<int, 4> counts;
+	std::unordered_map<uint32_t, int> shapes;
+	std::unordered_map<uint32_t, std::unordered_set<std::string>> shapesResults;
+	Results results;
+	int resultsLen = 0;
+	GridValues g;
+	for (g.value = 0; g.value <= 0b111111111111111111111111111111; ++g.value) {
+		if ((g.value & 0b11111111111111111111111) == 0) {
+			std::cout << ".";
+			std::cout.flush();
+		}
+		grid = {
+			g.c0, g.c1, g.c2, g.c3, g.c4,
+			g.c5, g.c6, g.c7, g.c8, g.c9,
+			g.c10, g.c11, g.c12, g.c13, g.c14,
+		};
+		resultsLen = 0;
+		auto&& mask = Calc((Result*)& results, resultsLen, grid, lines);
+		if (!resultsLen) continue;
+		if (results[0].index == -1) continue;		// ignore full screen
+		
+		counts.fill(0);
+		std::string masks;
+		auto zeroMask = CalcGridZeroMask(grid) & mask;	// todo: &= results 的 mask 以去除 line 之外的 0
+		masks.append((char*)& zeroMask, sizeof(zeroMask));
+		for (int i = 0; i < resultsLen; ++i) {
+			++counts[results[i].count - 3];
+			LineMask m;
+			m.index = results[i].index;
+			m.direction = results[i].direction;
+			m.count = results[i].count;
+			masks.append((char*)&m.value, sizeof(m.value));
+		}
+
+		auto key = counts[0] | counts[1] << 8 | counts[2] << 16;
+		++shapes[key];
+
+		shapesResults[key].insert(std::move(masks));
+	}
+
+	std::cout << shapes.size() << std::endl;
+
+	size_t siz = 0;
+	ShapeNums n;
+	std::string s;
+	for (auto&& iter : shapes) {
+		n.value = iter.first;
+		s.clear();
+		if (n.n3) {
+			s.append("3*");
+			s.append(std::to_string(n.n3));
+		}
+		if (n.n4) {
+			if (s.size()) {
+				s.append(", ");
+			}
+			s.append("4*");
+			s.append(std::to_string(n.n4));
+		}
+		if (n.n5) {
+			if (s.size()) {
+				s.append(", ");
+			}
+			s.append("5*");
+			s.append(std::to_string(n.n5));
+		}
+		if (n.n15) {
+			if (s.size()) {
+				s.append(", ");
+			}
+			s.append("15*");
+			s.append(std::to_string(n.n5));
+		}
+		auto&& numResults = shapesResults[iter.first].size();
+		siz += numResults;
+		s = s + " : " + std::to_string(iter.second) + ", shapesResults.size() = " + std::to_string(numResults);
+		std::cout << s << std::endl;
+
+
+	}
+	std::cout << "total shapesResults 's size = " << siz << std::endl;
+	
+	xx::BBuffer bb;
+	for (auto&& iter : shapesResults) {
+		bb.Write(iter.first);				// 3x4y5z
+		bb.Write(iter.second.size());		// len
+		for (auto&& str : iter.second) {	// masks( grid zero mask 2 bytes + LineMask 1 byte * n
+			bb.Write(str);
+		}
+	}
+	xx::WriteAllBytes("huga.bin", bb);
+	std::cout << "bb.len = " << bb.len << std::endl;		// 最终输出 482131 KB
+}
 
 inline static Lines lines = {
 	5, 6, 7, 8, 9,
@@ -415,7 +424,6 @@ inline static std::uniform_int_distribution gen(1, 8);
 //rnd.seed(std::random_device()());
 
 inline void FillGridByZeroMask(Grid& grid, uint16_t const& mask) {
-	xx::CoutN(mask);
 	for (int i = 0; i < 15; ++i) {
 		if (mask & (1 << i)) {
 			grid[i] = 0;
@@ -514,7 +522,7 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 	// todo: 填充杂物
 }
 
-int main() {
+int Test() {
 	xx::BBuffer bb;
 	xx::ReadAllBytes("huga.bin", bb);
 	xx::CoutN(bb.len);
@@ -568,10 +576,10 @@ int main() {
 	}
 
 	// 试定位到某 shape 某 grid zero mask
-	auto&& ss = shapes[25].second;
+	//auto&& ss = shapes[25].second;
+	auto&& ss = shapes[945].second;
 	Grid g;
 	for (auto&& s : ss) {
-		g.fill(-1);
 		FillGridByShape(g, s);
 		Dump(g);
 		xx::CoutN();
@@ -585,6 +593,12 @@ int main() {
 	return 0;
 }
 
+
+
+int main() {
+	//return Gen();
+	return Test();
+}
 
 
 
