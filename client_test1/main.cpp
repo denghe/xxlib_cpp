@@ -519,7 +519,54 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 		FillGridByLineIdxss(grid, lineIdxss, i);
 	}
 
-	// todo: 填充杂物
+	// 填充杂物
+	if (grid[1] ==-1) grid[1] = gen(rnd);
+	if (grid[2] ==-1) grid[2] = gen(rnd);
+	if (grid[3] ==-1) grid[3] = gen(rnd);
+	if (grid[6] ==-1) grid[6] = gen(rnd);
+	if (grid[7] ==-1) grid[7] = gen(rnd);
+	if (grid[8] ==-1) grid[8] = gen(rnd);
+	if (grid[11] ==-1) grid[11] = gen(rnd);
+	if (grid[12] ==-1) grid[12] = gen(rnd);
+	if (grid[13] ==-1) grid[13] = gen(rnd);
+
+	// 遍历两侧最边上的格子，随机成与自己横向斜向相邻格子不同的符号
+	if (grid[0] == -1) {
+		grid[0] = gen(rnd);
+		while (grid[0] == grid[1] || grid[0] == grid[6]) {
+			grid[0] = gen(rnd);
+		}
+	}
+	if (grid[5] == -1) {
+		grid[5] = gen(rnd);
+		while (grid[5] == grid[1] || grid[5] == grid[6] || grid[5] == grid[11]) {
+			grid[5] = gen(rnd);
+		}
+	}
+	if (grid[10] == -1) {
+		grid[10] = gen(rnd);
+		while (grid[10] == grid[6] || grid[10] == grid[11]) {
+			grid[10] = gen(rnd);
+		}
+	}
+	if (grid[4] == -1) {
+		grid[4] = gen(rnd);
+		while (grid[4] == grid[3] || grid[4] == grid[8]) {
+			grid[4] = gen(rnd);
+		}
+	}
+	if (grid[9] == -1) {
+		grid[9] = gen(rnd);
+		while (grid[9] == grid[8] || grid[9] == grid[3] || grid[9] == grid[13]) {
+			grid[9] = gen(rnd);
+		}
+	}
+	if (grid[14] == -1) {
+		grid[14] = gen(rnd);
+		while (grid[14] == grid[8] || grid[14] == grid[13]) {
+			grid[14] = gen(rnd);
+		}
+	}
 }
 
 int Test() {
