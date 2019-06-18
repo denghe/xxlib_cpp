@@ -399,9 +399,22 @@ inline void CalcAvgZeroCount() noexcept {
 //	std::cout << "bb.len = " << bb.len << std::endl;		// 最终输出 482131 KB
 //}
 
-inline void FillGridByZeroMask(Grid& grid, std::string const& s) {
-	assert(s.size() > 2);
-	auto mask = *(uint16_t*)s.data();
+inline static Lines lines = {
+	5, 6, 7, 8, 9,
+	0, 1, 2, 3, 4,
+	10, 11, 12, 13, 14,
+	0, 6, 12, 8, 4,
+	10, 6, 2, 8, 14,
+	0, 1, 7, 3, 4,
+	10, 11, 7, 13, 14,
+	5, 11, 12, 13, 9,
+	5, 1, 2, 3, 9,
+};
+inline static std::mt19937_64 rnd;
+inline static std::uniform_int_distribution gen(1, 8);
+//rnd.seed(std::random_device()());
+
+inline void FillGridByZeroMask(Grid& grid, uint16_t const& mask) {
 	xx::CoutN(mask);
 	for (int i = 0; i < 15; ++i) {
 		if (mask & (1 << i)) {
@@ -410,12 +423,102 @@ inline void FillGridByZeroMask(Grid& grid, std::string const& s) {
 	}
 }
 
+
+inline void FillLinesCrossCellIndex(Grid& grid, std::vector<std::vector<int>> const& lineIdxss, size_t const& currLineIdx, int const& cellIndex) {
+	// 遍历所有线, 找出途径 cellIndex 的
+	for (size_t i = 0; i < lineIdxss.size(); ++i) {
+		// 跳过当前线
+		if (i == currLineIdx) continue;
+		// 判断是否途径
+		auto&& lineIndexs = lineIdxss[i];
+		bool found = false;
+		for (auto&& idx : lineIndexs) {
+			if (idx == cellIndex) {
+				found = true;
+				break;
+			}
+		}
+		// 扫出空格并填充
+		if (found) {
+			for (auto&& idx : lineIndexs) {
+				auto&& cell = grid[idx];
+				if (cell == -1) {
+					cell = grid[cellIndex];
+				}
+			}
+		}
+	}
+}
+
+inline void FillGridByLineIdxss(Grid& grid, std::vector<std::vector<int>> const& lineIdxss, size_t const& currLineIdx) {
+	auto&& lineIdxs = lineIdxss[currLineIdx];
+
+	// 通扫一遍，统计空位格数, 当前符号
+	int numFreeCells = 0;
+	int symbol = -1;
+	for (int i = 0; i < lineIdxs.size(); ++i) {
+		auto&& cell = grid[lineIdxs[i]];
+		if (cell == -1) {
+			++numFreeCells;
+		}
+		if (cell > 0) {
+			symbol = cell;
+		}
+	}
+
+	// 如果没有空位直接退出
+	if (!numFreeCells) return;
+	
+	// 没当前符号: 随机选择一个符号
+	if (symbol == -1) {
+		symbol = gen(rnd);
+	}
+
+	// 符号填入空位
+	for (int i = 0; i < lineIdxs.size(); ++i) {
+		auto&& idx = lineIdxs[i];
+		auto&& cell = grid[idx];
+		if (cell == -1) {
+			cell = symbol;
+			// 找出所有途径该 cell 的 line , 都填充这个 symbol
+			FillLinesCrossCellIndex(grid, lineIdxss, currLineIdx, idx);
+		}
+	}
+}
+
+inline void FillGridByShape(Grid& grid, std::string const& s) {
+	// 初始化填充
+	grid.fill(-1);
+
+	// 按掩码填充 0
+	FillGridByZeroMask(grid, *(uint16_t*)s.data());
+
+	// 将 LineMask ( char ) 转为 vector<vector<int>>
+	std::vector<std::vector<int>> lineIdxss;
+	LineMask m;
+	for (size_t i = 2; i < s.size(); ++i) {
+		m.value = s[i];
+		auto&& lineIdxs = lineIdxss.emplace_back();
+		auto&& line = lines[m.index];
+		for (int i = 0; i < m.count; ++i) {
+			auto&& idx = line[m.direction ? line.size() - i - 1 : i];
+			lineIdxs.push_back(idx);
+		}
+	}
+
+	// 逐线填充
+	for (size_t i = 0; i < lineIdxss.size(); ++i) {
+		FillGridByLineIdxss(grid, lineIdxss, i);
+	}
+
+	// todo: 填充杂物
+}
+
 int main() {
 	xx::BBuffer bb;
 	xx::ReadAllBytes("huga.bin", bb);
 	xx::CoutN(bb.len);
 
-	// todo: 还原成字典 并填充权值啥的 准备随机函数 试着随机并填充牌型. 0 直接按照 mask 来填充
 	std::vector<std::pair<uint32_t, std::vector<std::string>>> shapes;
 	size_t len;
 	while (bb.offset < bb.len) {
@@ -469,16 +572,15 @@ int main() {
 	Grid g;
 	for (auto&& s : ss) {
 		g.fill(-1);
-		FillGridByZeroMask(g, s);
+		FillGridByShape(g, s);
 		Dump(g);
 		xx::CoutN();
 	}
 
+	// todo: 还原成字典 并填充权值啥的 准备随机函数 试着随机并填充牌型. 0 直接按照 mask 来填充
 	// 填充思路：先填所有 0. 然后 foreach 每线。 每条线的中奖位里面，如果有空位置，就随机一个非 0 填上. 
 	// 如果 有空位但是存在非0， 则用非0 继续填充 ( 避免交叉格子冲突 )
 	// 最后填充杂物. 
-	// 杂物填充大体思路：排除掉 0 和所有线用掉的符号，剩下的交错出现以避免形成新的中奖线条
-	// todo: 杂物填充细节. 总的来说用排除法. 避免和邻居相同
 
 	return 0;
 }
