@@ -56,6 +56,7 @@
 #include <cassert>
 #include <chrono>
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <string>
 #include <unordered_set>
@@ -184,13 +185,15 @@ inline uint16_t Calc(Result* results, int& resultsLen, Grid const& grid, Lines c
 			r.count = c1;
 			m |= m1;
 		}
-		if (c2 >= 3 && (s1 != s2/* && c1 != c2*/)) {
-			auto&& r = results[resultsLen++];
-			r.index = (int)i;
-			r.direction = 1;
-			r.symbol = s2;
-			r.count = c2;
-			m |= m2;
+		if (c2 >= 3) {
+			if (c1 < 3 || s1 != s2) {
+				auto&& r = results[resultsLen++];
+				r.index = (int)i;
+				r.direction = 1;
+				r.symbol = s2;
+				r.count = c2;
+				m |= m2;
+			}
 		}
 	}
 	return m;
@@ -300,23 +303,23 @@ inline void CalcAvgZeroCount() noexcept {
 
 
 
+inline Lines lines = {
+	5, 6, 7, 8, 9,
+	0, 1, 2, 3, 4,
+	10, 11, 12, 13, 14,
+	0, 6, 12, 8, 4,
+	10, 6, 2, 8, 14,
+	0, 1, 7, 3, 4,
+	10, 11, 7, 13, 14,
+	5, 11, 12, 13, 9,
+	5, 1, 2, 3, 9,
+};
 
 int Gen() {
-	Lines lines = {
-		5, 6, 7, 8, 9,
-		0, 1, 2, 3, 4,
-		10, 11, 12, 13, 14,
-		0, 6, 12, 8, 4,
-		10, 6, 2, 8, 14,
-		0, 1, 7, 3, 4,
-		10, 11, 7, 13, 14,
-		5, 11, 12, 13, 9,
-		5, 1, 2, 3, 9,
-	};
 	Grid grid;
 	std::array<int, 4> counts;
-	std::unordered_map<uint32_t, int> shapes;
-	std::unordered_map<uint32_t, std::unordered_set<std::string>> shapesResults;
+	std::map<uint32_t, int> shapes;
+	std::map<uint32_t, std::unordered_set<std::string>> shapesResults;
 	Results results;
 	int resultsLen = 0;
 	GridValues g;
@@ -330,6 +333,8 @@ int Gen() {
 			g.c5, g.c6, g.c7, g.c8, g.c9,
 			g.c10, g.c11, g.c12, g.c13, g.c14,
 		};
+
+
 		resultsLen = 0;
 		auto&& mask = Calc((Result*)& results, resultsLen, grid, lines);
 		if (!resultsLen) continue;
@@ -408,17 +413,10 @@ int Gen() {
 	std::cout << "bb.len = " << bb.len << std::endl;		// 最终输出 482131 KB
 }
 
-inline static Lines lines = {
-	5, 6, 7, 8, 9,
-	0, 1, 2, 3, 4,
-	10, 11, 12, 13, 14,
-	0, 6, 12, 8, 4,
-	10, 6, 2, 8, 14,
-	0, 1, 7, 3, 4,
-	10, 11, 7, 13, 14,
-	5, 11, 12, 13, 9,
-	5, 1, 2, 3, 9,
-};
+
+
+
+
 inline static std::mt19937_64 rnd;
 inline static std::uniform_int_distribution gen(1, 8);
 //rnd.seed(std::random_device()());
@@ -430,7 +428,6 @@ inline void FillGridByZeroMask(Grid& grid, uint16_t const& mask) {
 		}
 	}
 }
-
 
 inline void FillLinesCrossCellIndex(Grid& grid, std::vector<std::vector<int>> const& lineIdxss, size_t const& currLineIdx, int const& cellIndex) {
 	// 遍历所有线, 找出途径 cellIndex 的
@@ -494,6 +491,19 @@ inline void FillGridByLineIdxss(Grid& grid, std::vector<std::vector<int>> const&
 	}
 }
 
+// 中间格子下标列表
+inline std::array<int, 9> middleIdxs = { 1,2,3, 6,7,8, 11,12,13 };
+
+// 边缘格子与邻格对应表
+inline std::array<std::pair<int, std::vector<int>>, 6> edgeNeighborss = {
+	std::make_pair(0, std::vector<int>{ 1, 6 }),
+	std::make_pair(5, std::vector<int>{ 1, 6, 11 }),
+	std::make_pair(10, std::vector<int>{ 6, 11 }),
+	std::make_pair(4, std::vector<int>{ 3, 8 }),
+	std::make_pair(9, std::vector<int>{ 3, 8, 13 }),
+	std::make_pair(14, std::vector<int>{ 8, 13 })
+};
+
 inline void FillGridByShape(Grid& grid, std::string const& s) {
 	// 初始化填充
 	grid.fill(-1);
@@ -520,73 +530,80 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 	}
 
 	// 填充杂物
-	if (grid[1] ==-1) grid[1] = gen(rnd);
-	if (grid[2] ==-1) grid[2] = gen(rnd);
-	if (grid[3] ==-1) grid[3] = gen(rnd);
-	if (grid[6] ==-1) grid[6] = gen(rnd);
-	if (grid[7] ==-1) grid[7] = gen(rnd);
-	if (grid[8] ==-1) grid[8] = gen(rnd);
-	if (grid[11] ==-1) grid[11] = gen(rnd);
-	if (grid[12] ==-1) grid[12] = gen(rnd);
-	if (grid[13] ==-1) grid[13] = gen(rnd);
+	// 增加限制，避免造成中奖线延长( 3 个变 4 个之类 )
+	// 扫描目标格子是否有中奖线的延长线经过 如果有(特指 3 变 4), 拿到这些中奖线的 symbol, 随机时例外
+
+	// 预处理：整理中奖线，找出 3 个的，取其符号与第 4 格的坐标作为 key. 符号 list 作为 values
+	std::unordered_map<int, std::vector<int>> cellDeniedSymbols;
+	for (size_t i = 2; i < s.size(); ++i) {
+		m.value = s[i];
+		if (m.count != 3) continue;
+		// 判断中奖线的符号
+		int symbol = -1;
+		auto&& line = lines[m.index];
+		for (int i = 0; i < m.count; ++i) {
+			auto&& idx = line[m.direction ? line.size() - i - 1 : i];
+			if (grid[idx] != 0) {
+				symbol = grid[idx];
+				break;
+			}
+		}
+		if (symbol != -1) {
+			int cell4idx = line[m.direction ? line.size() - 3 - 1 : 3];	// 第 4 格下标
+			cellDeniedSymbols[cell4idx].push_back(symbol);
+		}
+	}
+
+	// 开始填充
+	for (auto&& idx : middleIdxs) {
+		if (grid[idx] == -1) {
+			auto&& deniedSymbols = cellDeniedSymbols[idx];
+			grid[idx] = gen(rnd);
+			while (std::find(deniedSymbols.cbegin(), deniedSymbols.cend(), grid[idx]) != deniedSymbols.cend()) {
+				grid[idx] = gen(rnd);
+			}
+		}
+	}
 
 	// 遍历两侧最边上的格子，随机成与自己横向斜向相邻格子不同的符号
-	if (grid[0] == -1) {
-		grid[0] = gen(rnd);
-		while (grid[0] == grid[1] || grid[0] == grid[6]) {
-			grid[0] = gen(rnd);
-		}
-	}
-	if (grid[5] == -1) {
-		grid[5] = gen(rnd);
-		while (grid[5] == grid[1] || grid[5] == grid[6] || grid[5] == grid[11]) {
-			grid[5] = gen(rnd);
-		}
-	}
-	if (grid[10] == -1) {
-		grid[10] = gen(rnd);
-		while (grid[10] == grid[6] || grid[10] == grid[11]) {
-			grid[10] = gen(rnd);
-		}
-	}
-	if (grid[4] == -1) {
-		grid[4] = gen(rnd);
-		while (grid[4] == grid[3] || grid[4] == grid[8]) {
-			grid[4] = gen(rnd);
-		}
-	}
-	if (grid[9] == -1) {
-		grid[9] = gen(rnd);
-		while (grid[9] == grid[8] || grid[9] == grid[3] || grid[9] == grid[13]) {
-			grid[9] = gen(rnd);
-		}
-	}
-	if (grid[14] == -1) {
-		grid[14] = gen(rnd);
-		while (grid[14] == grid[8] || grid[14] == grid[13]) {
-			grid[14] = gen(rnd);
+	for (auto&& edgeNeighbors : edgeNeighborss) {
+		auto&& idx = edgeNeighbors.first;
+		if (grid[idx] == -1) {
+			while (true) {
+				grid[idx] = gen(rnd);
+				bool notFound = true;
+				for (auto&& neighbor : edgeNeighbors.second) {
+					if (grid[idx] == grid[neighbor]) {
+						notFound = false;
+						break;
+					}
+				}
+				if (notFound) break;
+			}
 		}
 	}
 }
 
 int Test() {
-	xx::BBuffer bb;
-	xx::ReadAllBytes("huga.bin", bb);
-	xx::CoutN(bb.len);
-
 	std::vector<std::pair<uint32_t, std::vector<std::string>>> shapes;
-	size_t len;
-	while (bb.offset < bb.len) {
-		auto&& ss = shapes.emplace_back();
-		if (int r = bb.Read(ss.first)) return r;
-		if (int r = bb.Read(len)) return r;
-		ss.second.reserve(len);
-		for (size_t i = 0; i < len; ++i) {
-			auto&& s = ss.second.emplace_back();
-			if (int r = bb.Read(s)) return r;
+	{
+		xx::BBuffer bb;
+		xx::ReadAllBytes("huga.bin", bb);
+		xx::CoutN(bb.len);
+
+		size_t len;
+		while (bb.offset < bb.len) {
+			auto&& ss = shapes.emplace_back();
+			if (int r = bb.Read(ss.first)) return r;
+			if (int r = bb.Read(len)) return r;
+			ss.second.reserve(len);
+			for (size_t i = 0; i < len; ++i) {
+				auto&& s = ss.second.emplace_back();
+				if (int r = bb.Read(s)) return r;
+			}
 		}
+		xx::CoutN("shapes.len = ", shapes.size());
 	}
-	xx::CoutN("shapes.len = ", shapes.size());
 	ShapeNums n;
 	std::string s;
 	for (int i = 0; i < shapes.size(); ++i) {
@@ -623,8 +640,7 @@ int Test() {
 	}
 
 	// 试定位到某 shape 某 grid zero mask
-	//auto&& ss = shapes[25].second;
-	auto&& ss = shapes[945].second;
+	auto&& ss = shapes[0].second;
 	Grid g;
 	for (auto&& s : ss) {
 		FillGridByShape(g, s);
@@ -632,21 +648,13 @@ int Test() {
 		xx::CoutN();
 	}
 
-	// todo: 还原成字典 并填充权值啥的 准备随机函数 试着随机并填充牌型. 0 直接按照 mask 来填充
-	// 填充思路：先填所有 0. 然后 foreach 每线。 每条线的中奖位里面，如果有空位置，就随机一个非 0 填上. 
-	// 如果 有空位但是存在非0， 则用非0 继续填充 ( 避免交叉格子冲突 )
-	// 最后填充杂物. 
-
 	return 0;
 }
-
-
 
 int main() {
 	//return Gen();
 	return Test();
 }
-
 
 
 /*
