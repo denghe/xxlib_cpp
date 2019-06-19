@@ -504,6 +504,26 @@ inline std::array<std::pair<int, std::vector<int>>, 6> edgeNeighborss = {
 	std::make_pair(14, std::vector<int>{ 8, 13 })
 };
 
+// 所有格子的邻居映射。1级下标为 cell index. 2级 第1个存放邻居个数
+inline std::array<std::array<int, 9>, 15> neighborMap = {
+	3, 1, 5, 6, -1, -1, -1, -1, -1,
+	5, 0, 2, 5, 6, 7, -1, -1, -1,
+	5, 1, 3, 6, 7, 8, -1, -1, -1,
+	5, 2, 4, 7, 8, 9, -1, -1, -1,
+	3, 3, 8, 9, -1, -1, -1, -1, -1,
+	5, 0, 1, 6, 10, 11, -1, -1, -1,
+	8, 0, 1, 2, 5, 7, 10, 11, 12,
+	8, 1, 2, 3, 6, 8, 11, 12, 13,
+	8, 2, 3, 4, 7, 9, 12, 13, 14,
+	5, 3, 4, 8, 13, 14, -1, -1, -1,
+	3, 5, 6, 11, -1, -1, -1, -1, -1,
+	5, 5, 6, 7, 10, 12, -1, -1, -1,
+	5, 6, 7, 8, 11, 13, -1, -1, -1,
+	5, 7, 8, 9, 12, 14, -1, -1, -1,
+	3, 8, 9, 13, -1, -1, -1, -1, -1,
+};
+
+
 inline void FillGridByShape(Grid& grid, std::string const& s) {
 	// 初始化填充
 	grid.fill(-1);
@@ -530,7 +550,7 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 	}
 
 	// 填充杂物
-	// 增加限制，避免造成中奖线延长( 3 个变 4 个之类 )
+	// 增加限制，避免造成中奖线延长( 3 变 4 ), 避免形成新的中奖线( 2 变 3 )
 	// 扫描目标格子是否有中奖线的延长线经过 如果有(特指 3 变 4), 拿到这些中奖线的 symbol, 随机时例外
 
 	// 预处理：整理中奖线，找出 3 个的，取其符号与第 4 格的坐标作为 key. 符号 list 作为 values
@@ -554,10 +574,20 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 		}
 	}
 
+	// todo: 还要避免 cell 填充后产生新的 line( 2 变 3/4/5 ). 临时解决方案1: 反复重新填充所有非中奖格子, 直到生成完美结果. 方案2: 判断多出来哪些中奖线, 对其进行破坏( 需要判断哪些格子可修改, 保护原有中奖线 )
+
+	// 其他思路：每个格子都填充与邻居不同的内容，似乎更加简单粗暴。对于 9 个符号来讲，1 个 cell 周围有 8 个 neighbor, 可以用排除法得到可供随机的 symbols 
+	// todo: 基于 neighborMap 计算出每格可用 symbol 列表。在列表中随机填充
+
 	// 开始填充
 	for (auto&& idx : middleIdxs) {
 		if (grid[idx] == -1) {
 			auto&& deniedSymbols = cellDeniedSymbols[idx];
+			xx::Cout("deniedSymbols = ");
+			for (auto&& symbol : deniedSymbols) {
+				xx::Cout(symbol, " ");
+			}
+			xx::CoutN();
 			grid[idx] = gen(rnd);
 			while (std::find(deniedSymbols.cbegin(), deniedSymbols.cend(), grid[idx]) != deniedSymbols.cend()) {
 				grid[idx] = gen(rnd);
@@ -640,7 +670,7 @@ int Test() {
 	}
 
 	// 试定位到某 shape 某 grid zero mask
-	auto&& ss = shapes[0].second;
+	auto&& ss = shapes[1].second;
 	Grid g;
 	for (auto&& s : ss) {
 		FillGridByShape(g, s);
