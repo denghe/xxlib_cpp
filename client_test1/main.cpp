@@ -98,7 +98,7 @@ inline void Dump(Grid const& grid) {
 				std::cout << " ";
 			}
 			if (v == -1) {
-				std::cout << "_";
+				std::cout << "-";
 			}
 			else {
 				std::cout << v;
@@ -342,7 +342,7 @@ int Gen() {
 		
 		counts.fill(0);
 		std::string masks;
-		auto zeroMask = CalcGridZeroMask(grid) & mask;	// todo: &= results 的 mask 以去除 line 之外的 0
+		auto zeroMask = (uint16_t)(CalcGridZeroMask(grid) & mask);
 		masks.append((char*)& zeroMask, sizeof(zeroMask));
 		for (int i = 0; i < resultsLen; ++i) {
 			++counts[results[i].count - 3];
@@ -410,7 +410,9 @@ int Gen() {
 		}
 	}
 	xx::WriteAllBytes("huga.bin", bb);
-	std::cout << "bb.len = " << bb.len << std::endl;		// 最终输出 482131 KB
+	std::cout << "bb.len = " << bb.len << std::endl;
+
+	return 0;
 }
 
 
@@ -421,10 +423,55 @@ inline static std::mt19937_64 rnd;
 inline static std::uniform_int_distribution gen(1, 8);
 //rnd.seed(std::random_device()());
 
+// 所有格子的邻居映射。1级下标为 cell index. 2级 第1个存放邻居个数
+// 上下相邻没有邻居关系
+inline std::array<std::array<int, 7>, 15> neighborMap = {
+	2, 1, 6, -1, -1, -1, -1,
+	4, 0, 2, 5, 7, -1, -1,
+	4, 1, 3, 6, 8, -1, -1,
+	4, 2, 4, 7, 9, -1, -1,
+	2, 3, 8, -1, -1, -1, -1,
+	3, 1, 6, 11, -1, -1, -1,
+	6, 0, 2, 5, 7, 10, 12,
+	6, 1, 3, 6, 8, 11, 13,
+	6, 2, 4, 7, 9, 12, 14,
+	3, 3, 8, 13, -1, -1, -1,
+	2, 6, 11, -1, -1, -1, -1,
+	4, 5, 7, 10, 12, -1, -1,
+	4, 6, 8, 11, 13, -1, -1,
+	4, 7, 9, 12, 14, -1, -1,
+	2, 8, 13, -1, -1, -1, -1,
+};
+
+
 inline void FillGridByZeroMask(Grid& grid, uint16_t const& mask) {
 	for (int i = 0; i < 15; ++i) {
 		if (mask & (1 << i)) {
 			grid[i] = 0;
+		}
+	}
+}
+
+inline void FillLineSymbolsThroughCell(std::vector<int>& symbols, Grid& grid, std::vector<std::vector<int>> const& lineIdxss, int const& cellIndex) {
+	// 遍历所有线, 找出途径 cellIndex 的
+	for (size_t i = 0; i < lineIdxss.size(); ++i) {
+		// 判断是否途径
+		auto&& lineIndexs = lineIdxss[i];
+		bool found = false;
+		for (auto&& idx : lineIndexs) {
+			if (idx == cellIndex) {
+				found = true;
+				break;
+			}
+		}
+		// 判断其符号, 塞入 symbols
+		if (found) {
+			for (auto&& idx : lineIndexs) {
+				auto&& cell = grid[idx];
+				if (cell > 0) {
+					symbols.push_back(cell);
+				}
+			}
 		}
 	}
 }
@@ -473,13 +520,35 @@ inline void FillGridByLineIdxss(Grid& grid, std::vector<std::vector<int>> const&
 
 	// 如果没有空位直接退出
 	if (!numFreeCells) return;
-	
-	// 没当前符号: 随机选择一个符号
+
+	// 没当前符号: 随机选择一个符号( 避开邻居线的符号 )
 	if (symbol == -1) {
-		symbol = gen(rnd);
+		std::vector<int> deniedSymbols;
+		// 遍历空格子, 扫每个空格子的邻居, 判读是否有线经过, 符号是什么，避开他们随机, 防止新线出现
+		for (int i = 0; i < lineIdxs.size(); ++i) {
+			auto&& idx = lineIdxs[i];
+			auto&& cell = grid[idx];
+			if (cell == -1) {
+				//FillLineSymbolsThroughCell(deniedSymbols, grid, lineIdxss, idx);
+				// 取当前 cell 的邻居, 继续判断有哪些线经过它们, 搜集这些线的符号
+				auto&& neighbors = neighborMap[idx];					// 定位到邻居下标数组
+				for (int i = 1; i <= neighbors[0]; ++i) {				// 遍历邻居下标
+					auto&& neighbor = neighbors[i];
+					FillLineSymbolsThroughCell(deniedSymbols, grid, lineIdxss, neighbor);
+				}
+			}
+		}
+		std::vector<int> avaliableSymbols;
+		for (int i = 1; i <= 8; ++i) {
+			if (std::find(deniedSymbols.cbegin(), deniedSymbols.cend(), i) == deniedSymbols.cend()) {
+				avaliableSymbols.push_back(i);
+			}
+		}
+		auto symbolIdx = std::uniform_int_distribution(0, (int)avaliableSymbols.size() - 1)(rnd);	// 随机一个 可用符号列表 的下标
+		symbol = avaliableSymbols[symbolIdx];
 	}
 
-	// 符号填入空位
+	// 符号填入所有空位
 	for (int i = 0; i < lineIdxs.size(); ++i) {
 		auto&& idx = lineIdxs[i];
 		auto&& cell = grid[idx];
@@ -504,25 +573,6 @@ inline std::array<std::pair<int, std::vector<int>>, 6> edgeNeighborss = {
 	std::make_pair(14, std::vector<int>{ 8, 13 })
 };
 
-// 所有格子的邻居映射。1级下标为 cell index. 2级 第1个存放邻居个数
-// 上下相邻没有邻居关系
-inline std::array<std::array<int, 7>, 15> neighborMap = {
-	2, 1, 6, -1, -1, -1, -1,
-	4, 0, 2, 5, 7, -1, -1,
-	4, 1, 3, 6, 8, -1, -1,
-	4, 2, 4, 7, 9, -1, -1,
-	3, 3, 8, -1, -1, -1, -1,
-	3, 1, 6, 11, -1, -1, -1,
-	6, 0, 2, 5, 7, 10, 12,
-	6, 1, 3, 6, 8, 11, 13,
-	6, 2, 4, 7, 9, 12, 14,
-	3, 3, 8, 13, -1, -1, -1,
-	2, 6, 11, -1, -1, -1, -1,
-	4, 5, 7, 10, 12, -1, -1,
-	4, 6, 8, 11, 13, -1, -1,
-	4, 7, 9, 12, 14, -1, -1,
-	3, 8, 13, -1, -1, -1, -1,
-};
 
 //inline std::array<std::array<int, 9>, 15> neighborMap = {
 //	3, 1, 5, 6, -1, -1, -1, -1, -1,
@@ -542,14 +592,7 @@ inline std::array<std::array<int, 7>, 15> neighborMap = {
 //	3, 8, 9, 13, -1, -1, -1, -1, -1,
 //};
 
-inline void FillGridByShape(Grid& grid, std::string const& s) {
-	// 初始化填充
-	grid.fill(-1);
-
-	// 按掩码填充 0
-	FillGridByZeroMask(grid, *(uint16_t*)s.data());
-
-	// 将 LineMask ( char ) 转为 vector<vector<int>>
+inline std::vector<std::vector<int>> ToLineIdxss(std::string const& s) {
 	std::vector<std::vector<int>> lineIdxss;
 	LineMask m;
 	for (size_t i = 2; i < s.size(); ++i) {
@@ -561,11 +604,26 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 			lineIdxs.push_back(idx);
 		}
 	}
+	return lineIdxss;
+}
+
+inline void FillGridByShape(Grid& grid, std::string const& s) {
+	// 初始化填充
+	grid.fill(-1);
+
+	// 按掩码填充 0
+	FillGridByZeroMask(grid, *(uint16_t*)s.data());
+
+	// 将 LineMask ( char ) 转为 vector<vector<int>>
+	auto&& lineIdxss = ToLineIdxss(s);
 
 	// 逐线填充
 	for (size_t i = 0; i < lineIdxss.size(); ++i) {
 		FillGridByLineIdxss(grid, lineIdxss, i);
 	}
+
+	Dump(grid);
+	xx::CoutN("XXXXXXXXX");
 
 	// 填充杂物
 	// 增加限制，避免造成中奖线延长( 3 变 4 ), 避免形成新的中奖线( 2 变 3 )
@@ -573,6 +631,7 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 
 	// 预处理：整理中奖线，找出 3 个的，取其符号与第 4 格的坐标作为 key. 符号 list 作为 values
 	std::unordered_map<int, std::vector<int>> cellDeniedSymbols;
+	LineMask m;
 	for (size_t i = 2; i < s.size(); ++i) {
 		m.value = s[i];
 		if (m.count != 3) continue;
@@ -592,114 +651,380 @@ inline void FillGridByShape(Grid& grid, std::string const& s) {
 		}
 	}
 
-	// todo: 还要避免 cell 填充后产生新的 line( 2 变 3/4/5 ). 临时解决方案1: 反复重新填充所有非中奖格子, 直到生成完美结果. 方案2: 判断多出来哪些中奖线, 对其进行破坏( 需要判断哪些格子可修改, 保护原有中奖线 )
-
 	// 其他思路：每个格子都填充与邻居不同的内容，似乎更加简单粗暴。对于 9 个符号来讲，1 个 cell 周围有 8 个 neighbor, 可以用排除法得到可供随机的 symbols 
-	// todo: 基于 neighborMap 计算出每格可用 symbol 列表。在列表中随机填充
-
-	// 开始填充
-	for (auto&& idx : middleIdxs) {
-		if (grid[idx] == -1) {
-			auto&& deniedSymbols = cellDeniedSymbols[idx];
-			xx::Cout("deniedSymbols = ");
-			for (auto&& symbol : deniedSymbols) {
-				xx::Cout(symbol, " ");
-			}
-			xx::CoutN();
-			grid[idx] = gen(rnd);
-			while (std::find(deniedSymbols.cbegin(), deniedSymbols.cend(), grid[idx]) != deniedSymbols.cend()) {
-				grid[idx] = gen(rnd);
-			}
-		}
+	std::array<int, 8> avaliableSymbols;						// 可用符号列表
+	int numAvaliableSymbols = (int)avaliableSymbols.size();		// 可用符号列表 的长度
+	for (int i = 0; i < avaliableSymbols.size(); ++i) {			// 预填充所有符号
+		avaliableSymbols[i] = i + 1;
 	}
-
-	// 遍历两侧最边上的格子，随机成与自己横向斜向相邻格子不同的符号
-	for (auto&& edgeNeighbors : edgeNeighborss) {
-		auto&& idx = edgeNeighbors.first;
-		if (grid[idx] == -1) {
-			while (true) {
-				grid[idx] = gen(rnd);
-				bool notFound = true;
-				for (auto&& neighbor : edgeNeighbors.second) {
-					if (grid[idx] == grid[neighbor]) {
-						notFound = false;
+	// 遍历所有格子. 找出未填充的, 从 "可用符号列表" 排除邻居格子里出现过的符号. 最后用剩下的随机填充
+	for(int idx = 0; idx < neighborMap.size(); ++idx) {
+		if (grid[idx] != -1) continue;							// 跳过已填充的
+		auto&& neighbors = neighborMap[idx];					// 定位到邻居下标数组
+		for (int i = 1; i <= neighbors[0]; ++i) {				// 遍历邻居下标
+			auto&& neighbor = neighbors[i];
+			auto&& cell = grid[neighbor];						// 根据下标定位到邻居格子
+			if (cell == -1) continue;							// 如果邻居未填充( -1 )或为通配符, 则忽略( 必然不存在于 可用符号列表 )
+			if (!cell) {										// 如果是通配符 0, 则有可能填充到相同中奖线符号造成线延长，需要避免
+				auto&& deniedSymbols = cellDeniedSymbols[idx];	// 找出其对应的中奖线的符号. 可能不止一个，也从 numAvaliableSymbols 排除
+				for (auto&& symbol : deniedSymbols) {
+					for (int j = 0; j < numAvaliableSymbols; ++j) {
+						if (avaliableSymbols[j] == symbol) {	// 如果找到：交换删除
+							std::swap(avaliableSymbols[j], avaliableSymbols[--numAvaliableSymbols]);
+							break;
+						}
+					}
+				}
+				// 判断是否会形成新线. 遍历 avaliableSymbols 带入格子，判断途径该格子的 line 是否突然达成判定
+				for (auto sIdx = numAvaliableSymbols - 1; sIdx >= 0; --sIdx) {
+					grid[idx] = avaliableSymbols[sIdx];	// try fill
+					for (auto&& line : lines) {
+						// 留下经过 grid[idx] 的 line
+						bool cross = false;
+						for (auto&& cellIdx : line) {
+							if (cellIdx == idx) {
+								cross = true;
+								break;
+							}
+						}
+						if (!cross) continue;
+						int s, c;
+						// check left to right
+						CalcLine<lineLen>(s, c, (int*)& line, grid);
+						if (s == grid[idx] && c >= 3) {
+							//xx::Cout("*",s, " ", c,"*");
+							std::swap(avaliableSymbols[sIdx], avaliableSymbols[--numAvaliableSymbols]);
+							break;
+						}
+						// check right to left
+						CalcLine<-lineLen>(s, c, (int*)& line + lineLen - 1, grid);
+						if (s == grid[idx] && c >= 3) {
+							//xx::Cout("*", s, " ", c, "*");
+							std::swap(avaliableSymbols[sIdx], avaliableSymbols[--numAvaliableSymbols]);
+							break;
+						}
+					}
+				}
+				grid[idx] = -1;
+			}
+			else {
+				for (int j = 0; j < numAvaliableSymbols; ++j) {
+					if (avaliableSymbols[j] == cell) {				// 如果找到：交换删除
+						std::swap(avaliableSymbols[j], avaliableSymbols[--numAvaliableSymbols]);
 						break;
 					}
 				}
-				if (notFound) break;
 			}
 		}
+		auto symbolIdx = std::uniform_int_distribution(0, numAvaliableSymbols - 1)(rnd);	// 随机一个 可用符号列表 的下标
+		grid[idx] = avaliableSymbols[symbolIdx];				// 填充
+		numAvaliableSymbols = (int)avaliableSymbols.size();		// 还原 可用符号列表 的长度( 数据顺序并不需要关注 )
 	}
 }
 
-int Test() {
-	std::vector<std::pair<uint32_t, std::vector<std::string>>> shapes;
-	{
-		xx::BBuffer bb;
-		xx::ReadAllBytes("huga.bin", bb);
-		xx::CoutN(bb.len);
 
-		size_t len;
-		while (bb.offset < bb.len) {
-			auto&& ss = shapes.emplace_back();
-			if (int r = bb.Read(ss.first)) return r;
-			if (int r = bb.Read(len)) return r;
-			ss.second.reserve(len);
-			for (size_t i = 0; i < len; ++i) {
-				auto&& s = ss.second.emplace_back();
-				if (int r = bb.Read(s)) return r;
-			}
+using Shapes = std::vector<std::pair<uint32_t, std::vector<std::string>>>;
+inline Shapes LoadShapes() {
+	Shapes shapes;
+	xx::BBuffer bb;
+	xx::ReadAllBytes("huga.bin", bb);
+	xx::CoutN(bb.len);
+
+	size_t len;
+	while (bb.offset < bb.len) {
+		auto&& ss = shapes.emplace_back();
+		if (int r = bb.Read(ss.first)) throw r;
+		if (int r = bb.Read(len)) throw r;
+		ss.second.reserve(len);
+		for (size_t i = 0; i < len; ++i) {
+			auto&& s = ss.second.emplace_back();
+			if (int r = bb.Read(s)) throw r;
 		}
-		xx::CoutN("shapes.len = ", shapes.size());
 	}
-	ShapeNums n;
+	xx::CoutN("loaded. shapes.len = ", shapes.size());
+	return shapes;
+}
+
+inline std::string ShapeNumsToString(uint32_t const& num) {
 	std::string s;
+	ShapeNums n;
+	n.value = num;
+	if (n.n3) {
+		s.append("3*");
+		s.append(std::to_string(n.n3));
+	}
+	if (n.n4) {
+		if (s.size()) {
+			s.append(", ");
+		}
+		s.append("4*");
+		s.append(std::to_string(n.n4));
+	}
+	if (n.n5) {
+		if (s.size()) {
+			s.append(", ");
+		}
+		s.append("5*");
+		s.append(std::to_string(n.n5));
+	}
+	if (n.n15) {
+		if (s.size()) {
+			s.append(", ");
+		}
+		s.append("15*");
+		s.append(std::to_string(n.n5));
+	}
+	return s;
+}
+inline std::array<int, 4> ShapeNumsSplite(uint32_t const& num) {
+	std::array<int, 4> rtv;
+	ShapeNums n;
+	n.value = num;
+	rtv[0] = n.n3;
+	rtv[1] = n.n4;
+	rtv[2] = n.n5;
+	rtv[3] = n.n15;
+	return rtv;
+}
+
+inline void DumpShapes(Shapes const& shapes) {
 	for (int i = 0; i < shapes.size(); ++i) {
 		auto&& pair = shapes[i];
-		n.value = pair.first;
-		s.clear();
-		if (n.n3) {
-			s.append("3*");
-			s.append(std::to_string(n.n3));
-		}
-		if (n.n4) {
-			if (s.size()) {
-				s.append(", ");
-			}
-			s.append("4*");
-			s.append(std::to_string(n.n4));
-		}
-		if (n.n5) {
-			if (s.size()) {
-				s.append(", ");
-			}
-			s.append("5*");
-			s.append(std::to_string(n.n5));
-		}
-		if (n.n15) {
-			if (s.size()) {
-				s.append(", ");
-			}
-			s.append("15*");
-			s.append(std::to_string(n.n5));
-		}
+		auto&& s = ShapeNumsToString(pair.first);
 		s = s + " : " + std::to_string(pair.second.size());
 		std::cout << "shapes[" << i << "] = " << s << std::endl;
 	}
+}
+
+inline void DumpShapeString(std::string const& s) {
+	xx::Cout(s.size(), ": ");
+	for (int i = 0; i < s.size(); ++i) {
+		xx::Cout((int)s[i], " ");
+	}
+	xx::CoutN();
+}
+
+int Test() {
+	auto&& shapes = LoadShapes();
+	DumpShapes(shapes);
 
 	// 试定位到某 shape 某 grid zero mask
-	auto&& ss = shapes[1].second;
-	Grid g;
-	for (auto&& s : ss) {
-		FillGridByShape(g, s);
-		Dump(g);
+	auto&& ss = shapes[3].second;
+	Grid grid;
+	for (size_t n = 0; n < ss.size(); ++n) {
+		auto&& s = ss[n];
+		FillGridByShape(grid, s);
+		Dump(grid);
 		xx::CoutN();
+
+		// 判断填充之后的线形是否还是和 s 相同
+		std::array<int, 4> counts;
+		counts.fill(0);
+		Results results;
+		int resultsLen = 0;
+		auto&& mask = Calc((Result*)& results, resultsLen, grid, lines);
+		if (!resultsLen) throw - 1;;
+		if (results[0].index == -1) throw -2;
+
+		std::string masks;
+		auto zeroMask = (uint16_t)(CalcGridZeroMask(grid) & mask);
+		if (!mask) throw - 4;
+		masks.append((char*)& zeroMask, sizeof(zeroMask));
+		for (int i = 0; i < resultsLen; ++i) {
+			++counts[results[i].count - 3];
+			LineMask m;
+			m.index = results[i].index;
+			m.direction = results[i].direction;
+			m.count = results[i].count;
+			masks.append((char*)& m.value, sizeof(m.value));
+		}
+		auto key = counts[0] | counts[1] << 8 | counts[2] << 16;
+		if (s != masks) {
+			xx::Cout(s.size(), ": ");
+			for (int i = 0; i < s.size(); ++i) {
+				xx::Cout((int)s[i], " ");
+			}
+			xx::CoutN();
+			xx::Cout(masks.size(), ": ");
+			for (int i = 0; i < masks.size(); ++i) {
+				xx::Cout((int)masks[i], " ");
+			}
+			xx::CoutN();
+			xx::CoutN("n = ", n, ", key = ", key);
+			throw - 3;
+		}
 	}
 
 	return 0;
 }
 
+
+inline uint16_t Calc2(Result* results, int& resultsLen, Grid const& grid, Lines const& lines) noexcept {
+	uint16_t m = 0, m1, m2;
+	int s1, c1, s2, c2;
+	CalcGrid(s1, c1, grid);
+	if (c1 == 15) {
+		auto&& r = results[resultsLen++];
+		r.index = -1;
+		r.direction = 0;
+		r.symbol = s1;
+		r.count = c1;
+		return 0b0111111111111111;
+	}
+	// 这里不需要总类全屏特殊判断
+	for (size_t i = 0; i < linesLen; ++i) {
+		m1 = CalcLine<lineLen>(s1, c1, (int*)& lines[i], grid);
+		m2 = CalcLine<-lineLen>(s2, c2, (int*)& lines[i] + lineLen - 1, grid);
+		if (s1 != -1 && c1 >= 3) {
+			auto&& r = results[resultsLen++];
+			r.index = (int)i;
+			r.direction = 0;
+			r.symbol = s1;
+			r.count = c1;
+			m |= m1;
+		}
+		if (s2 != -1 && c2 >= 3) {
+			if (c1 < 3 || s1 != s2) {
+				auto&& r = results[resultsLen++];
+				r.index = (int)i;
+				r.direction = 1;
+				r.symbol = s2;
+				r.count = c2;
+				m |= m2;
+			}
+		}
+	}
+	return m;
+}
+
+inline std::string CalcMasks(Grid const& grid, std::array<int, 4>& counts) {
+	counts.fill(0);
+	std::string masks;
+	Results results;
+	int resultsLen = 0;
+	auto&& mask = Calc2((Result*)& results, resultsLen, grid, lines);
+	auto zeroMask = (uint16_t)(CalcGridZeroMask(grid) & mask);
+	if (!mask) throw - 4;
+	masks.append((char*)& zeroMask, sizeof(zeroMask));
+	for (int i = 0; i < resultsLen; ++i) {
+		++counts[results[i].count - 3];
+		LineMask m;
+		m.index = results[i].index;
+		m.direction = results[i].direction;
+		m.count = results[i].count;
+		masks.append((char*)& m.value, sizeof(m.value));
+	}
+	return masks;
+}
+
+inline void ScanSymbolsSpaces(int& numFreeCells, int& symbol, Grid const& grid, std::vector<int> const& lineIdxs) {
+	numFreeCells = 0;
+	symbol = -1;
+	for (int i = 0; i < lineIdxs.size(); ++i) {
+		auto&& cell = grid[lineIdxs[i]];
+		if (cell == -1) {
+			++numFreeCells;
+		}
+		if (cell > 0) {
+			symbol = cell;
+		}
+	}
+}
+
+inline int FillGridByLineIdxss2(Grid& grid, std::vector<std::vector<int>> const& lineIdxss, size_t const& currLineIdx) {
+	auto&& lineIdxs = lineIdxss[currLineIdx];
+
+	// 通扫一遍，统计空位格数, 当前符号
+	int numFreeCells, symbol;
+	ScanSymbolsSpaces(numFreeCells, symbol, grid, lineIdxs);
+
+	// 如果没有空位直接退出
+	if (!numFreeCells) return 0;
+
+	// 没当前符号: 随机选择一个符号( 避开邻居线的符号 )
+	if (symbol == -1) {
+		std::vector<int> deniedSymbols;
+		// 遍历空格子, 扫每个空格子的邻居, 判读是否有线经过, 符号是什么，避开他们随机, 防止新线出现
+		for (int i = 0; i < lineIdxs.size(); ++i) {
+			auto&& idx = lineIdxs[i];
+			auto&& cell = grid[idx];
+			if (cell == -1) {
+				//FillLineSymbolsThroughCell(deniedSymbols, grid, lineIdxss, idx);
+				// 取当前 cell 的邻居, 继续判断有哪些线经过它们, 搜集这些线的符号
+				auto&& neighbors = neighborMap[idx];					// 定位到邻居下标数组
+				for (int i = 1; i <= neighbors[0]; ++i) {				// 遍历邻居下标
+					auto&& neighbor = neighbors[i];
+					FillLineSymbolsThroughCell(deniedSymbols, grid, lineIdxss, neighbor);
+				}
+			}
+		}
+		std::vector<int> avaliableSymbols;
+		for (int i = 1; i <= 8; ++i) {
+			if (std::find(deniedSymbols.cbegin(), deniedSymbols.cend(), i) == deniedSymbols.cend()) {
+				avaliableSymbols.push_back(i);
+			}
+		}
+		auto symbolIdx = std::uniform_int_distribution(0, (int)avaliableSymbols.size() - 1)(rnd);	// 随机一个 可用符号列表 的下标
+		symbol = avaliableSymbols[symbolIdx];
+	}
+
+	// 符号填入所有空位
+	for (int i = 0; i < lineIdxs.size(); ++i) {
+		auto&& idx = lineIdxs[i];
+		auto&& cell = grid[idx];
+		if (cell == -1) {
+			cell = symbol;
+			// 找出所有途径该 cell 的 line , 都填充这个 symbol
+			FillLinesCrossCellIndex(grid, lineIdxss, currLineIdx, idx);
+		}
+	}
+
+	return 1;
+}
+
 int main() {
+	//auto&& shapes = LoadShapes();
+	//auto&& s = shapes[3].second[62];
+	//DumpShapeString(s);
+
+	//// 判断依据: 
+	//auto&& counts = ShapeNumsSplite(shapes[3].first);
+
+	//Grid grid;
+
+	//// 初始化填充
+	//grid.fill(-1);
+
+	//// 按掩码填充 0
+	//FillGridByZeroMask(grid, *(uint16_t*)s.data());
+
+	//// 将 s 转为 vector<vector<int>>
+	//auto&& lineIdxss = ToLineIdxss(s);
+
+	//// 思路：线分组填充, 有关联的一次填完, 
+
+	//// 逐线填充
+	//for (size_t i = 0; i < lineIdxss.size(); ++i) {
+	//	// 先备份并计算 masks
+	//	auto bakGrid = grid;
+	//	//auto&& masks = CalcMasks(grid);
+	//	//// 如果产生填充行为
+	//	//if (FillGridByLineIdxss2(grid, lineIdxss, i)) {
+
+	//	//}
+	//}
+
+	//Dump(grid);
+
+
+	//return 0;
+
+	//Grid grid = {
+	//	-1, -1, -1, 0, ?,
+	//	-1, -1, 6, 0, -1,
+	//	-1, -1, 0, 6, 6
+	//};
+
 	//return Gen();
 	return Test();
 }

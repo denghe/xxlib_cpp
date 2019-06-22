@@ -1,34 +1,44 @@
-﻿#include "xx_uv.h"
-
-using PeerType = xx::UvKcpPeer;
-using ListenerType = xx::UvKcpListener<PeerType>;
-using DialerType = xx::UvKcpDialer<PeerType>;
-
-//using PeerType = xx::UvTcpPeer;
-//using ListenerType = xx::UvTcpListener<PeerType>;
-//using DialerType = xx::UvTcpDialer<PeerType>;
+﻿#include "xx_sqlite.h"
+#include <iostream>
+#include <chrono>
 
 int main(int argc, char* argv[]) {
-	xx::Uv uv;
-	auto&& listener = xx::Make<ListenerType>(uv, "0.0.0.0", 12345);
-	listener->OnAccept = [](std::shared_ptr<PeerType>& peer) {
-		xx::CoutN("listener accept ", xx::Uv::ToIpPortString(peer->addr));
-		peer->OnReceivePush = [peer](xx::Object_s&& msg) {	// hold
-			return peer->SendPush(msg);	// echo
-		};
-	};
-
-	auto&& dialer = xx::Make<DialerType>(uv);
-	dialer->OnAccept = [](std::shared_ptr<PeerType> peer) {
-		xx::CoutN("dialer ", peer ? "accept" : "timeout");
-		peer->OnReceivePush = [peer](xx::Object_s&& msg) {
-			xx::CoutN("dialer peer recv ", msg);
-			return peer->SendPush(msg);
-		};
-		peer->SendPush(xx::Make<xx::BBuffer>());
-	};
-	auto&& r = dialer->Dial("127.0.0.1", 12345, 3000);
-	xx::CoutN(r);
-	uv.Run();
+	//xx::SQLite db(":memory:");
+	xx::SQLite db("test.db3");
+	db.SetPragmaJournalMode(xx::SQLiteJournalModes::Memory);	// WAL 可能更快 但是会生成一个 .wal 文件
+	db.SetPragmaLockingMode(xx::SQLiteLockingModes::Exclusive);
+	db.SetPragmaCacheSize(4096);
+	db.SetPragmaTempStoreType(xx::SQLiteTempStoreTypes::Memory);
+	try {
+		db.Execute(R"-(
+DROP TABLE IF EXISTS 't1'
+)-");
+		db.Execute(R"-(
+CREATE TABLE t1 (
+	c1 int PRIMARY KEY,
+	c2 text NOT NULL
+)
+)-");
+		auto& beginTime = std::chrono::steady_clock::now();
+		auto&& q = db.CreateQuery("insert into t1 ('c2') values (?)");
+		for (int j = 0; j < 1000; ++j) {
+			db.BeginTransaction();
+			for (int i = 0; i < 1000; ++i) {
+				q.SetParameters("asdf");
+				q.Execute();
+			}
+			db.Commit();
+		}
+		auto& endTime = std::chrono::steady_clock::now();
+		std::cout << "ms = " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - beginTime).count() << std::endl;
+		auto&& q2 = db.CreateQuery("select count(*) from t1");
+		q2.Execute([](xx::SQLiteReader& sr) {
+			std::cout << "count(*) = " << sr.ReadInt32(0) << std::endl;
+			});
+		std::cin.get();
+	}
+	catch (int const& errCode) {
+		std::cout << "errCode = " << errCode << ", errMsg = " << db.lastErrorMessage << std::endl;
+	}
 	return 0;
 }
