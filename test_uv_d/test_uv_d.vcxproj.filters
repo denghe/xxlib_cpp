@@ -6,5 +6,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="xx_sqlite.h" />
+    <ClInclude Include="xx_logger.h" />
   </ItemGroup>
 </Project>

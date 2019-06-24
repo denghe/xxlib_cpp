@@ -3,12 +3,12 @@
 #include <chrono>
 
 int main(int argc, char* argv[]) {
-	//xx::SQLite db(":memory:");
-	xx::SQLite db("test.db3");
-	db.SetPragmaJournalMode(xx::SQLiteJournalModes::Memory);	// WAL 可能更快 但是会生成一个 .wal 文件
-	db.SetPragmaLockingMode(xx::SQLiteLockingModes::Exclusive);
+	//xx::SQLite::Connection db(":memory:");
+	xx::SQLite::Connection db("test.db3");
+	db.SetPragmaJournalMode(xx::SQLite::JournalModes::Memory);	// WAL 可能更快 但是会生成一个 .wal 文件
+	db.SetPragmaLockingMode(xx::SQLite::LockingModes::Exclusive);
 	db.SetPragmaCacheSize(4096);
-	db.SetPragmaTempStoreType(xx::SQLiteTempStoreTypes::Memory);
+	db.SetPragmaTempStoreType(xx::SQLite::TempStoreTypes::Memory);
 	try {
 		db.Execute(R"-(
 DROP TABLE IF EXISTS 't1'
@@ -32,7 +32,7 @@ CREATE TABLE t1 (
 		auto& endTime = std::chrono::steady_clock::now();
 		std::cout << "ms = " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - beginTime).count() << std::endl;
 		auto&& q2 = db.CreateQuery("select count(*) from t1");
-		q2.Execute([](xx::SQLiteReader& sr) {
+		q2.Execute([](xx::SQLite::Reader& sr) {
 			std::cout << "count(*) = " << sr.ReadInt32(0) << std::endl;
 			});
 		std::cin.get();
