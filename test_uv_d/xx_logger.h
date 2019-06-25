@@ -59,6 +59,11 @@ namespace xx {
 				rowsLimit = std::numeric_limits<decltype(rowsLimit)>::max();
 			}
 
+			// 优化选项
+			db.SetPragmaJournalMode(xx::SQLite::JournalModes::Memory);
+			db.SetPragmaTempStoreType(xx::SQLite::TempStoreTypes::Memory);
+			db.SetPragmaCacheSize(4096);
+
 			// 建表
 			if (!db.TableExists("log")) {
 				db.Call(R"=-=(
@@ -153,7 +158,7 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 	// 日志记录器
 	template<typename LogWriter = SqliteLogWriter>
 	class Logger {
-
+	protected:
 		// 内存队列限长. 超限将放弃本次写入，返回 -1: 写入失败
 		uint64_t queueLimit = 0;
 
@@ -174,6 +179,12 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 		// 日志写入器
 		LogWriter writer;
 
+	public:
+		// 用于外界查询当前后台线程工作状态
+		bool writing = false;
+
+	protected:
+
 		// 从构造函数中剥离以便于构造函数路由不同的 LogWriter
 		void Init() {
 			// 预分配内存
@@ -190,10 +201,13 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 						std::swap(rows, bgRows);
 					}
 
+					writing = true;
 					if (writer.Save(*bgRows)) {
+						writing = false;
 						disposing = -1;
 						return;
 					}
+					writing = false;
 					bgRows->clear();
 					continue;
 
@@ -231,7 +245,7 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 		Logger(Logger const&) = delete;
 		Logger& operator=(Logger const&) = delete;
 
-		// 完整写入所有参数. 返回 false 表示写入
+		// 往内存队列插入一条日志. 返回 非0 表示失败( 可能超过了数量限制 或者是实例正在析构 或已析构 )
 		template<typename DescType>
 		int Write(DescType&& desc) noexcept {
 			std::lock_guard<std::mutex> lg(mtx);

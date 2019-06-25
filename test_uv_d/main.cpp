@@ -1,26 +1,28 @@
-﻿#include "xx_sqlite.h"
-#include <iostream>
+﻿#include <iostream>
 #include <chrono>
-
 #include "xx_logger.h"
 
 int main(int argc, char* argv[]) {
 	using namespace std::chrono;
-
 	std::string logFN = argv[0];
 	logFN += ".log.db3";
-	xx::Logger log(logFN.c_str(), true, 1);
-	log.Write("1111111111");
-	log.Write("aaaa");
-	std::this_thread::sleep_for(1s);
-	log.Write("22222222222222");
-	log.Write("bbb");
-	std::this_thread::sleep_for(1s);
-	log.Write("3");
-	log.Write("ccc");
-	std::this_thread::sleep_for(1s);
-	log.Write("444");
-	log.Write("dddddddd");
+	{
+		xx::Logger log(logFN.c_str(), true);
+
+		auto&& t2 = steady_clock::now();
+		for (int j = 0; j < 10; ++j) {
+			auto&& t = steady_clock::now();
+			for (int i = 0; i < 1000000; ++i) {
+				log.Write("asdfqeradflkasdfljlsjdflkjasdkfljalkdfjlsajdfl");
+			}
+			std::cout << duration_cast<milliseconds>(steady_clock::now() - t).count() << std::endl;
+			std::this_thread::sleep_for(50ms);
+			while (log.writing) {
+				std::this_thread::sleep_for(50ms);
+			}
+		}
+		std::cout << "total: " << duration_cast<milliseconds>(steady_clock::now() - t2).count() << std::endl;
+	}
 
 //	//xx::SQLite::Connection db(":memory:");
 //	xx::SQLite::Connection db("test.db3");
