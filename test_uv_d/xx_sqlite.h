@@ -7,6 +7,9 @@
 
 namespace xx {
 	namespace SQLite {
+
+		// SQLITE 基本上只有 4 种数据类型： int, int64_t, double, string. 故查询模板只能传入这几种
+
 		struct Connection;
 		struct Query;
 		struct Reader;
@@ -76,6 +79,8 @@ namespace xx {
 
 			Query(Connection& owner);
 			Query(Connection& owner, char const* const& sql, int const& sqlLen = 0);
+			template<size_t sqlLen>
+			Query(Connection& owner, char const(&sql)[sqlLen]);
 			~Query();
 			Query() = delete;
 			Query(Query const&) = delete;
@@ -107,12 +112,20 @@ namespace xx {
 			void SetParameter(int parmIdx, EnumType const& v);
 
 			template<typename...Parameters>
-			void SetParameters(Parameters const& ...ps);
+			Query& SetParameters(Parameters const& ...ps);
+		protected:
 			template<typename Parameter, typename...Parameters>
 			void SetParametersCore(int& parmIdx, Parameter const& p, Parameters const& ...ps);
 			void SetParametersCore(int& parmIdx);
 
-			void Execute(ReadFunc&& rf = nullptr);
+		public:
+			Query& Execute(ReadFunc&& rf = nullptr);
+			Query& operator()();
+
+			// todo: std::optional 检测与支持
+
+			template<typename T>
+			Query& operator()(T& outVal);
 		};
 
 
@@ -161,9 +174,6 @@ namespace xx {
 
 			// 下列函数均靠 try 检测是否执行出错
 
-			// 根据 SQL 语句, 创建一个查询对象( 有错误发生将返回空 )
-			Query CreateQuery(char const* const& sql, int const& sqlLen = 0);
-
 			// 各种 set pragma( 通常推荐设置 JournalModes::WAL 似乎能提升一些 insert 的性能 )
 
 			// 事务数据记录模式( 设成 WAL 能提升一些性能 )
@@ -210,11 +220,19 @@ namespace xx {
 			// 判断表是否存在
 			bool TableExists(char const* const& tn);						// SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?
 
-			// 会清空表数据, 并且重置自增计数. 如果存在约束, 有可能清空失败.
+			// 会清空表数据, 并且重置自增计数. 如果存在约束, 或 sqlite_sequence 不存在, 有可能清空失败.
 			void TruncateTable(char const* const& tn);						// DELETE FROM ?; DELETE FROM sqlite_sequence WHERE name = ?;
 
-			// 直接执行一个 SQL 语句( 相当于 create query + execute + destroy 全套 )
-			void Execute(char const* const& sql, int(*selectRowCB)(void* userData, int numCols, char** colValues, char** colNames) = nullptr, void* const& userData = nullptr);
+			// 直接执行一个 SQL 语句
+			void Call(char const* const& sql, int(*selectRowCB)(void* userData, int numCols, char** colValues, char** colNames) = nullptr, void* const& userData = nullptr);
+
+			// 直接执行一个 SQL 语句. 如果 T 不为 void, 将返回第一行第一列的值. 
+			// todo: 如果 T 是 tuple 则多值填充
+			template<typename T = void>
+			T Execute(char const* const& sql, int const& sqlLen);
+
+			template<typename T = void, size_t sqlLen>
+			T Execute(char const(&sql)[sqlLen]);
 		};
 
 
@@ -235,13 +253,22 @@ namespace xx {
 
 			DataTypes GetColumnDataType(int const& colIdx);
 			char const* GetColumnName(int const& colIdx);
+
 			bool IsDBNull(int const& colIdx);
+
 			int ReadInt32(int const& colIdx);
 			int64_t ReadInt64(int const& colIdx);
 			double ReadDouble(int const& colIdx);
 			char const* ReadString(int const& colIdx);
 			std::pair<char const*, int> ReadText(int const& colIdx);
 			std::pair<char const*, int> ReadBlob(int const& colIdx);
+
+			void Read(int const& colIdx, int& outVal);
+			void Read(int const& colIdx, int64_t& outVal);
+			void Read(int const& colIdx, double& outVal);
+			void Read(int const& colIdx, std::string& outVal);
+			template<typename T>
+			void Read(int const& colIdx, T& outVal);
 		};
 
 
@@ -302,16 +329,12 @@ namespace xx {
 			return sqlite3_changes(ctx);
 		}
 
-		inline Query Connection::CreateQuery(char const* const& sql, int const& sqlLen) {
-			return Query(*this, sql, sqlLen ? sqlLen : (int)strlen(sql));
-		}
-
 		inline void Connection::SetPragmaSynchronousType(SynchronousTypes st) {
 			if ((int)st < 0 || (int)st >(int)SynchronousTypes::MAX) ThrowError(-1, "bad SynchronousTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA synchronous = ");
 			sqlBuilder.append(strSynchronousTypes[(int)st]);
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
 		inline void Connection::SetPragmaJournalMode(JournalModes jm) {
@@ -319,7 +342,7 @@ namespace xx {
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA journal_mode = ");
 			sqlBuilder.append(strJournalModes[(int)jm]);
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
 		inline void Connection::SetPragmaTempStoreType(TempStoreTypes tst) {
@@ -327,7 +350,7 @@ namespace xx {
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA temp_store = ");
 			sqlBuilder.append(strTempStoreTypes[(int)tst]);
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
 		inline void Connection::SetPragmaLockingMode(LockingModes lm) {
@@ -335,7 +358,7 @@ namespace xx {
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA locking_mode = ");
 			sqlBuilder.append(strLockingModes[(int)lm]);
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
 		inline void Connection::SetPragmaCacheSize(int cacheSize) {
@@ -343,62 +366,72 @@ namespace xx {
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA cache_size = ");
 			sqlBuilder.append(std::to_string(cacheSize));
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
 		inline void Connection::SetPragmaForeignKeys(bool enable) {
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA foreign_keys = ");
 			sqlBuilder.append(enable ? "true" : "false");
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
-		inline void Connection::Execute(char const* const& sql, int(*selectRowCB)(void* userData, int numCols, char** colValues, char** colNames), void* const& userData) {
+		inline void Connection::Call(char const* const& sql, int(*selectRowCB)(void* userData, int numCols, char** colValues, char** colNames), void* const& userData) {
 			lastErrorCode = sqlite3_exec(ctx, sql, selectRowCB, userData, (char**)& lastErrorMessage);
 			if (lastErrorCode != SQLITE_OK) throw lastErrorCode;
 		}
 
+		template<typename T>
+		inline T Connection::Execute(char const* const& sql, int const& sqlLen) {
+			Query q(*this, sql, sqlLen);
+			if constexpr( std::is_void_v<T> ) {
+				q();
+			}
+			else {
+				T rtv{};
+				q(rtv);
+				return rtv;
+			}
+		}
+
+		template<typename T, size_t sqlLen>
+		T Connection::Execute(char const(&sql)[sqlLen]) {
+			return Execute<T>(sql, (int)sqlLen);
+		}
 
 		inline void Connection::Attach(char const* const& alias, char const* const& fn) {
-			qAttach.SetParameters(fn, alias);
-			qAttach.Execute();
+			qAttach.SetParameters(fn, alias)();
 		}
 
 		inline void Connection::Detach(char const* const& alias) {
-			qDetach.SetParameters(alias);
-			qDetach.Execute();
+			qDetach.SetParameters(alias)();
 		}
 
 		inline void Connection::BeginTransaction() {
-			qBeginTransaction.Execute();
+			qBeginTransaction();
 		}
 
 		inline void Connection::Commit() {
-			qCommit.Execute();
+			qCommit();
 		}
 
 		inline void Connection::Rollback() {
-			qRollback.Execute();
+			qRollback();
 		}
 
 		inline void Connection::EndTransaction() {
-			qEndTransaction.Execute();
+			qEndTransaction();
 		}
 
 		inline bool Connection::TableExists(char const* const& tn) {
-			qTableExists.SetParameters(tn);
-			bool exists = false;
-			qTableExists.Execute([&](Reader& dr) {
-				exists = dr.ReadInt32(0) > 0;
-				});
-			return exists;
+			int exists = 0;
+			qTableExists.SetParameters(tn)(exists);
+			return exists != 0;
 		}
 
 		inline int Connection::GetTableCount() {
 			int count = 0;
-			qGetTableCount.Execute([&](Reader& dr) {
-				count = dr.ReadInt32(0);
-				});
+			qGetTableCount(count);
 			return count;
 		}
 
@@ -406,7 +439,7 @@ namespace xx {
 			// todo: 对 tn 转义
 			sqlBuilder.clear();
 			sqlBuilder += std::string("BEGIN; DELETE FROM [") + tn + "]; DELETE FROM [sqlite_sequence] WHERE [name] = '" + tn + "'; COMMIT;";
-			Execute(sqlBuilder.c_str());
+			Call(sqlBuilder.c_str());
 		}
 
 
@@ -416,14 +449,18 @@ namespace xx {
 		// Query
 
 		inline Query::Query(Connection& owner)
-			: owner(owner)
-		{
+			: owner(owner) {
 		}
 
 		inline Query::Query(Connection& owner, char const* const& sql, int const& sqlLen)
-			: owner(owner)
-		{
+			: owner(owner) {
 			SetQuery(sql, sqlLen);
+		}
+
+		template<size_t sqlLen>
+		inline Query::Query(Connection& owner, char const(&sql)[sqlLen])
+			: owner(owner) {
+			SetQuery(sql, sqlLen - 1);
 		}
 
 		inline Query::~Query() {
@@ -540,10 +577,11 @@ namespace xx {
 		}
 
 		template<typename...Parameters>
-		void Query::SetParameters(Parameters const& ...ps) {
+		Query& Query::SetParameters(Parameters const& ...ps) {
 			assert(stmt);
 			int parmIdx = 1;
 			SetParametersCore(parmIdx, ps...);
+			return *this;
 		}
 
 		template<typename Parameter, typename...Parameters>
@@ -555,7 +593,7 @@ namespace xx {
 
 		inline void Query::SetParametersCore(int& parmIdx) {}
 
-		inline void Query::Execute(ReadFunc&& rf) {
+		inline Query& Query::Execute(ReadFunc&& rf) {
 			assert(stmt);
 			Reader dr(stmt);
 
@@ -573,15 +611,28 @@ namespace xx {
 
 		LabEnd:
 			r = sqlite3_reset(stmt);
-			if (r == SQLITE_OK) return;
+			if (r == SQLITE_OK) return *this;
 
 		LabErr:
 			auto ec = r;
 			auto em = sqlite3_errmsg(owner.ctx);
 			sqlite3_reset(stmt);
 			owner.ThrowError(ec, em);
+			return *this;
 		}
 
+		inline Query& Query::operator()() {
+			return Execute(nullptr);
+		}
+
+		template<typename T>
+		Query& Query::operator()(T& outVal) {
+			return Execute([&](Reader& r) {
+				if (r.numCols && !r.IsDBNull(0)) {
+					r.Read(0, outVal);
+				}
+			});
+		}
 
 
 		/***************************************************************/
@@ -639,5 +690,25 @@ namespace xx {
 			return std::make_pair(ptr, len);
 		}
 
+		inline void Reader::Read(int const& colIdx, int& outVal) {
+			outVal = ReadInt32(colIdx);
+		}
+		inline void Reader::Read(int const& colIdx, int64_t& outVal) {
+			outVal = ReadInt64(colIdx);
+
+		}
+		inline void Reader::Read(int const& colIdx, double& outVal) {
+			outVal = ReadDouble(colIdx);
+		}
+		inline void Reader::Read(int const& colIdx, std::string& outVal) {
+			auto&& r = ReadText(colIdx);
+			outVal.assign(r.first, r.second);
+		}
+
+		template<typename T>
+		inline void Reader::Read(int const& colIdx, T& outVal) {
+			assert(false);
+			// unsupport
+		}
 	}
 }

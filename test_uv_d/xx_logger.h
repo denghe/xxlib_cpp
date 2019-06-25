@@ -2,101 +2,183 @@
 #include "xx_sqlite.h"
 #include <mutex>
 #include <thread>
-#include <queue>
+#include <vector>
 #include <iostream>
 #include <chrono>
 
 namespace xx {
 
-	// 日志级别
-	enum class LogLevel : int32_t {
-		Off,
-		Fatal,
-		Error,
-		Warning,
-		Info,
-		Debug,
-		All,
-	};
-
 	// 对应 sqlite log 表 中的一行
-	struct Log {
-		//int64_t id = 0;					// 自增主键
-		LogLevel level = (LogLevel)0;	// 日志级别
+	struct LogRow {
+		//int64_t id = 0;				// 主键
 		int64_t time = 0;				// 发生时间
-		std::string machine;			// 机器名
-		std::string service;			// 服务名
-		std::string instanceId;			// 实例id
-		std::string title;				// 标题
-		int64_t opcode = 0;				// 操作代码
 		std::string desc;				// 日志明细
 
-		Log() = default;
-		Log(Log const&) = delete;
-		Log& operator=(Log const&) = delete;
+		LogRow() = default;
+		LogRow(LogRow const&) = delete;
+		LogRow& operator=(LogRow const&) = delete;
+		LogRow(LogRow&& o)
+			: time(std::move(o.time))
+			, desc(std::move(o.desc))
+		{
+		}
+		inline LogRow& operator=(LogRow&& o) {
+			this->time = std::move(o.time);
+			this->desc = std::move(o.desc);
+			return *this;
+		}
 	};
-	using Log_s = std::shared_ptr<Log>;
 
-	// 日志主体
-	struct Logger {
-	protected:
+	// sqlite 版日志写入器, 每秒最多只能写入几十万行, 特点是空间可以循环利用, 自动删除过期数据
+	struct SqliteLogWriter {
+		// sqlite 连接主体
 		SQLite::Connection db;
-		SQLite::Query qInsert;
 
-		static constexpr int nameLenLimit = 200;
+		// 要用到的查询
+		SQLite::Query query_Insert;
+		SQLite::Query query_DeleteRange;
+		SQLite::Query query_DeleteAll;
 
-		// 切换使用的双队列
-		std::queue<Log_s> logs1;
-		std::queue<Log_s> logs2;
+		// 表数据行数限制. insert 的同时将执行 delete 删除最早的数据以维持总行数, 滚动利用存储空间
+		int64_t rowsLimit = 0;
 
-		// 指向当前队列
-		std::queue<Log_s>* logs;
+		// 当前自增id( 用前++ )
+		int64_t autoIncId = 0;
 
-		// 指向后台队列
-		std::queue<Log_s>* bgLogs;
+		// 当前数据行数
+		int64_t numRows = 0;
+
+		SqliteLogWriter(char const* const& logFileName, bool cleanup, int64_t rowsLimit)
+			: db(logFileName)
+			, query_Insert(db)
+			, query_DeleteRange(db)
+			, query_DeleteAll(db)
+			, rowsLimit(rowsLimit)
+		{
+			if (rowsLimit <= 0) {
+				rowsLimit = std::numeric_limits<decltype(rowsLimit)>::max();
+			}
+
+			// 建表
+			if (!db.TableExists("log")) {
+				db.Call(R"=-=(
+CREATE TABLE `log`(
+    `id` INTEGER PRIMARY KEY NOT NULL UNIQUE,
+    `time` INTEGER NOT NULL, 
+    `desc` TEXT NOT NULL
+);
+)=-=");
+				db.Call(R"=-=(
+CREATE VIEW `view_log` AS
+SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `desc`
+  FROM `log`;
+)=-=");
+				// time 创建索引??
+			}
+			else {
+				// 初始化查询器
+				query_DeleteAll.SetQuery("delete from `log`");
+
+				if (cleanup) {
+					// 清数据
+					query_DeleteAll();
+				}
+				else {
+					// 取最大, 最小 id 值
+					autoIncId = db.Execute<int64_t>("select max(`id`) from `log`");
+					numRows = db.Execute<int64_t>("select min(`id`) from `log`") - autoIncId + 1;
+				}
+			}
+
+			// 继续初始化查询器
+			query_Insert.SetQuery("insert into `log` (`id`, `time`, `desc`) values (?, ?, ?)");
+			query_DeleteRange.SetQuery("delete from `log` where id <= ?");
+
+			// 检测当前数据是否超限. 超了就删除一部分
+			if (numRows > rowsLimit) {
+				query_DeleteRange.SetParameters(autoIncId - rowsLimit)();
+				numRows = rowsLimit;
+			}
+		}
+		SqliteLogWriter(SqliteLogWriter const&) = delete;
+		SqliteLogWriter& operator=(SqliteLogWriter const&) = delete;
+
+		// 将队列数据写盘. 成功返回 0. 失败 -1
+		inline int Save(std::vector<LogRow> const& rows) {
+			int64_t idx = 0, len = (int64_t)rows.size();
+			assert(len);
+			try {
+				// 如果本次写入必然导致数据库行数超限制, 就直接清库，并调整 idx 指向 rows 后方符合 rowsLimit 的起始处
+				if (len >= rowsLimit) {
+					// 如果库有数据就清
+					if (numRows) {
+						query_DeleteAll();
+					}
+					// 调整指向, 确保写入数据在 rowsLimit 范围内
+					idx = len - rowsLimit;
+
+					// 提前计算出写入完成之后的记录数
+					numRows = rowsLimit;
+				}
+				else {
+					// 计算 db 中要留多少行, 
+					auto newRowsLimit = rowsLimit - len;
+					if (numRows > newRowsLimit) {
+						query_DeleteRange.SetParameters(autoIncId - newRowsLimit)();
+					}
+
+					// 提前计算出写入完成之后的记录数
+					numRows = newRowsLimit + len;
+				}
+				if (idx == len) return 0;
+
+				db.BeginTransaction();
+				for (; idx < len; ++idx) {
+					auto&& o = rows[idx];
+					query_Insert.SetParameters(++autoIncId, o.time, o.desc)();
+				}
+				db.EndTransaction();
+				return 0;
+			}
+			catch (...)
+			{
+				std::cout << "logdb insert error! errNO = " << db.lastErrorCode << " errMsg = " << db.lastErrorMessage << std::endl;
+				return -1;
+			}
+		}
+	};
+
+	// todo: 文本版日志写入器, 写入速度受限于磁盘, 特点是可以根据 行数 啥的条件拆分文件. 自动在文件名后添加后缀存为多个文件
+
+	// 日志记录器
+	template<typename LogWriter = SqliteLogWriter>
+	class Logger {
+
+		// 内存队列限长. 超限将放弃本次写入，返回 -1: 写入失败
+		uint64_t queueLimit = 0;
 
 		// 切换锁定依赖
 		std::mutex mtx;
 
-		uint64_t limit = 0;					// 写等待队列深度限制. 如果非0, 写入队列如果超限, 将导致写入失败, 抛弃本次写入
-		int64_t dbLimit = 0;				// 表数据行数限制. 如果非0, insert 的同时将执行 delete 删除最早的数据, 以维持不超过设定的总行数
+		// 切换使用的双队列
+		std::vector<LogRow> rows1;
+		std::vector<LogRow> rows2;
 
-		bool disposing = false;				// 通知后台线程退出的标志位
+		// 指向当前 / 后台队列( rows1 或 rows2 )
+		std::vector<LogRow>* rows = &rows1;
+		std::vector<LogRow>* bgRows = &rows2;
 
-	public:
-		int64_t counter = 0;				// 写入行数计数器
+		// 通知后台线程退出的标志位
+		int disposing = 0;
 
-		// todo: dbLimit 相关代码
+		// 日志写入器
+		LogWriter writer;
 
-		// 可传入完整路径文件名, 或前缀 argv[0], true 以便将日志创建到和 exe 所在位置相同. 
-		Logger(std::string fn, bool fnIsPrefix = false, uint64_t limit = 0, int64_t dbLimit = 0)
-			: db(!fnIsPrefix ? fn.c_str() : (fn + ".log.db3").c_str())
-			, qInsert(db)
-			, limit(limit)
-			, dbLimit(dbLimit)
-		{
-0			// 初始化插入查询
-			qInsert.SetQuery(R"=-=(
-insert into [log] ([level], [time], [machine], [service], [instanceId], [title], [opcode], [desc]) 
-values (?, ?, ?, ?, ?, ?, ?, ?))=-=");
-
-			if (!db.TableExists("log")) {
-				db.Execute(R"=-=(
-CREATE TABLE [log](
-    [id] INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE, 
-    [level] INT NOT NULL,
-    [time] INTEGER NOT NULL, 
-    [machine] TEXT(250) NOT NULL, 
-    [service] TEXT(50) NOT NULL, 
-    [instanceId] TEXT(50) NOT NULL, 
-    [title] TEXT(250) NOT NULL,
-    [opcode] INTEGER NOT NULL,
-    [desc] TEXT NOT NULL
-);)=-=");
-			}
-
-
-			// todo: 查 id 最大最小值存起来备用
+		// 从构造函数中剥离以便于构造函数路由不同的 LogWriter
+		void Init() {
+			// 预分配内存
+			rows1.reserve(queueLimit);
+			rows2.reserve(queueLimit);
 
 			// 起一个后台线程用于日志写库
 			std::thread t([this] {
@@ -104,201 +186,63 @@ CREATE TABLE [log](
 					// 切换前后台队列( 如果有数据. 没有就 sleep 一下继续扫 )
 					{
 						std::lock_guard<std::mutex> lg(mtx);
-						if (!logs->size()) goto LabEnd;
-						std::swap(logs, bgLogs);
+						if (!rows->size()) goto LabEnd;
+						std::swap(rows, bgRows);
 					}
 
-					// 开始批量插入( 这期间前台可以继续操作 )
-					try {
-						db.BeginTransaction();
-						while (!bgLogs->empty()) {
-							auto&& o = *bgLogs->front();
-							InsertLog(o.level, o.time, o.machine, o.service, o.instanceId, o.title, o.opcode, o.desc);
-							bgLogs->pop();
-							++counter;
-						}
-						db.EndTransaction();
+					if (writer.Save(*bgRows)) {
+						disposing = -1;
+						return;
 					}
-					catch (...)
-					{
-						// 似乎只能忽略错误
-						std::cout << "logdb insert error! errNO = " << db.lastErrorCode << " errMsg = " << db.lastErrorMessage << std::endl;
-					}
+					bgRows->clear();
+					continue;
+
 				LabEnd:
-					if (disposing) break;
+					if (disposing == 1) {
+						++disposing;
+						continue;
+					}
+					else if (disposing == 2) {
+						break;
+					}
 					std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				}
-				disposing = false;
-			});
+				disposing = 0;
+				});
 			t.detach();
 		}
 
-		Logger(Logger const&) = delete;
-		Logger operator=(Logger const&) = delete;
+	public:
+
+		template<typename ENABLED = std::enable_if_t<std::is_base_of_v<SqliteLogWriter, LogWriter>>>
+		Logger(char const* const& logFileName, bool cleanup = false, int64_t rowsLimit = 1000000, uint64_t queueLimit = 1000000)
+			: queueLimit(queueLimit)
+			, writer(logFileName, cleanup, rowsLimit) {
+			Init();
+		}
 
 		~Logger() {
-			disposing = true;
+			if (disposing) return;
+			disposing = 1;
 			while (disposing) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
+		Logger(Logger const&) = delete;
+		Logger& operator=(Logger const&) = delete;
 
-
-		// 向 db 插入一条 log. time 传入 NowEpoch10m
-		template<typename MachineType, typename ServiceType, typename InstanceIdType, typename TitleType, typename DescType>
-		inline void InsertLog
-		(
-			LogLevel const& level,
-			int64_t const& time,
-			MachineType const& machine,
-			ServiceType const& service,
-			InstanceIdType const& instanceId,
-			TitleType const& title,
-			int64_t const& opcode,
-			DescType const& desc
-		) noexcept
-		{
-			qInsert.SetParameters(level, time, machine, service, instanceId, title, opcode, desc);
-			qInsert.Execute();
-		}
-
-
-
-		// 完整写入所有参数. 返回 false 表示写入失败
-		template<typename MachineType, typename ServiceType, typename InstanceIdType, typename TitleType, typename DescType>
-		bool WriteAll(LogLevel const& level, int64_t const& time
-			, MachineType const& machine, ServiceType const& service, InstanceIdType const& instanceId
-			, TitleType const& title, int64_t const& opcode, DescType const& desc) noexcept
-		{
-			std::lock_guard<std::mutex> lg(mtx);
-			if (limit && logs->Count() > limit) return false;
-
-			auto o = logs->mempool->MPCreatePtr<Log>();
-
-			o->id = 2;             // 用来标记是通过 WaitAll 写入的
-			o->level = level;
-			o->time = time;
-			o->machine.Assign(machine);
-			o->service.Assign(service);
-			o->instanceId.Assign(instanceId);
-			o->title.Assign(title);
-			o->opcode = opcode;
-			o->desc.Assign(desc);
-
-			logs->Emplace(std::move(o));
-			return true;
-		}
-
-		// 设置部分写入参数的默认值, 进一步可以使用下面的简化形态函数. 返回 false 表示设置失败
-		template<typename MachineType, typename ServiceType, typename InstanceIdType>
-		bool SetDefaultValue(MachineType const& machine, ServiceType const& service, InstanceIdType const& instanceId) noexcept
-		{
-			std::lock_guard<std::mutex> lg(mtx);
-			if (limit && logs->Count() > limit) return false;
-
-			auto o = logs->mempool->MPCreatePtr<Log>();
-
-			o->id = 0;				// 用来标记是通过 SetDefaultValue 写入的
-			o->machine.Assign(machine);
-			o->service.Assign(service);
-			o->instanceId.Assign(instanceId);
-
-			logs->Emplace(std::move(o));
-			return true;
-		}
-
-		// 下面的 write 需要先 SetDefaultValue 才能用
-
-		template<typename TitleType, typename DescType>
-		bool Write(LogLevel level, TitleType const& title, int64_t const& opcode, DescType const& desc) noexcept
-		{
-			std::lock_guard<std::mutex> lg(mtx);
-			if (limit && logs->Count() > limit) return false;
-
-			auto o = logs->mempool->MPCreatePtr<Log>();
-
-			o->id = 1;             // 用来标记是通过 Write 写入的
-			o->level = level;
-
-			o->time = NowEpoch10m();
-			o->title.Assign(title);
-			o->opcode = opcode;
-			o->desc.Assign(desc);
-
-			logs->Emplace(std::move(o));
-			return true;
-		}
-
-		template<typename TitleType, typename DescType>
-		bool WriteInfo(TitleType const& title, int64_t const& opcode, DescType const& desc) noexcept
-		{
-			return Write(LogLevel::Info, title, opcode, desc);
-		}
-
-		template<typename TitleType, typename DescType>
-		bool WriteError(TitleType const& title, int64_t const& opcode, DescType const& desc) noexcept
-		{
-			return Write(LogLevel::Error, title, opcode, desc);
-		}
-
+		// 完整写入所有参数. 返回 false 表示写入
 		template<typename DescType>
-		bool WriteInfo(DescType const& desc) noexcept
-		{
-			return Write(LogLevel::Info, "", 0, desc);
-		}
+		int Write(DescType&& desc) noexcept {
+			std::lock_guard<std::mutex> lg(mtx);
+			if (disposing || (queueLimit && rows->size() > queueLimit)) return -1;
 
-		template<typename DescType>
-		bool WriteError(DescType const& desc) noexcept
-		{
-			return Write(LogLevel::Error, "", 0, desc);
-		}
-
-		template<typename DescType>
-		bool Write(DescType const& desc) noexcept
-		{
-			return Write(LogLevel::Info, "", 0, desc);
-		}
-
-		template<typename...TS>
-		bool WriteFormat(char const* const& format, TS const& ...vs) noexcept
-		{
-			std::string s(&mp);
-			s.AppendFormat(format, vs...);
-			return Write(LogLevel::Info, "", 0, s);
-		}
-
-		template<typename...TS>
-		bool WriteAppend(TS const& ...vs) noexcept
-		{
-			std::string s(&mp);
-			s.Append(vs...);
-			return Write(LogLevel::Info, "", 0, s);
+			typedef std::chrono::duration<long long, std::ratio<1LL, 10000000LL>> MicroX10;	// 10 倍 micro 精度. 当前 x86 pc 常见精度
+			rows->emplace_back();
+			auto&& o = rows->back();
+			o.time = std::chrono::duration_cast<MicroX10>(std::chrono::system_clock::now().time_since_epoch()).count();
+			o.desc = std::forward<DescType>(desc);
+			return 0;
 		}
 	};
 }
-
-
-
-/*
-// 日志写入器主体类. 示例:
-
-inline xx::Logger* logger = nullptr;
-int main(int argc, char const* const* argv)
-{
-	logger = new xx::Logger(argv[0], true);
-	logger->SetDefaultValue("", "test_cpp5", "0");
-
-	...
-
-	logger->Write.............
-
-	...
-
-	delete logger;
-	logger = nullptr;
-
-
-	在数据浏览工具中查询, time 字段转 DateTime:
-	select *, datetime(`time`/10000000,'unixepoch') as `dt` from log
-
-	*/
