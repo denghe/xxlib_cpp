@@ -166,12 +166,8 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 		std::mutex mtx;
 
 		// 切换使用的双队列
-		std::vector<LogRow> rows1;
-		std::vector<LogRow> rows2;
-
-		// 指向当前 / 后台队列( rows1 或 rows2 )
-		std::vector<LogRow>* rows = &rows1;
-		std::vector<LogRow>* bgRows = &rows2;
+		std::vector<LogRow> rows;
+		std::vector<LogRow> bgRows;
 
 		// 通知后台线程退出的标志位
 		int disposing = 0;
@@ -188,8 +184,8 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 		// 从构造函数中剥离以便于构造函数路由不同的 LogWriter
 		void Init() {
 			// 预分配内存
-			rows1.reserve(queueLimit);
-			rows2.reserve(queueLimit);
+			rows.reserve(queueLimit);
+			bgRows.reserve(queueLimit);
 
 			// 起一个后台线程用于日志写库
 			std::thread t([this] {
@@ -197,18 +193,18 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 					// 切换前后台队列( 如果有数据. 没有就 sleep 一下继续扫 )
 					{
 						std::lock_guard<std::mutex> lg(mtx);
-						if (!rows->size()) goto LabEnd;
+						if (!rows.size()) goto LabEnd;
 						std::swap(rows, bgRows);
 					}
 
 					writing = true;
-					if (writer.Save(*bgRows)) {
+					if (writer.Save(bgRows)) {
 						writing = false;
 						disposing = -1;
 						return;
 					}
 					writing = false;
-					bgRows->clear();
+					bgRows.clear();
 					continue;
 
 				LabEnd:
@@ -249,11 +245,11 @@ SELECT `id`, `time`, datetime(`time` / 10000000, 'unixepoch') as `datetime`, `de
 		template<typename DescType>
 		int Write(DescType&& desc) noexcept {
 			std::lock_guard<std::mutex> lg(mtx);
-			if (disposing || (queueLimit && rows->size() > queueLimit)) return -1;
+			if (disposing || (queueLimit && rows.size() > queueLimit)) return -1;
 
 			typedef std::chrono::duration<long long, std::ratio<1LL, 10000000LL>> MicroX10;	// 10 倍 micro 精度. 当前 x86 pc 常见精度
-			rows->emplace_back();
-			auto&& o = rows->back();
+			rows.emplace_back();
+			auto&& o = rows.back();
 			o.time = std::chrono::duration_cast<MicroX10>(std::chrono::system_clock::now().time_since_epoch()).count();
 			o.desc = std::forward<DescType>(desc);
 			return 0;
