@@ -729,13 +729,13 @@ namespace xx {
 					outVal.reset();
 				}
 				else {
-					outVal = T::value_type{};
+					outVal = typename T::value_type();
 					Read(colIdx, outVal.value());
 				}
 			}
 			// todo: shared_ptr?
 			else {
-				static_assert(false, "not support yet");
+				// not support
 				assert(false);
 			}
 		}

@@ -3,11 +3,7 @@
 
 int main() {
 	xx::SQLite::Connection db(":memory:");
-	db.SetPragmaJournalMode(xx::SQLite::JournalModes::Memory);
-	db.SetPragmaLockingMode(xx::SQLite::LockingModes::Exclusive);
-	db.SetPragmaCacheSize(4096);
-	db.SetPragmaTempStoreType(xx::SQLite::TempStoreTypes::Memory);
-
+	if (!db) return -1;
 	try {
 		db.Call(R"-(
 CREATE TABLE `t1` (
@@ -96,3 +92,10 @@ CREATE TABLE `t1` (
 	}
 	return 0;
 }
+
+
+
+//db.SetPragmaJournalMode(xx::SQLite::JournalModes::Memory);
+//db.SetPragmaLockingMode(xx::SQLite::LockingModes::Exclusive);
+//db.SetPragmaCacheSize(4096);
+//db.SetPragmaTempStoreType(xx::SQLite::TempStoreTypes::Memory);
