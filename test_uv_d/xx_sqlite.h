@@ -28,7 +28,6 @@ namespace xx {
 			Full,			// 等完全写入磁盘
 			Normal,			// 阶段性等写磁盘
 			Off,			// 完全不等
-			MAX
 		};
 		static const char* strSynchronousTypes[] = {
 			"FULL", "NORMAL", "OFF"
@@ -42,7 +41,6 @@ namespace xx {
 			Memory,			// 内存模式( 可能丢数据 )
 			WAL,			// write-ahead 模式( 似乎比上面都快, 不会丢数据 )
 			Off,			// 无事务支持( 最快 )
-			MAX
 		};
 		static const char* strJournalModes[] = {
 			"DELETE", "TRUNCATE", "PERSIST", "MEMORY", "WAL", "OFF"
@@ -53,7 +51,6 @@ namespace xx {
 			Default,		// 默认( 视 C TEMP_STORE 宏而定 )
 			File,			// 在文件中建临时表
 			Memory,			// 在内存中建临时表
-			MAX
 		};
 		static const char* strTempStoreTypes[] = {
 			"DEFAULT", "FILE", "MEMORY"
@@ -63,7 +60,6 @@ namespace xx {
 		enum class LockingModes : uint8_t {
 			Normal,			// 数据库连接在每一个读或写事务终点的时候放掉文件锁
 			Exclusive,		// 连接永远不会释放文件锁. 第一次执行读操作时，会获取并持有共享锁，第一次写，会获取并持有排它锁
-			MAX
 		};
 		static const char* strLockingModes[] = {
 			"NORMAL", "EXCLUSIVE"
@@ -330,7 +326,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaSynchronousType(SynchronousTypes st) {
-			if ((int)st < 0 || (int)st >(int)SynchronousTypes::MAX) ThrowError(-1, "bad SynchronousTypes");
+			if ((int)st < 0 || (int)st >(int)SynchronousTypes::Off) ThrowError(-1, "bad SynchronousTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA synchronous = ");
 			sqlBuilder.append(strSynchronousTypes[(int)st]);
@@ -346,7 +342,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaTempStoreType(TempStoreTypes tst) {
-			if ((int)tst < 0 || (int)tst >(int)TempStoreTypes::MAX) ThrowError(-1, "bad TempStoreTypes");
+			if ((int)tst < 0 || (int)tst >(int)TempStoreTypes::Off) ThrowError(-1, "bad TempStoreTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA temp_store = ");
 			sqlBuilder.append(strTempStoreTypes[(int)tst]);
@@ -354,7 +350,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaLockingMode(LockingModes lm) {
-			if ((int)lm < 0 || (int)lm >(int)LockingModes::MAX) ThrowError(-1, "bad LockingModes");
+			if ((int)lm < 0 || (int)lm >(int)LockingModes::Exclusive) ThrowError(-1, "bad LockingModes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA locking_mode = ");
 			sqlBuilder.append(strLockingModes[(int)lm]);
