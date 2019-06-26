@@ -271,13 +271,17 @@ namespace xx {
 			std::pair<char const*, int> ReadText(int const& colIdx);
 			std::pair<char const*, int> ReadBlob(int const& colIdx);
 
-			// 一组易用的封装
-			void Read(int const& colIdx, int& outVal);
-			void Read(int const& colIdx, int64_t& outVal);
-			void Read(int const& colIdx, double& outVal);
-			void Read(int const& colIdx, std::string& outVal);
+			// 填充
 			template<typename T>
 			void Read(int const& colIdx, T& outVal);
+
+			// 一次填充多个
+			template<typename...Args>
+			void Reads(Args& ...args);
+		protected:
+			template<typename Arg, typename...Args>
+			void ReadsCore(int& colIdx, Arg& arg, Args& ...args);
+			void ReadsCore(int& colIdx);
 		};
 
 
@@ -699,25 +703,55 @@ namespace xx {
 			return std::make_pair(ptr, len);
 		}
 
-		inline void Reader::Read(int const& colIdx, int& outVal) {
-			outVal = ReadInt32(colIdx);
-		}
-		inline void Reader::Read(int const& colIdx, int64_t& outVal) {
-			outVal = ReadInt64(colIdx);
-
-		}
-		inline void Reader::Read(int const& colIdx, double& outVal) {
-			outVal = ReadDouble(colIdx);
-		}
-		inline void Reader::Read(int const& colIdx, std::string& outVal) {
-			auto&& r = ReadText(colIdx);
-			outVal.assign(r.first, r.second);
-		}
-
 		template<typename T>
 		inline void Reader::Read(int const& colIdx, T& outVal) {
-			assert(false);
-			// unsupport
+			if constexpr (std::is_same_v<int, T>) {
+				outVal = ReadInt32(colIdx);
+			}
+			else if constexpr (std::is_same_v<int64_t, T>) {
+				outVal = ReadInt64(colIdx);
+			}
+			else if constexpr (std::is_same_v<double, T>) {
+				outVal = ReadDouble(colIdx);
+			}
+			else if constexpr (std::is_same_v<std::string, T>) {
+				auto&& r = ReadText(colIdx);
+				outVal.assign(r.first, r.second);
+			}
+			else if constexpr (std::is_same_v<xx::BBuffer, T>) {
+				auto&& r = ReadBlob(colIdx);
+				outVal.Clear();
+				outVal.AddRange((uint8_t*)r.first, r.second);
+			}
+			// todo: enum?
+			else if constexpr (xx::IsOptional_v<T>) {
+				if (IsDBNull(colIdx)) {
+					outVal.reset();
+				}
+				else {
+					outVal = T::value_type{};
+					Read(colIdx, outVal.value());
+				}
+			}
+			// todo: shared_ptr?
+			else {
+				static_assert(false, "not support yet");
+				assert(false);
+			}
 		}
+
+
+		// 一次填充多个
+		template<typename...Args>
+		inline void Reader::Reads(Args& ...args) {
+			int colIdx = 0;
+			ReadsCore(colIdx, args...);
+		}
+		template<typename Arg, typename...Args>
+		inline void Reader::ReadsCore(int& colIdx, Arg& arg, Args& ...args) {
+			Read(colIdx, arg);
+			ReadsCore(++colIdx, args...);
+		}
+		inline void Reader::ReadsCore(int& colIdx) {}
 	}
 }

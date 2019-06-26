@@ -23,7 +23,7 @@ CREATE TABLE `t1` (
 )
 )-");
 
-		struct Row {
+		struct Foo {
 			int key;
 			int64_t i;
 			std::optional<int64_t> oi;
@@ -37,36 +37,59 @@ CREATE TABLE `t1` (
 
 		xx::SQLite::Query qInsert(db, "insert into `t1` ('key', 'i', 'oi', 'd', 'od', 's', 'os', 'b', 'ob') values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-		Row r;
-		r.key = 1;
-		r.i = 1234567890123;
-		r.oi.reset();
-		r.d = 1.234;
-		r.od = 1.234;
-		r.s = "asdf";
-		r.os = "asdf";
-		r.b.Write(1u, 2u, 3u);
-		r.ob = xx::BBuffer{};
-		r.ob->Write(1u, 2u, 3u);
-		qInsert.SetParameters(r.key, r.i, r.oi, r.d, r.od, r.s, r.os, r.b, r.ob)();
-
-		r.key = 2;
-		r.i = 0;
-		r.oi = 123;
-		r.d = 1.234;
-		r.od.reset();
-		r.s = "asdf";
-		r.os.reset();
-		r.b.Write(1u, 2u, 3u);
-		r.ob.reset();
-		qInsert.SetParameters(r.key, r.i, r.oi, r.d, r.od, r.s, r.os, r.b, r.ob)();
+		{
+			Foo f;
+			f.key = 1;
+			f.i = 1234567890123;
+			f.oi.reset();
+			f.d = 1.234;
+			f.od = 1.234;
+			f.s = "asdf";
+			f.os = "asdf";
+			f.b.Write(1u, 2u, 3u);
+			f.ob = xx::BBuffer{};
+			f.ob->Write(1u, 2u, 3u);
+			qInsert.SetParameters(f.key, f.i, f.oi, f.d, f.od, f.s, f.os, f.b, f.ob)();
+		}
+		{
+			Foo f;
+			f.key = 2;
+			f.i = 0;
+			f.oi = 123;
+			f.d = 1.234;
+			f.od.reset();
+			f.s = "asdf";
+			f.os.reset();
+			f.b.Write(1u, 2u, 3u);
+			f.ob.reset();
+			qInsert.SetParameters(f.key, f.i, f.oi, f.d, f.od, f.s, f.os, f.b, f.ob)();
+		}
 
 		xx::CoutN("count(*) = ", db.Execute<int64_t>("select count(*) from `t1`"));
 
 		xx::SQLite::Query qSelect(db, "select * from `t1`");
-		qSelect.Execute([](xx::SQLite::Reader& r) {
-			xx::CoutN("key = ", r.ReadInt32(0));
+
+		std::vector<Foo> fs;
+		qSelect.Execute([&](xx::SQLite::Reader& r) {
+			fs.emplace_back();
+			auto&& f = fs.back();
+			r.Reads(f.key, f.i, f.oi, f.d, f.od, f.s, f.os, f.b, f.ob);
 		});
+
+		xx::CoutN("fs.size() = ", fs.size());
+
+		for (auto&& f : fs) {
+			xx::CoutN("key = ", f.key
+				, "\n, i = ", f.i
+				, "\n, oi = ", f.oi
+				, "\n, d = ", f.d
+				, "\n, od = ", f.od
+				, "\n, s = ", f.s
+				, "\n, os = ", f.os
+				, "\n, b = ", f.b
+				, "\n, ob = ", f.ob
+			);
+		}
 	}
 	catch (int const& errCode) {
 		std::cout << "errCode = " << errCode << ", errMsg = " << db.lastErrorMessage << std::endl;
