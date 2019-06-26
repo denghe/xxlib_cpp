@@ -1,33 +1,95 @@
 ﻿#pragma once
-#include <stdint.h>
-#include <string.h>
-#include <assert.h>
-#include <math.h>
-#include <unordered_map>
-#include <array>
 #include <type_traits>
-#include <cstdlib>
-#include <cstring>
+#include <initializer_list>
 #include <functional>
+#include "fixed_function.hpp"		// for ScopeGuard
+
+#include <stdint.h>
+#include <math.h>
 #include <algorithm>
 #include <limits>
+
+#include <time.h>
+#include <chrono>
+#include <iomanip>
+
+#include <assert.h>
+#include <string.h>
+#include <memory>
+#include <thread>
+#include <mutex>
+
+#include <stdlib.h>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include <array>
+#include <unordered_map>
 #include <vector>
 #include <deque>
-#include <mutex>
-#include <string>
-#include <initializer_list>
-#include <memory>
-#include <chrono>
-#include <iostream>
-#include <thread>
-#include <ctime>
-#include <iomanip>
-#include <sstream>
+
+#ifdef _WIN32
+#include <intrin.h>     // _BitScanReverse  64
+#include <objbase.h>
+#endif
+
+/************************************************************************************/
+// 各式修正宏
+/************************************************************************************/
+
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
+#ifndef _countof
+template<typename T, size_t N>
+size_t _countof_helper(T const (&arr)[N])
+{
+	return N;
+}
+#define _countof(_Array) _countof_helper(_Array)
+#endif
+
+#ifndef _offsetof
+#define _offsetof(s,m) ((size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
+#endif
+
+#ifndef container_of
+#define container_of(ptr, type, member) \
+  ((type *) ((char *) (ptr) - _offsetof(type, member)))
+#endif
 
 
-#include "fixed_function.hpp"
+#if defined _MSC_VER
+#define XX_SSCANF sscanf_s;
+#else
+#define XX_SSCANF sscanf;
+#endif
 
-// 当 IOS 最低版本兼容参数低于 11 时无法启用 C++17, 故启用 C++14 结合下面的各种造假来解决
+
+/************************************************************************************/
+// 安卓 / linux Guid 相关适配
+/************************************************************************************/
+
+#ifdef __ANDROID_NDK__
+extern void uuid_generate(unsigned char* buf);
+#else
+#ifndef _WIN32
+#include <uuid/uuid.h>
+#endif
+#endif
+
+
+/************************************************************************************/
+// IOS 低版本适配
+/************************************************************************************/
+
+// 当 IOS 最低版本兼容参数低于 11 时无法启用 C++17, 故启用 C++14 结合下面的各种模拟来解决
 #ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 #include <experimental/optional>
 namespace std
@@ -72,75 +134,35 @@ namespace std
 	private:
 		MutexType& m;
 	};
+
+	// todo: more
 }
 #endif
 #else
 #include <optional>
 #endif
 
-#ifdef _WIN32
-#include <intrin.h>     // _BitScanReverse  64
-#include <objbase.h>
-#endif
 
-#ifdef min
-#undef min
-#endif
+// 序列化相关命名后缀规则： _s 代表 std::shared_ptr<T>,  _w 代表 std::weak_ptr<T>
 
-#ifdef max
-#undef max
-#endif
-
-#ifndef _countof
-template<typename T, size_t N>
-size_t _countof_helper(T const (&arr)[N])
-{
-	return N;
-}
-#define _countof(_Array) _countof_helper(_Array)
-#endif
-
-#ifndef _offsetof
-#define _offsetof(s,m) ((size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
-#endif
-
-#ifndef container_of
-#define container_of(ptr, type, member) \
-  ((type *) ((char *) (ptr) - _offsetof(type, member)))
-#endif
-
-
-#if defined _MSC_VER
-#define XX_SSCANF sscanf_s;
-#else
-#define XX_SSCANF sscanf;
-#endif
-
-
-#ifdef __ANDROID_NDK__
-extern void uuid_generate(unsigned char* buf);
-#else
-#ifndef _WIN32
-#include <uuid/uuid.h>
-#endif
-#endif
-
-
+// for 减少打字量
 namespace std {
 	using string_s = shared_ptr<string>;
 	using string_w = weak_ptr<string>;
 }
-
 namespace xx {
 	struct BBuffer;
 
+	/************************************************************************************/
+	// Object 序列化 / ToString 基类
+	/************************************************************************************/
 	struct Object {
 		Object() = default;
 		virtual ~Object() = default;
 		Object(Object const&) = delete;
 		Object& operator=(Object const&) = delete;
-		Object(Object &&) = delete;
-		Object& operator=(Object &&) = delete;
+		Object(Object&&) = delete;
+		Object& operator=(Object&&) = delete;
 
 		// 序列化相关
 		inline virtual uint16_t GetTypeId() const noexcept { return 0; }
@@ -161,7 +183,11 @@ namespace xx {
 
 	using Object_s = std::shared_ptr<Object>;
 
+
+
+	/************************************************************************************/
 	// TypeId 映射
+	/************************************************************************************/
 	template<typename T>
 	struct TypeId {
 		static const uint16_t value = 0;
@@ -170,6 +196,11 @@ namespace xx {
 	template<typename T>
 	constexpr uint16_t TypeId_v = TypeId<T>::value;
 
+
+
+	/************************************************************************************/
+	// BFuncs
+	/************************************************************************************/
 
 	// 序列化 基础适配模板
 	template<typename T, typename ENABLED = void>
@@ -183,6 +214,11 @@ namespace xx {
 		}
 	};
 
+
+	/************************************************************************************/
+	// SFuncs
+	/************************************************************************************/
+
 	// 字符串 基础适配模板
 	template<typename T, typename ENABLED = void>
 	struct SFuncs {
@@ -190,18 +226,6 @@ namespace xx {
 			assert(false);
 		}
 	};
-
-	// for easy use
-	template<typename T>
-	void AppendCore(std::string& s, T const& v) {
-		SFuncs<T>::WriteTo(s, v);
-	}
-
-	template<typename ...Args>
-	void Append(std::string& s, Args const& ... args) {
-		std::initializer_list<int> n{ ((AppendCore(s, args)), 0)... };
-		(void)(n);
-	}
 
 	// 适配 char* \0 结尾 字串( 不是很高效 )
 	template<>
@@ -234,7 +258,7 @@ namespace xx {
 	// 适配所有数字
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_arithmetic_v<T>>> {
-		static inline void WriteTo(std::string& s, T const &in) noexcept {
+		static inline void WriteTo(std::string& s, T const& in) noexcept {
 			if constexpr (std::is_same_v<bool, T>) {
 				s.append(in ? "true" : "false");
 			}
@@ -250,7 +274,7 @@ namespace xx {
 	// 适配 enum( 根据原始数据类型调上面的适配 )
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_enum_v<T>>> {
-		static inline void WriteTo(std::string& s, T const &in) noexcept {
+		static inline void WriteTo(std::string& s, T const& in) noexcept {
 			s.append(std::to_string((std::underlying_type_t<T>)in));
 		}
 	};
@@ -258,7 +282,7 @@ namespace xx {
 	// 适配 Object
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_base_of_v<Object, T>>> {
-		static inline void WriteTo(std::string& s, T const &in) noexcept {
+		static inline void WriteTo(std::string& s, T const& in) noexcept {
 			in.ToString(s);
 		}
 	};
@@ -266,7 +290,7 @@ namespace xx {
 	// 适配 std::string
 	template<typename T>
 	struct SFuncs<T, std::enable_if_t<std::is_base_of_v<std::string, T>>> {
-		static inline void WriteTo(std::string& s, T const &in) noexcept {
+		static inline void WriteTo(std::string& s, T const& in) noexcept {
 			s.append(in);
 		}
 	};
@@ -296,35 +320,6 @@ namespace xx {
 			}
 		}
 	};
-
-	// utils
-
-	inline size_t Calc2n(size_t const& n) noexcept {
-		assert(n);
-#ifdef _MSC_VER
-		unsigned long r = 0;
-#if defined(_WIN64) || defined(_M_X64)
-		_BitScanReverse64(&r, n);
-# else
-		_BitScanReverse(&r, n);
-# endif
-		return (size_t)r;
-#else
-#if defined(__LP64__) || __WORDSIZE == 64
-		return int(63 - __builtin_clzl(n));
-# else
-		return int(31 - __builtin_clz(n));
-# endif
-#endif
-	}
-
-	inline size_t Round2n(size_t const& n) noexcept {
-		auto rtv = size_t(1) << Calc2n(n);
-		if (rtv == n) return n;
-		else return rtv << 1;
-	}
-
-
 
 
 	/************************************************************************************/
@@ -412,31 +407,24 @@ namespace xx {
 
 
 
+	/************************************************************************************/
+	// Append, 各种 Cout
+	/************************************************************************************/
 
-	// std::cout 扩展
+	template<typename T>
+	void AppendCore(std::string& s, T const& v) {
+		SFuncs<T>::WriteTo(s, v);
+	}
 
-	//inline std::ostream& operator<<(std::ostream& os, const Object& o) {
-	//	std::string s;
-	//	o.ToString(s);
-	//	os << s;
-	//	return os;
-	//}
-
-	//template<typename T>
-	//std::ostream& operator<<(std::ostream& os, std::shared_ptr<T> const& o) {
-	//	if (!o) return os << "nil";
-	//	return os << *o;
-	//}
-
-	//template<typename T>
-	//std::ostream& operator<<(std::ostream& os, std::weak_ptr<T> const& o) {
-	//	if (!o) return os << "nil";
-	//	return os << *o;
-	//}
+	template<typename ...Args>
+	void Append(std::string& s, Args const& ... args) {
+		std::initializer_list<int> n{ ((AppendCore(s, args)), 0)... };
+		(void)(n);
+	}
 
 	// 替代 std::cout. 支持实现了 SFuncs 模板适配的类型
 	template<typename...Args>
-	inline void Cout(Args const&...args) {
+	inline void Cout(Args const& ...args) {
 		std::string s;
 		Append(s, args...);
 		fputs(s.c_str(), stdout);				// std::cout 似乎会受 fcontext 切换影响 输出不能
@@ -444,7 +432,7 @@ namespace xx {
 
 	// 在 Cout 基础上添加了换行
 	template<typename...Args>
-	inline void CoutN(Args const&...args) {
+	inline void CoutN(Args const& ...args) {
 		std::string s;
 		Append(s, args...);
 		puts(s.c_str());
@@ -459,6 +447,11 @@ namespace xx {
 		Append(s, args...);
 		puts(s.c_str());
 	}
+
+
+	/************************************************************************************/
+	// 针对 windows cmd window 设置其输出字符形态为 utf8
+	/************************************************************************************/
 
 	inline void SetConsoleUtf8() {
 #ifdef _WIN32
@@ -476,25 +469,23 @@ namespace xx {
 	}
 
 
-
-
-
-
-	// make_shared, weak helpers
+	/************************************************************************************/
+	// 各种 Make, Weak
+	/************************************************************************************/
 
 	template<typename T, typename ...Args>
-	std::shared_ptr<T> Make(Args&&...args) {
+	std::shared_ptr<T> Make(Args&& ...args) {
 		return std::make_shared<T>(std::forward<Args>(args)...);
 	}
 
 	template<typename T, typename ...Args>
-	std::shared_ptr<T>& MakeTo(std::shared_ptr<T>& v, Args&&...args) {
+	std::shared_ptr<T>& MakeTo(std::shared_ptr<T>& v, Args&& ...args) {
 		v = std::make_shared<T>(std::forward<Args>(args)...);
 		return v;
 	}
 
 	template<typename ...Args>
-	std::string_s MakeString(Args&&...args) {
+	std::string_s MakeString(Args&& ...args) {
 		return std::make_shared<std::string>(std::forward<Args>(args)...);
 	}
 
@@ -504,7 +495,7 @@ namespace xx {
 	}
 
 	template<typename T, typename ...Args>
-	std::shared_ptr<T> TryMake(Args&&...args) noexcept {
+	std::shared_ptr<T> TryMake(Args&& ...args) noexcept {
 		try {
 			return std::make_shared<T>(std::forward<Args>(args)...);
 		}
@@ -514,7 +505,7 @@ namespace xx {
 	}
 
 	template<typename T, typename ...Args>
-	std::shared_ptr<T>& TryMakeTo(std::shared_ptr<T>& v, Args&&...args) noexcept {
+	std::shared_ptr<T>& TryMakeTo(std::shared_ptr<T>& v, Args&& ...args) noexcept {
 		v = TryMake<T>(std::forward<Args>(args)...);
 		return v;
 	}
@@ -529,7 +520,12 @@ namespace xx {
 	}
 
 
-	// type check helpers
+
+
+	/************************************************************************************/
+	// 各种 type check
+	/************************************************************************************/
+
 	template<typename T>
 	struct IsShared : std::false_type {};
 
@@ -538,6 +534,7 @@ namespace xx {
 
 	template<typename T>
 	constexpr bool IsShared_v = IsShared<T>::value;
+
 
 	template<typename T>
 	struct IsWeak : std::false_type {};
@@ -549,8 +546,57 @@ namespace xx {
 	constexpr bool IsWeak_v = IsWeak<T>::value;
 
 
+	template<typename T>
+	struct IsTuple : std::false_type {};
 
-	// helpers
+	template<typename ...TS>
+	struct IsTuple<std::tuple<TS...>> : std::true_type {};
+
+	template<typename T>
+	constexpr bool IsTuple_v = IsTuple<T>::value;
+
+
+	template<typename T>
+	struct IsPair : std::false_type {};
+
+	template<typename T1, typename T2>
+	struct IsPair<std::pair<T1, T2>> : std::true_type {};
+
+	template<typename T>
+	constexpr bool IsPair_v = IsPair<T>::value;
+
+
+	template<typename T>
+	struct IsOptional : std::false_type {};
+
+	template<typename T>
+	struct IsOptional<std::optional<T>> : std::true_type {};
+
+	template<typename T>
+	constexpr bool IsOptional_v = IsOptional<T>::value;
+
+
+
+	// 移动时是否可使用 memmove 的标志 基础适配模板
+	template<typename T, typename ENABLED = void>
+	struct IsTrivial : std::false_type {};
+
+	template<typename T>
+	constexpr bool IsTrivial_v = IsTrivial<T>::value;
+
+	// 适配 std::is_trivial<T>::value 或 智能指针( 看上去其实现可以直接 memcpy )
+	template<typename T>
+	struct IsTrivial<T, std::enable_if_t<(IsShared_v<T> || IsWeak_v<T>) || std::is_trivial_v<T>>> : std::true_type {};
+
+
+
+
+
+
+
+	/************************************************************************************/
+	// ScopeGuard
+	/************************************************************************************/
 
 	struct ScopeGuard {
 		template<typename T>
@@ -564,12 +610,17 @@ namespace xx {
 	private:
 		kapala::fixed_function<void()> func;
 		ScopeGuard(ScopeGuard const&) = delete;
-		ScopeGuard &operator=(ScopeGuard const&) = delete;
+		ScopeGuard& operator=(ScopeGuard const&) = delete;
 	};
 
 
 
-	// guid
+
+
+
+	/************************************************************************************/
+	// Guid
+	/************************************************************************************/
 
 	struct Guid {
 		union {
@@ -622,6 +673,9 @@ namespace xx {
 		}
 	};
 
+
+	// 适配 Guid 的 ToString
+
 	template<>
 	struct SFuncs<Guid, void> {
 		static inline void WriteTo(std::string& s, Guid const& in) noexcept {
@@ -639,75 +693,57 @@ namespace xx {
 		}
 	};
 
+}
 
 
+// 令 Guid 可作为 map 等容器 key 的适配
 
-
-
-
-
-
-	struct Stackless {
-		using FuncType = std::function<int(int const& lineNumber)>;
-		std::vector<std::pair<FuncType, int>> funcs;
-		inline void Add(FuncType&& func) {
-			if (!func) return;
-			funcs.emplace_back(std::move(func), 0);
-		}
-		inline void RunAdd(FuncType&& func) {
-			if (!func) return;
-			int n = func(0);
-			if (n == (int)0xFFFFFFFF) return;
-			funcs.emplace_back(std::move(func), n);
-		}
-		size_t RunOnce() {
-			if (funcs.size()) {
-				for (auto&& i = funcs.size() - 1; i != (size_t)-1; --i) {
-					auto&& func = funcs[i];
-					func.second = func.first(func.second);
-					if (!func.second) {
-						if (i + 1 < funcs.size()) {
-							funcs[i] = std::move(funcs[funcs.size() - 1]);
-						}
-						funcs.pop_back();
-					}
-				}
+namespace std {
+	template<>
+	struct hash<xx::Guid> {
+		std::size_t operator()(xx::Guid const& in) const noexcept {
+			if constexpr (sizeof(std::size_t) == 8) {
+				return in.part1 ^ in.part2;
 			}
-			return funcs.size();
+			else {
+				return ((uint32_t*)& in)[0] ^ ((uint32_t*)& in)[1] ^ ((uint32_t*)& in)[2] ^ ((uint32_t*)& in)[3];
+			}
 		}
 	};
-
-#define COR_BEGIN	switch (lineNumber) { case 0:
-#define COR_YIELD	return __LINE__; case __LINE__:;
-#define COR_END		} return 0;
+}
 
 
+namespace xx {
 
+	/************************************************************************************/
+	// 各式计算辅助函数
+	/************************************************************************************/
 
+	inline size_t Calc2n(size_t const& n) noexcept {
+		assert(n);
+#ifdef _MSC_VER
+		unsigned long r = 0;
+#if defined(_WIN64) || defined(_M_X64)
+		_BitScanReverse64(&r, n);
+# else
+		_BitScanReverse(&r, n);
+# endif
+		return (size_t)r;
+#else
+#if defined(__LP64__) || __WORDSIZE == 64
+		return int(63 - __builtin_clzl(n));
+# else
+		return int(31 - __builtin_clz(n));
+# endif
+#endif
+	}
 
-
-
-
-
-
-	// 移动时是否可使用 memmove 的标志 基础适配模板
-	template<typename T, typename ENABLED = void>
-	struct IsTrivial : std::false_type {};
-
-	template<typename T>
-	constexpr bool IsTrivial_v = IsTrivial<T>::value;
-
-	// 适配 std::is_trivial<T>::value 或 智能指针( 看上去其实现可以直接 memcpy )
-	template<typename T>
-	struct IsTrivial<T, std::enable_if_t<(IsShared_v<T> || IsWeak_v<T>) || std::is_trivial_v<T>>> : std::true_type {};
-
-
-
-
-
-
-
-
+	// 返回一个刚好大于 n 的 2^x 对齐数
+	inline size_t Round2n(size_t const& n) noexcept {
+		auto rtv = size_t(1) << Calc2n(n);
+		if (rtv == n) return n;
+		else return rtv << 1;
+	}
 
 	// < 2G, 8 - 512 dataSize
 	constexpr static const int32_t primes[] = { 7, 11, 13, 17, 19, 23, 31, 37, 43, 47, 53, 59, 67, 71, 73, 79, 83, 89, 97, 103, 107, 109, 113, 131, 139, 151, 157, 163, 167, 173, 179, 181, 191, 193, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 271, 277, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 463, 467, 479, 487, 491, 499, 503, 509, 523, 541, 547, 557, 563, 571, 577, 587, 599, 607, 613, 619, 631, 647, 653, 661, 677, 683, 691, 701, 709, 719, 727, 733, 743, 751, 757, 761, 773, 787, 797, 811, 823, 829, 839, 853, 863, 877, 887, 911, 919, 929, 941, 947, 953, 967, 971, 983, 991, 997, 1013, 1039, 1051, 1069, 1087, 1103, 1117, 1129, 1151, 1163, 1181, 1193, 1213, 1231, 1237, 1259, 1279, 1291, 1307, 1327, 1373, 1381, 1399, 1423, 1439, 1453, 1471, 1487, 1499, 1511, 1531, 1549, 1567, 1583, 1597, 1613, 1627, 1637, 1663, 1669, 1693, 1709, 1723, 1741, 1759, 1789, 1801, 1823, 1831, 1847, 1871, 1879, 1901, 1913, 1933, 1951, 1979, 1999, 2011, 2029, 2069, 2111, 2143, 2161, 2207, 2239, 2269, 2297, 2333, 2357, 2399, 2423, 2459, 2477, 2521, 2557, 2591, 2621, 2647, 2687, 2719, 2749, 2777, 2803, 2843, 2879, 2909, 2939, 2971, 3001, 3037, 3067, 3089, 3121, 3167, 3191, 3229, 3259, 3271, 3323, 3359, 3391, 3413, 3449, 3469, 3517, 3547, 3583, 3613, 3643, 3677, 3709, 3739, 3769, 3803, 3833, 3863, 3889, 3931, 3967, 3989, 4027, 4057, 4159, 4219, 4283, 4349, 4409, 4463, 4523, 4603, 4663, 4733, 4799, 4861, 4919, 4987, 5051, 5119, 5179, 5237, 5309, 5351, 5437, 5503, 5563, 5623, 5693, 5749, 5821, 5881, 5939, 6011, 6079, 6143, 6203, 6271, 6329, 6397, 6451, 6521, 6581,
@@ -756,16 +792,43 @@ namespace xx {
 
 }
 
-namespace std {
-	template<> 
-	struct hash<xx::Guid> {
-		std::size_t operator()(xx::Guid const& in) const noexcept {
-			if constexpr (sizeof(std::size_t) == 8) {
-				return in.part1 ^ in.part2;
-			}
-			else {
-				return ((uint32_t*)&in)[0] ^ ((uint32_t*)&in)[1] ^ ((uint32_t*)&in)[2] ^ ((uint32_t*)&in)[3];
-			}
-		}
-	};
-}
+
+
+/************************************************************************************/
+// stackless 协程相关
+/************************************************************************************/
+
+// 当前主要用到这些宏。只有 lineNumber 一个特殊变量名要求
+#define COR_BEGIN	switch (lineNumber) { case 0:
+#define COR_YIELD	return __LINE__; case __LINE__:;
+#define COR_END		} return 0;
+
+//struct Stackless {
+//	using FuncType = std::function<int(int const& lineNumber)>;
+//	std::vector<std::pair<FuncType, int>> funcs;
+//	inline void Add(FuncType&& func) {
+//		if (!func) return;
+//		funcs.emplace_back(std::move(func), 0);
+//	}
+//	inline void RunAdd(FuncType&& func) {
+//		if (!func) return;
+//		int n = func(0);
+//		if (n == (int)0xFFFFFFFF) return;
+//		funcs.emplace_back(std::move(func), n);
+//	}
+//	size_t RunOnce() {
+//		if (funcs.size()) {
+//			for (auto&& i = funcs.size() - 1; i != (size_t)-1; --i) {
+//				auto&& func = funcs[i];
+//				func.second = func.first(func.second);
+//				if (!func.second) {
+//					if (i + 1 < funcs.size()) {
+//						funcs[i] = std::move(funcs[funcs.size() - 1]);
+//					}
+//					funcs.pop_back();
+//				}
+//			}
+//		}
+//		return funcs.size();
+//	}
+//};

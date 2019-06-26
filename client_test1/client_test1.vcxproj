@@ -44,12 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)libuv;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)xxlib;$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)libuv;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -92,6 +92,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\sqlite3\sqlite3.c" />
     <ClCompile Include="ikcp.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="main2.c">
@@ -99,6 +100,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="main2.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="main3.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -110,10 +115,12 @@
     <ClInclude Include="xx_dict.h" />
     <ClInclude Include="xx_file.h" />
     <ClInclude Include="xx_list.h" />
+    <ClInclude Include="xx_logger.h" />
     <ClInclude Include="xx_object.h" />
     <ClInclude Include="xx_pos.h" />
     <ClInclude Include="xx_random.h" />
     <ClInclude Include="xx_random.hpp" />
+    <ClInclude Include="xx_sqlite.h" />
     <ClInclude Include="xx_uv.h" />
     <ClInclude Include="xx_uv_lua.h" />
   </ItemGroup>
