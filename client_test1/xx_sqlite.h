@@ -259,11 +259,15 @@ namespace xx {
 			Reader(Reader const&) = delete;
 			Reader& operator=(Reader const&) = delete;
 
+			// 一组结构检索函数
+			int GetColumnCount();
 			DataTypes GetColumnDataType(int const& colIdx);
 			char const* GetColumnName(int const& colIdx);
+			int GetColumnIndex(char const* const& colName);
+			int GetColumnIndex(std::string const& colName);
 
+			// 一组数据访问函数
 			bool IsDBNull(int const& colIdx);
-
 			int ReadInt32(int const& colIdx);
 			int64_t ReadInt64(int const& colIdx);
 			double ReadDouble(int const& colIdx);
@@ -271,11 +275,13 @@ namespace xx {
 			std::pair<char const*, int> ReadText(int const& colIdx);
 			std::pair<char const*, int> ReadBlob(int const& colIdx);
 
-			// todo: char*/string 作为 key 定位?
-
 			// 填充
 			template<typename T>
 			void Read(int const& colIdx, T& outVal);
+			template<typename T>
+			void Read(char const* const& colName, T& outVal);
+			template<typename T>
+			void Read(std::string const& colName, T& outVal);
 
 			// 一次填充多个
 			template<typename...Args>
@@ -657,6 +663,10 @@ namespace xx {
 
 		inline Reader::Reader(sqlite3_stmt* const& stmt) : stmt(stmt) {}
 
+		inline int Reader::GetColumnCount() {
+			return sqlite3_column_count(stmt);
+		}
+
 		inline DataTypes Reader::GetColumnDataType(int const& colIdx) {
 			assert(colIdx >= 0 && colIdx < numCols);
 			return (DataTypes)sqlite3_column_type(stmt, colIdx);
@@ -666,6 +676,19 @@ namespace xx {
 			assert(colIdx >= 0 && colIdx < numCols);
 			return sqlite3_column_name(stmt, colIdx);
 		}
+
+		inline int Reader::GetColumnIndex(char const* const& colName) {
+			int count = sqlite3_column_count(stmt);
+			for (int i = 0; i < count; ++i) {
+				if (!strcmp(colName, sqlite3_column_name(stmt, i))) return i;
+			}
+			return -1;
+		}
+
+		inline int Reader::GetColumnIndex(std::string const& colName) {
+			return GetColumnIndex(colName.c_str());
+		}
+
 
 		inline bool Reader::IsDBNull(int const& colIdx) {
 			assert(colIdx >= 0 && colIdx < numCols);
@@ -758,6 +781,16 @@ namespace xx {
 				assert(false);
 			}
 		}
+
+		template<typename T>
+		inline void Reader::Read(char const* const& colName, T& outVal) {
+			Read(GetColumnIndex(colName), outVal);
+		}
+		template<typename T>
+		inline void Reader::Read(std::string const& colName, T& outVal) {
+			Read(colName.c_str(), outVal);
+		}
+
 
 
 		// 一次填充多个

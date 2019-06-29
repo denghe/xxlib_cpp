@@ -71,7 +71,16 @@ CREATE TABLE `t1` (
 		qSelect.Execute([&](xx::SQLite::Reader& r) {
 			fs.emplace_back();
 			auto&& f = fs.back();
-			r.Reads(f.key, f.i, f.oi, f.d, f.od, f.s, f.os, f.b, f.ob);
+			//r.Reads(f.key, f.i, f.oi, f.d, f.od, f.s, f.os, f.b, f.ob);
+			r.Read("key", f.key);
+			r.Read("i", f.i);
+			r.Read("oi", f.oi);
+			r.Read("d", f.d);
+			r.Read("od", f.od);
+			r.Read("s", f.s);
+			r.Read("os", f.os);
+			r.Read("b", f.b);
+			r.Read("ob", f.ob);
 		});
 
 		xx::CoutN("fs.size() = ", fs.size());
