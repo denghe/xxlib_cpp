@@ -2,6 +2,8 @@
 #include "xx_bbuffer.h"
 #include "sqlite3.h"
 
+// todo: 补 const
+
 namespace xx {
 	namespace SQLite {
 		struct Connection;
