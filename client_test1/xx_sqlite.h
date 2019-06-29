@@ -271,6 +271,8 @@ namespace xx {
 			std::pair<char const*, int> ReadText(int const& colIdx);
 			std::pair<char const*, int> ReadBlob(int const& colIdx);
 
+			// todo: char*/string 作为 key 定位?
+
 			// 填充
 			template<typename T>
 			void Read(int const& colIdx, T& outVal);
@@ -343,7 +345,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaSynchronousType(SynchronousTypes st) {
-			if ((int)st < 0 || (int)st >(int)SynchronousTypes::Off) ThrowError(-1, "bad SynchronousTypes");
+			if ((int)st >(int)SynchronousTypes::Off) ThrowError(-1, "bad SynchronousTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA synchronous = ");
 			sqlBuilder.append(strSynchronousTypes[(int)st]);
@@ -351,7 +353,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaJournalMode(JournalModes jm) {
-			if ((int)jm < 0 || (int)jm >(int)JournalModes::Off) ThrowError(-1, "bad JournalModes");
+			if ((int)jm >(int)JournalModes::Off) ThrowError(-1, "bad JournalModes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA journal_mode = ");
 			sqlBuilder.append(strJournalModes[(int)jm]);
@@ -359,7 +361,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaTempStoreType(TempStoreTypes tst) {
-			if ((int)tst < 0 || (int)tst >(int)TempStoreTypes::Memory) ThrowError(-1, "bad TempStoreTypes");
+			if ((int)tst >(int)TempStoreTypes::Memory) ThrowError(-1, "bad TempStoreTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA temp_store = ");
 			sqlBuilder.append(strTempStoreTypes[(int)tst]);
@@ -367,7 +369,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaLockingMode(LockingModes lm) {
-			if ((int)lm < 0 || (int)lm >(int)LockingModes::Exclusive) ThrowError(-1, "bad LockingModes");
+			if ((int)lm >(int)LockingModes::Exclusive) ThrowError(-1, "bad LockingModes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA locking_mode = ");
 			sqlBuilder.append(strLockingModes[(int)lm]);
@@ -451,7 +453,7 @@ namespace xx {
 		inline void Connection::TruncateTable(char const* const& tn) {
 			// todo: 对 tn 转义
 			sqlBuilder.clear();
-			sqlBuilder += std::string("BEGIN; DELETE FROM [") + tn + "]; DELETE FROM [sqlite_sequence] WHERE [name] = '" + tn + "'; COMMIT;";
+			sqlBuilder += std::string("BEGIN; DELETE FROM `") + tn + "`; DELETE FROM `sqlite_sequence` WHERE `name` = '" + tn + "'; COMMIT;";
 			Call(sqlBuilder.c_str());
 		}
 
@@ -604,7 +606,9 @@ namespace xx {
 			SetParametersCore(++parmIdx, ps...);
 		}
 
-		inline void Query::SetParametersCore(int& parmIdx) {}
+		inline void Query::SetParametersCore(int& parmIdx) {
+			(void)parmIdx;
+		}
 
 		inline Query& Query::Execute(ReadFunc&& rf) {
 			assert(stmt);
@@ -723,7 +727,14 @@ namespace xx {
 				outVal.Clear();
 				outVal.AddRange((uint8_t*)r.first, r.second);
 			}
-			// todo: enum?
+			else if constexpr (std::is_enum_v<T>) {
+				if constexpr (sizeof(T) <= 4) {
+					outVal = (T)ReadInt32(colIdx);
+				}
+				else {
+					outVal = (T)ReadInt64(colIdx);
+				}
+			}
 			else if constexpr (xx::IsOptional_v<T>) {
 				if (IsDBNull(colIdx)) {
 					outVal.reset();
@@ -733,7 +744,15 @@ namespace xx {
 					Read(colIdx, outVal.value());
 				}
 			}
-			// todo: shared_ptr?
+			else if constexpr (xx::IsShared_v<T>) {
+				if (IsDBNull(colIdx)) {
+					outVal.reset();
+				}
+				else {
+					outVal = std::make_shared<typename T::element_type>();
+					Read(colIdx, *outVal);
+				}
+			}
 			else {
 				// not support
 				assert(false);
@@ -752,6 +771,8 @@ namespace xx {
 			Read(colIdx, arg);
 			ReadsCore(++colIdx, args...);
 		}
-		inline void Reader::ReadsCore(int& colIdx) {}
+		inline void Reader::ReadsCore(int& colIdx) {
+			(void)colIdx;
+		}
 	}
 }

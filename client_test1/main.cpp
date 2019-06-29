@@ -1,5 +1,7 @@
-﻿#pragma execution_character_set("utf-8")
-#include <xx_logger.h>
+﻿#ifdef _MSC_VER
+#pragma execution_character_set("utf-8")
+#endif
+#include "xx_logger.h"
 
 int main() {
 	xx::SQLite::Connection db(":memory:");
@@ -28,7 +30,7 @@ CREATE TABLE `t1` (
 			std::string s;
 			std::optional<std::string> os;
 			xx::BBuffer b;
-			std::optional<xx::BBuffer> ob;
+			std::shared_ptr<xx::BBuffer> ob;
 		};
 
 		xx::SQLite::Query qInsert(db, "insert into `t1` ('key', 'i', 'oi', 'd', 'od', 's', 'os', 'b', 'ob') values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -43,7 +45,7 @@ CREATE TABLE `t1` (
 			f.s = "asdf";
 			f.os = "asdf";
 			f.b.Write(1u, 2u, 3u);
-			f.ob = xx::BBuffer{};
+			f.ob = std::make_shared<xx::BBuffer>();
 			f.ob->Write(1u, 2u, 3u);
 			qInsert.SetParameters(f.key, f.i, f.oi, f.d, f.od, f.s, f.os, f.b, f.ob)();
 		}

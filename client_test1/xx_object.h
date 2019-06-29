@@ -166,19 +166,19 @@ namespace xx {
 
 		// 序列化相关
 		inline virtual uint16_t GetTypeId() const noexcept { return 0; }
-		inline virtual void ToBBuffer(BBuffer& bb) const noexcept {}
-		inline virtual int FromBBuffer(BBuffer& bb) noexcept { return 0; }
+		inline virtual void ToBBuffer(BBuffer& bb) const noexcept { (void)bb; }
+		inline virtual int FromBBuffer(BBuffer& bb) noexcept { (void)bb; return 0; }
 
 		// 字串输出相关
-		inline virtual void ToString(std::string& s) const noexcept {};
-		inline virtual void ToStringCore(std::string& s) const noexcept {};
+		inline virtual void ToString(std::string& s) const noexcept { (void)s; };
+		inline virtual void ToStringCore(std::string& s) const noexcept { (void)s; };
 		bool toStringFlag = false;
 		inline void SetToStringFlag(bool const& b = true) const noexcept {
 			const_cast<Object*>(this)->toStringFlag = b;
 		}
 
 		// 级联相关( 主用于遍历调用生成物派生类 override 的代码 )
-		inline virtual int InitCascade(void* const& o = nullptr) noexcept { return 0; };
+		inline virtual int InitCascade(void* const& o = nullptr) noexcept { (void)o; return 0; };
 	};
 
 	using Object_s = std::shared_ptr<Object>;
@@ -790,7 +790,7 @@ namespace xx {
 	inline int32_t GetPrime(int32_t const& capacity, int32_t const& dataSize) noexcept {
 		auto memUsage = Round2n((size_t)capacity * (size_t)dataSize);
 		auto maxCapacity = memUsage / dataSize;
-		if (maxCapacity == capacity) {
+		if (maxCapacity == (size_t)capacity) {
 			return primes2n[Calc2n(capacity)];
 		}
 		if (dataSize >= 8 && dataSize <= 512) {                     // 数据长在 查表 范围内的

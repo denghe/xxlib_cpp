@@ -533,6 +533,7 @@ namespace xx {
 	template<typename ...TS>
 	void BBuffer::Write(TS const& ...vs) noexcept {
 		std::initializer_list<int> n{ (BFuncs<TS>::WriteTo(*this, vs), 0)... };
+		(void)n;
 	}
 
 	template<typename T, typename ...TS>

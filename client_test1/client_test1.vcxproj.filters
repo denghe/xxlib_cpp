@@ -27,4 +27,7 @@
   <ItemGroup>
     <Natvis Include="xx.natvis" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
+  </ItemGroup>
 </Project>
