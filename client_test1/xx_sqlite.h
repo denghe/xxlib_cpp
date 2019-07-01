@@ -91,31 +91,31 @@ namespace xx {
 			// 下面这些函数都是靠 try 来检测错误
 
 			// SQLITE 支持的几种基础数据类型
-			void SetParameter(int parmIdx, Null const& = {});
-			void SetParameter(int parmIdx, int const& v);
-			void SetParameter(int parmIdx, int64_t const& v);
-			void SetParameter(int parmIdx, double const& v);
-			void SetParameter(int parmIdx, char const* const& str, size_t const& len, bool const& makeCopy = false);		// str 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
-			void SetParameter(int parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy = false);		// buf 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
+			void SetParameter(int const& parmIdx, Null const& = {});
+			void SetParameter(int const& parmIdx, int const& v);
+			void SetParameter(int const& parmIdx, int64_t const& v);
+			void SetParameter(int const& parmIdx, double const& v);
+			void SetParameter(int const& parmIdx, char const* const& str, size_t const& len, bool const& makeCopy = false);		// str 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
+			void SetParameter(int const& parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy = false);		// buf 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
 
 			// 枚举( 会转为 int / int64_t 再填 )
 			template<typename EnumType, typename ENABLED = std::enable_if_t<std::is_enum_v<EnumType>>>
-			void SetParameter(int parmIdx, EnumType const& v);
+			void SetParameter(int const& parmIdx, EnumType const& v);
 
 			// 字串类
 			template<size_t len>
-			void SetParameter(int parmIdx, char const(&str)[len], bool const& makeCopy = false);
-			void SetParameter(int parmIdx, char const* const& str, bool const& makeCopy = false);
-			void SetParameter(int parmIdx, std::string const& str, bool const& makeCopy = false);
+			void SetParameter(int const& parmIdx, char const(&str)[len], bool const& makeCopy = false);
+			void SetParameter(int const& parmIdx, char const* const& str, bool const& makeCopy = false);
+			void SetParameter(int const& parmIdx, std::string const& str, bool const& makeCopy = false);
 
 			// 二进制类
-			void SetParameter(int parmIdx, BBuffer const& bb, bool const& makeCopy = false);
+			void SetParameter(int const& parmIdx, BBuffer const& bb, bool const& makeCopy = false);
 
 			// 可空类型
 			template<typename T>
-			void SetParameter(int parmIdx, std::optional<T> const& v);
+			void SetParameter(int const& parmIdx, std::optional<T> const& v);
 			template<typename T>
-			void SetParameter(int parmIdx, std::shared_ptr<T> const& v);
+			void SetParameter(int const& parmIdx, std::shared_ptr<T> const& v);
 
 			// 一次设置多个参数
 			template<typename...Parameters>
@@ -507,31 +507,31 @@ namespace xx {
 			}
 		}
 
-		inline void Query::SetParameter(int parmIdx, Null const&) {
+		inline void Query::SetParameter(int const& parmIdx, Null const&) {
 			assert(stmt);
 			auto r = sqlite3_bind_null(stmt, parmIdx);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, int const& v) {
+		inline void Query::SetParameter(int const& parmIdx, int const& v) {
 			assert(stmt);
 			auto r = sqlite3_bind_int(stmt, parmIdx, v);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, int64_t const& v) {
+		inline void Query::SetParameter(int const& parmIdx, int64_t const& v) {
 			assert(stmt);
 			auto r = sqlite3_bind_int64(stmt, parmIdx, v);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, double const& v) {
+		inline void Query::SetParameter(int const& parmIdx, double const& v) {
 			assert(stmt);
 			auto r = sqlite3_bind_double(stmt, parmIdx, v);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, char const* const& str, size_t const& len, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, char const* const& str, size_t const& len, bool const& makeCopy) {
 			if (!str) {
 				SetParameter(parmIdx, Null{});
 				return;
@@ -542,7 +542,7 @@ namespace xx {
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy) {
 			if (!buf) {
 				SetParameter(parmIdx, Null{});
 				return;
@@ -554,22 +554,22 @@ namespace xx {
 		}
 
 		template<size_t len>
-		inline void Query::SetParameter(int parmIdx, char const(&str)[len], bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, char const(&str)[len], bool const& makeCopy) {
 			SetParameter(parmIdx, str, len - 1, makeCopy);
 		}
-		inline void Query::SetParameter(int parmIdx, char const* const& str, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, char const* const& str, bool const& makeCopy) {
 			SetParameter(parmIdx, str, 0, makeCopy);
 		}
-		inline void Query::SetParameter(int parmIdx, std::string const& str, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, std::string const& str, bool const& makeCopy) {
 			SetParameter(parmIdx, (char*)str.c_str(), str.size(), makeCopy);
 		}
 
-		inline void Query::SetParameter(int parmIdx, BBuffer const& bb, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, BBuffer const& bb, bool const& makeCopy) {
 			SetParameter(parmIdx, bb.buf, bb.len, makeCopy);
 		}
 
 		template<typename T>
-		inline void Query::SetParameter(int parmIdx, std::optional<T> const& v) {
+		inline void Query::SetParameter(int const& parmIdx, std::optional<T> const& v) {
 			if (v.has_value()) {
 				SetParameter(parmIdx, v.value());
 			}
@@ -579,7 +579,7 @@ namespace xx {
 		}
 
 		template<typename T>
-		inline void Query::SetParameter(int parmIdx, std::shared_ptr<T> const& v) {
+		inline void Query::SetParameter(int const& parmIdx, std::shared_ptr<T> const& v) {
 			if (v) {
 				SetParameter(parmIdx, *v);
 			}
@@ -589,7 +589,7 @@ namespace xx {
 		}
 
 		template<typename EnumType, typename ENABLED>
-		void Query::SetParameter(int parmIdx, EnumType const& v) {
+		void Query::SetParameter(int const& parmIdx, EnumType const& v) {
 			assert(stmt);
 			if constexpr (sizeof(EnumType) <= 4) {
 				SetParameter(parmIdx, (int)(typename std::underlying_type<EnumType>::type)v);
