@@ -298,9 +298,9 @@ namespace xx {
 		}
 
 		inline virtual void ToString(std::string& s) const noexcept override {
-			s += "{ \"len\":" + std::to_string(len) + ", \"offset\":" + std::to_string(offset) + ", \"data\":[ ";
+			Append(s, "{ \"len\":", len, ", \"cap\":", cap, ", \"offset\":", offset, ", \"buf\":[ ");
 			for (size_t i = 0; i < len; i++) {
-				s += std::to_string((int)buf[i]) + ", ";
+				Append(s, (int)buf[i], ", ");
 			}
 			if (len) s.resize(s.size() - 2);
 			s += " ] }";
@@ -533,6 +533,7 @@ namespace xx {
 	template<typename ...TS>
 	void BBuffer::Write(TS const& ...vs) noexcept {
 		std::initializer_list<int> n{ (BFuncs<TS>::WriteTo(*this, vs), 0)... };
+		(void)n;
 	}
 
 	template<typename T, typename ...TS>

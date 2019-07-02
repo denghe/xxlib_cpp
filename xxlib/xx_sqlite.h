@@ -1,26 +1,23 @@
 ﻿#pragma once
+#include "xx_bbuffer.h"
 #include "sqlite3.h"
-#include <assert.h>
-#include <memory>
-#include <string>
-#include <functional>
+
+// todo: 补 const
 
 namespace xx {
 	namespace SQLite {
-
-		// SQLITE 基本上只有 4 种数据类型： int, int64_t, double, string. 故查询模板只能传入这几种
-
 		struct Connection;
 		struct Query;
 		struct Reader;
+		struct Null {};
 
 		// 保持与 SQLite 的宏一致
 		enum class DataTypes : uint8_t {
-			Integer = 1,
-			Float = 2,
-			Text = 3,
-			Blob = 4,
-			Null = 5
+			Integer = 1,	// int, int64_t
+			Float = 2,		// double
+			Text = 3,		// char*, int len
+			Blob = 4,		// uint8_t*, int len
+			Null = 5		// nil
 		};
 
 		// 数据写盘模式
@@ -29,7 +26,7 @@ namespace xx {
 			Normal,			// 阶段性等写磁盘
 			Off,			// 完全不等
 		};
-		static const char* strSynchronousTypes[] = {
+		static const char* const strSynchronousTypes[] = {
 			"FULL", "NORMAL", "OFF"
 		};
 
@@ -42,7 +39,7 @@ namespace xx {
 			WAL,			// write-ahead 模式( 似乎比上面都快, 不会丢数据 )
 			Off,			// 无事务支持( 最快 )
 		};
-		static const char* strJournalModes[] = {
+		static const char* const strJournalModes[] = {
 			"DELETE", "TRUNCATE", "PERSIST", "MEMORY", "WAL", "OFF"
 		};
 
@@ -52,7 +49,7 @@ namespace xx {
 			File,			// 在文件中建临时表
 			Memory,			// 在内存中建临时表
 		};
-		static const char* strTempStoreTypes[] = {
+		static const char* const strTempStoreTypes[] = {
 			"DEFAULT", "FILE", "MEMORY"
 		};
 
@@ -61,7 +58,7 @@ namespace xx {
 			Normal,			// 数据库连接在每一个读或写事务终点的时候放掉文件锁
 			Exclusive,		// 连接永远不会释放文件锁. 第一次执行读操作时，会获取并持有共享锁，第一次写，会获取并持有排它锁
 		};
-		static const char* strLockingModes[] = {
+		static const char* const strLockingModes[] = {
 			"NORMAL", "EXCLUSIVE"
 		};
 
@@ -93,20 +90,34 @@ namespace xx {
 
 			// 下面这些函数都是靠 try 来检测错误
 
-			void SetParameter(int parmIdx, int const& v);
-			void SetParameter(int parmIdx, int64_t const& v);
-			void SetParameter(int parmIdx, double const& v);
-			void SetParameter(int parmIdx, char const* const& str, int strLen = 0, bool const& makeCopy = false);
-			void SetParameter(int parmIdx, char const* const& buf, size_t const& len, bool const& makeCopy = false);
-			void SetParameter(int parmIdx, std::string* const& str, bool const& makeCopy = false);
-			void SetParameter(int parmIdx, std::string const& str, bool const& makeCopy = false);
-			void SetParameter(int parmIdx, std::shared_ptr<std::string> const& str, bool const& makeCopy = false);
-			//void SetParameter(int parmIdx, BBuffer* const& buf, bool const& makeCopy = false);
-			//void SetParameter(int parmIdx, BBuffer const& buf, bool const& makeCopy = false);
-			//void SetParameter(int parmIdx, BBuffer_p const& buf, bool const& makeCopy = false);
-			template<typename EnumType>
-			void SetParameter(int parmIdx, EnumType const& v);
+			// SQLITE 支持的几种基础数据类型
+			void SetParameter(int const& parmIdx, Null const& = {});
+			void SetParameter(int const& parmIdx, int const& v);
+			void SetParameter(int const& parmIdx, int64_t const& v);
+			void SetParameter(int const& parmIdx, double const& v);
+			void SetParameter(int const& parmIdx, char const* const& str, size_t const& len, bool const& makeCopy = false);		// str 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
+			void SetParameter(int const& parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy = false);		// buf 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
 
+			// 枚举( 会转为 int / int64_t 再填 )
+			template<typename EnumType, typename ENABLED = std::enable_if_t<std::is_enum_v<EnumType>>>
+			void SetParameter(int const& parmIdx, EnumType const& v);
+
+			// 字串类
+			template<size_t len>
+			void SetParameter(int const& parmIdx, char const(&str)[len], bool const& makeCopy = false);
+			void SetParameter(int const& parmIdx, char const* const& str, bool const& makeCopy = false);
+			void SetParameter(int const& parmIdx, std::string const& str, bool const& makeCopy = false);
+
+			// 二进制类
+			void SetParameter(int const& parmIdx, BBuffer const& bb, bool const& makeCopy = false);
+
+			// 可空类型
+			template<typename T>
+			void SetParameter(int const& parmIdx, std::optional<T> const& v);
+			template<typename T>
+			void SetParameter(int const& parmIdx, std::shared_ptr<T> const& v);
+
+			// 一次设置多个参数
 			template<typename...Parameters>
 			Query& SetParameters(Parameters const& ...ps);
 		protected:
@@ -115,11 +126,13 @@ namespace xx {
 			void SetParametersCore(int& parmIdx);
 
 		public:
+			// 执行查询并可选择使用 Reader 在传入回调中读出每一行数据
 			Query& Execute(ReadFunc&& rf = nullptr);
+
+			// 执行查询
 			Query& operator()();
 
-			// todo: std::optional 检测与支持
-
+			// 执行查询 将返回结果集的第一行第一列的值 以指定数据类型 填充到 outVal. 如果没有返回值或为空且 outVal 并非 可空, 则不会填充
 			template<typename T>
 			Query& operator()(T& outVal);
 		};
@@ -223,12 +236,13 @@ namespace xx {
 			void Call(char const* const& sql, int(*selectRowCB)(void* userData, int numCols, char** colValues, char** colNames) = nullptr, void* const& userData = nullptr);
 
 			// 直接执行一个 SQL 语句. 如果 T 不为 void, 将返回第一行第一列的值. 
-			// todo: 如果 T 是 tuple 则多值填充
 			template<typename T = void>
 			T Execute(char const* const& sql, int const& sqlLen);
 
 			template<typename T = void, size_t sqlLen>
 			T Execute(char const(&sql)[sqlLen]);
+
+			// todo: 如果 T 是 tuple 则多值填充
 		};
 
 
@@ -247,11 +261,15 @@ namespace xx {
 			Reader(Reader const&) = delete;
 			Reader& operator=(Reader const&) = delete;
 
+			// 一组结构检索函数
+			int GetColumnCount();
 			DataTypes GetColumnDataType(int const& colIdx);
 			char const* GetColumnName(int const& colIdx);
+			int GetColumnIndex(char const* const& colName);
+			int GetColumnIndex(std::string const& colName);
 
+			// 一组数据访问函数
 			bool IsDBNull(int const& colIdx);
-
 			int ReadInt32(int const& colIdx);
 			int64_t ReadInt64(int const& colIdx);
 			double ReadDouble(int const& colIdx);
@@ -259,12 +277,21 @@ namespace xx {
 			std::pair<char const*, int> ReadText(int const& colIdx);
 			std::pair<char const*, int> ReadBlob(int const& colIdx);
 
-			void Read(int const& colIdx, int& outVal);
-			void Read(int const& colIdx, int64_t& outVal);
-			void Read(int const& colIdx, double& outVal);
-			void Read(int const& colIdx, std::string& outVal);
+			// 填充
 			template<typename T>
 			void Read(int const& colIdx, T& outVal);
+			template<typename T>
+			void Read(char const* const& colName, T& outVal);
+			template<typename T>
+			void Read(std::string const& colName, T& outVal);
+
+			// 一次填充多个
+			template<typename...Args>
+			void Reads(Args& ...args);
+		protected:
+			template<typename Arg, typename...Args>
+			void ReadsCore(int& colIdx, Arg& arg, Args& ...args);
+			void ReadsCore(int& colIdx);
 		};
 
 
@@ -326,7 +353,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaSynchronousType(SynchronousTypes st) {
-			if ((int)st < 0 || (int)st >(int)SynchronousTypes::Off) ThrowError(-1, "bad SynchronousTypes");
+			if ((int)st >(int)SynchronousTypes::Off) ThrowError(-1, "bad SynchronousTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA synchronous = ");
 			sqlBuilder.append(strSynchronousTypes[(int)st]);
@@ -334,7 +361,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaJournalMode(JournalModes jm) {
-			if ((int)jm < 0 || (int)jm >(int)JournalModes::Off) ThrowError(-1, "bad JournalModes");
+			if ((int)jm >(int)JournalModes::Off) ThrowError(-1, "bad JournalModes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA journal_mode = ");
 			sqlBuilder.append(strJournalModes[(int)jm]);
@@ -342,7 +369,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaTempStoreType(TempStoreTypes tst) {
-			if ((int)tst < 0 || (int)tst >(int)TempStoreTypes::Memory) ThrowError(-1, "bad TempStoreTypes");
+			if ((int)tst >(int)TempStoreTypes::Memory) ThrowError(-1, "bad TempStoreTypes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA temp_store = ");
 			sqlBuilder.append(strTempStoreTypes[(int)tst]);
@@ -350,7 +377,7 @@ namespace xx {
 		}
 
 		inline void Connection::SetPragmaLockingMode(LockingModes lm) {
-			if ((int)lm < 0 || (int)lm >(int)LockingModes::Exclusive) ThrowError(-1, "bad LockingModes");
+			if ((int)lm >(int)LockingModes::Exclusive) ThrowError(-1, "bad LockingModes");
 			sqlBuilder.clear();
 			sqlBuilder.append("PRAGMA locking_mode = ");
 			sqlBuilder.append(strLockingModes[(int)lm]);
@@ -434,7 +461,7 @@ namespace xx {
 		inline void Connection::TruncateTable(char const* const& tn) {
 			// todo: 对 tn 转义
 			sqlBuilder.clear();
-			sqlBuilder += std::string("BEGIN; DELETE FROM [") + tn + "]; DELETE FROM [sqlite_sequence] WHERE [name] = '" + tn + "'; COMMIT;";
+			sqlBuilder += std::string("BEGIN; DELETE FROM `") + tn + "`; DELETE FROM `sqlite_sequence` WHERE `name` = '" + tn + "'; COMMIT;";
 			Call(sqlBuilder.c_str());
 		}
 
@@ -480,96 +507,96 @@ namespace xx {
 			}
 		}
 
-		inline void Query::SetParameter(int parmIdx, int const& v) {
+		inline void Query::SetParameter(int const& parmIdx, Null const&) {
+			assert(stmt);
+			auto r = sqlite3_bind_null(stmt, parmIdx);
+			if (r != SQLITE_OK) owner.ThrowError(r);
+		}
+
+		inline void Query::SetParameter(int const& parmIdx, int const& v) {
 			assert(stmt);
 			auto r = sqlite3_bind_int(stmt, parmIdx, v);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, int64_t const& v) {
+		inline void Query::SetParameter(int const& parmIdx, int64_t const& v) {
 			assert(stmt);
 			auto r = sqlite3_bind_int64(stmt, parmIdx, v);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, double const& v) {
+		inline void Query::SetParameter(int const& parmIdx, double const& v) {
 			assert(stmt);
 			auto r = sqlite3_bind_double(stmt, parmIdx, v);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, char const* const& str, int strLen, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, char const* const& str, size_t const& len, bool const& makeCopy) {
+			if (!str) {
+				SetParameter(parmIdx, Null{});
+				return;
+			}
 			assert(stmt);
 			int r = SQLITE_OK;
-			if (!str) r = sqlite3_bind_null(stmt, parmIdx);
-			if (r != SQLITE_OK) owner.ThrowError(r);
-			r = sqlite3_bind_text(stmt, parmIdx, str, strLen ? strLen : (int)strlen(str), makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
+			r = sqlite3_bind_text(stmt, parmIdx, str, len ? (int)len : (int)strlen(str), makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, char const* const& buf, size_t const& len, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy) {
+			if (!buf) {
+				SetParameter(parmIdx, Null{});
+				return;
+			}
 			assert(stmt);
 			int r = SQLITE_OK;
-			if (!buf) r = sqlite3_bind_null(stmt, parmIdx);
-			if (r != SQLITE_OK) owner.ThrowError(r);
 			r = sqlite3_bind_blob(stmt, parmIdx, buf, (int)len, makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int parmIdx, std::string* const& str, bool const& makeCopy) {
-			assert(stmt);
-			int r = SQLITE_OK;
-			if (!str) r = sqlite3_bind_null(stmt, parmIdx);
-			if (r != SQLITE_OK) owner.ThrowError(r);
-			r = sqlite3_bind_text(stmt, parmIdx, (char*)str->data(), (int)str->size(), makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
-			if (r != SQLITE_OK) owner.ThrowError(r);
+		template<size_t len>
+		inline void Query::SetParameter(int const& parmIdx, char const(&str)[len], bool const& makeCopy) {
+			SetParameter(parmIdx, str, len - 1, makeCopy);
+		}
+		inline void Query::SetParameter(int const& parmIdx, char const* const& str, bool const& makeCopy) {
+			SetParameter(parmIdx, str, 0, makeCopy);
+		}
+		inline void Query::SetParameter(int const& parmIdx, std::string const& str, bool const& makeCopy) {
+			SetParameter(parmIdx, (char*)str.c_str(), str.size(), makeCopy);
 		}
 
-		inline void Query::SetParameter(int parmIdx, std::string const& str, bool const& makeCopy) {
-			assert(stmt);
-			auto r = sqlite3_bind_text(stmt, parmIdx, (char*)str.data(), (int)str.size(), makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
-			if (r != SQLITE_OK) owner.ThrowError(r);
+		inline void Query::SetParameter(int const& parmIdx, BBuffer const& bb, bool const& makeCopy) {
+			SetParameter(parmIdx, bb.buf, bb.len, makeCopy);
 		}
 
-		inline void Query::SetParameter(int parmIdx, std::shared_ptr<std::string> const& str, bool const& makeCopy) {
-			assert(stmt);
-			int r = SQLITE_OK;
-			if (!str) r = sqlite3_bind_null(stmt, parmIdx);
-			if (r != SQLITE_OK) owner.ThrowError(r);
-			r = sqlite3_bind_text(stmt, parmIdx, (char*)str->data(), (int)str->size(), makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
-			if (r != SQLITE_OK) owner.ThrowError(r);
+		template<typename T>
+		inline void Query::SetParameter(int const& parmIdx, std::optional<T> const& v) {
+			if (v.has_value()) {
+				SetParameter(parmIdx, v.value());
+			}
+			else {
+				SetParameter(parmIdx, Null{});
+			}
 		}
 
-		//inline void Query::SetParameter(int parmIdx, BBuffer* const& buf, bool const& makeCopy) {
-		//assert(stmt);
-		//	int r = SQLITE_OK;
-		//	if (!buf) r = sqlite3_bind_null(stmt, parmIdx);
-		//	if (r != SQLITE_OK) owner.ThrowError(r);
-		//	r = sqlite3_bind_blob(stmt, parmIdx, buf->buf, (int)buf->dataLen, makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
-		//	if (r != SQLITE_OK) owner.ThrowError(r);
-		//}
+		template<typename T>
+		inline void Query::SetParameter(int const& parmIdx, std::shared_ptr<T> const& v) {
+			if (v) {
+				SetParameter(parmIdx, *v);
+			}
+			else {
+				SetParameter(parmIdx, Null{});
+			}
+		}
 
-		//inline void Query::SetParameter(int parmIdx, BBuffer const& buf, bool const& makeCopy) {
-		//assert(stmt);
-		//	auto r = sqlite3_bind_blob(stmt, parmIdx, buf.buf, (int)buf.dataLen, makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
-		//	if (r != SQLITE_OK) owner.ThrowError(r);
-		//}
-
-		//inline void Query::SetParameter(int parmIdx, BBuffer_p const& buf, bool const& makeCopy) {
-		//assert(stmt);
-		//	int r = SQLITE_OK;
-		//	if (!buf) r = sqlite3_bind_null(stmt, parmIdx);
-		//	if (r != SQLITE_OK) owner.ThrowError(r);
-		//	r = sqlite3_bind_blob(stmt, parmIdx, buf->buf, (int)buf->dataLen, makeCopy ? SQLITE_TRANSIENT : SQLITE_STATIC);
-		//	if (r != SQLITE_OK) owner.ThrowError(r);
-		//}
-
-		template<typename EnumType>
-		void Query::SetParameter(int parmIdx, EnumType const& v) {
+		template<typename EnumType, typename ENABLED>
+		void Query::SetParameter(int const& parmIdx, EnumType const& v) {
 			assert(stmt);
-			static_assert(std::is_enum<EnumType>::value, "parameter only support sqlite base types and enum types.");
-			if constexpr (sizeof(EnumType) <= 4) SetParameter(parmIdx, (int)(typename std::underlying_type<EnumType>::type)v);
-			else SetParameter(parmIdx, (int64_t)(typename std::underlying_type<EnumType>::type)v);
+			if constexpr (sizeof(EnumType) <= 4) {
+				SetParameter(parmIdx, (int)(typename std::underlying_type<EnumType>::type)v);
+			}
+			else {
+				SetParameter(parmIdx, (int64_t)(typename std::underlying_type<EnumType>::type)v);
+			}
 		}
 
 		template<typename...Parameters>
@@ -587,7 +614,9 @@ namespace xx {
 			SetParametersCore(++parmIdx, ps...);
 		}
 
-		inline void Query::SetParametersCore(int& parmIdx) {}
+		inline void Query::SetParametersCore(int& parmIdx) {
+			(void)parmIdx;
+		}
 
 		inline Query& Query::Execute(ReadFunc&& rf) {
 			assert(stmt);
@@ -636,6 +665,10 @@ namespace xx {
 
 		inline Reader::Reader(sqlite3_stmt* const& stmt) : stmt(stmt) {}
 
+		inline int Reader::GetColumnCount() {
+			return sqlite3_column_count(stmt);
+		}
+
 		inline DataTypes Reader::GetColumnDataType(int const& colIdx) {
 			assert(colIdx >= 0 && colIdx < numCols);
 			return (DataTypes)sqlite3_column_type(stmt, colIdx);
@@ -645,6 +678,19 @@ namespace xx {
 			assert(colIdx >= 0 && colIdx < numCols);
 			return sqlite3_column_name(stmt, colIdx);
 		}
+
+		inline int Reader::GetColumnIndex(char const* const& colName) {
+			int count = sqlite3_column_count(stmt);
+			for (int i = 0; i < count; ++i) {
+				if (!strcmp(colName, sqlite3_column_name(stmt, i))) return i;
+			}
+			return -1;
+		}
+
+		inline int Reader::GetColumnIndex(std::string const& colName) {
+			return GetColumnIndex(colName.c_str());
+		}
+
 
 		inline bool Reader::IsDBNull(int const& colIdx) {
 			assert(colIdx >= 0 && colIdx < numCols);
@@ -686,25 +732,82 @@ namespace xx {
 			return std::make_pair(ptr, len);
 		}
 
-		inline void Reader::Read(int const& colIdx, int& outVal) {
-			outVal = ReadInt32(colIdx);
-		}
-		inline void Reader::Read(int const& colIdx, int64_t& outVal) {
-			outVal = ReadInt64(colIdx);
-
-		}
-		inline void Reader::Read(int const& colIdx, double& outVal) {
-			outVal = ReadDouble(colIdx);
-		}
-		inline void Reader::Read(int const& colIdx, std::string& outVal) {
-			auto&& r = ReadText(colIdx);
-			outVal.assign(r.first, r.second);
+		template<typename T>
+		inline void Reader::Read(int const& colIdx, T& outVal) {
+			if constexpr (std::is_same_v<int, T>) {
+				outVal = ReadInt32(colIdx);
+			}
+			else if constexpr (std::is_same_v<int64_t, T>) {
+				outVal = ReadInt64(colIdx);
+			}
+			else if constexpr (std::is_same_v<double, T>) {
+				outVal = ReadDouble(colIdx);
+			}
+			else if constexpr (std::is_same_v<std::string, T>) {
+				auto&& r = ReadText(colIdx);
+				outVal.assign(r.first, r.second);
+			}
+			else if constexpr (std::is_same_v<xx::BBuffer, T>) {
+				auto&& r = ReadBlob(colIdx);
+				outVal.Clear();
+				outVal.AddRange((uint8_t*)r.first, r.second);
+			}
+			else if constexpr (std::is_enum_v<T>) {
+				if constexpr (sizeof(T) <= 4) {
+					outVal = (T)ReadInt32(colIdx);
+				}
+				else {
+					outVal = (T)ReadInt64(colIdx);
+				}
+			}
+			else if constexpr (xx::IsOptional_v<T>) {
+				if (IsDBNull(colIdx)) {
+					outVal.reset();
+				}
+				else {
+					outVal = typename T::value_type();
+					Read(colIdx, outVal.value());
+				}
+			}
+			else if constexpr (xx::IsShared_v<T>) {
+				if (IsDBNull(colIdx)) {
+					outVal.reset();
+				}
+				else {
+					outVal = std::make_shared<typename T::element_type>();
+					Read(colIdx, *outVal);
+				}
+			}
+			else {
+				// not support
+				assert(false);
+			}
 		}
 
 		template<typename T>
-		inline void Reader::Read(int const& colIdx, T& outVal) {
-			assert(false);
-			// unsupport
+		inline void Reader::Read(char const* const& colName, T& outVal) {
+			Read(GetColumnIndex(colName), outVal);
+		}
+		template<typename T>
+		inline void Reader::Read(std::string const& colName, T& outVal) {
+			Read(colName.c_str(), outVal);
+		}
+
+
+
+		// 一次填充多个
+		template<typename...Args>
+		inline void Reader::Reads(Args& ...args) {
+			int colIdx = 0;
+			ReadsCore(colIdx, args...);
+		}
+		template<typename Arg, typename...Args>
+		inline void Reader::ReadsCore(int& colIdx, Arg& arg, Args& ...args) {
+			Read(colIdx, arg);
+			ReadsCore(++colIdx, args...);
+		}
+		inline void Reader::ReadsCore(int& colIdx) {
+			(void)colIdx;
 		}
 	}
 }
