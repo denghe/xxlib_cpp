@@ -5,115 +5,123 @@
 #include "mysql.h"
 #include "xx_object.h"
 
-int main(int argc, char* argv[]) {
-
-	auto&& ms = mysql_init(nullptr);
-	assert(ms);
-	{
-		auto&& r = mysql_real_connect(ms, "192.168.1.215", "root", "1", "test", 3306, nullptr, CLIENT_MULTI_STATEMENTS);
-		assert(r);
-	}
-
-
-	auto&& stmt = mysql_stmt_init(ms);
-	assert(stmt);
-	{
-		std::string sql = "select ?, ?";
-		auto&& r = mysql_stmt_prepare(stmt, (char*)sql.data(), (unsigned long)sql.size());
-		assert(!r);
-	}
-	auto&& numParams = mysql_stmt_param_count(stmt);
-	assert(numParams == 2);
-
-	int c1 = 0;
-
-	std::array<char, 50> c2;
-	unsigned long c2Len = 0;
-	my_bool c2IsNull = 0;
-
-	std::vector<MYSQL_BIND> parmBinds;
-	parmBinds.resize(numParams);
-	memset((char*)parmBinds.data(), 0, sizeof(MYSQL_BIND) * parmBinds.size());
-
-	parmBinds[0].buffer_type = MYSQL_TYPE_LONG;
-	parmBinds[0].buffer = (char*)& c1;
-	parmBinds[0].is_null = 0;
-	parmBinds[0].length = 0;
-
-	parmBinds[1].buffer_type = MYSQL_TYPE_STRING;
-	parmBinds[1].buffer = c2.data();
-	parmBinds[1].buffer_length = (unsigned long)c2.size();
-	parmBinds[1].is_null = &c2IsNull;
-	parmBinds[1].length = &c2Len;
-
-	auto&& r1 = mysql_stmt_bind_param(stmt, parmBinds.data());
-	assert(!r1);
-
-	c1 = 123;
-	c2 = { "asdfqwerzxcv" };
-	c2Len = (unsigned long)strlen(c2.data());
-	c2IsNull = 0;
-
-	//auto&& res = mysql_stmt_result_metadata(stmt);
-	//assert(res);
-	//auto&& numCols = mysql_num_fields(res);
-	//assert(numCols == 2);
-
-	auto&& r3 = mysql_stmt_execute(stmt);
-	assert(!r3);
-
-	int resC1 = 0;
-	std::array<char, 50> resC2;
-
-	std::vector<my_bool> resIsNulls;
-	std::vector<unsigned long> resLens;
-	std::vector<my_bool> resErrors;
-	resLens.resize(2);
-	resIsNulls.resize(2);
-	resErrors.resize(2);
-
-	std::vector<MYSQL_BIND> resBinds;
-	resBinds.resize(2);
-	memset((char*)resBinds.data(), 0, sizeof(MYSQL_BIND) * resBinds.size());
-
-	resBinds[0].buffer_type = MYSQL_TYPE_LONG;
-	resBinds[0].buffer = (char*)& resC1;
-	resBinds[0].is_null = &resIsNulls[0];
-	resBinds[0].length = &resLens[0];
-	resBinds[0].error = &resErrors[0];
-
-	resBinds[1].buffer_type = MYSQL_TYPE_STRING;
-	resBinds[1].buffer = (char*)resC2.data();
-	parmBinds[1].buffer_length = (unsigned long)resC2.size();
-	resBinds[1].is_null = &resIsNulls[1];
-	resBinds[1].length = &resLens[1];
-	resBinds[1].error = &resErrors[1];
-
-	auto&& r4 = mysql_stmt_bind_result(stmt, resBinds.data());
-	assert(!r4);
-
-	auto&& r5 = mysql_stmt_store_result(stmt);
-	assert(!r5);
-
-	auto&& numRows = mysql_stmt_num_rows(stmt);
-	assert(numRows == 1);
-
-	//auto&& affectedRows = mysql_stmt_affected_rows(stmt);
-	//assert(affectedRows == 1);
-
-	int status;
-	while (true) {
-		status = mysql_stmt_fetch(stmt);
-		if (status == 1 || status == MYSQL_NO_DATA) break;
-		xx::CoutN("c1 = ", resC1, "c2 = ", resC2.data());
-	}
-
-	//mysql_free_result(res);
-	mysql_stmt_close(stmt);
-
-
-	return 0;
-}
+//int main(int argc, char* argv[]) {
+//
+//	//std::array<char, 7> s{ "卧槽" };
+//	//auto&& s2 = "卧槽";
+//	//xx::CoutN(xx::ArrayInfo<decltype(s)>::size);
+//	//xx::CoutN(xx::ArrayInfo<decltype(s2)>::size);
+//	//xx::CoutN(typeid(xx::ArrayInfo_t<decltype(s)>).name());
+//	//xx::CoutN(typeid(xx::ArrayInfo_t<decltype(s2)>).name());
+//	//return 0;
+//
+//	auto&& ms = mysql_init(nullptr);
+//	assert(ms);
+//	{
+//		auto&& r = mysql_real_connect(ms, "192.168.1.215", "root", "1", "test", 3306, nullptr, CLIENT_MULTI_STATEMENTS);
+//		assert(r);
+//	}
+//
+//
+//	auto&& stmt = mysql_stmt_init(ms);
+//	assert(stmt);
+//	{
+//		std::string sql = "select ?, ?";
+//		auto&& r = mysql_stmt_prepare(stmt, (char*)sql.data(), (unsigned long)sql.size());
+//		assert(!r);
+//	}
+//	auto&& numParams = mysql_stmt_param_count(stmt);
+//	assert(numParams == 2);
+//
+//	int c1 = 0;
+//
+//	std::array<char, 50> c2;
+//	unsigned long c2Len = 0;
+//	my_bool c2IsNull = 0;
+//
+//	std::vector<MYSQL_BIND> parmBinds;
+//	parmBinds.resize(numParams);
+//	memset((char*)parmBinds.data(), 0, sizeof(MYSQL_BIND) * parmBinds.size());
+//
+//	parmBinds[0].buffer_type = MYSQL_TYPE_LONG;
+//	parmBinds[0].buffer = (char*)& c1;
+//	parmBinds[0].is_null = 0;
+//	parmBinds[0].length = 0;
+//
+//	parmBinds[1].buffer_type = MYSQL_TYPE_STRING;
+//	parmBinds[1].buffer = c2.data();
+//	parmBinds[1].buffer_length = (unsigned long)c2.size();
+//	parmBinds[1].is_null = &c2IsNull;
+//	parmBinds[1].length = &c2Len;
+//
+//	auto&& r1 = mysql_stmt_bind_param(stmt, parmBinds.data());
+//	assert(!r1);
+//
+//	c1 = 123;
+//	c2 = { "asdfqwerzxcv" };
+//	c2Len = (unsigned long)strlen(c2.data());
+//	c2IsNull = 0;
+//
+//	//auto&& res = mysql_stmt_result_metadata(stmt);
+//	//assert(res);
+//	//auto&& numCols = mysql_num_fields(res);
+//	//assert(numCols == 2);
+//
+//	auto&& r3 = mysql_stmt_execute(stmt);
+//	assert(!r3);
+//
+//	int resC1 = 0;
+//	std::array<char, 50> resC2;
+//
+//	std::vector<my_bool> resIsNulls;
+//	std::vector<unsigned long> resLens;
+//	std::vector<my_bool> resErrors;
+//	resLens.resize(2);
+//	resIsNulls.resize(2);
+//	resErrors.resize(2);
+//
+//	std::vector<MYSQL_BIND> resBinds;
+//	resBinds.resize(2);
+//	memset((char*)resBinds.data(), 0, sizeof(MYSQL_BIND) * resBinds.size());
+//
+//	resBinds[0].buffer_type = MYSQL_TYPE_LONG;
+//	resBinds[0].buffer = (char*)& resC1;
+//	resBinds[0].is_null = &resIsNulls[0];
+//	resBinds[0].length = &resLens[0];
+//	resBinds[0].error = &resErrors[0];
+//
+//	resBinds[1].buffer_type = MYSQL_TYPE_STRING;
+//	resBinds[1].buffer = (char*)resC2.data();
+//	parmBinds[1].buffer_length = (unsigned long)resC2.size();
+//	resBinds[1].is_null = &resIsNulls[1];
+//	resBinds[1].length = &resLens[1];
+//	resBinds[1].error = &resErrors[1];
+//
+//	auto&& r4 = mysql_stmt_bind_result(stmt, resBinds.data());
+//	assert(!r4);
+//
+//	auto&& r5 = mysql_stmt_store_result(stmt);
+//	assert(!r5);
+//
+//	auto&& numRows = mysql_stmt_num_rows(stmt);
+//	assert(numRows == 1);
+//
+//	//auto&& affectedRows = mysql_stmt_affected_rows(stmt);
+//	//assert(affectedRows == 1);
+//
+//	int status;
+//	while (true) {
+//		status = mysql_stmt_fetch(stmt);
+//		if (status == 1 || status == MYSQL_NO_DATA) break;
+//		xx::CoutN("c1 = ", resC1, "c2 = ", resC2.data());
+//	}
+//
+//	//mysql_free_result(res);
+//	mysql_stmt_close(stmt);
+//
+//
+//	return 0;
+//}
 
 namespace xx {
 	namespace MySql {
@@ -195,16 +203,16 @@ namespace xx {
 			void Open(char const* const& host, int const& port, char const* const& username, char const* const& password, char const* const& db) {
 				if (ctx) {
 					lastError = "connection is opened.";
-					throw - 5;
+					throw - 1;
 				}
 				ctx = mysql_init(nullptr);
 				if (!ctx) {
 					lastError = "mysql_init failed.";
-					throw - 9;
+					throw - 2;
 				}
 				if (!mysql_real_connect(ctx, host, username, password, db, port, nullptr, CLIENT_MULTI_STATEMENTS)) {	// todo: 关 SSL 的参数
 					lastError = mysql_error(ctx);
-					throw - 2;
+					throw - 3;
 				}
 			}
 
@@ -220,27 +228,24 @@ namespace xx {
 				return mysql_ping(ctx);
 			}
 
-			template<size_t len>
-			void Call(char const(&sql)[len]) {
+			void Call(char const* const& sql, unsigned long const& len) {
 				if (!ctx) {
 					lastError = "connection is closed.";
-					throw - 7;
+					throw - 1;
 				}
-				if (mysql_real_query(ctx, sql, (unsigned long)len - 1)) {
+				if (mysql_real_query(ctx, sql, len)) {
 					lastError = mysql_error(ctx);
-					throw - 3;
+					throw - 2;
 				}
 			}
 
+			template<size_t len>
+			void Call(char const(&sql)[len]) {
+				Call(sql, (unsigned long)(len - 1));
+			}
+
 			void Call(std::string const& sql) {
-				if (!ctx) {
-					lastError = "connection is closed.";
-					throw - 7;
-				}
-				if (mysql_real_query(ctx, (char*)sql.data(), (unsigned long)sql.size())) {
-					lastError = mysql_error(ctx);
-					throw - 3;
-				}
+				Call((char*)sql.data(), (unsigned long)sql.size());
 			}
 
 			//void Exec(char const* const& sql, std::function<void(Reader& r)>&& h = nullptr) {
@@ -293,196 +298,209 @@ namespace xx {
 			void Clear() {
 				if (bind.buffer_type >= MYSQL_TYPE_TINY_BLOB && bind.buffer_type <= MYSQL_TYPE_STRING && bind.buffer) {
 					free(bind.buffer);
+					bind.buffer = nullptr;
 				}
 			}
 
 			template<typename T>
-			inline void Init(unsigned long const& bufLen = 0) {
+			inline void Init() {
 				Clear();
 				memset(&bind, 0, sizeof(bind));
 
-				if constexpr (std::is_same_v<T, int>) {
-					bind.buffer_type = MYSQL_TYPE_LONG;
-					bind.buffer = (char*)& i32;
-				}
-				else if constexpr (std::is_same_v<T, int64_t>) {
-					bind.buffer_type = MYSQL_TYPE_LONGLONG;
-					bind.buffer = (char*)& i64;
-				}
-				else if constexpr (std::is_same_v<T, double>) {
-					bind.buffer_type = MYSQL_TYPE_DOUBLE;
-					bind.buffer = (char*)& d;
-				}
-				// more
-
-				else if constexpr (std::is_same_v<T, std::optional<int>>) {
-					bind.buffer_type = MYSQL_TYPE_LONG;
-					bind.buffer = (char*)& i32;
-					bind.is_null = (char*)& isNull;
-				}
-				else if constexpr (std::is_same_v<T, std::optional<int64_t>>) {
-					bind.buffer_type = MYSQL_TYPE_LONGLONG;
-					bind.buffer = (char*)& i64;
-					bind.is_null = (char*)& isNull;
-				}
-				else if constexpr (std::is_same_v<T, std::optional<double>>) {
-					bind.buffer_type = MYSQL_TYPE_DOUBLE;
-					bind.buffer = (char*)& d;
-					bind.is_null = (char*)& isNull;
-				}
-				// more
-
-				else {
-					if (!bufLen) {
-						conn->lastError = "Init: zero bufLen";
-						throw - 1;
+				// 数字
+				if (std::is_arithmetic_v<T>) {
+					if constexpr (std::is_same_v<T, int>) {
+						bind.buffer_type = MYSQL_TYPE_LONG;
+						bind.buffer = (char*)& i32;
 					}
-					Clear();
-					memset(&bind, 0, sizeof(bind));
+					else if constexpr (std::is_same_v<T, int64_t>) {
+						bind.buffer_type = MYSQL_TYPE_LONGLONG;
+						bind.buffer = (char*)& i64;
+					}
+					else if constexpr (std::is_same_v<T, double>) {
+						bind.buffer_type = MYSQL_TYPE_DOUBLE;
+						bind.buffer = (char*)& d;
+					}
+				}
+				// 数组
+				else if (xx::IsArray_v<T>) {
+					size_t bufLen = 0;
+					if constexpr (std::is_same_v<ArrayInfo_t<T>, char>) {
+						bind.buffer_type = MYSQL_TYPE_STRING;
+						bufLen = ArrayInfo_v<T>;
+					}
+					// todo: else if  .... , uint8_t    type = blob 
+					else goto LabError;
+
+					if (!bufLen) goto LabError;
 
 					bind.buffer = malloc(bufLen);
 					if (!bind.buffer) {
-						conn->lastError = "buf malloc failed. not enough memory. bufLen = ";
-						conn->lastError += std::to_string(bufLen);
+						conn->lastError.clear();
+						Append(conn->lastError, "buf malloc failed. not enough memory. bufLen = ", std::to_string(bufLen));
 						throw - 2;
 					}
 
 					bind.buffer_length = (unsigned long)bufLen;
 					bind.length = &len;
 					len = 0;
+				}
+
+				// 可空 数字 | 数组
+				else if (xx::IsOptional_v<T>) {
+					bind.is_null = (char*)& isNull;
 					isNull = false;
 
-					if constexpr (std::is_same_v<T, std::string>) {
-						bind.buffer_type = MYSQL_TYPE_STRING;
+					// 提取子类型
+					using CT = xx::ChildType_t<T>;
+					// 下面这段代码和上面基本一样, 只是 T 变为 CT
+
+					// 数字
+					if (std::is_arithmetic_v<CT>) {
+						if constexpr (std::is_same_v<CT, int>) {
+							bind.buffer_type = MYSQL_TYPE_LONG;
+							bind.buffer = (char*)& i32;
+						}
+						else if constexpr (std::is_same_v<CT, int64_t>) {
+							bind.buffer_type = MYSQL_TYPE_LONGLONG;
+							bind.buffer = (char*)& i64;
+						}
+						else if constexpr (std::is_same_v<CT, double>) {
+							bind.buffer_type = MYSQL_TYPE_DOUBLE;
+							bind.buffer = (char*)& d;
+						}
 					}
-					else if constexpr (std::is_same_v<T, std::optional<std::string>>) {
-						bind.buffer_type = MYSQL_TYPE_STRING;
-						bind.is_null = &isNull;
-					}
-					else {
-						static_assert(false, "unsupport type");
+					// 数组
+					else if (xx::IsArray_v<CT>) {
+						size_t bufLen = 0;
+						if constexpr (std::is_same_v<ArrayInfo_t<CT>, char>) {
+							bind.buffer_type = MYSQL_TYPE_STRING;
+							bufLen = ArrayInfo_v<CT>;
+						}
+						// todo: else if  .... , uint8_t    type = blob 
+						else goto LabError;
+
+						if (!bufLen) goto LabError;
+
+						bind.buffer = malloc(bufLen);
+						if (!bind.buffer) {
+							conn->lastError.clear();
+							Append(conn->lastError, "buf malloc failed. not enough memory. bufLen = ", std::to_string(bufLen));
+							throw - 2;
+						}
+
+						bind.buffer_length = (unsigned long)bufLen;
+						bind.length = &len;
+						len = 0;
 					}
 				}
+				// 未知
+				else goto LabError;
+				return;
+
+			LabError:
+				conn->lastError.clear();
+				Append(conn->lastError, "Init failed. unknown or bad type: ", typeid(T).name());
+				throw - 1;
 			}
 
 			template<typename T>
-			inline void SetValue(T const& v) {
+			inline void SetParameter(T const& v) {
 				if constexpr (std::is_same_v<T, int>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONG) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_LONG) goto LabError;
 					i32 = v;
 				}
 				else if constexpr (std::is_same_v<T, int64_t>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONGLONG) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_LONGLONG) goto LabError;
 					i64 = v;
 				}
 				else if constexpr (std::is_same_v<T, double>) {
-					if (bind.buffer_type != MYSQL_TYPE_DOUBLE) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_DOUBLE) goto LabError;
 					d = v;
 				}
 				// more
 
 				else if constexpr (std::is_same_v<T, std::optional<int>>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONG) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
-					if (v.has_value()) {
-						i32 = v.value();
-						isNull = false;
-					}
-					else {
-						i32 = 0;
-						isNull = true;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_LONG) goto LabError;
+					isNull = !v.has_value();
+					i32 = isNull ? 0 : v.value();
 				}
 				else if constexpr (std::is_same_v<T, std::optional<int64_t>>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONGLONG) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
-					if (v.has_value()) {
-						i64 = v.value();
-						isNull = false;
-					}
-					else {
-						i64 = 0;
-						isNull = true;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_LONGLONG) goto LabError;
+					isNull = !v.has_value();
+					i64 = isNull ? 0 : v.value();
 				}
 				else if constexpr (std::is_same_v<T, std::optional<double>>) {
-					if (bind.buffer_type != MYSQL_TYPE_DOUBLE) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
-					if (v.has_value()) {
-						d = v.value();
-						isNull = false;
-					}
-					else {
-						d = 0;
-						isNull = true;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_DOUBLE) goto LabError;
+					isNull = !v.has_value();
+					d = isNull ? 0 : v.value();
 				}
 				// more
 
 				else if constexpr (std::is_same_v<T, std::string>) {
-					if (bind.buffer_type != MYSQL_TYPE_STRING) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
+					if (bind.buffer_type != MYSQL_TYPE_STRING) goto LabError;
+
 					len = v.size();
 					if (len > bind.buffer_length) {
-						len = 0;
 						conn->lastError.clear();
-						xx::Append(conn->lastError, "SetValue failed. buffer_length( ", bind.buffer_length, " ) < v.size( ", v.size(), " ).");
+						Append(conn->lastError, "SetParameter failed. buffer_length = ", bind.buffer_length, ", v.size = ", len);
 						throw - 2;
 					}
 					memcpy(bind.buffer, v.data(), len);
 				}
 				else if constexpr (std::is_same_v<T, std::optional<std::string>>) {
-					if (bind.buffer_type != MYSQL_TYPE_STRING) {
-						conn->lastError = "SetValue failed. buffer_type is ";
-						conn->lastError += std::to_string(bind.buffer_type);
-						throw - 1;
-					}
-					if (v.has_value()) {
-						len = v.value().size();
-						if (len > bind.buffer_length) {
-							len = 0;
-							conn->lastError.clear();
-							xx::Append(conn->lastError, "SetValue failed. buffer_length( ", bind.buffer_length, " ) < v.size( ", v.value().size(), " ).");
-							throw - 2;
-						}
-						memcpy(bind.buffer, v.value().data(), len);
-						isNull = false;
+					if (bind.buffer_type != MYSQL_TYPE_STRING) goto LabError;
+					isNull = !v.has_value();
+					if (isNull) {
+						len = 0;
 					}
 					else {
-						len = 0;
-						isNull = true;
+						len = v.value().size();
+						if (len > bind.buffer_length) {
+							conn->lastError.clear();
+							Append(conn->lastError, "SetParameter failed. buffer_length( ", bind.buffer_length, " ) < v.size( ", v.value().size(), " ).");
+							throw - 2;
+						}
+						v.value().assign(bind.buffer, len);
 					}
+				}
+
+				// 增加易用性的一些类型. 适配 literal char[]
+				else if constexpr (std::is_array_v<T>) {
+					using CT = xx::ChildType_t<T>;
+					if constexpr (std::is_same_v<CT, char>) {
+						if (bind.buffer_type != MYSQL_TYPE_STRING) goto LabError;
+						isNull = false;
+						
+						len = xx::ArrayInfo_v<T>;
+						if (len > bind.buffer_length) {
+							conn->lastError.clear();
+							Append(conn->lastError, "SetParameter failed. buffer_length = ", bind.buffer_length, ", v.size = ", len);
+							throw - 2;
+						}
+						memcpy(bind.buffer, v, len);
+					}
+					else {
+						xx::CoutN(typeid(CT).name());
+						goto LabError;
+					}
+				}
+				// 适配 nullptr. 只要字段可空, 就可以用这个设置.
+				else if constexpr (std::is_null_pointer_v<T>) {
+					if (!bind.is_null) goto LabError;
+					i64 = 0;
+					len = 0;
+					isNull = true;
 				}
 				// more
 
-				else {
-					conn->lastError = "Init: unsupoorted data type";
-					throw - 1;
-				}
+				else goto LabError;
+				return;
+
+			LabError:
+				conn->lastError.clear();
+				Append(conn->lastError, "SetParameter failed. Init buffer_type is ", bind.buffer_type);
+				throw - 1;
 			}
 		};
 
@@ -532,20 +550,20 @@ namespace xx {
 			}
 
 			template<typename T>
-			inline void Init(int const& parmIdx, unsigned long const& bufLen) {
+			inline void Init(int const& parmIdx) {
 				if (!binds || parmIdx >= bindsLen) {
 					conn.lastError.clear();;
-					xx::Append(conn.lastError, "parmIdx out of range. bindsLen = ", bindsLen, ", parmIdx = ", parmIdx);
+					Append(conn.lastError, "parmIdx out of range. bindsLen = ", bindsLen, ", parmIdx = ", parmIdx);
 					throw - 1;
 				}
-				binds[parmIdx].Init<T>(bufLen);
+				binds[parmIdx].Init<T>();
 			}
 
 			template<typename T>
-			inline void SetValue(int const& parmIdx, T const& v) {
+			inline void SetParameter(int const& parmIdx, T const& v) {
 				if (!binds || parmIdx >= bindsLen) {
 					conn.lastError.clear();;
-					xx::Append(conn.lastError, "parmIdx out of range. bindsLen = ", bindsLen, ", parmIdx = ", parmIdx);
+					Append(conn.lastError, "parmIdx out of range. bindsLen = ", bindsLen, ", parmIdx = ", parmIdx);
 					throw - 1;
 				}
 				binds[parmIdx].SetValue<T>(v);
@@ -567,7 +585,7 @@ namespace xx {
 			Connection& conn;
 			MYSQL_STMT* stmt = nullptr;
 			Binds parms;
-			Binds rtvs;
+			//Binds rtvs;
 
 			operator bool() {
 				return stmt;
@@ -575,7 +593,7 @@ namespace xx {
 			Query(Connection& conn)
 				: conn(conn)
 				, parms(conn)
-				, rtvs(conn)
+				//, rtvs(conn)
 			{
 			}
 
@@ -590,33 +608,87 @@ namespace xx {
 				Clear();
 			}
 
-			inline void SetQuery(char const* const& sql, unsigned long const& sqlLen) {
+			template<typename ...Parms>
+			inline void Init(char const* const& sql, unsigned long const& sqlLen = 0) {
 				Clear();
 				stmt = mysql_stmt_init(conn.ctx);
 				if (!stmt) {
 					conn.lastError = "stat init failed.";
 					throw - 1;
 				}
-				if (mysql_stmt_prepare(stmt, sql, sqlLen)) {
-					Clear();
+				if (mysql_stmt_prepare(stmt, sql, sqlLen ? sqlLen : (unsigned long)strlen(sql))) {
 					conn.lastError = mysql_stmt_error(stmt);
+					Clear();
 					throw - 2;
 				}
 				auto&& numParams = mysql_stmt_param_count(stmt);
+				if (sizeof...(Parms) != numParams) {
+					Clear();
+					conn.lastError.clear();
+					Append(conn.lastError, "wrong numParms! sizeof...(Parms) = ", sizeof...(Parms), ", numParams = ", numParams);
+					throw - 3;
+				}
 				parms.Resize(numParams);
+
+				int idx = 0;
+				std::initializer_list<int> n{ (parms.binds[idx++].Init<Parms>(), 0)... };
+				(void)n;
 			}
 
-			// todo
+			template<size_t len, typename ...Parms>
+			inline void Init(char const(&sql)[len]) {
+				SetQuery<Parms...>(sql, len - 1);
+			}
+
+			template<typename ...Parms>
+			inline void Init(std::string const& sql) {
+				SetQuery<Parms...>((char*)sql.data(), sql.size());
+			}
+
+			template<typename ...Args>
+			inline Query& SetParameters(Args const& ... args) {
+				if (sizeof...(Args) != parms.bindsLen) {
+					conn.lastError.clear();
+					Append(conn.lastError, "bad numArgs = ", sizeof...(Args), ". expect ", parms.bindsLen);
+					throw - 1;
+				}
+				int idx = 0;
+				std::initializer_list<int> n{ (parms.binds[idx++].SetParameter<Args>(args), 0)... };
+				(void)n;
+				return *this;
+			}
+
+			// todo: 通过传入回调, 得到 Results 对象. 并继续通过它 检索结果, 跳转结果集. 检索前需要用 类似 Init 的方式，格式化结果集的填充 bind 容器
+			Query& Execute() {
+				// todo
+				return *this;
+			}
+
+			Query& operator()() {
+				// todo
+				return *this;
+			}
 		};
 	}
 }
 
 
+int main(int argc, char* argv[]) {
+	xx::MySql::Connection conn;
+	try {
+		conn.Open("192.168.1.215", 3306, "root", "1", "test");
+		xx::MySql::Query q(conn);
+		q.Init<int, char[5]>("select ?, ?");
+		q.SetParameters(123, "asdf");
+		q.Execute();	// todo: 检索结果集
+	}
+	catch (int const& e) {
+		std::cout << conn.lastError << std::endl;
+		return e;
+	}
+	return 0;
+}
 
-//int main(int argc, char* argv[]) {
-//	xx::MySql::Connection conn;
-//	try {
-//		conn.Open("192.168.1.215", 3306, "root", "1", "test");
 //		conn.Exec("select 1; select 2;"/*"show tables;"*/, [](xx::MySql::Reader& reader) {
 //			xx::CoutN("reader.numFields = ", reader.numFields, ", reader.numRows = ", reader.numRows);
 //			reader.Foreach([&](xx::MySql::Row const& row) {
@@ -626,14 +698,6 @@ namespace xx {
 //				return true;
 //				});
 //			});
-//	}
-//	catch (int const& e) {
-//		std::cout << conn.lastError << std::endl;
-//		return e;
-//	}
-//	return 0;
-//}
-
 
 
 //// string 转为各种长度的 有符号整数. Out 取值范围： int8~64

@@ -590,6 +590,26 @@ namespace xx {
 
 
 
+	template<typename T>
+	struct IsArray : std::false_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<std::array<T, len>> : std::true_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<const T(&)[len]> : std::true_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<T(&)[len]> : std::true_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<T[len]> : std::true_type {};
+
+	template<typename T>
+	constexpr bool IsArray_v = IsArray<T>::value;
+
+
+
 	// 移动时是否可使用 memmove 的标志 基础适配模板
 	template<typename T, typename ENABLED = void>
 	struct IsTrivial : std::false_type {};
@@ -603,8 +623,27 @@ namespace xx {
 
 
 
-
-
+	// 取定长模板容器类型长度值
+	template<typename T>
+	struct CountOf {
+		static constexpr size_t value = 0;
+	};
+	template<typename T, size_t len>
+	struct CountOf<std::array<T, len>> {
+		static constexpr size_t value = len;
+	};
+	template<typename T, size_t len>
+	struct CountOf<const T(&)[len]> {
+		static constexpr size_t value = len;
+	};
+	template<typename T, size_t len>
+	struct CountOf<T(&)[len]> {
+		static constexpr size_t value = len;
+	};
+	template<typename T, size_t len>
+	struct CountOf<T[len]> {
+		static constexpr size_t value = len;
+	};
 
 
 	/************************************************************************************/

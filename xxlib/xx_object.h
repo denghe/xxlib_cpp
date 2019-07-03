@@ -590,6 +590,26 @@ namespace xx {
 
 
 
+	template<typename T>
+	struct IsArray : std::false_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<std::array<T, len>> : std::true_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<const T(&)[len]> : std::true_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<T(&)[len]> : std::true_type {};
+
+	template<typename T, size_t len>
+	struct IsArray<T[len]> : std::true_type {};
+
+	template<typename T>
+	constexpr bool IsArray_v = IsArray<T>::value;
+
+
+
 	// 移动时是否可使用 memmove 的标志 基础适配模板
 	template<typename T, typename ENABLED = void>
 	struct IsTrivial : std::false_type {};
@@ -602,6 +622,77 @@ namespace xx {
 	struct IsTrivial<T, std::enable_if_t<(IsShared_v<T> || IsWeak_v<T>) || std::is_trivial_v<T>>> : std::true_type {};
 
 
+
+	// 方便取定长数组/模板 容器子类型 & 长度值
+
+	template<typename T>
+	struct ArrayInfo {
+		using type = void;
+		static constexpr size_t size = 0;
+	};
+	template<typename T, size_t len>
+	struct ArrayInfo<std::array<T, len>> {
+		using type = T;
+		static constexpr size_t size = len;
+	};
+	template<typename T, size_t len>
+	struct ArrayInfo<const T(&)[len]> {
+		using type = T;
+		static constexpr size_t size = len;
+	};
+	template<typename T, size_t len>
+	struct ArrayInfo<T(&)[len]> {
+		using type = T;
+		static constexpr size_t size = len;
+	};
+	template<typename T, size_t len>
+	struct ArrayInfo<T[len]> {
+		using type = T;
+		static constexpr size_t size = len;
+	};
+
+	template<typename T>
+	constexpr size_t ArrayInfo_v = ArrayInfo<T>::size;
+
+	template<typename T>
+	using ArrayInfo_t = typename ArrayInfo<T>::type;
+
+
+
+
+	template<typename T>
+	struct ChildType {
+		using type = void;
+	};
+
+	template<typename T>
+	struct ChildType<std::optional<T>> {
+		using type = T;
+	};
+	template<typename T>
+	struct ChildType<std::vector<T>> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<std::array<T, len>> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<const T(&)[len]> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<T(&)[len]> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<T[len]> {
+		using type = T;
+	};
+	// ...
+
+	template<typename T>
+	using ChildType_t = typename ChildType<T>::type;
 
 
 
