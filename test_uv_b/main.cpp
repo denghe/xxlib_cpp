@@ -274,7 +274,6 @@ namespace xx {
 
 		// 只适合 new[], delete[]. 不可移动, 复制. 避免指针指向无效内存地址.
 		struct MYSQL_BIND_ex {
-			MYSQL_BIND bind;
 			union {
 				int64_t i64 = 0;
 				int i32;
@@ -282,12 +281,10 @@ namespace xx {
 				unsigned long len;	// buf's data length
 			};
 			my_bool isNull = false;
-			Connection* conn = nullptr;	// 需要 new 后填充
+			MYSQL_BIND* bind = nullptr;			// 需要 new 后填充
+			std::string* lastError = nullptr;	// 需要 new 后填充
 
-			MYSQL_BIND_ex() {
-				static_assert(!&(*(MYSQL_BIND_ex*)0).bind);	// 确保 bind 成员和 this 指针头部一致
-				memset(&bind, 0, sizeof(bind));
-			}
+			MYSQL_BIND_ex() = default;
 			MYSQL_BIND_ex(MYSQL_BIND_ex const&) = delete;
 			MYSQL_BIND_ex& operator=(MYSQL_BIND_ex const&) = delete;
 
@@ -296,37 +293,37 @@ namespace xx {
 			}
 
 			void Clear() {
-				if (bind.buffer_type >= MYSQL_TYPE_TINY_BLOB && bind.buffer_type <= MYSQL_TYPE_STRING && bind.buffer) {
-					free(bind.buffer);
-					bind.buffer = nullptr;
+				if (bind->buffer_type >= MYSQL_TYPE_TINY_BLOB && bind->buffer_type <= MYSQL_TYPE_STRING && bind->buffer) {
+					free(bind->buffer);
+					bind->buffer = nullptr;
 				}
 			}
 
 			template<typename T>
 			inline void Init() {
 				Clear();
-				memset(&bind, 0, sizeof(bind));
+				memset(bind, 0, sizeof(MYSQL_BIND));
 
 				// 数字
 				if (std::is_arithmetic_v<T>) {
 					if constexpr (std::is_same_v<T, int>) {
-						bind.buffer_type = MYSQL_TYPE_LONG;
-						bind.buffer = (char*)& i32;
+						bind->buffer_type = MYSQL_TYPE_LONG;
+						bind->buffer = (char*)& i32;
 					}
 					else if constexpr (std::is_same_v<T, int64_t>) {
-						bind.buffer_type = MYSQL_TYPE_LONGLONG;
-						bind.buffer = (char*)& i64;
+						bind->buffer_type = MYSQL_TYPE_LONGLONG;
+						bind->buffer = (char*)& i64;
 					}
 					else if constexpr (std::is_same_v<T, double>) {
-						bind.buffer_type = MYSQL_TYPE_DOUBLE;
-						bind.buffer = (char*)& d;
+						bind->buffer_type = MYSQL_TYPE_DOUBLE;
+						bind->buffer = (char*)& d;
 					}
 				}
 				// 数组
 				else if (xx::IsArray_v<T>) {
 					size_t bufLen = 0;
 					if constexpr (std::is_same_v<ArrayInfo_t<T>, char>) {
-						bind.buffer_type = MYSQL_TYPE_STRING;
+						bind->buffer_type = MYSQL_TYPE_STRING;
 						bufLen = ArrayInfo_v<T>;
 					}
 					// todo: else if  .... , uint8_t    type = blob 
@@ -334,21 +331,21 @@ namespace xx {
 
 					if (!bufLen) goto LabError;
 
-					bind.buffer = malloc(bufLen);
-					if (!bind.buffer) {
-						conn->lastError.clear();
-						Append(conn->lastError, "buf malloc failed. not enough memory. bufLen = ", std::to_string(bufLen));
+					bind->buffer = malloc(bufLen);
+					if (!bind->buffer) {
+						lastError->clear();
+						Append(*lastError, "buf malloc failed. not enough memory. bufLen = ", std::to_string(bufLen));
 						throw - 2;
 					}
 
-					bind.buffer_length = (unsigned long)bufLen;
-					bind.length = &len;
+					bind->buffer_length = (unsigned long)bufLen;
+					bind->length = &len;
 					len = 0;
 				}
 
 				// 可空 数字 | 数组
 				else if (xx::IsOptional_v<T>) {
-					bind.is_null = (char*)& isNull;
+					bind->is_null = (char*)& isNull;
 					isNull = false;
 
 					// 提取子类型
@@ -358,23 +355,23 @@ namespace xx {
 					// 数字
 					if (std::is_arithmetic_v<CT>) {
 						if constexpr (std::is_same_v<CT, int>) {
-							bind.buffer_type = MYSQL_TYPE_LONG;
-							bind.buffer = (char*)& i32;
+							bind->buffer_type = MYSQL_TYPE_LONG;
+							bind->buffer = (char*)& i32;
 						}
 						else if constexpr (std::is_same_v<CT, int64_t>) {
-							bind.buffer_type = MYSQL_TYPE_LONGLONG;
-							bind.buffer = (char*)& i64;
+							bind->buffer_type = MYSQL_TYPE_LONGLONG;
+							bind->buffer = (char*)& i64;
 						}
 						else if constexpr (std::is_same_v<CT, double>) {
-							bind.buffer_type = MYSQL_TYPE_DOUBLE;
-							bind.buffer = (char*)& d;
+							bind->buffer_type = MYSQL_TYPE_DOUBLE;
+							bind->buffer = (char*)& d;
 						}
 					}
 					// 数组
 					else if (xx::IsArray_v<CT>) {
 						size_t bufLen = 0;
 						if constexpr (std::is_same_v<ArrayInfo_t<CT>, char>) {
-							bind.buffer_type = MYSQL_TYPE_STRING;
+							bind->buffer_type = MYSQL_TYPE_STRING;
 							bufLen = ArrayInfo_v<CT>;
 						}
 						// todo: else if  .... , uint8_t    type = blob 
@@ -382,15 +379,15 @@ namespace xx {
 
 						if (!bufLen) goto LabError;
 
-						bind.buffer = malloc(bufLen);
-						if (!bind.buffer) {
-							conn->lastError.clear();
-							Append(conn->lastError, "buf malloc failed. not enough memory. bufLen = ", std::to_string(bufLen));
+						bind->buffer = malloc(bufLen);
+						if (!bind->buffer) {
+							lastError->clear();
+							Append(*lastError, "buf malloc failed. not enough memory. bufLen = ", std::to_string(bufLen));
 							throw - 2;
 						}
 
-						bind.buffer_length = (unsigned long)bufLen;
-						bind.length = &len;
+						bind->buffer_length = (unsigned long)bufLen;
+						bind->length = &len;
 						len = 0;
 					}
 				}
@@ -399,69 +396,69 @@ namespace xx {
 				return;
 
 			LabError:
-				conn->lastError.clear();
-				Append(conn->lastError, "Init failed. unknown or bad type: ", typeid(T).name());
+				lastError->clear();
+				Append(*lastError, "Init failed. unknown or bad type: ", typeid(T).name());
 				throw - 1;
 			}
 
 			template<typename T>
 			inline void SetParameter(T const& v) {
 				if constexpr (std::is_same_v<T, int>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONG) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_LONG) goto LabError;
 					i32 = v;
 				}
 				else if constexpr (std::is_same_v<T, int64_t>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONGLONG) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_LONGLONG) goto LabError;
 					i64 = v;
 				}
 				else if constexpr (std::is_same_v<T, double>) {
-					if (bind.buffer_type != MYSQL_TYPE_DOUBLE) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_DOUBLE) goto LabError;
 					d = v;
 				}
 				// more
 
 				else if constexpr (std::is_same_v<T, std::optional<int>>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONG) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_LONG) goto LabError;
 					isNull = !v.has_value();
 					i32 = isNull ? 0 : v.value();
 				}
 				else if constexpr (std::is_same_v<T, std::optional<int64_t>>) {
-					if (bind.buffer_type != MYSQL_TYPE_LONGLONG) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_LONGLONG) goto LabError;
 					isNull = !v.has_value();
 					i64 = isNull ? 0 : v.value();
 				}
 				else if constexpr (std::is_same_v<T, std::optional<double>>) {
-					if (bind.buffer_type != MYSQL_TYPE_DOUBLE) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_DOUBLE) goto LabError;
 					isNull = !v.has_value();
 					d = isNull ? 0 : v.value();
 				}
 				// more
 
 				else if constexpr (std::is_same_v<T, std::string>) {
-					if (bind.buffer_type != MYSQL_TYPE_STRING) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_STRING) goto LabError;
 
 					len = v.size();
-					if (len > bind.buffer_length) {
-						conn->lastError.clear();
-						Append(conn->lastError, "SetParameter failed. buffer_length = ", bind.buffer_length, ", v.size = ", len);
+					if (len > bind->buffer_length) {
+						lastError->clear();
+						Append(*lastError, "SetParameter failed. buffer_length = ", bind->buffer_length, ", v.size = ", len);
 						throw - 2;
 					}
-					memcpy(bind.buffer, v.data(), len);
+					memcpy(bind->buffer, v.data(), len);
 				}
 				else if constexpr (std::is_same_v<T, std::optional<std::string>>) {
-					if (bind.buffer_type != MYSQL_TYPE_STRING) goto LabError;
+					if (bind->buffer_type != MYSQL_TYPE_STRING) goto LabError;
 					isNull = !v.has_value();
 					if (isNull) {
 						len = 0;
 					}
 					else {
 						len = v.value().size();
-						if (len > bind.buffer_length) {
-							conn->lastError.clear();
-							Append(conn->lastError, "SetParameter failed. buffer_length( ", bind.buffer_length, " ) < v.size( ", v.value().size(), " ).");
+						if (len > bind->buffer_length) {
+							lastError->clear();
+							Append(lastError, "SetParameter failed. buffer_length( ", bind->buffer_length, " ) < v.size( ", v.value().size(), " ).");
 							throw - 2;
 						}
-						v.value().assign(bind.buffer, len);
+						v.value().assign(bind->buffer, len);
 					}
 				}
 
@@ -469,16 +466,16 @@ namespace xx {
 				else if constexpr (std::is_array_v<T>) {
 					using CT = xx::ChildType_t<T>;
 					if constexpr (std::is_same_v<CT, char>) {
-						if (bind.buffer_type != MYSQL_TYPE_STRING) goto LabError;
+						if (bind->buffer_type != MYSQL_TYPE_STRING) goto LabError;
 						isNull = false;
 						
 						len = xx::ArrayInfo_v<T>;
-						if (len > bind.buffer_length) {
-							conn->lastError.clear();
-							Append(conn->lastError, "SetParameter failed. buffer_length = ", bind.buffer_length, ", v.size = ", len);
+						if (len > bind->buffer_length) {
+							lastError->clear();
+							Append(*lastError, "SetParameter failed. buffer_length = ", bind->buffer_length, ", v.size = ", len);
 							throw - 2;
 						}
-						memcpy(bind.buffer, v, len);
+						memcpy(bind->buffer, v, len);
 					}
 					else {
 						xx::CoutN(typeid(CT).name());
@@ -487,7 +484,7 @@ namespace xx {
 				}
 				// 适配 nullptr. 只要字段可空, 就可以用这个设置.
 				else if constexpr (std::is_null_pointer_v<T>) {
-					if (!bind.is_null) goto LabError;
+					if (!bind->is_null) goto LabError;
 					i64 = 0;
 					len = 0;
 					isNull = true;
@@ -498,108 +495,134 @@ namespace xx {
 				return;
 
 			LabError:
-				conn->lastError.clear();
-				Append(conn->lastError, "SetParameter failed. Init buffer_type is ", bind.buffer_type);
+				lastError->clear();
+				Append(*lastError, "SetParameter failed. Init buffer_type is ", bind->buffer_type);
 				throw - 1;
+			}
+
+			template<typename T>
+			inline void GetValue(T& v) {
+				// todo
 			}
 		};
 
 		struct Binds {
-			Connection& conn;
-			MYSQL_BIND_ex* binds = nullptr;
-			size_t bindsLen = 0;
+			MYSQL_BIND* bind = nullptr;
+			MYSQL_BIND_ex* data = nullptr;
+			size_t len = 0;
+			std::string* lastError;
 
-			Binds(Connection& conn) : conn(conn) {}
+			Binds(std::string* const& lastError) : lastError(lastError) {}
 			Binds() = delete;
 			Binds(Binds const&) = delete;
 			Binds& operator=(Binds const&) = delete;
 
-			Binds(Binds&& o) noexcept
-				: conn(o.conn) {
-				std::swap(this->binds, o.binds);
-				std::swap(this->bindsLen, o.bindsLen);
+			Binds(Binds&& o) noexcept {
+				std::swap(this->bind, o.bind);
+				std::swap(this->data, o.data);
+				std::swap(this->len, o.len);
+				std::swap(this->lastError, o.lastError);
 			}
 			~Binds() {
 				Clear();
 			}
 
 			void Clear() {
-				if (binds) {
-					delete[] binds;
-					binds = nullptr;
-					bindsLen = 0;
+				if (bind) {
+					delete[] bind;
+					bind = nullptr;
 				}
+				if (data) {
+					delete[] data;
+					data = nullptr;
+				}
+				len = 0;
 			}
 
 			Binds& operator=(Binds&& o) noexcept {
-				std::swap(this->conn, o.conn);
-				std::swap(this->binds, o.binds);
-				std::swap(this->bindsLen, o.bindsLen);
+				std::swap(this->bind, o.bind);
+				std::swap(this->data, o.data);
+				std::swap(this->len, o.len);
+				std::swap(this->lastError, o.lastError);
 				return *this;
 			}
 
 			void Resize(size_t const& len) {
 				Clear();
 				if (len) {
-					binds = new MYSQL_BIND_ex[len]();
-					bindsLen = len;
+					bind = new MYSQL_BIND[len]();
+					memset(bind, 0, sizeof(MYSQL_BIND) * len);
+
+					data = new MYSQL_BIND_ex[len]();
+
+					this->len = len;
 					for (size_t i = 0; i < len; ++i) {
-						binds[i].conn = &conn;
+						data[i].bind = &bind[i];
+						data[i].lastError = lastError;
 					}
 				}
 			}
 
-			template<typename T>
-			inline void Init(int const& parmIdx) {
-				if (!binds || parmIdx >= bindsLen) {
-					conn.lastError.clear();;
-					Append(conn.lastError, "parmIdx out of range. bindsLen = ", bindsLen, ", parmIdx = ", parmIdx);
-					throw - 1;
-				}
-				binds[parmIdx].Init<T>();
-			}
+			//template<typename T>
+			//inline void InitParameter(int const& parmIdx) {
+			//	if (!data || parmIdx >= len) {
+			//		conn.lastError.clear();;
+			//		Append(conn.lastError, "parmIdx out of range. len = ", len, ", parmIdx = ", parmIdx);
+			//		throw - 1;
+			//	}
+			//	data[parmIdx].Init<T>();
+			//}
 
 			template<typename T>
 			inline void SetParameter(int const& parmIdx, T const& v) {
-				if (!binds || parmIdx >= bindsLen) {
+				if (!data || parmIdx >= len) {
 					conn.lastError.clear();;
-					Append(conn.lastError, "parmIdx out of range. bindsLen = ", bindsLen, ", parmIdx = ", parmIdx);
+					Append(conn.lastError, "parmIdx out of range. len = ", len, ", parmIdx = ", parmIdx);
 					throw - 1;
 				}
-				binds[parmIdx].SetValue<T>(v);
+				data[parmIdx].SetValue<T>(v);
 			}
 
 			// 检查是否有参数没初始化或者填充. 有返回下标。没有找到返回 -1
 			inline int Verify() {
-				for (int i = 0; i < (int)bindsLen; ++i) {
-					auto&& bind = binds[i].bind;
-					if (!bind.buffer) {
+				for (int i = 0; i < (int)len; ++i) {
+					auto&& bind = data[i].bind;
+					if (!bind->buffer) {
 						return i;
 					}
 				}
 				return -1;
 			}
+
+			template<typename T>
+			inline void Read(int const& colIdx, T& v) {
+				if (!data || parmIdx >= len) {
+					conn.lastError.clear();;
+					Append(conn.lastError, "colIdx out of range. len = ", len, ", colIdx = ", colIdx);
+					throw - 1;
+				}
+				data[parmIdx].GetValue<T>(v);
+			}
+
 		};
 
-		struct Query {
+		struct Results;
+		struct Query : Binds {
 			Connection& conn;
 			MYSQL_STMT* stmt = nullptr;
-			Binds parms;
-			//Binds rtvs;
+			unsigned long affected_rows;
 
 			operator bool() {
 				return stmt;
 			}
 			Query(Connection& conn)
-				: conn(conn)
-				, parms(conn)
-				//, rtvs(conn)
-			{
+				: Binds(&conn.lastError)
+				, conn(conn) {
 			}
 
 			void Clear() {
 				if (stmt) {
-					mysql_stmt_close(stmt);
+					mysql_stmt_close(stmt);	// 暂时忽略这个语句错误
 					stmt = nullptr;
 				}
 			}
@@ -609,7 +632,7 @@ namespace xx {
 			}
 
 			template<typename ...Parms>
-			inline void Init(char const* const& sql, unsigned long const& sqlLen = 0) {
+			inline void SetQuery(char const* const& sql, unsigned long const& sqlLen) {
 				Clear();
 				stmt = mysql_stmt_init(conn.ctx);
 				if (!stmt) {
@@ -628,64 +651,167 @@ namespace xx {
 					Append(conn.lastError, "wrong numParms! sizeof...(Parms) = ", sizeof...(Parms), ", numParams = ", numParams);
 					throw - 3;
 				}
-				parms.Resize(numParams);
+				Resize(numParams);
 
 				int idx = 0;
-				std::initializer_list<int> n{ (parms.binds[idx++].Init<Parms>(), 0)... };
+				std::initializer_list<int> n{ (data[idx++].Init<Parms>(), 0)... };
 				(void)n;
 			}
 
 			template<size_t len, typename ...Parms>
-			inline void Init(char const(&sql)[len]) {
+			inline void SetQuery(char const(&sql)[len]) {
 				SetQuery<Parms...>(sql, len - 1);
 			}
 
 			template<typename ...Parms>
-			inline void Init(std::string const& sql) {
-				SetQuery<Parms...>((char*)sql.data(), sql.size());
+			inline void SetQuery(std::string const& sql) {
+				SetQuery<Parms...>((char*)sql.data(), (unsigned long)sql.size());
 			}
 
 			template<typename ...Args>
 			inline Query& SetParameters(Args const& ... args) {
-				if (sizeof...(Args) != parms.bindsLen) {
+				if (sizeof...(Args) != len) {
 					conn.lastError.clear();
-					Append(conn.lastError, "bad numArgs = ", sizeof...(Args), ". expect ", parms.bindsLen);
+					Append(conn.lastError, "bad sizeof(args) : ", sizeof...(Args), ". expect ", len);
 					throw - 1;
 				}
 				int idx = 0;
-				std::initializer_list<int> n{ (parms.binds[idx++].SetParameter<Args>(args), 0)... };
+				std::initializer_list<int> n{ (data[idx++].SetParameter<Args>(args), 0)... };
 				(void)n;
 				return *this;
 			}
 
 			// todo: 通过传入回调, 得到 Results 对象. 并继续通过它 检索结果, 跳转结果集. 检索前需要用 类似 Init 的方式，格式化结果集的填充 bind 容器
-			Query& Execute() {
-				// todo
-				return *this;
-			}
+			Query& Execute(std::function<void(Results& rs)>&& h = nullptr);
 
 			Query& operator()() {
 				// todo
 				return *this;
 			}
 		};
+
+		struct Reader : Binds {
+			int numCols = 0;			// 字段个数
+			int currResultIndex = 0;	// 当前正在读的结果集下标
+			using Binds::Binds;
+
+			//// 一组结构检索函数( 可能简化或者增加更细节的查询 )
+			//int GetColumnCount();
+			//enum_field_types GetColumnDataType(int const& colIdx);
+			//char const* GetColumnName(int const& colIdx);
+			//int GetColumnIndex(char const* const& colName);
+			//int GetColumnIndex(std::string const& colName);
+
+			// todo: colIdx 范围校验, 数据类型校验
+			// 一组数据访问函数
+			bool IsDBNull(int const& colIdx) {
+				return data[colIdx].isNull;
+			}
+			int ReadInt32(int const& colIdx) {
+				return data[colIdx].i32;
+			}
+			int64_t ReadInt64(int const& colIdx) {
+				return data[colIdx].i64;
+			}
+			double ReadDouble(int const& colIdx) {
+				return data[colIdx].d;
+			}
+			std::string ReadString(int const& colIdx) {
+				return std::string((char*)bind[colIdx].buffer, data[colIdx].len);
+			}
+			//std::pair<char const*, int> ReadText(int const& colIdx);
+			//std::pair<char const*, int> ReadBlob(int const& colIdx);
+
+			// 填充
+			//template<typename T>
+			//void Read(int const& colIdx, T& outVal);
+			//template<typename T>
+			//void Read(char const* const& colName, T& outVal);
+			//template<typename T>
+			//void Read(std::string const& colName, T& outVal);
+
+		//	// 一次填充多个
+		//	template<typename...Args>
+		//	void Reads(Args& ...args);
+		//protected:
+		//	template<typename Arg, typename...Args>
+		//	void ReadsCore(int& colIdx, Arg& arg, Args& ...args);
+		//	void ReadsCore(int& colIdx);
+		};
+
+		struct Results {
+			MYSQL_STMT* stmt;
+			std::string* lastError;
+			int numResultSets = 0;		// 结果集个数
+			Reader reader;
+
+			Results(MYSQL_STMT* const& stmt, std::string* const& lastError)
+				: stmt(stmt)
+				, lastError(lastError)
+				, reader(lastError) {
+			}
+
+			// 访问一个结果集
+			template<typename ...Fields>
+			inline void Fetch(std::function<bool(Reader&)>&& h) {
+				static_assert(sizeof...(Fields), "must be specify fields types.");
+				
+				reader.numCols = sizeof...(Fields);
+				// todo: fill fields? get field count? verify?
+				reader.Resize(sizeof...(Fields));
+
+				int idx = 0;
+				std::initializer_list<int> n{ (reader.data[idx++].Init<Fields>(), 0)... };
+				(void)n;
+
+				while (mysql_stmt_fetch(stmt)) {
+					if (!h(reader)) break;
+				}
+			}
+		};
+
+		inline Query& Query::Execute(std::function<void(Results& rs)>&& h) {
+			if (mysql_stmt_bind_param(stmt, bind)) {
+				conn.lastError = mysql_stmt_error(stmt);
+				throw - 1;
+			}
+			if (mysql_stmt_execute(stmt)) {
+				conn.lastError = mysql_stmt_error(stmt);
+				throw - 1;
+			}
+			if (h) {
+				Results rs(stmt, &conn.lastError);
+				h(rs);
+			}
+			return *this;
+		}
 	}
 }
 
 
 int main(int argc, char* argv[]) {
 	xx::MySql::Connection conn;
-	try {
+	//try {
 		conn.Open("192.168.1.215", 3306, "root", "1", "test");
 		xx::MySql::Query q(conn);
-		q.Init<int, char[5]>("select ?, ?");
+		q.SetQuery<int, char[5]>("select ?, ?");
 		q.SetParameters(123, "asdf");
-		q.Execute();	// todo: 检索结果集
-	}
-	catch (int const& e) {
-		std::cout << conn.lastError << std::endl;
-		return e;
-	}
+		q.Execute([](xx::MySql::Results& rs) {
+			int c1;
+			std::string c2;
+			rs.Fetch<int, char[5]>([&](xx::MySql::Reader& r) {
+				//r.Reads(c1, c2);
+				c1 = r.ReadInt32(0);
+				c2 = r.ReadString(1);
+				return true;
+			});
+			xx::CoutN(c1,", ", c2);
+		});
+	//}
+	//catch (int const& e) {
+	//	std::cout << conn.lastError << std::endl;
+	//	return e;
+	//}
 	return 0;
 }
 
