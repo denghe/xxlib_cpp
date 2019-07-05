@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CONSOLE;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)xxlib;$(SolutionDir)libuv/include;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)xxlib;$(SolutionDir)libuv/include;$(SolutionDir)sqlite3;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -72,7 +72,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CONSOLE;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_WIN32_WINNT=0x0601;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)xxlib;$(SolutionDir)libuv/include;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)xxlib;$(SolutionDir)libuv/include;$(SolutionDir)sqlite3;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -84,6 +84,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\sqlite3\sqlite3.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
