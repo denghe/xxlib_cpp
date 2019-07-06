@@ -72,6 +72,21 @@ size_t _countof_helper(T const (&arr)[N])
 #endif
 
 
+/***********************************************************************************/
+// Sleep
+/***********************************************************************************/
+
+// 直接用 这个似乎可以避免 windows 下用 this_thread::sleep_for 搞出额外线程
+// 可能需要 include windows.h
+#ifndef _WIN32
+#include <unistd.h>
+inline void Sleep(int ms)
+{
+	usleep(ms * 1000);
+}
+#endif 
+
+
 /************************************************************************************/
 // 安卓 / linux Guid 相关适配
 /************************************************************************************/
@@ -440,6 +455,9 @@ namespace xx {
 	inline void Cout(Args const& ...args) {
 		std::string s;
 		Append(s, args...);
+		for (auto&& c : s) {
+			if (!c) c = '^';
+		}
 		fputs(s.c_str(), stdout);				// std::cout 似乎会受 fcontext 切换影响 输出不能
 	}
 
@@ -448,6 +466,9 @@ namespace xx {
 	inline void CoutN(Args const& ...args) {
 		std::string s;
 		Append(s, args...);
+		for (auto&& c : s) {
+			if (!c) c = '^';
+		}
 		puts(s.c_str());
 	}
 
@@ -458,6 +479,9 @@ namespace xx {
 		NowToString(s);
 		s += "] ";
 		Append(s, args...);
+		for (auto&& c : s) {
+			if (!c) c = '^';
+		}
 		puts(s.c_str());
 	}
 
