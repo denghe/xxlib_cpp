@@ -2,8 +2,39 @@
 #pragma execution_character_set("utf-8")
 #endif
 #include "xx_mysql.h"
+#include "xx_queue.h"
 
 int main() {
+	auto&& t = xx::NowSystemEpochMS();
+	{
+		xx::Queue<size_t> ints;
+		for (size_t i = 0; i < 10000000; ++i) {
+			ints.Push(i);
+			if (i > 100) {
+				ints.Pop();
+			}
+		}
+		for (size_t i = 0; i < ints.Count(); ++i) {
+			xx::CoutN(ints[i]);
+		}
+	}
+	xx::CoutN("ms = ", xx::NowSystemEpochMS() - t);
+	t = xx::NowSystemEpochMS();
+	{
+		std::deque<size_t> ints;
+		for (size_t i = 0; i < 10000000; ++i) {
+			ints.push_back(i);
+			if (i > 100) {
+				ints.pop_front();
+			}
+		}
+		for (size_t i = 0; i < ints.size(); ++i) {
+			xx::CoutN(ints[i]);
+		}
+	}
+	xx::CoutN("ms = ", xx::NowSystemEpochMS() - t);
+	return 0;
+
 	xx::MySql::Connection conn;
 	try {
 		conn.Open("192.168.1.230", 3306, "root", "Abc123", "test");

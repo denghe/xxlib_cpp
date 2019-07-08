@@ -122,6 +122,7 @@
     <ClInclude Include="xx_mysql.h" />
     <ClInclude Include="xx_object.h" />
     <ClInclude Include="xx_pos.h" />
+    <ClInclude Include="xx_queue.h" />
     <ClInclude Include="xx_random.h" />
     <ClInclude Include="xx_random.hpp" />
     <ClInclude Include="xx_sqlite.h" />
