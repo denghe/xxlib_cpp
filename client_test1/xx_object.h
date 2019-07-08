@@ -1,4 +1,9 @@
 ﻿#pragma once
+
+//#ifdef _MSC_VER
+//#pragma execution_character_set("utf-8")
+//#endif
+
 #include <type_traits>
 #include <initializer_list>
 #include <functional>
@@ -70,6 +75,21 @@ size_t _countof_helper(T const (&arr)[N])
 #else
 #define XX_SSCANF sscanf;
 #endif
+
+
+/***********************************************************************************/
+// Sleep
+/***********************************************************************************/
+
+// 直接用 这个似乎可以避免 windows 下用 this_thread::sleep_for 搞出额外线程
+// 可能需要 include windows.h
+#ifndef _WIN32
+#include <unistd.h>
+inline void Sleep(int ms)
+{
+	usleep(ms * 1000);
+}
+#endif 
 
 
 /************************************************************************************/
@@ -440,6 +460,9 @@ namespace xx {
 	inline void Cout(Args const& ...args) {
 		std::string s;
 		Append(s, args...);
+		for (auto&& c : s) {
+			if (!c) c = '^';
+		}
 		fputs(s.c_str(), stdout);				// std::cout 似乎会受 fcontext 切换影响 输出不能
 	}
 
@@ -448,6 +471,9 @@ namespace xx {
 	inline void CoutN(Args const& ...args) {
 		std::string s;
 		Append(s, args...);
+		for (auto&& c : s) {
+			if (!c) c = '^';
+		}
 		puts(s.c_str());
 	}
 
@@ -458,6 +484,9 @@ namespace xx {
 		NowToString(s);
 		s += "] ";
 		Append(s, args...);
+		for (auto&& c : s) {
+			if (!c) c = '^';
+		}
 		puts(s.c_str());
 	}
 
@@ -623,27 +652,79 @@ namespace xx {
 
 
 
-	// 取定长模板容器类型长度值
+	// 方便取定长数组/模板 容器子类型 & 长度值
+
 	template<typename T>
-	struct CountOf {
-		static constexpr size_t value = 0;
+	struct ArrayInfo {
+		using type = void;
+		static constexpr size_t size = 0;
 	};
 	template<typename T, size_t len>
-	struct CountOf<std::array<T, len>> {
-		static constexpr size_t value = len;
+	struct ArrayInfo<std::array<T, len>> {
+		using type = T;
+		static constexpr size_t size = len;
 	};
 	template<typename T, size_t len>
-	struct CountOf<const T(&)[len]> {
-		static constexpr size_t value = len;
+	struct ArrayInfo<const T(&)[len]> {
+		using type = T;
+		static constexpr size_t size = len;
 	};
 	template<typename T, size_t len>
-	struct CountOf<T(&)[len]> {
-		static constexpr size_t value = len;
+	struct ArrayInfo<T(&)[len]> {
+		using type = T;
+		static constexpr size_t size = len;
 	};
 	template<typename T, size_t len>
-	struct CountOf<T[len]> {
-		static constexpr size_t value = len;
+	struct ArrayInfo<T[len]> {
+		using type = T;
+		static constexpr size_t size = len;
 	};
+
+	template<typename T>
+	constexpr size_t ArrayInfo_v = ArrayInfo<T>::size;
+
+	template<typename T>
+	using ArrayInfo_t = typename ArrayInfo<T>::type;
+
+
+
+
+	template<typename T>
+	struct ChildType {
+		using type = void;
+	};
+
+	template<typename T>
+	struct ChildType<std::optional<T>> {
+		using type = T;
+	};
+	template<typename T>
+	struct ChildType<std::vector<T>> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<std::array<T, len>> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<const T(&)[len]> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<T(&)[len]> {
+		using type = T;
+	};
+	template<typename T, size_t len>
+	struct ChildType<T[len]> {
+		using type = T;
+	};
+	// ...
+
+	template<typename T>
+	using ChildType_t = typename ChildType<T>::type;
+
+
+
 
 
 	/************************************************************************************/

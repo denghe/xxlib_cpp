@@ -43,14 +43,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)libuv;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir);$(SolutionDir);$(SolutionDir)libuv\include;$(SolutionDir)sqlite3;$(SolutionDir)gens\output;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)libuv;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -62,12 +57,14 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)gens\output;$(SolutionDir)xxlib;$(SolutionDir)libuv/include;$(SolutionDir)sqlite3;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
-      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;libmariadb.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)../boost_1_69_0/lib64-msvc-14.1;$(SolutionDir)libuv;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -81,6 +78,7 @@
       <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)gens\output;$(SolutionDir)xxlib;$(SolutionDir)libuv/include;$(SolutionDir)sqlite3;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -88,7 +86,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
-      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libuv.lib;ws2_32.lib;Iphlpapi.lib;psapi.lib;userenv.lib;libmariadb.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)../boost_1_69_0/lib64-msvc-14.1;$(SolutionDir)libuv;$(MSBuildExtensionsPath64)/../MariaDB/MariaDB Connector C 64-bit/lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -107,6 +106,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="main4.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fixed_function.hpp" />
@@ -116,6 +119,7 @@
     <ClInclude Include="xx_file.h" />
     <ClInclude Include="xx_list.h" />
     <ClInclude Include="xx_logger.h" />
+    <ClInclude Include="xx_mysql.h" />
     <ClInclude Include="xx_object.h" />
     <ClInclude Include="xx_pos.h" />
     <ClInclude Include="xx_random.h" />
