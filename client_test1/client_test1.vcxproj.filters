@@ -26,6 +26,7 @@
     <ClInclude Include="xx_sqlite.h" />
     <ClInclude Include="xx_mysql.h" />
     <ClInclude Include="xx_queue.h" />
+    <ClInclude Include="xx_threadpool.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="xx.natvis" />

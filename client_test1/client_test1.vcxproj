@@ -126,6 +126,7 @@
     <ClInclude Include="xx_random.h" />
     <ClInclude Include="xx_random.hpp" />
     <ClInclude Include="xx_sqlite.h" />
+    <ClInclude Include="xx_threadpool.h" />
     <ClInclude Include="xx_uv.h" />
     <ClInclude Include="xx_uv_lua.h" />
   </ItemGroup>
