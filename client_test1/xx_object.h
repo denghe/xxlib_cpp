@@ -77,6 +77,19 @@ size_t _countof_helper(T const (&arr)[N])
 #endif
 
 
+#ifndef _WIN32
+#include <arpa/inet.h>  /* __BYTE_ORDER */
+#endif
+#if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
+#    if __BYTE_ORDER == __LITTLE_ENDIAN
+#        define __LITTLE_ENDIAN__
+#    elif __BYTE_ORDER == __BIG_ENDIAN
+#        define __BIG_ENDIAN__
+#    elif _WIN32
+#        define __LITTLE_ENDIAN__
+#    endif
+#endif
+
 /***********************************************************************************/
 // Sleep
 /***********************************************************************************/
@@ -852,6 +865,9 @@ namespace xx {
 	// 各式计算辅助函数
 	/************************************************************************************/
 
+	/*********************************/
+	// 内存对齐相关
+
 	inline size_t Calc2n(size_t const& n) noexcept {
 		assert(n);
 #ifdef _MSC_VER
@@ -877,6 +893,9 @@ namespace xx {
 		if (rtv == n) return n;
 		else return rtv << 1;
 	}
+
+	/*********************************/
+	// 质数相关
 
 	// < 2G, 8 - 512 dataSize
 	constexpr static const int32_t primes[] = { 7, 11, 13, 17, 19, 23, 31, 37, 43, 47, 53, 59, 67, 71, 73, 79, 83, 89, 97, 103, 107, 109, 113, 131, 139, 151, 157, 163, 167, 173, 179, 181, 191, 193, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 271, 277, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 463, 467, 479, 487, 491, 499, 503, 509, 523, 541, 547, 557, 563, 571, 577, 587, 599, 607, 613, 619, 631, 647, 653, 661, 677, 683, 691, 701, 709, 719, 727, 733, 743, 751, 757, 761, 773, 787, 797, 811, 823, 829, 839, 853, 863, 877, 887, 911, 919, 929, 941, 947, 953, 967, 971, 983, 991, 997, 1013, 1039, 1051, 1069, 1087, 1103, 1117, 1129, 1151, 1163, 1181, 1193, 1213, 1231, 1237, 1259, 1279, 1291, 1307, 1327, 1373, 1381, 1399, 1423, 1439, 1453, 1471, 1487, 1499, 1511, 1531, 1549, 1567, 1583, 1597, 1613, 1627, 1637, 1663, 1669, 1693, 1709, 1723, 1741, 1759, 1789, 1801, 1823, 1831, 1847, 1871, 1879, 1901, 1913, 1933, 1951, 1979, 1999, 2011, 2029, 2069, 2111, 2143, 2161, 2207, 2239, 2269, 2297, 2333, 2357, 2399, 2423, 2459, 2477, 2521, 2557, 2591, 2621, 2647, 2687, 2719, 2749, 2777, 2803, 2843, 2879, 2909, 2939, 2971, 3001, 3037, 3067, 3089, 3121, 3167, 3191, 3229, 3259, 3271, 3323, 3359, 3391, 3413, 3449, 3469, 3517, 3547, 3583, 3613, 3643, 3677, 3709, 3739, 3769, 3803, 3833, 3863, 3889, 3931, 3967, 3989, 4027, 4057, 4159, 4219, 4283, 4349, 4409, 4463, 4523, 4603, 4663, 4733, 4799, 4861, 4919, 4987, 5051, 5119, 5179, 5237, 5309, 5351, 5437, 5503, 5563, 5623, 5693, 5749, 5821, 5881, 5939, 6011, 6079, 6143, 6203, 6271, 6329, 6397, 6451, 6521, 6581,
@@ -923,6 +942,28 @@ namespace xx {
 		return -1;
 	}
 
+
+	/*********************************/
+	// 大尾相关
+
+	// 从大尾数据流读出一个定长数字
+	template<typename NumberType, size_t size = sizeof(NumberType), typename ENABLED = std::enable_if_t<std::is_arithmetic_v<NumberType> && size <= 8>>
+	NumberType ReadBigEndianNumber(uint8_t const* const& buf) {
+		NumberType n;
+#ifdef __LITTLE_ENDIAN__
+		if constexpr (size > 0) ((uint8_t*)& n)[size - 1] = buf[0];
+		if constexpr (size > 1) ((uint8_t*)& n)[size - 2] = buf[1];
+		if constexpr (size > 2) ((uint8_t*)& n)[size - 3] = buf[2];
+		if constexpr (size > 3) ((uint8_t*)& n)[size - 4] = buf[3];
+		if constexpr (size > 4) ((uint8_t*)& n)[size - 5] = buf[4];
+		if constexpr (size > 5) ((uint8_t*)& n)[size - 6] = buf[5];
+		if constexpr (size > 6) ((uint8_t*)& n)[size - 7] = buf[6];
+		if constexpr (size > 7) ((uint8_t*)& n)[size - 8] = buf[7];
+#else
+		memcpy(&n, buf, size);
+#endif
+		return n;
+	}
 }
 
 
@@ -935,33 +976,3 @@ namespace xx {
 #define COR_BEGIN	switch (lineNumber) { case 0:
 #define COR_YIELD	return __LINE__; case __LINE__:;
 #define COR_END		} return 0;
-
-//struct Stackless {
-//	using FuncType = std::function<int(int const& lineNumber)>;
-//	std::vector<std::pair<FuncType, int>> funcs;
-//	inline void Add(FuncType&& func) {
-//		if (!func) return;
-//		funcs.emplace_back(std::move(func), 0);
-//	}
-//	inline void RunAdd(FuncType&& func) {
-//		if (!func) return;
-//		int n = func(0);
-//		if (n == (int)0xFFFFFFFF) return;
-//		funcs.emplace_back(std::move(func), n);
-//	}
-//	size_t RunOnce() {
-//		if (funcs.size()) {
-//			for (auto&& i = funcs.size() - 1; i != (size_t)-1; --i) {
-//				auto&& func = funcs[i];
-//				func.second = func.first(func.second);
-//				if (!func.second) {
-//					if (i + 1 < funcs.size()) {
-//						funcs[i] = std::move(funcs[funcs.size() - 1]);
-//					}
-//					funcs.pop_back();
-//				}
-//			}
-//		}
-//		return funcs.size();
-//	}
-//};
