@@ -528,7 +528,46 @@ namespace xx {
 		}
 	};
 
-	// todo: 适配 std::optional<T>
+	// 适配 std::optional<T>
+	template<typename T>
+	struct BFuncs<std::optional<T>, void> {
+		static inline void WriteTo(BBuffer& bb, std::optional<T> const& in) noexcept {
+			if (in.has_value()) {
+				bb.Write((uint8_t)1, in.value());
+			}
+			else {
+				bb.Write((uint8_t)0);
+			}
+		}
+		static inline int ReadFrom(BBuffer& bb, std::optional<T>& out) noexcept {
+			uint8_t hasValue = 0;
+			if (int r = bb.Read(hasValue)) return r;
+			if (!hasValue) return 0;
+			return bb.Read(out.value());
+		}
+	};
+
+	// 适配 xx::List<T>
+	template<typename T>
+	struct BFuncs<List<T>, void> {
+		static inline void WriteTo(BBuffer& bb, List<T> const& in) noexcept {
+			in.ToBBuffer(bb);
+		}
+		static inline int ReadFrom(BBuffer& bb, List<T>& out) noexcept {
+			return out.FromBBuffer(bb);
+		}
+	};
+
+	// 适配 xx::BBuffer
+	template<>
+	struct BFuncs<BBuffer, void> {
+		static inline void WriteTo(BBuffer& bb, BBuffer const& in) noexcept {
+			in.ToBBuffer(bb);
+		}
+		static inline int ReadFrom(BBuffer& bb, BBuffer& out) noexcept {
+			return out.FromBBuffer(bb);
+		}
+	};
 
 	template<typename ...TS>
 	void BBuffer::Write(TS const& ...vs) noexcept {
@@ -551,5 +590,4 @@ namespace xx {
 	int BBuffer::Read(TS&...vs) noexcept {
 		return ReadCore(vs...);
 	}
-
 }

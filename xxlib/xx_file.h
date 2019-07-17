@@ -19,6 +19,25 @@ namespace xx
 		return 0;
 	}
 
+	inline int ReadAllBytes(std::filesystem::path const& path, std::unique_ptr<uint8_t[]>& outBuf, size_t& outSize) noexcept {
+		outBuf.reset();
+		outSize = 0;
+		std::ifstream f(path, std::ifstream::binary);
+		if (!f) return -1;													// not found? no permission? locked?
+		ScopeGuard sg([&] { f.close(); });
+		f.seekg(0, f.end);
+		auto&& siz = f.tellg();
+		if ((uint64_t)siz > std::numeric_limits<size_t>::max()) return -2;	// too big
+		f.seekg(0, f.beg);
+		auto&& buf = new(std::nothrow) uint8_t[siz];
+		if (!buf) return -3;												// not enough memory
+		outBuf = std::unique_ptr<uint8_t[]>(buf);
+		f.read((char*)buf, siz);
+		if (!f) return -3;													// only f.gcount() could be read
+		outSize = siz;
+		return 0;
+	}
+
 	inline int WriteAllBytes(std::filesystem::path const& path, char const* const& buf, size_t const& len) noexcept {
 		std::ofstream f(path, std::ios::binary | std::ios::trunc);
 		if (!f) return -1;						// no create permission? exists readonly?
