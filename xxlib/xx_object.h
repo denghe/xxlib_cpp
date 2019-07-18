@@ -109,7 +109,7 @@ inline void Sleep(int ms)
 // 安卓 / linux Guid 相关适配
 /************************************************************************************/
 
-#ifdef __ANDROID_NDK__
+#ifdef __ANDROID__
 extern void uuid_generate(unsigned char* buf);
 #else
 #ifndef _WIN32
