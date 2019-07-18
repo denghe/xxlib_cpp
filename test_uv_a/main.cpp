@@ -20,20 +20,7 @@ png -> webm 期望效果:
 
 扩展需求:
 	小图片是否可以在 2048x2048 | 4096x4096 等区间内运行时排布入内，得到类似 texture packer 的打包序列帧贴图? 从而减少 draw call?
-
-
-文件格式: (ver 0.1a)
-	byte					codecId;			// 0: vp8			1: vp9
-	byte					hasAlpha;			// 1: has
-	short					w, h;				// 宽，高
-	float					duration;			// 总播放时长: 秒
-
-	List<int>				frames;				// no alpha: rgbBuf, rgbBufSize .....
-												// alpha: rgbBuf, rgbBufSize, aBuf, aBufSize .....
-
-	byte[]					data;				// 跟在上面的变量数据后面
 */
-
 
 //#include "vpx/vpx_decoder.h"
 //#include "vpx/vp8dx.h"
@@ -42,6 +29,7 @@ png -> webm 期望效果:
 #include "xx_bbuffer.h"
 #include "xx_file.h"
 
+// 整个存档文件的数据映射. 直接序列化
 struct Header {
 	uint8_t codecId = 0;
 	uint8_t hasAlpha = 0;
@@ -60,13 +48,15 @@ struct Header {
 	}
 
 	// 填充 bufs 数组
-	inline void FillBufs() {
+	inline int FillBufs() {
 		bufs.Resize(lens.len);
 		auto baseBuf = data.buf;
 		for (int i = 0; i < lens.len; ++i) {
 			bufs[i] = baseBuf;
 			baseBuf += lens[i];
 		}
+		if (baseBuf != data.buf + data.len) return -1;
+		return 0;
 	}
 
 	inline std::tuple<uint8_t*, uint32_t> GetRGBData(int const& idx) {
@@ -89,8 +79,7 @@ namespace xx {
 		static inline int ReadFrom(BBuffer& bb, Header& out) {
 			int r = bb.Read(out.codecId, out.hasAlpha, out.width, out.height, out.duration, out.lens, out.data);
 			if (r) return r;
-			out.FillBufs();
-			return 0;
+			return out.FillBufs();
 		}
 	};
 }
@@ -108,7 +97,7 @@ int main(int argc, char* argv[]) {
 	assert(!r);
 
 	// 开始解析 ebml 头
-	auto&& ebml = parse_ebml_file(std::move(data), dataLen, 1);
+	auto&& ebml = parse_ebml_file(std::move(data), dataLen/*, 1*/);
 	auto&& segment = ebml.FindChildById(EbmlElementId::Segment);
 
 	// 提取 播放总时长
@@ -212,11 +201,19 @@ int main(int argc, char* argv[]) {
 	}
 
 
+	r = header.FillBufs();
+	assert(!r);
+
 	xx::BBuffer bb;
 	bb.Write(header);
 
 	Header h2;
-	bb.Read(h2);
+	r = bb.Read(h2);
+	assert(!r);
+
+	r = xx::WriteAllBytes("a.xxmv", bb);
+	assert(!r);
+
 	return 0;
 }
 

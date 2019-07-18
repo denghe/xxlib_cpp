@@ -8,6 +8,7 @@ namespace Client_CatchFish
     class Enter
     {
         [Desc("传递先前保存的 token 以便断线重连. 没有传空")]
+        [Limit(64)]
         string token;
     }
 
