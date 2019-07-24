@@ -260,10 +260,13 @@ inline int WriteXxmv(Webm const& wm, std::filesystem::path const& path) {
 #define SVPNG_PUT(u) bb.Write((uint8_t)(u));
 #include "svpng.inc"
 
+#include "libyuv.h"
+
 inline int Yuva2RgbaPng(std::filesystem::path const& fn
 	, uint32_t const& w, uint32_t const& h
 	, uint8_t const* const& yData, uint8_t const* const& uData, uint8_t const* const& vData, uint8_t const* const& aData
 	, uint32_t const& yaStride, uint32_t const& uvStride) {
+
 	// 数据容器
 	std::vector<uint8_t> bytes;
 	bytes.reserve(w * h * 4);
@@ -308,8 +311,24 @@ inline int Yuva2RgbaPng(std::filesystem::path const& fn
 	return xx::WriteAllBytes(fn, bb);
 }
 
-#include "vpx/vpx_decoder.h"
-#include "vpx/vp8dx.h"
+// 这个 windows x64 下大约快 20+ 倍
+inline int Yuva2RgbaPng2(std::filesystem::path const& fn
+	, uint32_t const& w, uint32_t const& h
+	, uint8_t const* const& yData, uint8_t const* const& uData, uint8_t const* const& vData, uint8_t const* const& aData
+	, uint32_t const& yaStride, uint32_t const& uvStride) {
+
+	std::vector<uint8_t> bytes;
+	bytes.resize(w * h * 4);
+
+	if(auto&& r = libyuv::I420AlphaToARGB(yData, yaStride, uData, uvStride, vData, uvStride, aData, yaStride, bytes.data(), w * 4, w, h, 0)) return r;
+
+	xx::BBuffer bb;
+	svpng(bb, w, h, bytes.data(), 1);
+	return xx::WriteAllBytes(fn, bb);
+}
+
+#include "vpx_decoder.h"
+#include "vp8dx.h"
 
 inline int Xxmv2Pngs(Webm& wm) {
 	vpx_codec_ctx_t ctx;
@@ -341,7 +360,7 @@ inline int Xxmv2Pngs(Webm& wm) {
 			if (imgA->stride[0] != imgRGB->stride[0]) return -4;
 
 			auto&& fn = std::string("a") + std::to_string(i) + ".png";
-			if (auto && r = Yuva2RgbaPng(fn, wm.width, wm.height
+			if (auto && r = Yuva2RgbaPng2(fn, wm.width, wm.height
 				, imgRGB->planes[0], imgRGB->planes[1], imgRGB->planes[2], imgA->planes[0]
 				, imgRGB->stride[0], imgRGB->stride[1])) return r;
 		}
@@ -358,7 +377,7 @@ inline int Xxmv2Pngs(Webm& wm) {
 			if (imgRGB->stride[1] != imgRGB->stride[2]) return -2;
 
 			auto&& fn = std::string("a") + std::to_string(i) + ".png";
-			if (auto && r = Yuva2RgbaPng(fn, wm.width, wm.height
+			if (auto && r = Yuva2RgbaPng2(fn, wm.width, wm.height
 				, imgRGB->planes[0], imgRGB->planes[1], imgRGB->planes[2], nullptr
 				, imgRGB->stride[0], imgRGB->stride[1])) return r;
 
