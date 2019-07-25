@@ -55,6 +55,8 @@ struct Webm {
 	// 总帧数( 后期填充 )
 	uint32_t count = 0;
 
+	// todo: 可能还有别的附加信息存储. 例如 中心点坐标, 显示缩放比
+
 	Webm() = default;
 	Webm(Webm const&) = delete;
 	Webm(Webm&&) = default;
@@ -119,8 +121,7 @@ namespace xx {
 			bb.Write(in.codecId, in.hasAlpha, in.width, in.height, in.duration, in.lens, in.data);
 		}
 		static inline int ReadFrom(BBuffer& bb, ::Webm& out) {
-			int r = bb.Read(out.codecId, out.hasAlpha, out.width, out.height, out.duration, out.lens, out.data);
-			if (r) return r;
+			if (int r = bb.Read(out.codecId, out.hasAlpha, out.width, out.height, out.duration, out.lens, out.data)) return r;
 			return out.Init();
 		}
 	};
@@ -306,6 +307,7 @@ inline int Yuva2RgbaPng(std::filesystem::path const& fn
 		}
 	}
 
+	// 存为非压缩png
 	xx::BBuffer bb;
 	svpng(bb, w, h, bytes.data(), 1);
 	return xx::WriteAllBytes(fn, bb);

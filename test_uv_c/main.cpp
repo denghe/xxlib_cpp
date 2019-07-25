@@ -170,6 +170,7 @@ inline size_t Coroutines::RunOnce() {
 
 #include <iostream>
 int main(int argc, char* argv[]) {
+	assert(false);
 	Coroutines cors;
 	cors.Add([](Coroutine& yield) {
 		for (size_t i = 0; i < 9; i++) {

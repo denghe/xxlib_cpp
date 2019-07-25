@@ -1,8 +1,62 @@
 ﻿#include <iostream>
 #include <chrono>
 #include "xx_logger.h"
+#include <exception>
+//#ifndef NDEBUG
+//_ACRTIMP void __cdecl _wassert(
+//	_In_z_ wchar_t const* _Message,
+//	_In_z_ wchar_t const* _File,
+//	_In_   unsigned       _Line
+//);
+//#endif
+//#define ENABLE_XXASSERT 0
+//#if ENABLE_XXASSERT
+//#    define xxAssert(expression) (void)(                                                       \
+//            (!!(expression)) ||                                                              \
+//            (_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0) \
+//        )
+//#else 
+//#    define xxAssert(expression) assert(expression)
+//#endif
+//
+//
+//#ifdef NDEBUG
+//
+//#define xxassert(expression) ((void)0)
+//
+//#else
+//
+//_ACRTIMP void __cdecl _wassert(
+//	_In_z_ wchar_t const* _Message,
+//	_In_z_ wchar_t const* _File,
+//	_In_   unsigned       _Line
+//);
+//
+//#define xxassert(expression) (void)(                                                       \
+//            (!!(expression)) ||                                                              \
+//            (_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0) \
+//        )
+//
+//#endif
 
+
+#ifdef NDEBUG
+#define ENABLE_XXASSERT 1
+#if ENABLE_XXASSERT
+#    define xxAssert(expression) (void)(                                                       \
+            (!!(expression)) ||                                                              \
+            (wprintf_s(L"%s %s %d\n", _CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)))|| \
+            ((throw -1),0) \
+        )
+#else 
+#    define xxAssert(expression) ((void)0)
+#endif
+#endif
 int main(int argc, char* argv[]) {
+	//xxAssert(false);
+	auto a = 0.0f;
+	float  o = -0.0f / a;
+	std::cout << o;
 	using namespace std::chrono;
 	std::string logFN = argv[0];
 	logFN += ".log.db3";
