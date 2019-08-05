@@ -8,9 +8,8 @@ using System.Text;
 
 public static class GenLUA_Class
 {
-    public static void Gen(Assembly asm, string outDir, string templateName, string md5)
+    public static void Gen(Assembly asm, string outDir, string templateName, string md5, TemplateLibrary.Filter<TemplateLibrary.LuaFilter> filter)
     {
-        var filter = new TemplateLibrary.Filter<TemplateLibrary.LuaFilter>(asm);
         var sb = new StringBuilder();
 
         sb.Append(@"
