@@ -199,6 +199,8 @@ namespace xx
 		struct Connection {
 			MYSQL* ctx = nullptr;
 			std::string lastError;
+			unsigned int lastErrorNumber = 0;
+
 			operator bool() {
 				return ctx;
 			}
@@ -211,16 +213,19 @@ namespace xx
 			void Open(char const* const& host, int const& port, char const* const& username, char const* const& password, char const* const& db) {
 				if (ctx) {
 					lastError = "connection is opened.";
-					throw - 1;
+					lastErrorNumber = 0;
+					throw lastErrorNumber;
 				}
 				ctx = mysql_init(nullptr);
 				if (!ctx) {
 					lastError = "mysql_init failed.";
-					throw - 2;
+					lastErrorNumber = -1;
+					throw lastErrorNumber;
 				}
 				if (!mysql_real_connect(ctx, host, username, password, db, port, nullptr, CLIENT_MULTI_STATEMENTS)) {	// todo: 关 SSL 的参数
 					lastError = mysql_error(ctx);
-					throw - 3;
+					lastErrorNumber = mysql_errno(ctx);
+					throw lastErrorNumber;
 				}
 			}
 
@@ -244,11 +249,13 @@ namespace xx
 			void Execute(char const* const& sql, unsigned long const& len) {
 				if (!ctx) {
 					lastError = "connection is closed.";
-					throw - 1;
+					lastErrorNumber = 0;
+					throw lastErrorNumber;
 				}
 				if (mysql_real_query(ctx, sql, len)) {
 					lastError = mysql_error(ctx);
-					throw - 2;
+					lastErrorNumber = mysql_errno(ctx);
+					throw lastErrorNumber;
 				}
 			}
 
@@ -261,13 +268,39 @@ namespace xx
 				Execute((char*)sql.data(), (unsigned long)sql.size());
 			}
 
+			// 执行一段 SQL 脚本. 后续使用 Fetch 检索返回结果( 如果有的话 ). 这是不 throw 版. 返回 0 表示成功. 非 0 为错误码.
+			int TryExecute(char const* const& sql, unsigned long const& len) {
+				if (!ctx) {
+					lastError = "connection is closed.";
+					lastErrorNumber = 0;
+					return lastErrorNumber;
+				}
+				if (mysql_real_query(ctx, sql, len)) {
+					lastError = mysql_error(ctx);
+					lastErrorNumber = mysql_errno(ctx);
+					return lastErrorNumber;
+				}
+				return 0;
+			}
+
+			template<size_t len>
+			int TryExecute(char const(&sql)[len]) {
+				return TryExecute(sql, (unsigned long)(len - 1));
+			}
+
+			int TryExecute(std::string const& sql) {
+				return TryExecute((char*)sql.data(), (unsigned long)sql.size());
+			}
+
+
 
 			// 填充一个结果集, 并产生相应回调. 返回 是否存在下一个结果集
 			// infoHandler 返回 true 将继续对每行数据发起 rowHandler 调用. 返回 false, 将终止调用
 			bool Fetch(std::function<bool(Info&)>&& infoHandler, std::function<bool(Reader&)>&& rowHandler) {
 				if (!ctx) {
 					lastError = "connection is closed.";
-					throw - 1;
+					lastErrorNumber = 0;
+					throw lastErrorNumber;
 				}
 
 				Info info(lastError);
@@ -294,7 +327,8 @@ namespace xx
 							reader.lengths = mysql_fetch_lengths(res);
 							if (!reader.lengths) {
 								lastError = mysql_error(ctx);
-								throw - 2;
+								lastErrorNumber = mysql_errno(ctx);
+								throw lastErrorNumber;
 							}
 							if (!rowHandler(reader)) break;
 						}
@@ -311,7 +345,8 @@ namespace xx
 				else {
 					// 有结果集 但是出错
 					lastError = mysql_error(ctx);
-					throw - 3;
+					lastErrorNumber = mysql_errno(ctx);
+					throw lastErrorNumber;
 				}
 
 				// 0: 有更多结果集.  -1: 没有    >0: 出错
@@ -320,7 +355,8 @@ namespace xx
 				else if (n == -1) return false;
 				else {
 					lastError = mysql_error(ctx);
-					throw - 4;
+					lastErrorNumber = mysql_errno(ctx);
+					throw lastErrorNumber;
 				}
 				return false;
 			};

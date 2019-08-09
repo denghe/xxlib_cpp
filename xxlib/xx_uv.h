@@ -57,24 +57,24 @@ namespace xx {
 		}
 		template<typename T>
 		static T* GetSelf(void* const& p) noexcept {
-			return (T*)* ((void**)p - 1);
+			return (T*) * ((void**)p - 1);
 		}
 		template<typename T>
-		static void HandleCloseAndFree(T * &tar) noexcept {
+		static void HandleCloseAndFree(T*& tar) noexcept {
 			if (!tar) return;
 			auto h = (uv_handle_t*)tar;
 			tar = nullptr;
 			assert(!uv_is_closing(h));
-			uv_close(h, [](uv_handle_t * handle) {
+			uv_close(h, [](uv_handle_t* handle) {
 				Uv::Free(handle);
 				});
 		}
-		inline static void AllocCB(uv_handle_t * h, size_t suggested_size, uv_buf_t * buf) noexcept {
+		inline static void AllocCB(uv_handle_t* h, size_t suggested_size, uv_buf_t* buf) noexcept {
 			buf->base = (char*)::malloc(suggested_size);
 			buf->len = decltype(uv_buf_t::len)(suggested_size);
 		}
 
-		inline static int FillIP(sockaddr_in6 & saddr, std::string & ip, bool includePort = true) noexcept {
+		inline static int FillIP(sockaddr_in6& saddr, std::string& ip, bool includePort = true) noexcept {
 			ip.resize(64);
 			if (saddr.sin6_family == AF_INET6) {
 				if (int r = uv_ip6_name(&saddr, (char*)ip.data(), ip.size())) return r;
@@ -94,7 +94,7 @@ namespace xx {
 			}
 			return 0;
 		}
-		inline static int FillIP(uv_tcp_t * stream, std::string & ip, bool includePort = true) noexcept {
+		inline static int FillIP(uv_tcp_t* stream, std::string& ip, bool includePort = true) noexcept {
 			sockaddr_in6 saddr;
 			int len = sizeof(saddr);
 			int r = 0;
@@ -140,7 +140,7 @@ namespace xx {
 			: UvItem(uv) {
 			uvAsync = Uv::Alloc<uv_async_t>(this);
 			if (!uvAsync) throw - 1;
-			if (int r = uv_async_init(&uv.uvLoop, uvAsync, [](uv_async_t * handle) {
+			if (int r = uv_async_init(&uv.uvLoop, uvAsync, [](uv_async_t* handle) {
 				Uv::GetSelf<UvAsync>(handle)->Execute();
 				})) {
 				uvAsync = nullptr;
@@ -219,7 +219,7 @@ namespace xx {
 			}
 		}
 
-		inline int Start(uint64_t const& timeoutMS, uint64_t const& repeatIntervalMS, std::function<void()> && onFire = nullptr) noexcept {
+		inline int Start(uint64_t const& timeoutMS, uint64_t const& repeatIntervalMS, std::function<void()>&& onFire = nullptr) noexcept {
 			if (!uvTimer) return -1;
 			this->timeoutMS = timeoutMS;
 			this->repeatIntervalMS = repeatIntervalMS;
@@ -245,7 +245,7 @@ namespace xx {
 		}
 
 	protected:
-		inline static void Fire(uv_timer_t * t) {
+		inline static void Fire(uv_timer_t* t) {
 			auto self = Uv::GetSelf<UvTimer>(t);
 			if (self->onFire) {
 				self->onFire();
@@ -323,7 +323,7 @@ namespace xx {
 			}
 			auto req = std::make_unique<uv_getaddrinfo_t_ex>();
 			req->resolver_w = As<UvResolver>(shared_from_this());
-			if (int r = uv_getaddrinfo((uv_loop_t*)& uv.uvLoop, (uv_getaddrinfo_t*)& req->req, [](uv_getaddrinfo_t * req_, int status, struct addrinfo* ai) {
+			if (int r = uv_getaddrinfo((uv_loop_t*)& uv.uvLoop, (uv_getaddrinfo_t*)& req->req, [](uv_getaddrinfo_t* req_, int status, struct addrinfo* ai) {
 				auto req = std::unique_ptr<uv_getaddrinfo_t_ex>(container_of(req_, uv_getaddrinfo_t_ex, req));
 				if (status) return;													// error or -4081 canceled
 				auto resolver = req->resolver_w.lock();
@@ -503,14 +503,14 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual int HandlePack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+		inline virtual int HandlePack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			// for kcp listener accept
 			if (recvLen == 1 && *recvBuf == 0) {
 				ip = peerBase->GetIP();
 				return 0;
 			}
 
-			auto & recvBB = uv.recvBB;
+			auto& recvBB = uv.recvBB;
 			recvBB.Reset((uint8_t*)recvBuf, recvLen);
 
 			int serial = 0;
@@ -676,7 +676,7 @@ namespace xx {
 		// called by dialer or listener
 		inline int ReadStart() noexcept {
 			if (!uvTcp) return -1;
-			return uv_read_start((uv_stream_t*)uvTcp, Uv::AllocCB, [](uv_stream_t * stream, ssize_t nread, const uv_buf_t * buf) {
+			return uv_read_start((uv_stream_t*)uvTcp, Uv::AllocCB, [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 				auto self = Uv::GetSelf<UvTcpPeerBase>(stream);
 				auto holder = self->shared_from_this();	// hold for callback Dispose
 				if (nread > 0) {
@@ -692,7 +692,7 @@ namespace xx {
 		}
 
 		// 4 byte len header. can override for write custom header format
-		virtual int Unpack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
 			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
@@ -719,10 +719,10 @@ namespace xx {
 		}
 
 		// launch a send request
-		inline int SendReq(uv_write_t_ex * const& req) noexcept {
+		inline int SendReq(uv_write_t_ex* const& req) noexcept {
 			if (!uvTcp) return -1;
 			// todo: check send queue len ? protect?  uv_stream_get_write_queue_size((uv_stream_t*)uvTcp);
-			int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t * req, int status) {
+			int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t* req, int status) {
 				::free(req);
 				});
 			if (r) Dispose(1);
@@ -731,7 +731,7 @@ namespace xx {
 
 		// fast mode. req + data 2N1, reduce malloc times.
 		// reqbuf = uv_write_t_ex space + len space + data, len = data's len
-		inline int SendReqAndData(uint8_t * const& reqbuf, uint32_t const& len) {
+		inline int SendReqAndData(uint8_t* const& reqbuf, uint32_t const& len) {
 			reqbuf[sizeof(uv_write_t_ex) + 0] = uint8_t(len);		// fill package len
 			reqbuf[sizeof(uv_write_t_ex) + 1] = uint8_t(len >> 8);
 			reqbuf[sizeof(uv_write_t_ex) + 2] = uint8_t(len >> 16);
@@ -775,7 +775,7 @@ namespace xx {
 			if (isListener) {
 				if (int r = uv_udp_bind(uvUdp, (sockaddr*)& addr, UV_UDP_REUSEADDR)) throw r;
 			}
-			if (int r = uv_udp_recv_start(uvUdp, Uv::AllocCB, [](uv_udp_t * handle, ssize_t nread, const uv_buf_t * buf, const struct sockaddr* addr, unsigned flags) {
+			if (int r = uv_udp_recv_start(uvUdp, Uv::AllocCB, [](uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags) {
 				auto self = Uv::GetSelf<UvKcp>(handle);
 				auto holder = self->shared_from_this();	// hold for callback Dispose
 				if (nread > 0) {
@@ -815,11 +815,11 @@ namespace xx {
 		}
 
 	protected:
-		virtual int Unpack(uint8_t * const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept = 0;
+		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept = 0;
 
 		// reqbuf = uv_udp_send_t_ex space + len space + data
 		// len = data's len
-		inline int SendReqAndData(uint8_t * const& reqbuf, uint32_t const& len, sockaddr const* const& addr = nullptr) {
+		inline int SendReqAndData(uint8_t* const& reqbuf, uint32_t const& len, sockaddr const* const& addr = nullptr) {
 			reqbuf[sizeof(uv_udp_send_t_ex) + 0] = uint8_t(len);		// fill package len
 			reqbuf[sizeof(uv_udp_send_t_ex) + 1] = uint8_t(len >> 8);
 			reqbuf[sizeof(uv_udp_send_t_ex) + 2] = uint8_t(len >> 16);
@@ -831,10 +831,10 @@ namespace xx {
 			return Send(req, addr);
 		}
 
-		inline int Send(uv_udp_send_t_ex * const& req, sockaddr const* const& addr = nullptr) noexcept {
+		inline int Send(uv_udp_send_t_ex* const& req, sockaddr const* const& addr = nullptr) noexcept {
 			if (!uvUdp) return -1;
 			// todo: check send queue len ? protect?
-			int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)& this->addr, [](uv_udp_send_t * req, int status) {
+			int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)& this->addr, [](uv_udp_send_t* req, int status) {
 				::free(req);
 				});
 			if (r) Dispose(1);
@@ -863,7 +863,7 @@ namespace xx {
 			if (int r = ikcp_nodelay(kcp, 1, 10, 2, 1)) return r;
 			kcp->rx_minrto = 10;
 			kcp->stream = 1;
-			ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb * kcp, void* user)->int {
+			ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
 				auto self = ((UvKcpPeerBase*)user);
 				return self->udp->Send((uint8_t*)inBuf, len, (sockaddr*)& self->addr);
 				});
@@ -917,7 +917,7 @@ namespace xx {
 				if (recvLen <= 0) break;
 				if (int r = Unpack((uint8_t*)uv.recvBuf, recvLen)) {
 					Dispose(1);
-					return -1;
+					return r;
 				}
 			} while (true);
 
@@ -930,8 +930,12 @@ namespace xx {
 		inline int SendPackageCore(Data const& data, int32_t const& serial = 0) noexcept {
 			if (!kcp) return -1;
 			auto& sendBB = uv.sendBB;
-			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
-			sendBB.Reserve(1024);
+			if constexpr (std::is_same_v<BBuffer, Data>) {
+				sendBB.Reserve(4 + 5 + data.len);
+			}
+			else {
+				sendBB.Reserve(1024);
+			}
 			sendBB.len = 4;		// skip header space
 			sendBB.Write(serial);
 			if constexpr (std::is_same_v<BBuffer, Data>) {
@@ -963,13 +967,13 @@ namespace xx {
 		}
 
 		// called by udp class. put data to kcp when udp receive 
-		inline int Input(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+		inline int Input(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			if (!kcp) return -1;
 			return ikcp_input(kcp, (char*)recvBuf, recvLen);
 		}
 
 		// 4 bytes len header. can override for custom header format.
-		inline virtual int Unpack(uint8_t * const& recvBuf, uint32_t const& recvLen) noexcept {
+		inline virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
 			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
@@ -1069,8 +1073,8 @@ namespace xx {
 			auto&& peerIter = peers.Find(conv);
 			if (peerIter == -1) {								// conv not found: scan shakes
 				if (!owner || owner->Disposed()) return 0;		// listener disposed: ignore
-				auto && ipAndPort = Uv::ToIpPortString(addr);
-				auto && idx = shakes.Find(ipAndPort);			// find by addr
+				auto&& ipAndPort = Uv::ToIpPortString(addr);
+				auto&& idx = shakes.Find(ipAndPort);			// find by addr
 				if (idx == -1 || shakes.ValueAt(idx).first != conv) return 0;	// not found or bad conv: ignore
 				shakes.RemoveAt(idx);							// remove from shakes
 				peer = xx::TryMake<UvKcpPeerBase>(uv);			// create kcp peer
@@ -1134,7 +1138,7 @@ namespace xx {
 			else {
 				++i;
 				if ((i & 0xFu) == 0) {		// 每 16 帧发送一次
-					if (int r = Send((uint8_t*)& port, sizeof(port))) {
+					if (Send((uint8_t*)& port, sizeof(port))) {
 						Dispose();
 					}
 				}
@@ -1245,7 +1249,7 @@ namespace xx {
 			}
 			if (uv_tcp_bind(uvTcp, (sockaddr*)& addr, 0)) throw - 3;
 
-			if (uv_listen((uv_stream_t*)uvTcp, backlog, [](uv_stream_t * server, int status) {
+			if (uv_listen((uv_stream_t*)uvTcp, backlog, [](uv_stream_t* server, int status) {
 				if (status) return;
 				auto&& self = Uv::GetSelf<UvTcpListener>(server);
 				auto&& peer = xx::TryMake<UvTcpPeerBase>(self->uv);
@@ -1254,7 +1258,7 @@ namespace xx {
 				if (peer->ReadStart()) return;
 				Uv::FillIP(peer->uvTcp, peer->ip);
 				self->Accept(peer);
-			})) throw - 4;
+				})) throw - 4;
 		};
 
 		UvTcpListener(UvTcpListener const&) = delete;
@@ -1325,7 +1329,7 @@ namespace xx {
 					self->Cancel();
 					self->Accept(UvPeer_s());
 				}
-			});
+				});
 			return timeouter ? 0 : -2;
 		}
 	};
@@ -1439,7 +1443,7 @@ namespace xx {
 
 			req->dialer_w = As<UvTcpDialer>(shared_from_this());
 
-			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)& addr, [](uv_connect_t * conn, int status) {
+			if (uv_tcp_connect(&req->req, req->peer->uvTcp, (sockaddr*)& addr, [](uv_connect_t* conn, int status) {
 				std::shared_ptr<UvTcpDialer> dialer;
 				std::shared_ptr<UvTcpPeerBase> peer;
 				{
@@ -1454,7 +1458,7 @@ namespace xx {
 				if (peer->ReadStart()) return;											// read error
 				Uv::FillIP(peer->uvTcp, peer->ip);
 				dialer->Accept(peer);													// callback
-			})) return -3;
+				})) return -3;
 
 			reqs.Add(req);
 			sgReq.Cancel();
@@ -1481,7 +1485,7 @@ namespace xx {
 		auto&& dialer = dialer_w.lock();
 		if (!dialer) return;
 		auto idx = dialer->reqs.Find(this);
-		if (idx == -1) return;
+		if (idx == (size_t)-1) return;
 		dialer->reqs.SwapRemoveAt(idx);
 	}
 

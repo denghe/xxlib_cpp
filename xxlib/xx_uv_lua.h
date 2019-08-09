@@ -49,11 +49,13 @@ namespace xx {
 	protected:
 		inline virtual int HandlePack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept override {
 			auto& recvBB = uv.recvBB;
-			recvBB.Reset((uint8_t*)recvBuf, recvLen);
+			recvBB.Reset(recvBuf, recvLen);
 
 			int serial = 0;
 			if (int r = recvBB.Read(serial)) return r;
-			recvBB.readLengthLimit = recvLen;			// 用于 lua 创建时计算 memcpy 读取长度
+
+			// 令 recvBB 只含有数据部分
+			recvBB.Reset(recvBuf + recvBB.offset, recvLen - recvBB.offset);
 
 			if (serial == 0) {
 				return ReceivePush(recvBB);
