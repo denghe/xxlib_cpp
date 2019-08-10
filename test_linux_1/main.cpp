@@ -1,4 +1,18 @@
-﻿#include "xx_epoll_context.h"
+﻿#include "foo.h"
+
+#include "xx_uv.h"
+
+int main() {
+	Foo f;
+	f.a = 123;
+	f.b = 432;
+	f.Xxx();
+}
+
+
+
+/*
+#include "xx_epoll_context.h"
 
 int main() {
 
@@ -13,3 +27,5 @@ int main() {
 		}
 	);
 }
+
+*/

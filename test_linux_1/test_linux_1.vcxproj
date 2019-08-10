@@ -29,14 +29,21 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
-  <ImportGroup Label="Shared" />
+  <ImportGroup Label="Shared">
+    <Import Project="..\xxlib\xxlib.vcxitems" Label="Shared" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="foo.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="foo.h" />
     <ClInclude Include="xx_epoll_context.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="foo.inc" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -45,7 +52,7 @@
     <Link />
     <Link />
     <Link>
-      <LibraryDependencies>pthread;boost_context;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -55,7 +62,7 @@
     <Link />
     <Link />
     <Link>
-      <LibraryDependencies>pthread;boost_context;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

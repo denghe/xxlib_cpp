@@ -57,7 +57,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_uv_d", "test_uv_d\test
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_linux_1", "test_linux_1\test_linux_1.vcxproj", "{61FEA9AF-B44D-46C6-A412-8A62861C9556}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xxlib", "xxlib\xxlib.vcxitems", "{08FF83F3-176F-4878-B66E-1A0EBDED81F7}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		xxlib\xxlib.vcxitems*{08ff83f3-176f-4878-b66e-1a0ebded81f7}*SharedItemsImports = 9
+		xxlib\xxlib.vcxitems*{61fea9af-b44d-46c6-a412-8a62861c9556}*SharedItemsImports = 4
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Release|x64 = Release|x64

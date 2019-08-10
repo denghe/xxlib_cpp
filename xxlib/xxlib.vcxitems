@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{08ff83f3-176f-4878-b66e-1a0ebded81f7}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="$(MSBuildThisFileDirectory)lua.natvis" />
+    <Natvis Include="$(MSBuildThisFileDirectory)xx.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)fixed_function.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ikcp.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_bbuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_dict.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll_context.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_file.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_list.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_logger.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_mysql.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_object.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_pos.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_queue.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_random.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_random.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_sqlite.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_lua.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ikcp.c" />
+  </ItemGroup>
+</Project>
