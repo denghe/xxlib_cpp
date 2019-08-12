@@ -1306,6 +1306,10 @@ namespace xx {
 		UvTimer_s timeouter;
 		bool disposed = false;
 
+		inline bool Busy() {
+			return (bool)timeouter;
+		}
+
 		UvDialer(Uv& uv);
 		UvDialer(UvDialer const&) = delete;
 		UvDialer& operator=(UvDialer const&) = delete;

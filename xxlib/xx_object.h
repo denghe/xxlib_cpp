@@ -477,6 +477,7 @@ namespace xx {
 			if (!c) c = '^';
 		}
 		fputs(s.c_str(), stdout);				// std::cout 似乎会受 fcontext 切换影响 输出不能
+		fflush(stdout);
 	}
 
 	// 在 Cout 基础上添加了换行
@@ -503,6 +504,9 @@ namespace xx {
 		puts(s.c_str());
 	}
 
+	inline void CoutFlush() {
+		fflush(stdout);
+	}
 
 	/************************************************************************************/
 	// 针对 windows cmd window 设置其输出字符形态为 utf8
@@ -976,3 +980,13 @@ namespace xx {
 #define COR_BEGIN	switch (lineNumber) { case 0:
 #define COR_YIELD	return __LINE__; case __LINE__:;
 #define COR_END		} return 0;
+
+/*
+	int lineNumber = 0;
+	int Update() {
+		COR_BEGIN
+			// COR_YIELD
+		COR_END
+	}
+	... lineNumber = Update();
+*/

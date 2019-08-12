@@ -243,25 +243,27 @@ namespace xx {
 
 		template<typename T>
 		inline void WriteVarIntger(T const& v) {
-			auto u = std::make_unsigned_t<T>(v);
+			using UT = std::make_unsigned_t<T>;
+			UT u(v);
 			if constexpr (std::is_signed_v<T>) {
 				u = ZigZagEncode(v);
 			}
 			Reserve(len + sizeof(T) + 1);
 			while (u >= 1 << 7) {
 				buf[len++] = uint8_t((u & 0x7fu) | 0x80u);
-				u >>= 7;
+				u = UT(u >> 7);
 			};
 			buf[len++] = uint8_t(u);
 		}
 
 		template<typename T>
 		inline int ReadVarInteger(T& v) {
-			std::make_unsigned_t<T> u(0);
+			using UT = std::make_unsigned_t<T>;
+			UT u(0);
 			for (size_t shift = 0; shift < sizeof(T) * 8; shift += 7) {
 				if (offset == len) return -9;
 				auto b = buf[offset++];
-				u |= T(b & 0x7Fu) << shift;
+				u |= UT((b & 0x7Fu) << shift);
 				if ((b & 0x80) == 0) {
 					if constexpr (std::is_signed_v<T>) {
 						v = ZigZagDecode(u);

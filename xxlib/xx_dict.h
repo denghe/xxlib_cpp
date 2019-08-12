@@ -252,7 +252,7 @@ namespace xx
 
 		// item 数组扩容
 		if constexpr (IsTrivial_v<TK> && IsTrivial_v<TV>) {
-			items = (Data*)realloc(items, bucketsLen * sizeof(Data));
+			items = (Data*)realloc((void*)items, bucketsLen * sizeof(Data));
 		}
 		else {
 			auto newItems = (Data*)malloc(bucketsLen * sizeof(Data));
