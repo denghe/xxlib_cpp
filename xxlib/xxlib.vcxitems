@@ -35,7 +35,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_sqlite.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_lua.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_ext.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)ikcp.c" />

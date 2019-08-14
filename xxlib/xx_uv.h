@@ -4,6 +4,8 @@
 #include "xx_dict.h"
 #include "ikcp.h"
 
+// todo: 包最大长度限制
+
 namespace xx {
 	struct UvKcp;
 	struct Uv {
@@ -24,7 +26,7 @@ namespace xx {
 		Uv& operator=(Uv const&) = delete;
 
 		~Uv() {
-			recvBB.Reset();					// clear replaced buf.
+			recvBB.Reset();							// unbind buf( do not need free )
 			if (recvBuf) {
 				delete[] recvBuf;
 				recvBuf = nullptr;
@@ -375,8 +377,14 @@ namespace xx {
 		using UvItem::UvItem;
 		UvPeer* peer = nullptr;
 		virtual std::string GetIP() noexcept = 0;
-		virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept = 0;
-		virtual int SendPackage(BBuffer const& data, int32_t const& serial = 0) noexcept = 0;		// for lua
+
+		// 用当前协议直接发( 还是会产生 memcpy )
+		virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept = 0;
+		// 对 bb 进行预分配上下文以及包头空间
+		virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept = 0;
+		// 在 bb 内容填充完毕之后，调该函数填充 上下文以及包头 并实际发送
+		virtual int SendAfterPrepare(BBuffer& bb) noexcept = 0;
+
 		virtual void Flush() noexcept = 0;
 		virtual int Update(int64_t const& nowMS) noexcept = 0;
 		virtual bool IsKcp() noexcept = 0;
@@ -482,22 +490,30 @@ namespace xx {
 			return onReceiveRequest ? onReceiveRequest(serial, std::move(msg)) : 0;
 		}
 
-		inline int SendPush(Object_s const& data) noexcept {
-			return peerBase->SendPackage(data);
+		inline int SendDirect(uint8_t* const& buf, size_t const& len) noexcept {
+			return peerBase->SendDirect(buf, len);
 		}
 
-		inline int SendResponse(int32_t const& serial, Object_s const& data) noexcept {
-			return peerBase->SendPackage(data, serial);
+		inline int SendPush(Object_s const& msg) noexcept {
+			return SendResponse(0, msg);
 		}
 
-		inline int SendRequest(Object_s const& data, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS) noexcept {
+		inline int SendResponse(int32_t const& serial, Object_s const& msg) noexcept {
+			auto&& bb = uv.sendBB;
+			peerBase->SendPrepare(bb, 1024);
+			bb.Write(serial);
+			bb.WriteRoot(msg);
+			return peerBase->SendAfterPrepare(bb);
+		}
+
+		inline int SendRequest(Object_s const& msg, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS) noexcept {
 			if (!peerBase) return -1;
 			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
 			if (timeoutMS) {
 				v.second = NowSteadyEpochMS() + timeoutMS;
 			}
-			if (int r = peerBase->SendPackage(data, -serial)) return r;
+			if (int r = SendResponse(-serial, msg)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);
 			return 0;
@@ -510,13 +526,14 @@ namespace xx {
 				return 0;
 			}
 
-			auto& recvBB = uv.recvBB;
-			recvBB.Reset((uint8_t*)recvBuf, recvLen);
+			auto& bb = uv.recvBB;
+			bb.Reset((uint8_t*)recvBuf, recvLen);
 
 			int serial = 0;
-			if (int r = recvBB.Read(serial)) return r;
+			if (int r = bb.Read(serial)) return r;
+
 			Object_s msg;
-			if (int r = recvBB.ReadRoot(msg)) return r;
+			if (int r = bb.ReadRoot(msg)) return r;
 
 			if (serial == 0) {
 				return ReceivePush(std::move(msg));
@@ -638,34 +655,38 @@ namespace xx {
 			return ip;
 		}
 
-		// serial == 0: push    > 0: response    < 0: request
-		template<typename Data>
-		inline int SendPackageCore(Data const& data, int32_t const& serial = 0) noexcept {
-			if (!uvTcp) return -1;
-			auto& sendBB = uv.sendBB;
-			static_assert(sizeof(uv_write_t_ex) + 4 <= 1024);
-			sendBB.Reserve(1024);
-			sendBB.len = sizeof(uv_write_t_ex) + 4;		// skip uv_write_t_ex + header space
-			sendBB.Write(serial);
-			if constexpr (std::is_same_v<BBuffer, Data>) {
-				sendBB.AddRange(data.buf, data.len);
+		inline virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept override {
+			auto&& bb = uv.sendBB;
+			bb.Reserve(sizeof(uv_write_t_ex)  + len);
+			bb.len = sizeof(uv_write_t_ex);
+			auto&& req = *(uv_write_t_ex*)bb.buf;
+			req.buf.base = (char*)buf;														// fill req.buf
+			req.buf.len = decltype(uv_buf_t::len)(len);
+			bb.Reset();																		// unbind bb.buf for callback ::free(req)
+			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
+				Dispose(1);
+				return r;
 			}
-			else {
-				sendBB.WriteRoot(data);
-			}
-			auto buf = sendBB.buf;						// cut buf memory for send
-			auto len = sendBB.len - sizeof(uv_write_t_ex) - 4;
-			sendBB.buf = nullptr;
-			sendBB.len = 0;
-			sendBB.cap = 0;
-			return SendReqAndData(buf, (uint32_t)len);
+			return 0;
 		}
 
-		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
-			return SendPackageCore(data, serial);
+		inline virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept override {
+			bb.Reserve(sizeof(uv_write_t_ex) + 4 + reserveLen);
+			bb.len = sizeof(uv_write_t_ex) + 4;		// skip header space
 		}
-		inline virtual int SendPackage(BBuffer const& data, int32_t const& serial = 0) noexcept override {
-			return SendPackageCore(data, serial);
+		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept {
+			auto buf = bb.buf + sizeof(uv_write_t_ex);										// ref to header
+			auto len = (uint32_t)(bb.len - sizeof(uv_write_t_ex) - 4);						// calc data's len
+			::memcpy(buf, &len, sizeof(len));												// fill header
+			auto&& req = *(uv_write_t_ex*)bb.buf;
+			req.buf.base = (char*)buf;														// fill req.buf
+			req.buf.len = decltype(uv_buf_t::len)(len + 4);									// send len = data's len + header's len
+			bb.Reset();																		// unbind bb.buf for callback ::free(req)
+			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
+				Dispose(1);
+				return r;
+			}
+			return 0;
 		}
 
 		inline virtual void Flush() noexcept override {}
@@ -706,41 +727,6 @@ namespace xx {
 			}
 			buf.RemoveFront(offset);
 			return 0;
-		}
-
-		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
-			if (!uvTcp) return -1;
-			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + dataLen);
-			if (!req) return -2;
-			memcpy(req + 1, buf, dataLen);
-			req->buf.base = (char*)(req + 1);
-			req->buf.len = decltype(uv_buf_t::len)(dataLen);
-			return SendReq(req);
-		}
-
-		// launch a send request
-		inline int SendReq(uv_write_t_ex* const& req) noexcept {
-			if (!uvTcp) return -1;
-			// todo: check send queue len ? protect?  uv_stream_get_write_queue_size((uv_stream_t*)uvTcp);
-			int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t* req, int status) {
-				::free(req);
-				});
-			if (r) Dispose(1);
-			return r;
-		}
-
-		// fast mode. req + data 2N1, reduce malloc times.
-		// reqbuf = uv_write_t_ex space + len space + data, len = data's len
-		inline int SendReqAndData(uint8_t* const& reqbuf, uint32_t const& len) {
-			reqbuf[sizeof(uv_write_t_ex) + 0] = uint8_t(len);		// fill package len
-			reqbuf[sizeof(uv_write_t_ex) + 1] = uint8_t(len >> 8);
-			reqbuf[sizeof(uv_write_t_ex) + 2] = uint8_t(len >> 16);
-			reqbuf[sizeof(uv_write_t_ex) + 3] = uint8_t(len >> 24);
-
-			auto req = (uv_write_t_ex*)reqbuf;						// fill req args
-			req->buf.base = (char*)(req + 1);
-			req->buf.len = decltype(uv_buf_t::len)(len + 4);
-			return SendReq(req);
 		}
 	};
 
@@ -811,35 +797,16 @@ namespace xx {
 			memcpy(req + 1, buf, dataLen);
 			req->buf.base = (char*)(req + 1);
 			req->buf.len = decltype(uv_buf_t::len)(dataLen);
-			return Send(req, addr);
+			// todo: check send queue len ? protect?
+			if (int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)& this->addr, [](uv_udp_send_t* req, int status) { ::free(req); })) {
+				Dispose(1);
+				return r;
+			}
+			return 0;
 		}
 
 	protected:
 		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen, sockaddr const* const& addr) noexcept = 0;
-
-		// reqbuf = uv_udp_send_t_ex space + len space + data
-		// len = data's len
-		inline int SendReqAndData(uint8_t* const& reqbuf, uint32_t const& len, sockaddr const* const& addr = nullptr) {
-			reqbuf[sizeof(uv_udp_send_t_ex) + 0] = uint8_t(len);		// fill package len
-			reqbuf[sizeof(uv_udp_send_t_ex) + 1] = uint8_t(len >> 8);
-			reqbuf[sizeof(uv_udp_send_t_ex) + 2] = uint8_t(len >> 16);
-			reqbuf[sizeof(uv_udp_send_t_ex) + 3] = uint8_t(len >> 24);
-
-			auto req = (uv_udp_send_t_ex*)reqbuf;						// fill req args
-			req->buf.base = (char*)(req + 1);
-			req->buf.len = decltype(uv_buf_t::len)(len + 4);
-			return Send(req, addr);
-		}
-
-		inline int Send(uv_udp_send_t_ex* const& req, sockaddr const* const& addr = nullptr) noexcept {
-			if (!uvUdp) return -1;
-			// todo: check send queue len ? protect?
-			int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)& this->addr, [](uv_udp_send_t* req, int status) {
-				::free(req);
-				});
-			if (r) Dispose(1);
-			return r;
-		}
 	};
 
 	struct UvKcpPeerBase : UvPeerBase {
@@ -866,7 +833,7 @@ namespace xx {
 			ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
 				auto self = ((UvKcpPeerBase*)user);
 				return self->udp->Send((uint8_t*)inBuf, len, (sockaddr*)& self->addr);
-				});
+			});
 			sgKcp.Cancel();
 			return 0;
 		}
@@ -924,40 +891,25 @@ namespace xx {
 			return 0;
 		}
 
+		inline virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept override {
+			return Send(buf, len);
+		}
 
-		// serial == 0: push    > 0: response    < 0: request
-		template<typename Data>
-		inline int SendPackageCore(Data const& data, int32_t const& serial = 0) noexcept {
+		inline virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept override {
+			bb.Reserve(4 + reserveLen);
+			bb.len = 4;													// skip header space
+		}
+
+		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept {
+			auto len = uint32_t(bb.len - 4);							// calc data's len
+			memcpy(bb.buf, &len, 4);									// fill header
+			return Send(bb.buf, bb.len);								// send by kcp
+		}
+
+		// push send data to kcp. though ikcp_setoutput func send.
+		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
 			if (!kcp) return -1;
-			auto& sendBB = uv.sendBB;
-			if constexpr (std::is_same_v<BBuffer, Data>) {
-				sendBB.Reserve(4 + 5 + data.len);
-			}
-			else {
-				sendBB.Reserve(1024);
-			}
-			sendBB.len = 4;		// skip header space
-			sendBB.Write(serial);
-			if constexpr (std::is_same_v<BBuffer, Data>) {
-				sendBB.AddRange(data.buf, data.len);
-			}
-			else {
-				sendBB.WriteRoot(data);
-			}
-			auto buf = sendBB.buf;
-			auto len = sendBB.len - 4;
-			buf[0] = uint8_t(len);					// fill package len
-			buf[1] = uint8_t(len >> 8);
-			buf[2] = uint8_t(len >> 16);
-			buf[3] = uint8_t(len >> 24);
-			return Send(buf, sendBB.len);
-		}
-
-		inline virtual int SendPackage(Object_s const& data, int32_t const& serial = 0) noexcept override {
-			return SendPackageCore(data, serial);
-		}
-		inline virtual int SendPackage(BBuffer const& data, int32_t const& serial = 0) noexcept override {
-			return SendPackageCore(data, serial);
+			return ikcp_send(kcp, (char*)buf, (int)dataLen);
 		}
 
 		// send data immediately ( no wait for more data combine send )
@@ -987,12 +939,6 @@ namespace xx {
 			}
 			buf.RemoveFront(offset);
 			return 0;
-		}
-
-		// push send data to kcp. though ikcp_setoutput func send.
-		inline int Send(uint8_t const* const& buf, ssize_t const& dataLen) noexcept {
-			if (!kcp) return -1;
-			return ikcp_send(kcp, (char*)buf, (int)dataLen);
 		}
 	};
 
