@@ -34,6 +34,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_random.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_sqlite.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool_ex.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_ext.h" />
   </ItemGroup>

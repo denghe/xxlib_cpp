@@ -121,6 +121,7 @@ namespace xx {
 		}
 
 		inline int SendResponse(uint32_t const& id, int32_t const& serial, Object_s const& msg) {
+			if (!peerBase) return -1;
 			auto&& bb = uv.sendBB;
 			peerBase->SendPrepare(bb, 1024);
 			bb.WriteFixed(id);

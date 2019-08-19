@@ -36,6 +36,7 @@ namespace xx {
 			assert(!r);
 			r = uv_loop_close(&uvLoop);
 			assert(!r);
+			(void)r;
 		}
 
 		int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
@@ -378,12 +379,9 @@ namespace xx {
 		UvPeer* peer = nullptr;
 		virtual std::string GetIP() noexcept = 0;
 
-		// 用当前协议直接发( 还是会产生 memcpy )
-		virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept = 0;
-		// 对 bb 进行预分配上下文以及包头空间
-		virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept = 0;
-		// 在 bb 内容填充完毕之后，调该函数填充 上下文以及包头 并实际发送
-		virtual int SendAfterPrepare(BBuffer& bb) noexcept = 0;
+		virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept = 0;		// direct send anything
+		virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept = 0;		// resize ctx & header space to bb
+		virtual int SendAfterPrepare(BBuffer& bb) noexcept = 0;								// fill ctx & header & send
 
 		virtual void Flush() noexcept = 0;
 		virtual int Update(int64_t const& nowMS) noexcept = 0;
@@ -406,7 +404,8 @@ namespace xx {
 		std::shared_ptr<UvTcpListener> tcpListener;
 		std::shared_ptr<UvKcpListener> kcpListener;
 
-		UvListener(Uv& uv, std::string const& ip, int const& port, int const& tcpKcpOpt = 2);
+		// tcpKcpOpt == 0: tcp     == 1: kcp      == 2: both
+		UvListener(Uv& uv, std::string const& ip, int const& port, int const& tcpKcpOpt);
 		~UvListener() {
 			Dispose(0);
 		}
@@ -657,12 +656,12 @@ namespace xx {
 
 		inline virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept override {
 			auto&& bb = uv.sendBB;
-			bb.Reserve(sizeof(uv_write_t_ex)  + len);
+			bb.Reserve(sizeof(uv_write_t_ex) + len);
 			bb.len = sizeof(uv_write_t_ex);
 			auto&& req = *(uv_write_t_ex*)bb.buf;
-			req.buf.base = (char*)buf;														// fill req.buf
+			req.buf.base = (char*)buf;										// fill req.buf
 			req.buf.len = decltype(uv_buf_t::len)(len);
-			bb.Reset();																		// unbind bb.buf for callback ::free(req)
+			bb.Reset();														// unbind bb.buf for callback ::free(req)
 			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
 				Dispose(1);
 				return r;
@@ -675,13 +674,13 @@ namespace xx {
 			bb.len = sizeof(uv_write_t_ex) + 4;		// skip header space
 		}
 		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept {
-			auto buf = bb.buf + sizeof(uv_write_t_ex);										// ref to header
-			auto len = (uint32_t)(bb.len - sizeof(uv_write_t_ex) - 4);						// calc data's len
-			::memcpy(buf, &len, sizeof(len));												// fill header
+			auto buf = bb.buf + sizeof(uv_write_t_ex);						// ref to header
+			auto len = (uint32_t)(bb.len - sizeof(uv_write_t_ex) - 4);		// calc data's len
+			::memcpy(buf, &len, sizeof(len));								// fill header
 			auto&& req = *(uv_write_t_ex*)bb.buf;
-			req.buf.base = (char*)buf;														// fill req.buf
-			req.buf.len = decltype(uv_buf_t::len)(len + 4);									// send len = data's len + header's len
-			bb.Reset();																		// unbind bb.buf for callback ::free(req)
+			req.buf.base = (char*)buf;										// fill req.buf
+			req.buf.len = decltype(uv_buf_t::len)(len + 4);					// send len = data's len + header's len
+			bb.Reset();														// unbind bb.buf for callback ::free(req)
 			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
 				Dispose(1);
 				return r;
@@ -833,7 +832,7 @@ namespace xx {
 			ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
 				auto self = ((UvKcpPeerBase*)user);
 				return self->udp->Send((uint8_t*)inBuf, len, (sockaddr*)& self->addr);
-			});
+				});
 			sgKcp.Cancel();
 			return 0;
 		}
@@ -871,8 +870,8 @@ namespace xx {
 		inline virtual int Update(int64_t const& nowMS) noexcept override {
 			if (!kcp) return -1;
 
-			auto&& currentMS = uint32_t(nowMS - createMS);				// known issue: uint32 limit. connect only alive 50+ days
-			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return 0;						// reduce cpu usage
+			auto&& currentMS = uint32_t(nowMS - createMS);			// known issue: uint32 limit. connect only alive 50+ days
+			if (uv.runMode == UV_RUN_DEFAULT && nextUpdateMS > currentMS) return 0;			// reduce cpu usage
 			ikcp_update(kcp, currentMS);
 			if (!kcp) return -1;
 			if (uv.runMode == UV_RUN_DEFAULT) {
@@ -897,13 +896,13 @@ namespace xx {
 
 		inline virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept override {
 			bb.Reserve(4 + reserveLen);
-			bb.len = 4;													// skip header space
+			bb.len = 4;												// skip header space
 		}
 
 		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept {
-			auto len = uint32_t(bb.len - 4);							// calc data's len
-			memcpy(bb.buf, &len, 4);									// fill header
-			return Send(bb.buf, bb.len);								// send by kcp
+			auto len = uint32_t(bb.len - 4);						// calc data's len
+			memcpy(bb.buf, &len, 4);								// fill header
+			return Send(bb.buf, bb.len);							// send by kcp
 		}
 
 		// push send data to kcp. though ikcp_setoutput func send.
@@ -1113,6 +1112,7 @@ namespace xx {
 				if (p->InitKcp()) return 0;						// init kcp fail: ignore
 				int r = p->Send((uint8_t*)"\x1\0\0\0\0", 5);	// for server accept
 				assert(!r);
+				(void)r;
 				p->Flush();
 				connected = true;								// set flag
 				owner->Accept(p);								// cleanup all reqs
@@ -1247,6 +1247,7 @@ namespace xx {
 	}
 
 	struct UvDialer : UvCreateAcceptBase {
+		std::function<void(UvPeer_s peer)>& onConnect;	// same as onAccept
 		std::shared_ptr<UvDialerBase> kcpDialer;
 		std::shared_ptr<UvDialerBase> tcpDialer;
 		UvTimer_s timeouter;
@@ -1399,15 +1400,15 @@ namespace xx {
 				{
 					// auto delete when exit scope
 					auto&& req = std::unique_ptr<uv_connect_t_ex>(container_of(conn, uv_connect_t_ex, req));
-					if (status) return;													// error or -4081 canceled
-					if (!req->peer) return;												// canceled
+					if (status) return;								// error or -4081 canceled
+					if (!req->peer) return;							// canceled
 					dialer = req->dialer_w.lock();
-					if (!dialer) return;												// container disposed
-					peer = std::move(req->peer);										// remove peer to outside, avoid cancel
+					if (!dialer) return;							// container disposed
+					peer = std::move(req->peer);					// remove peer to outside, avoid cancel
 				}
-				if (peer->ReadStart()) return;											// read error
+				if (peer->ReadStart()) return;						// read error
 				Uv::FillIP(peer->uvTcp, peer->ip);
-				dialer->Accept(peer);													// callback
+				dialer->Accept(peer);								// callback
 				})) return -3;
 
 			reqs.Add(req);
@@ -1440,7 +1441,8 @@ namespace xx {
 	}
 
 	inline UvDialer::UvDialer(Uv& uv)
-		: UvCreateAcceptBase(uv) {
+		: UvCreateAcceptBase(uv)
+		, onConnect(this->onAccept){
 		tcpDialer = xx::Make<UvTcpDialer>(uv);
 		tcpDialer->dialer = this;
 		kcpDialer = xx::Make<UvKcpDialer>(uv);

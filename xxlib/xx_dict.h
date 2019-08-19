@@ -341,7 +341,9 @@ namespace xx
 	template<typename K>
 	TV& Dict<TK, TV>::operator[](K &&k) noexcept {
 		assert(buckets);
-		return items[Add(std::forward<K>(k), TV(), false).index].value;
+		auto&& r = Add(std::forward<K>(k), TV(), false);
+		return items[r.index].value;
+		// return items[Add(std::forward<K>(k), TV(), false).index].value;		// 这样写会导致 gcc 先记录下 items 的指针，Add 如果 renew 了 items 就 crash
 	}
 
 	template <typename TK, typename TV>
