@@ -9,19 +9,30 @@
 #include "xx_object.h"
 
 namespace xx {
-	template<typename T>
-	struct DefaultErrorHandler {
-		void operator ()(const T& t ,const std::exception& e)
+
+	/*
+	T sample:
+	struct Foo {
+		Foo() = default;
+		void operator()(std::function<void(Foo&)>& job)
 		{
-			//todo
-		}
-		void operator ()(const T& t, const int& code)
-		{
-			//todo
+			try {
+				job(*this);
+			}
+			catch (int const& e) {
+				xx::CoutN("catch throw int: ", e);
+			}
+			catch (std::exception const& e) {
+				xx::CoutN("catch throw std::exception: ", e);
+			}
+			catch (...) {
+				xx::CoutN("catch ...");
+			}
 		}
 	};
+	*/
 
-	template<typename T,typename ErrorHandler = DefaultErrorHandler<T>>
+	template<typename T>
 	class ThreadPoolEx {
 		std::vector<std::thread> threads;
 		std::queue<std::function<void(T&)>> jobs;
@@ -29,14 +40,11 @@ namespace xx {
 		std::condition_variable cond;
 		bool stop = false;
 
-		ErrorHandler eh;
 	public:
-		ThreadPoolEx(int const& numThreads = 4, ErrorHandler&& eh = ErrorHandler())
-		:eh (std::move(eh))
-		{
+		ThreadPoolEx(int const& numThreads = 4) {
 			for (int i = 0; i < numThreads; ++i) {
 				threads.emplace_back([this] {
-					T t ;
+					T t ;													// require default constructor
 					while (true) {
 						std::function<void(T&)> job;
 						{
@@ -48,22 +56,7 @@ namespace xx {
 							job = std::move(this->jobs.front());
 							this->jobs.pop();
 						}
-						try
-						{
-							job(t);
-						}
-						catch (const std::exception& e)
-						{
-							this->eh(t,e);
-						}
-						catch (const int& code)
-						{
-							this->eh(t, code);
-						}
-						catch (...)
-						{
-							//this->eh(t);
-						}
+						t(job);												// require void operator()(std::function<void(T&)>& job) { job(*this); }
 					}
 					});
 			}

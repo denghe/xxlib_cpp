@@ -3,7 +3,7 @@
   <PropertyGroup Label="Globals">
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
-    <ItemsProjectGuid>{08ff83f3-176f-4878-b66e-1a0ebded81f7}</ItemsProjectGuid>
+    <ItemsProjectGuid>{4b57e4bc-5558-4de6-b4da-4490f8c1e34a}</ItemsProjectGuid>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -14,10 +14,7 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="$(MSBuildThisFileDirectory)lua.natvis" />
-    <Natvis Include="$(MSBuildThisFileDirectory)xx.natvis" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ajson.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)fixed_function.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ikcp.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_bbuffer.h" />
@@ -40,5 +37,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)ikcp.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="$(MSBuildThisFileDirectory)lua.natvis" />
+    <Natvis Include="$(MSBuildThisFileDirectory)xx.natvis" />
   </ItemGroup>
 </Project>

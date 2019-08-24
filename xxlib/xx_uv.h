@@ -10,8 +10,11 @@ namespace xx {
 	struct UvKcp;
 	struct Uv {
 		uv_loop_t uvLoop;
+
 		BBuffer recvBB;								// shared deserialization for package receive. direct replace buf when using
 		BBuffer sendBB;								// shared serialization for package send
+		BBuffer_s sharedBB = xx::Make<BBuffer>();	// shared serialization for package send( shared_ptr version )
+
 		int autoId = 0;								// udps key, udp dialer port gen: --autoId
 		Dict<int, std::weak_ptr<UvKcp>> udps;		// key: port( dialer peer port = autoId )
 		char* recvBuf = nullptr;					// shared receive buf for kcp
@@ -39,7 +42,7 @@ namespace xx {
 			(void)r;
 		}
 
-		int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
+		inline int Run(uv_run_mode const& mode = UV_RUN_DEFAULT) noexcept {
 			runMode = mode;
 			return uv_run(&uvLoop, mode);
 		}
@@ -47,6 +50,9 @@ namespace xx {
 		inline void Stop() {
 			uv_stop(&uvLoop);
 		}
+
+		template<typename Func>
+		void DelayExec(uint64_t ms, Func&& func);
 
 		template<typename T>
 		static T* Alloc(void* const& ud) noexcept {
@@ -257,6 +263,19 @@ namespace xx {
 	};
 	using UvTimer_s = std::shared_ptr<UvTimer>;
 	using UvTimer_w = std::weak_ptr<UvTimer>;
+
+
+
+	template<typename Func>
+	void Uv::DelayExec(uint64_t ms, Func&& func) {
+		auto&& t = xx::Make<UvTimer>(*this);
+		t->Start(ms, 0, [t, func = std::forward<Func>(func)]{
+			func();
+			t->Dispose();
+			});
+	}
+
+
 
 	struct UvResolver;
 	using UvResolver_s = std::shared_ptr<UvResolver>;
@@ -1257,7 +1276,7 @@ namespace xx {
 			return (bool)timeouter;
 		}
 
-		UvDialer(Uv& uv);
+		UvDialer(Uv& uv, int const& tcpKcpOpt = 2);	// 0: tcp    1: kcp   2: both
 		UvDialer(UvDialer const&) = delete;
 		UvDialer& operator=(UvDialer const&) = delete;
 
@@ -1440,33 +1459,57 @@ namespace xx {
 		dialer->reqs.SwapRemoveAt(idx);
 	}
 
-	inline UvDialer::UvDialer(Uv& uv)
+	inline UvDialer::UvDialer(Uv& uv, int const& tcpKcpOpt)
 		: UvCreateAcceptBase(uv)
 		, onConnect(this->onAccept){
-		tcpDialer = xx::Make<UvTcpDialer>(uv);
-		tcpDialer->dialer = this;
-		kcpDialer = xx::Make<UvKcpDialer>(uv);
-		kcpDialer->dialer = this;
+		if (tcpKcpOpt < 0 || tcpKcpOpt>2) throw - 1;
+		if (tcpKcpOpt == 0 || tcpKcpOpt == 2) {
+			tcpDialer = xx::Make<UvTcpDialer>(uv);
+			tcpDialer->dialer = this;
+		}
+		if (tcpKcpOpt == 1 || tcpKcpOpt == 2) {
+			kcpDialer = xx::Make<UvKcpDialer>(uv);
+			kcpDialer->dialer = this;
+		}
 	}
 	inline int UvDialer::Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS) noexcept {
 		if (int r = SetTimeout(timeoutMS)) return r;
-		if (int r = tcpDialer->Dial(ip, port, timeoutMS)) return r;
-		return kcpDialer->Dial(ip, port, timeoutMS);
+		if (tcpDialer) {
+			if (int r = tcpDialer->Dial(ip, port, timeoutMS)) return r;
+		}
+		if (kcpDialer) {
+			if (int r = kcpDialer->Dial(ip, port, timeoutMS)) return r;
+		}
+		return 0;
 	}
 	inline int UvDialer::Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS) noexcept {
 		if (int r = SetTimeout(timeoutMS)) return r;
-		if (int r = tcpDialer->Dial(ips, port, timeoutMS)) return r;
-		return kcpDialer->Dial(ips, port, timeoutMS);
+		if (tcpDialer) {
+			if (int r = tcpDialer->Dial(ips, port, timeoutMS)) return r;
+		}
+		if (kcpDialer) {
+			if (int r = kcpDialer->Dial(ips, port, timeoutMS)) return r;
+		}
+		return 0;
 	}
 	inline int UvDialer::Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS) noexcept {
 		if (int r = SetTimeout(timeoutMS)) return r;
-		if (int r = tcpDialer->Dial(ipports, timeoutMS)) return r;
-		return kcpDialer->Dial(ipports, timeoutMS);
+		if (tcpDialer) {
+			if (int r = tcpDialer->Dial(ipports, timeoutMS)) return r;
+		}
+		if (kcpDialer) {
+			if (int r = kcpDialer->Dial(ipports, timeoutMS)) return r;
+		}
+		return 0;
 	}
 	inline void UvDialer::Cancel() noexcept {
 		timeouter.reset();
-		tcpDialer->Cancel();
-		kcpDialer->Cancel();
+		if (tcpDialer) {
+			tcpDialer->Cancel();
+		}
+		if (kcpDialer) {
+			kcpDialer->Cancel();
+		}
 	}
 
 	inline void UvDialer::Dispose(int const& flag) noexcept {
@@ -1474,8 +1517,12 @@ namespace xx {
 		disposed = true;
 		Cancel();
 		if (flag) {
-			kcpDialer->Dispose(1);
-			tcpDialer->Dispose(1);
+			if (tcpDialer) {
+				tcpDialer->Dispose(1);
+			}
+			if (kcpDialer) {
+				kcpDialer->Dispose(1);
+			}
 		}
 	}
 

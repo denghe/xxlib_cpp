@@ -57,7 +57,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_uv_d", "test_uv_d\test
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_linux_1", "test_linux_1\test_linux_1.vcxproj", "{61FEA9AF-B44D-46C6-A412-8A62861C9556}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xxlib", "xxlib\xxlib.vcxitems", "{08FF83F3-176F-4878-B66E-1A0EBDED81F7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xxlib", "xxlib\xxlib.vcxitems", "{4B57E4BC-5558-4DE6-B4DA-4490F8C1E34A}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
