@@ -696,7 +696,8 @@ namespace xx
 
 	template<int keyIndex, typename V, typename ...KS>
 	void DictForEach<keyIndex, V, KS...>::Init(DictEx<V, KS...>& self) {
-		self.dicts[keyIndex] = std::move(*(std::unique_ptr<Object>*)&std::make_unique<DictType_t<keyIndex, V, KS...>>());
+		auto&& u = std::make_unique<DictType_t<keyIndex, V, KS...>>();
+		self.dicts[keyIndex] = std::move(*(std::unique_ptr<Object>*)&u);
 		DictForEach<keyIndex - 1, V, KS...>::Init(self);
 	}
 	template<int keyIndex, typename V, typename ...KS>
@@ -712,7 +713,8 @@ namespace xx
 
 	template<typename V, typename ...KS>
 	void DictForEach<(int)0, V, KS...>::Init(DictEx<V, KS...>& self) {
-		self.dicts[0] = std::move(*(std::unique_ptr<Object>*)&std::make_unique<DictType_t<0, V, KS...>>());
+		auto&& u = std::make_unique<DictType_t<0, V, KS...>>();
+		self.dicts[0] = std::move(*(std::unique_ptr<Object>*)&u);
 	}
 	template<typename V, typename ...KS>
 	void DictForEach<(int)0, V, KS...>::RemoveAt(DictEx<V, KS...>& self, int const& idx) {

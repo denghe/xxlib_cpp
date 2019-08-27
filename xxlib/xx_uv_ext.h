@@ -109,8 +109,8 @@ namespace xx {
 		int SendCommand_Close(uint32_t const& clientId) {
 			return SendCommand("close", clientId);
 		}
-		int SendCommand_Kick(uint32_t const& clientId) {
-			return SendCommand("kick", clientId);
+		int SendCommand_Kick(uint32_t const& clientId, int64_t const& delayMS) {
+			return SendCommand("kick", clientId, delayMS);
 		}
 	};
 
@@ -403,6 +403,7 @@ namespace xx {
 			peer = As<UvFromToGatewayBasePeer>(peer_);
 
 			peer->onReceiveCommand = [this](BBuffer& bb)->int {
+				peer->ResetTimeoutMS(5000);
 				std::string cmd;
 				if (int r = bb.Read(cmd)) return r;
 				if (cmd == "open") {
@@ -412,7 +413,7 @@ namespace xx {
 					auto&& cp = peer->CreateSimulatePeer<SimulatePeerType>(serviceId);
 					onAcceptSimulatePeer(cp);
 
-					CoutN("UvToGatewayPeer recv cmd open: serviceId = ", serviceId);
+					//CoutN("UvToGatewayPeer recv cmd open: serviceId = ", serviceId);
 					return 0;
 				}
 
@@ -422,7 +423,7 @@ namespace xx {
 
 					peer->DisconnectSimulatePeer(clientId);
 
-					CoutN("UvToGatewayPeer recv cmd disconnect: clientId = ", clientId);
+					//CoutN("UvToGatewayPeer recv cmd disconnect: clientId = ", clientId);
 					return 0;
 				}
 
@@ -433,6 +434,7 @@ namespace xx {
 			};
 
 			peer->onReceive = [this](uint32_t const& id, uint8_t* const& buf, size_t const& len)->int {
+				peer->ResetTimeoutMS(5000);
 				auto&& iter = peer->simulatePeers.find(id);
 				if (iter == peer->simulatePeers.end()
 					|| !iter->second
@@ -450,6 +452,8 @@ namespace xx {
 			peer->onDisconnect = [this] {
 				peer->DisconnectSimulatePeers();
 			};
+
+			peer->ResetTimeoutMS(5000);
 		}
 
 		inline bool PeerAlive() {

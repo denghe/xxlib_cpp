@@ -128,7 +128,7 @@ struct Gateway {
 
 	void InitClientListener() {
 		// 创建 listener( tcp, kcp 同时支持 )
-		xx::MakeTo(clientListener, uv, "0.0.0.0", 11111, 1);	// kcp only for test			// 2);	// tcp + kcp
+		xx::MakeTo(clientListener, uv, "0.0.0.0", 20000, 1);	// kcp only for test			// 2);	// tcp + kcp
 
 		// 设置产生的 peer 类型
 		clientListener->onCreatePeer = [](xx::Uv& uv) {
@@ -362,11 +362,12 @@ struct Gateway {
 				}
 
 
-				// 踢玩家下线. 参数: clientId
+				// 踢玩家下线. 参数: clientId, delayMS
 				else if (cmd == "kick") {
-					// 试读出 clientId
+					// 试读出参数
 					uint32_t clientId = 0;
-					if (int r = bb.Read(clientId)) return r;
+					int64_t delayMS = 0;
+					if (int r = bb.Read(clientId, delayMS)) return r;
 
 					// 前置检查
 					if (!clientId) return -1;
@@ -377,8 +378,15 @@ struct Gateway {
 					auto&& cp = iter->second;
 					if (!cp || cp->Disposed()) return 0;
 
-					// 断开连接, 触发 onDisconnect( 从 this->clientPeers 移除并向白名单 serviceIds 对应 peer 广播断开通知 )
-					cp->Dispose(1);
+					if (delayMS) {
+						// 延迟断开，先解绑事件处理函数，再设置超时时长，到时会 Dispose(1)
+						cp->onReceive = nullptr;
+						cp->ResetTimeoutMS(delayMS);
+					}
+					else {
+						// 立刻断开连接，触发 onDisconnect( 从 this->clientPeers 移除并向白名单 serviceIds 对应 peer 广播断开通知 )
+						cp->Dispose(1);
+					}
 
 					xx::CoutN("gateway service peer recv cmd kick: clientId: ", clientId);
 					return 0;
