@@ -1,8 +1,6 @@
 #include <xx_uv_ext.h>
 #include <unordered_set>
 
-
-// gateway 监听 client 或 拨号 server 专用
 struct UvGatewayPeer : xx::UvCommandPeer {
 	using UvCommandPeer::UvCommandPeer;
 
@@ -49,7 +47,6 @@ protected:
 	}
 };
 
-
 struct UvFromClientPeer : UvGatewayPeer {
 	using UvGatewayPeer::UvGatewayPeer;
 
@@ -67,7 +64,6 @@ struct UvFromClientPeer : UvGatewayPeer {
 		return SendCommand("close", serviceId);
 	}
 };
-
 
 struct UvToServicePeer : UvGatewayPeer {
 	using UvGatewayPeer::UvGatewayPeer;
@@ -106,6 +102,13 @@ struct UvToServiceDialer : xx::UvDialer {
 	}
 };
 
+struct UvFromClientListener : xx::UvListener {
+	using UvListener::UvListener;
+	virtual xx::UvPeer_s CreatePeer() noexcept override {
+		return xx::TryMake<UvFromClientPeer>(uv);
+	}
+};
+
 struct Gateway {
 	static_assert(sizeof(UvToServicePeer::serviceId) == sizeof(UvFromClientPeer::clientId));
 	xx::Uv uv;
@@ -118,7 +121,7 @@ struct Gateway {
 	/***********************************************************************************************/
 
 	// 等待 client 的接入
-	std::shared_ptr<xx::UvListener> clientListener;
+	std::shared_ptr<UvFromClientListener> clientListener;
 
 	// new cp.clientId = ++clientPeerAutoId
 	uint32_t clientPeerAutoId = 0;
@@ -129,11 +132,6 @@ struct Gateway {
 	void InitClientListener() {
 		// 创建 listener( tcp, kcp 同时支持 )
 		xx::MakeTo(clientListener, uv, "0.0.0.0", 20000, 1);	// kcp only for test			// 2);	// tcp + kcp
-
-		// 设置产生的 peer 类型
-		clientListener->onCreatePeer = [](xx::Uv& uv) {
-			return xx::TryMake<UvFromClientPeer>(uv);
-		};
 
 		// 接受连接时分配自增 id 放入字典 并设置相应事件处理代码
 		clientListener->onAccept = [this](xx::UvPeer_s peer) {
@@ -380,6 +378,8 @@ struct Gateway {
 
 					if (delayMS) {
 						// 延迟断开，先解绑事件处理函数，再设置超时时长，到时会 Dispose(1)
+						cp->onDisconnect();						// 解除映射并发送断线通知
+						cp->onDisconnect = [cp] {};				// 清除旧函数并持有
 						cp->onReceive = nullptr;
 						cp->ResetTimeoutMS(delayMS);
 					}

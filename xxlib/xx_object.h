@@ -990,3 +990,29 @@ namespace xx {
 	}
 	... lineNumber = Update();
 */
+
+
+/************************************************************************************/
+// 简化生成物头文件部分
+/************************************************************************************/
+
+#define XX_CODEGEN_CLASS_HEADER(typeName, baseTypeName)					\
+typedef typeName ThisType;												\
+typedef baseTypeName BaseType;											\
+typeName() = default;													\
+typeName(typeName const&) = delete;										\
+typeName& operator=(typeName const&) = delete;							\
+																		\
+void ToString(std::string& s) const noexcept override;					\
+void ToStringCore(std::string& s) const noexcept override;				\
+uint16_t GetTypeId() const noexcept override;							\
+void ToBBuffer(xx::BBuffer& bb) const noexcept override;				\
+int FromBBuffer(xx::BBuffer& bb) noexcept override;
+
+#define XX_CODEGEN_CLASS_HEADER_CASCADE(typeName, baseTypeName)			\
+XX_CODEGEN_CLASS_HEADER(typeName, baseTypeName)							\
+int InitCascade(void* const& o = nullptr) noexcept override;
+
+#define XX_CODEGEN_CLASS_HEADER_CASCADE_CORE(typeName, baseTypeName)	\
+XX_CODEGEN_CLASS_HEADER(typeName, baseTypeName)							\
+int InitCascadeCore(void* const& o = nullptr) noexcept;

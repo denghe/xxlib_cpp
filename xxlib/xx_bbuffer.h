@@ -545,6 +545,9 @@ namespace xx {
 			uint8_t hasValue = 0;
 			if (int r = bb.Read(hasValue)) return r;
 			if (!hasValue) return 0;
+			if (!out.has_value()) {
+				out.emplace();
+			}
 			return bb.Read(out.value());
 		}
 	};

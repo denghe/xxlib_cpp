@@ -2,6 +2,9 @@
 #include "xx_object.h"
 namespace xx
 {
+	template<typename V, typename ...KS>
+	class DictEx;
+
 	// Dict.Add 的操作结果
 	struct DictAddResult {
 		bool success;
@@ -35,6 +38,10 @@ namespace xx
 		int                *buckets;                // 桶数组
 		Node               *nodes;                  // 节点数组
 		Data               *items;                  // 数据数组( 与节点数组同步下标 )
+
+		template<typename V, typename ...KS>
+		friend class DictEx;
+
 	public:
 
 		explicit Dict(int const& capacity = 16);
@@ -519,9 +526,6 @@ namespace xx
 
 	template<int keyIndex, typename V, typename ...KS>
 	using DictType_t = typename DictType<keyIndex, V, KS...>::type;
-
-	template<typename V, typename ...KS>
-	class DictEx;
 
 	template<int keyIndex, typename V, typename ...KS>
 	struct DictForEach {

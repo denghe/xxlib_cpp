@@ -331,18 +331,22 @@ namespace xx {
 			timeouter.reset();
 		}
 
-		inline int Resolve(std::string const& domainName, uint64_t const& timeoutMS = 0) noexcept {
+		inline bool Busy() {
+			return (bool)timeouter;
+		}
+
+		inline int Resolve(std::string const& domainName, uint64_t const& timeoutMS = 3000) noexcept {
 			if (disposed) return -1;
+			if (!timeoutMS) return -2;
 			Cancel();
-			if (timeoutMS) {
-				TryMakeTo(timeouter, uv, timeoutMS, 0, [this] {
-					Cancel();
-					if (onFinish) {
-						onFinish();
-					}
-					});
-				if (!timeouter) return -2;
-			}
+			TryMakeTo(timeouter, uv, timeoutMS, 0, [this] {
+				auto self = this;
+				Cancel();
+				if (self->onFinish) {
+					self->onFinish();
+				}
+			});
+			if (!timeouter) return -2;
 			auto req = std::make_unique<uv_getaddrinfo_t_ex>();
 			req->resolver_w = As<UvResolver>(shared_from_this());
 			if (int r = uv_getaddrinfo((uv_loop_t*)& uv.uvLoop, (uv_getaddrinfo_t*)& req->req, [](uv_getaddrinfo_t* req_, int status, struct addrinfo* ai) {
