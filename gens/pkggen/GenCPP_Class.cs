@@ -11,18 +11,25 @@ public static class GenCPP_Class
         var ts = asm._GetTypes();
         var typeIds = new TemplateLibrary.TypeIds(asm);
         var sb = new StringBuilder();
+        var sb2 = new StringBuilder();
 
         // template namespace
         sb.Append(@"#pragma once
+#include ""xx_bbuffer.h""
 namespace " + templateName + @" {
 	struct PkgGenMd5 {
 		inline static const std::string value = """ + md5 + @""";
     };
+	struct AllTypesRegister {
+        AllTypesRegister();
+    };
+    inline AllTypesRegister allTypesRegisterInstance;   // for auto register at program startup
 ");
 
-        // predefines
-
         var cs = ts._GetClasssStructs();
+
+
+#if true
         for (int i = 0; i < cs.Count; ++i)
         {
             var c = cs[i];
@@ -50,7 +57,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
 }");
             }
         }
-
+#endif
 
 
         var es = ts._GetEnums();
@@ -145,7 +152,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
                 sb.Append(@"
-#include <" + c._GetTypeDecl_Lua(templateName) + @".h>");
+#include<" + c._GetTypeDecl_Lua(templateName) + @".inc>");
             }
 
             // struct /
@@ -247,6 +254,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 sb.Append(") noexcept;");
             }
 
+#if false
             sb.Append(@"
 
         typedef " + c.Name + @" ThisType;
@@ -260,6 +268,7 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         uint16_t GetTypeId() const noexcept override;
         void ToBBuffer(xx::BBuffer& bb) const noexcept override;
         int FromBBuffer(xx::BBuffer& bb) noexcept override;");
+
             if (c._Has<TemplateLibrary.CustomInitCascade>())
             {
                 sb.Append(@"
@@ -270,10 +279,28 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 sb.Append(@"
         int InitCascade(void* const& o = nullptr) noexcept override;");
             }
+#else
+            if (c._Has<TemplateLibrary.CustomInitCascade>())
+            {
+
+                sb.Append(@"
+
+        XX_CODEGEN_CLASS_HEADER_CASCADE_CORE(" + c.Name + ", " + btn + @")");
+            }
+            else
+            {
+                sb.Append(@"
+
+        XX_CODEGEN_CLASS_HEADER_CASCADE(" + c.Name + ", " + btn + @")");
+            }
+#endif
+
+
+
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
                 sb.Append(@"
-#include <" + c._GetTypeDecl_Lua(templateName) + @".h>");
+#include<" + c._GetTypeDecl_Lua(templateName) + @".inc>");
             }
             sb.Append(@"
     };");   // class }
@@ -353,6 +380,42 @@ namespace xx {");
 
         sb.Append(@"
 }
+");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // defines ( cpp )
+
+        sb2.Append(@"#include """ + templateName + "_class" + (filter != null ? "_filter" : "") + ".h" + @"""
 namespace " + templateName + @" {");
 
         cs = ts._GetClasss();   //._SortByInheritRelation();
@@ -365,7 +428,7 @@ namespace " + templateName + @" {");
             // namespace c_ns {
             if (c.Namespace != null && (i == 0 || (i > 0 && cs[i - 1].Namespace != c.Namespace))) // namespace 去重
             {
-                sb.Append(@"
+                sb2.Append(@"
 namespace " + c.Namespace.Replace(".", "::") + @" {");
             }
 
@@ -376,18 +439,18 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 var rt = m.ReturnType;
                 var rtn = rt._GetTypeDecl_Cpp(templateName, "_s");
 
-                sb.Append(@"
-    inline " + rtn + " " + c.Name + "::" + m.Name + "(");
+                sb2.Append(@"
+    " + rtn + " " + c.Name + "::" + m.Name + "(");
                 foreach (var p in ps)
                 {
                     string attr = " ";
                     if (p._Has<TemplateLibrary.ConstRef>()) attr = " const& ";
                     if (p._Has<TemplateLibrary.PointerConstRef>()) attr = "* const& ";
 
-                    sb.Append(p._GetDesc()._GetComment_Cpp(12) + @"
+                    sb2.Append(p._GetDesc()._GetComment_Cpp(12) + @"
             " + (p != ps[0] ? ", " : "") + p.ParameterType._GetTypeDecl_Cpp(templateName) + attr + p.Name);
                 }
-                sb.Append(") noexcept {" + (rtn != "void" ? (" return " + rtn + "(); ") : "") + "}");
+                sb2.Append(") noexcept {" + (rtn != "void" ? (" return " + rtn + "(); ") : "") + "}");
             }
 
 
@@ -395,15 +458,15 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             var bt = c.BaseType;
             var fs = c._GetFields();
 
-            sb.Append(@"
-    inline uint16_t " + c.Name + @"::GetTypeId() const noexcept {
+            sb2.Append(@"
+    uint16_t " + c.Name + @"::GetTypeId() const noexcept {
         return " + typeIds.types[c] + @";
     }
-    inline void " + c.Name + @"::ToBBuffer(xx::BBuffer& bb) const noexcept {");
+    void " + c.Name + @"::ToBBuffer(xx::BBuffer& bb) const noexcept {");
 
             if (c._HasBaseType())
             {
-                sb.Append(@"
+                sb2.Append(@"
         this->BaseType::ToBBuffer(bb);");
             }
             fs = c._GetFields();
@@ -413,28 +476,28 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 if (ft._IsExternal() && !ft._GetExternalSerializable()) continue;
                 if (f._Has<TemplateLibrary.NotSerialize>())
                 {
-                    //            sb.Append(@"
+                    //            sb2.Append(@"
                     //bb.WriteDefaultValue<" + ft._GetTypeDecl_Cpp(templateName, "_s") + ">();");
                 }
                 else if (f._Has<TemplateLibrary.CustomSerialize>())
                 {
-                    //            sb.Append(@"
+                    //            sb2.Append(@"
                     //bb.CustomWrite(bb, (void*)this, _offsetof(ThisType, " + f.Name + "));");
                     throw new NotImplementedException();
                 }
                 else
                 {
-                    sb.Append(@"
+                    sb2.Append(@"
         bb.Write(this->" + f.Name + ");");
                 }
             }
 
-            sb.Append(@"
+            sb2.Append(@"
     }
-    inline int " + c.Name + @"::FromBBuffer(xx::BBuffer& bb) noexcept {");
+    int " + c.Name + @"::FromBBuffer(xx::BBuffer& bb) noexcept {");
             if (c._HasBaseType())
             {
-                sb.Append(@"
+                sb2.Append(@"
         if (int r = this->BaseType::FromBBuffer(bb)) return r;");
             }
             fs = c._GetFields();
@@ -443,29 +506,29 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 if (f.FieldType._IsExternal() && !f.FieldType._GetExternalSerializable()) continue;
                 if (f.FieldType._IsContainer())
                 {
-                    sb.Append(@"
+                    sb2.Append(@"
         bb.readLengthLimit = " + f._GetLimit() + ";");
                 }
 
-                sb.Append(@"
+                sb2.Append(@"
         if (int r = bb.Read(this->" + f.Name + @")) return r;");
             }
-            sb.Append(@"
+            sb2.Append(@"
         return 0;
     }");
             if (c._Has<TemplateLibrary.CustomInitCascade>())
             {
-                sb.Append(@"
-    inline int " + c.Name + @"::InitCascadeCore(void* const& o) noexcept {");
+                sb2.Append(@"
+    int " + c.Name + @"::InitCascadeCore(void* const& o) noexcept {");
             }
             else
             {
-                sb.Append(@"
-    inline int " + c.Name + @"::InitCascade(void* const& o) noexcept {");
+                sb2.Append(@"
+    int " + c.Name + @"::InitCascade(void* const& o) noexcept {");
             }
             if (c._HasBaseType())
             {
-                sb.Append(@"
+                sb2.Append(@"
         if (int r = this->BaseType::InitCascade(o)) return r;");
             }
             fs = c._GetFields();
@@ -473,16 +536,16 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
             {
                 var ft = f.FieldType;
                 if (!ft._IsList() && !ft._IsUserClass() || ft._IsWeak() || ft._IsExternal() && !ft._GetExternalSerializable()) continue;
-                sb.Append(@"
+                sb2.Append(@"
         if (this->" + f.Name + @") {
             if (int r = this->" + f.Name + @"->InitCascade(o)) return r;
         }");
             }
-            sb.Append(@"
+            sb2.Append(@"
         return 0;
     }");
-            sb.Append(@"
-    inline void " + c.Name + @"::ToString(std::string& s) const noexcept {
+            sb2.Append(@"
+    void " + c.Name + @"::ToString(std::string& s) const noexcept {
         if (this->toStringFlag)
         {
         	xx::Append(s, ""[ \""***** recursived *****\"" ]"");
@@ -496,43 +559,42 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
         
         this->SetToStringFlag(false);
     }
-    inline void " + c.Name + @"::ToStringCore(std::string& s) const noexcept {
+    void " + c.Name + @"::ToStringCore(std::string& s) const noexcept {
         this->BaseType::ToStringCore(s);");
             foreach (var f in fs)
             {
                 if (f.FieldType._IsExternal() && !f.FieldType._GetExternalSerializable()) continue;
                 if (f.FieldType._IsString())
                 {
-                    sb.Append(@"
+                    sb2.Append(@"
         if (this->" + f.Name + @") xx::Append(s, "", \""" + f.Name + @"\"":\"""", this->" + f.Name + @", ""\"""");
         else xx::Append(s, "", \""" + f.Name + @"\"":nil"");");
                 }
                 else
                 {
-                    sb.Append(@"
+                    sb2.Append(@"
         xx::Append(s, "", \""" + f.Name + @"\"":"", this->" + f.Name + @");");
                 }
             }
-            sb.Append(@"
+            sb2.Append(@"
     }");
 
             // namespace }
             if (c.Namespace != null && ((i < cs.Count - 1 && cs[i + 1].Namespace != c.Namespace) || i == cs.Count - 1))
             {
-                sb.Append(@"
+                sb2.Append(@"
 }");
             }
 
         }
 
-        sb.Append(@"
+        sb2.Append(@"
 }");
 
 
-        sb.Append(@"
+        sb2.Append(@"
 namespace " + templateName + @" {
-	struct AllTypesRegister {
-        AllTypesRegister() {");
+	AllTypesRegister::AllTypesRegister() {");
         foreach (var kv in typeIds.types)
         {
             var ct = kv.Key;
@@ -542,20 +604,21 @@ namespace " + templateName + @" {
             var bt = ct.BaseType;
             var btn = ct._HasBaseType() ? bt._GetTypeDecl_Cpp(templateName) : "xx::Object";
 
-            sb.Append(@"
-	        xx::BBuffer::Register<" + ctn + @">(" + kv.Value + @");");
+            sb2.Append(@"
+	    xx::BBuffer::Register<" + ctn + @">(" + kv.Value + @");");
         }
-        sb.Append(@"
-        }
-	};
-	inline AllTypesRegister AllTypesRegisterInstance;   // for auto register at program startup
+        sb2.Append(@"
+	}
 }
 ");
 
         // 以命名空间排序版生成备份文件 用以对比是否发生改变. 如果.bak 经过生成对比发现无差异，就不必再生成了
         if (generateBak)
         {
-            return sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h.bak"));
+            var sb3 = new StringBuilder();
+            sb3.Append(sb);
+            sb3.Append(sb2);
+            return sb3._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h.bak"));
         }
         else if (!Gen(asm, outDir, templateName, "", filter, true))
         {
@@ -563,25 +626,24 @@ namespace " + templateName + @" {
         }
 
         // 写文件。如果无变化就退出。后面的都不必做了
-        sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h"));
-
-        sb.Clear();
+        // 追加子包含文件
         foreach (var c in cs)
         {
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
-                sb.Append(@"#include <" + c._GetTypeDecl_Lua(templateName) + @".hpp>
+                sb2.Append(@"#include <" + c._GetTypeDecl_Lua(templateName) + @".hpp>
 ");
             }
         }
-        sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".hpp"));
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".h"));
+        sb2._WriteToFile(Path.Combine(outDir, templateName + "_class" + (filter != null ? "_filter" : "") + ".cpp"));
 
         sb.Clear();
         foreach (var c in cs)
         {
             if (c._Has<TemplateLibrary.AttachInclude>())
             {
-                sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".h"));
+                sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".inc"));
                 sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".hpp"));
             }
         }

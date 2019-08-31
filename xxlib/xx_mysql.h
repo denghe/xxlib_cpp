@@ -140,7 +140,7 @@ namespace xx
 				else {
 					info.lastError.clear();
 					Append(info.lastError, "unhandled value type: ", typeid(T).name());
-					throw - 1;
+					throw - 2;
 				}
 			}
 
@@ -154,7 +154,7 @@ namespace xx
 				}
 				info.lastError.clear();
 				Append(info.lastError, "could not find field name = ", colName);
-				throw - 1;
+				throw - 3;
 			}
 			template<typename T>
 			void Read(std::string const& colName, T& outVal) {
@@ -185,7 +185,7 @@ namespace xx
 			MYSQL* ctx = nullptr;
 			std::string lastError;
 			unsigned int lastErrorNumber = 0;			// try 到的异常代码仅用于表达出错的位置. 这个是具体的错误码
-
+			std::string lastErrorSql;
 			inline operator bool() {
 				return ctx;
 			}
@@ -212,13 +212,13 @@ namespace xx
 				if (!ctx) {
 					lastError = "mysql_init failed.";
 					lastErrorNumber = -1;
-					return -1;
+					return -4;
 				}
 				if (!mysql_real_connect(ctx, host, username, password, db, port, nullptr, CLIENT_MULTI_STATEMENTS)) {	// todo: 关 SSL 的参数, 限制连接超时时长
 					lastError = mysql_error(ctx);
 					lastErrorNumber = mysql_errno(ctx);
 					Close();
-					return -2;
+					return -5;
 				}
 				my_bool reconnect = 1;
 				return mysql_options(ctx, MYSQL_OPT_RECONNECT, &reconnect);
@@ -247,12 +247,14 @@ namespace xx
 				if (!ctx) {
 					lastError = "connection is closed.";
 					lastErrorNumber = 0;
-					return -1;
+					lastErrorSql = sql;
+					return -100;
 				}
 				if (mysql_real_query(ctx, sql, len)) {
 					lastError = mysql_error(ctx);
 					lastErrorNumber = mysql_errno(ctx);
-					return -2;
+					lastErrorSql = sql;
+					return -200;
 				}
 				return 0;
 			}
@@ -288,7 +290,7 @@ namespace xx
 				if (!ctx) {
 					lastError = "connection is closed.";
 					lastErrorNumber = 0;
-					return -1;
+					return -6;
 				}
 
 				Info info(lastError);
@@ -316,7 +318,7 @@ namespace xx
 							if (!reader.lengths) {
 								lastError = mysql_error(ctx);
 								lastErrorNumber = mysql_errno(ctx);
-								return -2;
+								return -7;
 							}
 							if (!rowHandler(reader)) break;
 						}
@@ -334,7 +336,7 @@ namespace xx
 					// 有结果集 但是出错
 					lastError = mysql_error(ctx);
 					lastErrorNumber = mysql_errno(ctx);
-					return -3;
+					return -8;
 				}
 
 				// n = 0: 有更多结果集.  -1: 没有    >0: 出错
@@ -344,7 +346,7 @@ namespace xx
 				else {
 					lastError = mysql_error(ctx);
 					lastErrorNumber = mysql_errno(ctx);
-					return -4;
+					return -9;
 				}
 				return 0;
 			};

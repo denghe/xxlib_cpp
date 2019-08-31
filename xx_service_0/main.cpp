@@ -75,7 +75,7 @@ struct Service0 {
 
 			// for test
 			gp->onReceive = [this, gp](uint32_t const& id, uint8_t* const& buf, size_t const& len)->int {
-				xx::CoutN("gp recv : id = ", id, ", buf len = ", len);
+				//xx::CoutN("gp recv : id = ", id, ", buf len = ", len);
 				return gp->SendDirect(buf - 8, len + 8);	// echo
 			};
 

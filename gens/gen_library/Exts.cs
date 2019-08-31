@@ -41,7 +41,7 @@ public static class GenExtensions
     /// </summary>
     public static List<Type> _GetStructs(this List<Type> ts, bool exceptExternal = true)
     {
-        return ts.Where(t => (t.IsValueType && !t.IsEnum) && !t._IsExternal()).ToList();
+        return ts.Where(t => (t.IsValueType && !t.IsEnum && !t._IsNullable()) && !t._IsExternal()).ToList();
     }
 
     /// <summary>
@@ -290,6 +290,15 @@ public static class GenExtensions
     {
         return t.IsGenericType && t.Namespace == nameof(System) && t.Name == "Nullable`1";
     }
+
+    /// <summary>
+    /// 返回 t 是否为 struct
+    /// </summary>
+    public static bool _IsStruct(this Type t)
+    {
+        return t.IsValueType && !t.IsEnum && !t._IsNullable();
+    }
+    
 
     /// <summary>
     /// 返回 t 是否为 Tuple<........>

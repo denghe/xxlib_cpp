@@ -131,7 +131,7 @@ struct Gateway {
 
 	void InitClientListener() {
 		// 创建 listener( tcp, kcp 同时支持 )
-		xx::MakeTo(clientListener, uv, "0.0.0.0", 20000, 1);	// kcp only for test			// 2);	// tcp + kcp
+		xx::MakeTo(clientListener, uv, "0.0.0.0", 20000, 2);
 
 		// 接受连接时分配自增 id 放入字典 并设置相应事件处理代码
 		clientListener->onAccept = [this](xx::UvPeer_s peer) {

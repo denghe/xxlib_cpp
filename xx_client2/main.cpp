@@ -17,24 +17,21 @@ struct Client {
 	std::shared_ptr<xx::UvFrameSimulatePeer> lobbyPeer;
 	std::shared_ptr<xx::UvFrameSimulatePeer> gamePeer;
 
+	int count = 0;
 	int r = 0;
 	int ticks = 0;
 	xx::BBuffer_s bb = xx::Make<xx::BBuffer>();
 
 	Client() {
 
-		uv.DelayExec(100, [] {
-			xx::CoutN("asdf");
-			});
-
-		xx::MakeTo(timer, uv, 0, 100, [this] {
+		xx::MakeTo(timer, uv, 0, 1, [this] {
 			if (this->lineNumber >= 0) {
 				this->lineNumber = Update();
 			}
 			});
 		assert(timer);
 
-		xx::MakeTo(gatewayDialer, uv, 1);
+		xx::MakeTo(gatewayDialer, uv, 0);	// 0: tcp   1: kcp   2: auto
 		assert(gatewayDialer);
 
 		gatewayDialer->onAcceptSimulatePeer = [this](std::shared_ptr<xx::UvFrameSimulatePeer>& p) {
@@ -68,7 +65,7 @@ struct Client {
 		Cleanup();
 
 		// 开始拨号
-		r = gatewayDialer->Dial("127.0.0.1", 20000, 500);		// 500 ms 超时
+		r = gatewayDialer->Dial("192.168.1.52", 20000, 500);		// 500 ms 超时
 		xx::CoutN("client gatewayDialer dial........");
 
 		// 没开始拨号立刻失败（可能没网络堆栈）
@@ -98,7 +95,7 @@ struct Client {
 		goto LabDial;
 
 	LabStep1:
-		xx::CoutN("step1");
+		//xx::CoutN("step1");
 
 		// 试着通过 service0Peer 发包 
 
@@ -106,7 +103,7 @@ struct Client {
 		bb->Clear();
 		bb->Write((uint8_t)123);
 		service0Peer->SendPush(bb);
-		xx::CoutN("client send to addr = ", 0, ", bb = ", bb);
+		//xx::CoutN("client send to addr = ", 0, ", bb = ", bb);
 
 		// 等回包			
 		// 如果超过 3 秒没收到回应 就断线重播
@@ -121,7 +118,7 @@ struct Client {
 				xx::CoutN("timeout. redial");
 				goto LabDial;
 			}
-			xx::Cout(".");
+			//xx::Cout(".");
 
 			// 如果收到东西, 判断是否符合预期
 			if (service0Peer->recvs.size()) {
@@ -155,6 +152,12 @@ struct Client {
 				break;
 			}
 		}
+
+		++count;
+		if (count % 100 == 0) {
+			xx::CoutN(count);
+		}
+		goto LabStep1;
 
 		// 重拨
 		xx::CoutN("client send test finished. redial");

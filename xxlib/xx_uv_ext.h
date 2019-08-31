@@ -310,6 +310,7 @@ namespace xx {
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (id == 0xFFFFFFFFu) return;
+			id = 0xFFFFFFFFu;
 			gatewayPeer.reset();
 			timer.reset();
 			for (auto&& kv : callbacks) {
@@ -329,7 +330,7 @@ namespace xx {
 	inline void UvFromToGatewayBasePeer::DisconnectSimulatePeers() {
 		for (auto&& p : simulatePeers) {
 			if (p.second) {
-				p.second->Disconnect();	// todo: 如果有从 simulatePeers 移除的代码 就不安全
+				p.second->Dispose(1);
 			}
 		}
 		simulatePeers.clear();
@@ -504,6 +505,7 @@ namespace xx {
 
 		inline virtual void Dispose(int const& flag = 1) noexcept override {
 			if (id == 0xFFFFFFFFu) return;
+			id = 0xFFFFFFFFu;
 			gatewayPeer.reset();
 			timer.reset();
 			for (auto&& kv : callbacks) {

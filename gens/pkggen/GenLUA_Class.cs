@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -60,10 +61,6 @@ public static class GenLUA_Class
         o.__proto = " + cn + @"
         o.__index = o
         o.__newindex = o
-		o.__isReleased = false
-		o.Release = function()
-			o.__isReleased = true
-		end
 ");
             if (!c._IsList())
             {
@@ -83,10 +80,9 @@ public static class GenLUA_Class
                     var v = f.GetValue(f.IsStatic ? null : o);
                     var dv = v._GetDefaultValueDecl_Lua(templateName);
                     sb.Append(f._GetDesc()._GetComment_Lua(8));
-                    if (ft._IsWeak())
+                    if (ft._IsWeak() || ft._IsStruct())
                     {
-                        sb.Append(@"
-        o." + f.Name + @" = MakeWeak()");
+                        throw new Exception("LUA does not support weak_ptr or struct");
                     }
                     else if (dv != "")
                     {
@@ -123,9 +119,20 @@ public static class GenLUA_Class
             foreach (var f in fs)
             {
                 var ft = f.FieldType;
-                var ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
-                if (ft._IsBBuffer() || ft._IsString() || ft._IsWeak()) ftn = "Object";
-                if (ftn != "Object" && ft._IsNullable()) ftn = "Nullable" + ftn;
+                var ftn = "";
+                if (ft._IsWeak() || ft._IsStruct())
+                {
+                    throw new Exception("LUA does not support weak_ptr or struct");
+                }
+                if (ft._IsNullable())
+                {
+                    ftn = "Nullable" + ft.GenericTypeArguments[0].Name;
+                }
+                else
+                {
+                    ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
+                    if (ft._IsBBuffer() || ft._IsString()) ftn = "Object";
+                }
                 if (ftns.ContainsKey(ftn)) ftns[ftn]++;
                 else ftns.Add(ftn, 1);
             }
@@ -140,41 +147,41 @@ public static class GenLUA_Class
             foreach (var f in fs)
             {
                 var ft = f.FieldType;
-                var ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
-                if (ft._IsBBuffer() || ft._IsString() || ft._IsWeak()) ftn = "Object";
-                if (ftn != "Object" && ft._IsNullable()) ftn = "Nullable" + ftn;
-                if (ftns[ftn] > 1)
+                var ftn = "";
+                if (ft._IsWeak() || ft._IsStruct())
                 {
-                    if (ft._IsWeak())
-                    {
-                        sb.Append(@"
-        o." + f.Name + @" = MakeWeak( Read" + ftn + @"( bb ) )");
-                    }
-                    else
-                    {
-                        sb.Append(@"
-        o." + f.Name + @" = Read" + ftn + @"( bb )");
-                    }
+                    throw new Exception("LUA does not support weak_ptr or struct");
+                }
+                if (ft._IsNullable())
+                {
+                    ftn = "Nullable" + ft.GenericTypeArguments[0].Name;
                 }
                 else
                 {
-                    if (ft._IsWeak())
-                    {
-                        sb.Append(@"
-        o." + f.Name + @" = MakeWeak( Read" + ftn + @"( bb ) )");
-                    }
-                    else
-                    {
-                        sb.Append(@"
+                    ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
+                    if (ft._IsBBuffer() || ft._IsString()) ftn = "Object";
+                }
+                if (ftns[ftn] > 1)
+                {
+
+                    sb.Append(@"
+        o." + f.Name + @" = Read" + ftn + @"( bb )");
+                }
+                else
+                {
+                    sb.Append(@"
         o." + f.Name + @" = bb:Read" + ftn + @"()");
-                    }
                 }
             }
             if (c._IsList())
             {
                 var fn = "ReadObject";
                 var ct = c.GenericTypeArguments[0];
-                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString() && !ct._IsWeak())
+                if (ct._IsWeak() || ct._IsStruct())
+                {
+                    throw new Exception("LUA does not support weak_ptr or struct");
+                }
+                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString())
                 {
                     if (ct.IsEnum)
                     {
@@ -197,7 +204,7 @@ public static class GenLUA_Class
 		local len = bb:ReadUInt32()
         local f = BBuffer." + fn + @"
 		for i = 1, len do
-			o[ i ] = " + (ct._IsWeak() ? "MakeWeak( f( bb ) )" : "f( bb )") + @"
+			o[ i ] = f( bb )
 		end");
             }
             sb.Append(@"
@@ -221,25 +228,36 @@ public static class GenLUA_Class
             foreach (var f in fs)
             {
                 var ft = f.FieldType;
-                var ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
-                if (ft._IsBBuffer() || ft._IsString() || ft._IsWeak()) ftn = "Object";
-                if (ftn != "Object" && ft._IsNullable()) ftn = "Nullable" + ftn;
+                var ftn = "";
+                if (ft._IsWeak() || ft._IsStruct())
+                {
+                    throw new Exception("LUA does not support weak_ptr or struct");
+                }
+                if (ft._IsNullable())
+                {
+                    ftn = "Nullable" + ft.GenericTypeArguments[0].Name;
+                }
+                else
+                {
+                    ftn = ft.IsEnum ? ft.GetEnumUnderlyingType().Name : ft._IsNumeric() ? ft.Name : "Object";
+                    if (ft._IsBBuffer() || ft._IsString()) ftn = "Object";
+                }
                 if (ftns[ftn] > 1)
                 {
                     sb.Append(@"
-        Write" + ftn + @"( bb, o." + f.Name + (ft._IsWeak() ? ".Lock()" : "") + @" )");
+        Write" + ftn + @"( bb, o." + f.Name + @" )");
                 }
                 else
                 {
                     sb.Append(@"
-        bb:Write" + ftn + @"( o." + f.Name + (ft._IsWeak() ? ".Lock()" : "") + @" )");
+        bb:Write" + ftn + @"( o." + f.Name + @" )");
                 }
             }
             if (c._IsList())
             {
                 var fn = "WriteObject";
                 var ct = c.GenericTypeArguments[0];
-                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString() && !ct._IsWeak())
+                if (!ct._IsUserClass() && !ct._IsBBuffer() && !ct._IsString())
                 {
                     if (ct.IsEnum)
                     {
@@ -258,7 +276,7 @@ public static class GenLUA_Class
 		bb:WriteUInt32( len )
         local f = BBuffer." + fn + @"
         for i = 1, len do
-			f( bb, o[ i ]" + (ct._IsWeak() ? ".Lock()" : "") + @" )
+			f( bb, o[ i ]" + @" )
 		end");
             }
             sb.Append(@"

@@ -89,7 +89,7 @@ address 在生成时可以从 1 往上扫空位. 发现没被占用就用上
 
 	service -> gateway: "open" + clientId								// 与 client 建立信道
 	service -> gateway: "close" + clientId								// 关闭 与 client 间的信道
-	service -> gateway: "kick" + clientId								// 踢人下线
+	service -> gateway: "kick" + clientId + delayMS						// 踢人下线
 
 	gateway -> client: "open" + serviceId								// 通知 client 建立信道
 	gateway -> client: "close" + serviceId								// 通知 client 关闭信道
