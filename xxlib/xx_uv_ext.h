@@ -249,9 +249,7 @@ namespace xx {
 			if (id == 0xFFFFFFFFu) return -1;
 			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
-			if (timeoutMS) {
-				v.second = NowSteadyEpochMS() + timeoutMS;
-			}
+			v.second = NowSteadyEpochMS() + (timeoutMS ? timeoutMS : uv.defaultRequestTimeoutMS);
 			if (int r = SendResponse(-serial, msg)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);
@@ -494,9 +492,7 @@ namespace xx {
 			if (Disposed()) return -1;
 			std::pair<std::function<int(BBuffer * const& data)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
-			if (timeoutMS) {
-				v.second = NowSteadyEpochMS() + timeoutMS;
-			}
+			v.second = NowSteadyEpochMS() + (timeoutMS ? timeoutMS : uv.defaultRequestTimeoutMS);
 			if (int r = SendResponse(-serial, data)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);
@@ -594,9 +590,7 @@ namespace xx {
 			if (Disposed()) return -1;
 			std::pair<std::function<int(BBuffer * const& data)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
-			if (timeoutMS) {
-				v.second = NowSteadyEpochMS() + timeoutMS;
-			}
+			v.second = NowSteadyEpochMS() + (timeoutMS ? timeoutMS : uv.defaultRequestTimeoutMS);
 			if (int r = SendResponse(-serial, data)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);

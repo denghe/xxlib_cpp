@@ -14,6 +14,7 @@ namespace xx {
 		BBuffer recvBB;								// shared deserialization for package receive. direct replace buf when using
 		BBuffer sendBB;								// shared serialization for package send
 		BBuffer_s sharedBB = xx::Make<BBuffer>();	// shared serialization for package send( shared_ptr version )
+		int64_t defaultRequestTimeoutMS = 15000;
 
 		int autoId = 0;								// udps key, udp dialer port gen: --autoId
 		Dict<int, std::weak_ptr<UvKcp>> udps;		// key: port( dialer peer port = autoId )
@@ -532,9 +533,7 @@ namespace xx {
 			if (!peerBase) return -1;
 			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
-			if (timeoutMS) {
-				v.second = NowSteadyEpochMS() + timeoutMS;
-			}
+			v.second = NowSteadyEpochMS() + (timeoutMS ? timeoutMS : uv.defaultRequestTimeoutMS);
 			if (int r = SendResponse(-serial, msg)) return r;
 			v.first = std::move(cb);
 			callbacks[serial] = std::move(v);
