@@ -626,6 +626,7 @@ namespace xx {
 	inline void UvListenerBase::Accept(UvPeerBase_s pb) noexcept {
 		assert(pb);
 		auto&& p = listener->CreatePeer();
+		if (!p) return;
 		p->peerBase = pb;
 		pb->peer = &*p;
 		listener->Accept(p);
