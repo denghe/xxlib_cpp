@@ -10,3 +10,4 @@ obj
 /client_test1/huga.bin
 /client_test1/out/build/x64-Debug
 /deboost.context/out/build/x64-Debug
+*.user
