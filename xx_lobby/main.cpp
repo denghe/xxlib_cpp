@@ -102,10 +102,8 @@ struct UvServiceBase {
 
 				xx::CoutN("UvFromGatewayPeer disconnected. ip = ", sp->GetIP());
 			};
-
 		};
 	}
-
 };
 
 

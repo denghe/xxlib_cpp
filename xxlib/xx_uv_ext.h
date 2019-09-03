@@ -27,11 +27,15 @@ namespace xx {
 
 	// 连上 gateway 后产生的链路 peer. 为 模拟的 peers 的父容器
 	struct UvFromToGatewayBasePeer : UvCommandPeer {
-		using UvCommandPeer::UvCommandPeer;
 
 		std::function<int(uint32_t const& id, uint8_t* const& buf, size_t const& len)> onReceive;
 
 		std::unordered_map<uint32_t, std::shared_ptr<UvSimulatePeer>> simulatePeers;
+
+		// for simulatePeers Update
+		xx::UvTimer_s timer;
+
+		UvFromToGatewayBasePeer(xx::Uv& uv);
 
 		inline virtual bool Dispose(int const& flag = 1) noexcept override {
 			if (!this->UvCommandPeer::Dispose(flag)) return false;
@@ -196,7 +200,6 @@ namespace xx {
 		Dict<int, std::pair<std::function<int(Object_s&& msg)>, int64_t>> callbacks;
 		int serial = 0;
 		int64_t timeoutMS = 0;
-		UvTimer_s timer;
 		std::function<void()> onDisconnect;
 		std::function<int(Object_s&& msg)> onReceivePush;
 		std::function<int(int const& serial, Object_s&& msg)> onReceiveRequest;
@@ -206,10 +209,6 @@ namespace xx {
 			: UvItem(gp->uv)
 			, id(id) {
 			gatewayPeer = gp;
-			// todo: 将就用 gp 的 timer, gp 的 Update 增加对 sim peers 的 Update 调用
-			MakeTo(timer, uv, 10, 10, [this] {
-				Update(NowSteadyEpochMS());
-				});
 		}
 
 		inline virtual void Disconnect() noexcept {
@@ -272,7 +271,7 @@ namespace xx {
 			}
 		}
 
-		// call by timer
+		// call by gatewayPeer's timer
 		inline virtual int Update(int64_t const& nowMS) noexcept {
 			if (id == 0xFFFFFFFFu) return -1;
 
@@ -301,7 +300,6 @@ namespace xx {
 			if (id == 0xFFFFFFFFu) return false;
 			id = 0xFFFFFFFFu;
 			gatewayPeer.reset();
-			timer.reset();
 			for (auto&& kv : callbacks) {
 				kv.value.first(nullptr);
 			}
@@ -317,6 +315,18 @@ namespace xx {
 			return true;
 		}
 	};
+
+	inline UvFromToGatewayBasePeer::UvFromToGatewayBasePeer(xx::Uv& uv) : UvCommandPeer(uv) {
+		xx::MakeTo(timer, uv, 10, 10, [this] {
+			auto&& nowMS = xx::NowSteadyEpochMS();
+			for (auto&& kv : simulatePeers) {
+				if (kv.second && !kv.second->Disposed()) {
+					(void)kv.second->Update(nowMS);
+				}
+			}
+		});
+	}
+
 
 	inline void UvFromToGatewayBasePeer::DisconnectSimulatePeers() {
 		for (auto&& p : simulatePeers) {

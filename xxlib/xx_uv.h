@@ -9,18 +9,19 @@
 namespace xx {
 	struct UvKcp;
 	struct Uv {
-		uv_loop_t uvLoop;
+		int64_t defaultRequestTimeoutMS = 15000;	// for SendRequest( .... , 0 )
+		uint32_t maxPackageLength = 1024 * 256;		// for recv safe check
 
 		BBuffer recvBB;								// shared deserialization for package receive. direct replace buf when using
 		BBuffer sendBB;								// shared serialization for package send
 		BBuffer_s sharedBB = xx::Make<BBuffer>();	// shared serialization for package send( shared_ptr version )
-		int64_t defaultRequestTimeoutMS = 15000;
 
 		int autoId = 0;								// udps key, udp dialer port gen: --autoId
 		Dict<int, std::weak_ptr<UvKcp>> udps;		// key: port( dialer peer port = autoId )
 		char* recvBuf = nullptr;					// shared receive buf for kcp
 		size_t recvBufLen = 65535;					// shared receive buf's len
 		uv_run_mode runMode = UV_RUN_DEFAULT;		// reduce frame client update kcp delay
+		uv_loop_t uvLoop;
 
 		Uv() {
 			if (int r = uv_loop_init(&uvLoop)) throw r;
@@ -733,8 +734,8 @@ namespace xx {
 			buf.AddRange(recvBuf, recvLen);
 			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
-				auto len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
-				if (len <= 0 /* || len > maxLimit */) return -1;	// invalid length
+				uint32_t len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
+				if (len > uv.maxPackageLength) return -1;			// invalid length
 				if (offset + 4 + len > buf.len) break;				// not enough data
 
 				offset += 4;
@@ -943,8 +944,8 @@ namespace xx {
 			buf.AddRange(recvBuf, recvLen);
 			size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
-				auto len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
-				if (len <= 0 /* || len > maxLimit */) return -1;	// invalid length
+				uint32_t len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
+				if (len > uv.maxPackageLength) return -1;			// invalid length
 				if (offset + 4 + len > buf.len) break;				// not enough data
 
 				offset += 4;
