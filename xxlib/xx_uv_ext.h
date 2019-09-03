@@ -8,6 +8,7 @@ namespace xx {
 		using UvPeer::UvPeer;
 
 		// 当收到内部指令包时 投递到该事件回调( bb 为 uv.recvBB )
+		// 需要在派生类中 Dispose
 		std::function<int(BBuffer& bb)> onReceiveCommand;
 
 		// 构造以 id == 0xFFFFFFFF 打头的内部指令包( 符合 header + id + data 的结构 )
@@ -32,23 +33,13 @@ namespace xx {
 
 		std::unordered_map<uint32_t, std::shared_ptr<UvSimulatePeer>> simulatePeers;
 
-		// 这段代码从 UvPeer 复制
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!peerBase) return;
-			peerBase.reset();
-			timer.reset();
-			for (auto&& kv : callbacks) {
-				kv.value.first(nullptr);
-			}
-			callbacks.Clear();
-			if (flag) {
-				auto holder = shared_from_this();
-				Disconnect();
-				onDisconnect = nullptr;
-
-				onReceive = nullptr;			//
-				onReceiveCommand = nullptr;		//
-			}
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!this->UvCommandPeer::Dispose(flag)) return false;
+			if (flag == -1) return true;
+			auto holder = shared_from_this();
+			onReceive = nullptr;
+			onReceiveCommand = nullptr;
+			return true;
 		}
 
 		template<typename PeerType = UvSimulatePeer>
@@ -286,7 +277,7 @@ namespace xx {
 			if (id == 0xFFFFFFFFu) return -1;
 
 			if (timeoutMS && timeoutMS < nowMS) {
-				Dispose(1);
+				Dispose();
 				return -1;
 			}
 
@@ -306,8 +297,8 @@ namespace xx {
 			return id == 0xFFFFFFFFu;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (id == 0xFFFFFFFFu) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (id == 0xFFFFFFFFu) return false;
 			id = 0xFFFFFFFFu;
 			gatewayPeer.reset();
 			timer.reset();
@@ -315,20 +306,22 @@ namespace xx {
 				kv.value.first(nullptr);
 			}
 			callbacks.Clear();
+			if (flag == -1) return true;
+			auto holder = shared_from_this();
 			if (flag) {
-				auto holder = shared_from_this();
 				Disconnect();
-				onDisconnect = nullptr;
-				onReceivePush = nullptr;
-				onReceiveRequest = nullptr;
 			}
+			onDisconnect = nullptr;
+			onReceivePush = nullptr;
+			onReceiveRequest = nullptr;
+			return true;
 		}
 	};
 
 	inline void UvFromToGatewayBasePeer::DisconnectSimulatePeers() {
 		for (auto&& p : simulatePeers) {
 			if (p.second) {
-				p.second->Dispose(1);
+				p.second->Dispose();
 			}
 		}
 		simulatePeers.clear();
@@ -499,22 +492,13 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (id == 0xFFFFFFFFu) return;
-			id = 0xFFFFFFFFu;
-			gatewayPeer.reset();
-			timer.reset();
-			for (auto&& kv : callbacks) {
-				kv.value.first(nullptr);
-			}
-			callbacks.Clear();
-			if (flag) {
-				auto holder = shared_from_this();
-				Disconnect();
-				onDisconnect = nullptr;
-				onReceivePush = nullptr;
-				onReceiveRequest = nullptr;
-			}
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!this->UvSimulatePeer::Dispose(flag)) return false;
+			if (flag == -1) return true;
+			auto holder = shared_from_this();
+			onReceivePush = nullptr;
+			onReceiveRequest = nullptr;
+			return true;
 		}
 
 	protected:
@@ -547,7 +531,7 @@ namespace xx {
 			if (id == 0xFFFFFFFFu) return -1;
 
 			if (timeoutMS && timeoutMS < nowMS) {
-				Dispose(1);
+				Dispose();
 				return -1;
 			}
 
@@ -597,21 +581,13 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!peerBase) return;
-			peerBase.reset();
-			timer.reset();
-			for (auto&& kv : callbacks) {
-				kv.value.first(nullptr);
-			}
-			callbacks.Clear();
-			if (flag) {
-				auto holder = shared_from_this();
-				Disconnect();
-				onDisconnect = nullptr;
-				onReceivePush = nullptr;
-				onReceiveRequest = nullptr;
-			}
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!this->UvPeer::Dispose(flag)) return false;
+			if (flag == -1) return true;
+			auto holder = shared_from_this();
+			onReceivePush = nullptr;
+			onReceiveRequest = nullptr;
+			return true;
 		}
 
 	protected:
@@ -645,7 +621,7 @@ namespace xx {
 		inline virtual int Update(int64_t const& nowMS) noexcept override {
 			assert(peerBase);
 			if (timeoutMS && timeoutMS < nowMS) {
-				Dispose(1);
+				Dispose();
 				return -1;
 			}
 

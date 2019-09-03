@@ -7,23 +7,13 @@ struct UvGatewayPeer : xx::UvCommandPeer {
 	// 直接投递原始 buf 方便小改转发
 	std::function<int(uint8_t* const& buf, size_t const& len)> onReceive;
 
-	// 这段代码从 UvPeer 复制
-	inline virtual void Dispose(int const& flag = 1) noexcept override {
-		if (!peerBase) return;
-		peerBase.reset();
-		timer.reset();
-		for (auto&& kv : callbacks) {
-			kv.value.first(nullptr);
-		}
-		callbacks.Clear();
-		if (flag) {
-			auto holder = shared_from_this();
-			Disconnect();
-			onDisconnect = nullptr;
-
-			onReceive = nullptr;			//
-			onReceiveCommand = nullptr;		//
-		}
+	inline virtual bool Dispose(int const& flag = 1) noexcept override {
+		if (!this->UvCommandPeer::Dispose(flag)) return false;
+		if (flag == -1) return true;
+		auto holder = shared_from_this();
+		onReceive = nullptr;
+		onReceiveCommand = nullptr;
+		return true;
 	}
 
 protected:
@@ -377,7 +367,7 @@ struct Gateway {
 					if (!cp || cp->Disposed()) return 0;
 
 					if (delayMS) {
-						// 延迟断开，先解绑事件处理函数，再设置超时时长，到时会 Dispose(1)
+						// 延迟断开，先解绑事件处理函数，再设置超时时长，到时会 Dispose()
 						cp->onDisconnect();						// 解除映射并发送断线通知
 						cp->onDisconnect = [cp] {};				// 清除旧函数并持有
 						cp->onReceive = nullptr;
@@ -385,7 +375,7 @@ struct Gateway {
 					}
 					else {
 						// 立刻断开连接，触发 onDisconnect( 从 this->clientPeers 移除并向白名单 serviceIds 对应 peer 广播断开通知 )
-						cp->Dispose(1);
+						cp->Dispose();
 					}
 
 					xx::CoutN("gateway service peer recv cmd kick: clientId: ", clientId);

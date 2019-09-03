@@ -126,13 +126,13 @@ namespace xx {
 	struct UvItem : std::enable_shared_from_this<UvItem> {
 		Uv& uv;
 		UvItem(Uv& uv) : uv(uv) {}
-		virtual ~UvItem() {}
-		// must be call Dispose() at all inherit class if override following funcs
-		/*
-			~TTTTTTTT() { this->Dispose(0); }
-		*/
+		virtual ~UvItem() {/* this->Dispose(-1); */}
+
 		virtual bool Disposed() const noexcept = 0;
-		virtual void Dispose(int const& flag) noexcept = 0;	// flag == 0 : call by ~T()
+
+		// flag == -1: call by destructor.  0 : do not callback.  1: callback
+		// return true: dispose success. false: already disposed.
+		virtual bool Dispose(int const& flag = 1) noexcept = 0;
 
 		// user data
 		void* userData = nullptr;
@@ -159,18 +159,17 @@ namespace xx {
 		}
 		UvAsync(UvAsync const&) = delete;
 		UvAsync& operator=(UvAsync const&) = delete;
-		~UvAsync() { this->Dispose(0); }
+		~UvAsync() { this->Dispose(-1); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvAsync;
 		}
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!uvAsync) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvAsync) return false;
 			Uv::HandleCloseAndFree(uvAsync);
-			if (flag) {
-				auto holder = shared_from_this();
-				actions.clear();
-			}
+			if (flag == -1) return true;
+			actions.clear();
+			return true;
 		}
 		inline int Dispatch(std::function<void()>&& action) noexcept {
 			if (!uvAsync) return -1;
@@ -215,18 +214,17 @@ namespace xx {
 		}
 		UvTimer(UvTimer const&) = delete;
 		UvTimer& operator=(UvTimer const&) = delete;
-		~UvTimer() { this->Dispose(0); }
+		~UvTimer() { this->Dispose(-1); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvTimer;
 		}
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!uvTimer) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvTimer) return false;
 			Uv::HandleCloseAndFree(uvTimer);
-			if (flag) {
-				auto holder = shared_from_this();
-				onFire = nullptr;
-			}
+			if (flag == -1) return true;
+			onFire = nullptr;
+			return true;
 		}
 
 		inline int Start(uint64_t const& timeoutMS, uint64_t const& repeatIntervalMS, std::function<void()>&& onFire = nullptr) noexcept {
@@ -308,18 +306,17 @@ namespace xx {
 
 		UvResolver(UvResolver const&) = delete;
 		UvResolver& operator=(UvResolver const&) = delete;
-		~UvResolver() { this->Dispose(0); }
+		~UvResolver() { this->Dispose(-1); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return disposed;
 		}
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (disposed) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (disposed) return false;
 			Cancel();
-			if (flag) {
-				auto holder = shared_from_this();
-				onFinish = nullptr;
-			}
+			if (flag == -1) return true;
+			onFinish = nullptr;
+			return true;
 		}
 
 		inline void Cancel() {
@@ -430,13 +427,11 @@ namespace xx {
 
 		// tcpKcpOpt == 0: tcp     == 1: kcp      == 2: both
 		UvListener(Uv& uv, std::string const& ip, int const& port, int const& tcpKcpOpt);
-		~UvListener() {
-			Dispose(0);
-		}
+		~UvListener() { this->Dispose(-1);	}
 		inline virtual bool Disposed() const noexcept override {
 			return !tcpListener && !kcpListener;
 		}
-		virtual void Dispose(int const& flag) noexcept override;
+		virtual bool Dispose(int const& flag = 1) noexcept override;
 	};
 	using UvListener_s = std::shared_ptr<UvListener>;
 	using UvListener_w = std::weak_ptr<UvListener>;
@@ -575,7 +570,7 @@ namespace xx {
 		inline virtual int Update(int64_t const& nowMS) noexcept {
 			assert(peerBase);
 			if (timeoutMS && timeoutMS < nowMS) {
-				Dispose(1);
+				Dispose();
 				return -1;
 			}
 
@@ -597,21 +592,23 @@ namespace xx {
 			return !peerBase;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!peerBase) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!peerBase) return false;
 			peerBase.reset();
 			timer.reset();
 			for (auto&& kv : callbacks) {
 				kv.value.first(nullptr);
 			}
 			callbacks.Clear();
-			if (flag) {
-				auto holder = shared_from_this();
+			if (flag == -1) return true;
+			auto holder = shared_from_this();
+			if (flag == 1) {
 				Disconnect();
-				onDisconnect = nullptr;
-				onReceivePush = nullptr;
-				onReceiveRequest = nullptr;
 			}
+			onDisconnect = nullptr;
+			onReceivePush = nullptr;
+			onReceiveRequest = nullptr;
+			return true;
 		}
 	};
 
@@ -652,17 +649,16 @@ namespace xx {
 			}
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!uvTcp) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvTcp) return false;
 			Uv::HandleCloseAndFree(uvTcp);
-			if (flag) {
+			if (flag != -1) {
 				peer->Dispose(flag);
 			}
+			return true;
 		}
 
-		~UvTcpPeerBase() {
-			Dispose(0);
-		}
+		~UvTcpPeerBase() { this->Dispose(-1); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvTcp;
@@ -685,7 +681,7 @@ namespace xx {
 			req.buf.len = decltype(uv_buf_t::len)(len);
 			bb.Reset();														// unbind bb.buf for callback ::free(req)
 			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
-				Dispose(1);
+				Dispose();
 				return r;
 			}
 			return 0;
@@ -704,7 +700,7 @@ namespace xx {
 			req.buf.len = decltype(uv_buf_t::len)(len + 4);					// send len = data's len + header's len
 			bb.Reset();														// unbind bb.buf for callback ::free(req)
 			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
-				Dispose(1);
+				Dispose();
 				return r;
 			}
 			return 0;
@@ -726,9 +722,7 @@ namespace xx {
 				}
 				if (buf) ::free(buf->base);
 				if (nread < 0) {
-					if (!self->Disposed()) {
-						self->Dispose(1);
-					}
+					self->Dispose();
 				}
 				});
 		}
@@ -790,24 +784,23 @@ namespace xx {
 				}
 				if (buf) ::free(buf->base);
 				if (nread < 0) {
-					if (!self->Disposed()) {
-						self->Dispose(1);
-					}
+					self->Dispose();
 				}
 				})) throw r;
 			sgUdp.Cancel();
 		}
 		UvKcp(UvKcp const&) = delete;
 		UvKcp& operator=(UvKcp const&) = delete;
-		~UvKcp() { Dispose(0); }
+		~UvKcp() { this->Dispose(-1); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvUdp;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!uvUdp) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvUdp) return false;
 			Uv::HandleCloseAndFree(uvUdp);
+			return true;
 		}
 
 		// send target: addr or this->addr
@@ -820,7 +813,7 @@ namespace xx {
 			req->buf.len = decltype(uv_buf_t::len)(dataLen);
 			// todo: check send queue len ? protect?
 			if (int r = uv_udp_send(req, uvUdp, &req->buf, 1, addr ? addr : (sockaddr*)& this->addr, [](uv_udp_send_t* req, int status) { ::free(req); })) {
-				Dispose(1);
+				Dispose();
 				return r;
 			}
 			return 0;
@@ -859,20 +852,19 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!kcp) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!kcp) return false;
 			ikcp_release(kcp);
 			kcp = nullptr;
 			udp->Remove(conv);						// remove self from container
 			udp.reset();							// unbind
-			if (flag) {
+			if (flag != -1) {
 				peer->Dispose(flag);
 			}
+			return true;
 		}
 
-		~UvKcpPeerBase() {
-			Dispose(0);
-		}
+		~UvKcpPeerBase() { this->Dispose(-1); }
 
 		inline virtual bool IsKcp() noexcept override {
 			return true;
@@ -904,7 +896,7 @@ namespace xx {
 				int recvLen = ikcp_recv(kcp, uv.recvBuf, (int)uv.recvBufLen);
 				if (recvLen <= 0) break;
 				if (int r = Unpack((uint8_t*)uv.recvBuf, recvLen)) {
-					Dispose(1);
+					Dispose();
 					return r;
 				}
 			} while (true);
@@ -979,21 +971,19 @@ namespace xx {
 				});
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!this->uvUdp) return;
-			this->UvKcp::Dispose(flag);
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!this->UvKcp::Dispose(0)) return false;
 			for (auto&& kv : peers) {
 				if (auto && peer = kv.value.lock()) {
-					peer->Dispose(flag);
+					peer->Dispose(flag == -1 ? 0 : 1);
 				}
 			}
 			peers.Clear();
 			uv.udps.Remove(port);
+			return true;
 		}
 
-		~UvListenerKcp() {
-			this->Dispose(0);
-		}
+		~UvListenerKcp() { this->Dispose(-1); }
 
 		inline virtual void Update(int64_t const& nowMS) noexcept {
 			for (auto&& kv : peers) {
@@ -1061,7 +1051,7 @@ namespace xx {
 
 			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 			if (peer->Input(recvBuf, recvLen)) {
-				peer->Dispose(1);								// peer will remove self from peers
+				peer->Dispose();								// peer will remove self from peers
 			}
 			return 0;
 		}
@@ -1080,17 +1070,15 @@ namespace xx {
 				this->Update(NowSteadyEpochMS());
 				});
 		}
-		~UvDialerKcp() {
-			this->Dispose(0);
-		}
+		~UvDialerKcp() { this->Dispose(-1); }
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!this->uvUdp) return;
-			this->UvKcp::Dispose(flag);
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!this->UvKcp::Dispose(0)) return false;
 			if (auto && peer = peer_w.lock()) {
-				peer->Dispose(flag);
+				peer->Dispose(flag == -1 ? 0 : 1);
 			}
 			uv.udps.Remove(port);
+			return true;
 		}
 
 		inline virtual void Update(int64_t const& nowMS) noexcept {
@@ -1155,7 +1143,7 @@ namespace xx {
 
 			memcpy(&peer->addr, addr, sizeof(sockaddr_in6));	// upgrade peer's tar addr
 			if (peer->Input(recvBuf, recvLen)) {				// input data to kcp
-				peer->Dispose(1);								// if fail: sucide
+				peer->Dispose();								// if fail: sucide
 			}
 			return 0;
 		}
@@ -1170,7 +1158,7 @@ namespace xx {
 			auto&& idx = udps.Find(port);
 			if (idx != -1) {
 				udp = As<UvListenerKcp>(udps.ValueAt(idx).lock());
-				if (udp->owner) throw - 1;			// same port listener already exists?
+				if (udp->owner) throw - 1;						// same port listener already exists?
 			}
 			else {
 				MakeTo(udp, uv, ip, port, true);
@@ -1180,19 +1168,20 @@ namespace xx {
 			}
 			udp->owner = this;
 		}
-		~UvKcpListener() { this->Dispose(0); }
+		~UvKcpListener() { this->Dispose(-1); }
 
 		virtual bool Disposed() const noexcept override {
 			return !udp;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!udp) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!udp) return false;
 			udp->owner = nullptr;								// unbind
 			udp.reset();
-			if (flag) {
-				listener->Dispose(1);
+			if (flag != -1) {
+				listener->Dispose(flag);
 			}
+			return true;
 		}
 	};
 
@@ -1231,18 +1220,19 @@ namespace xx {
 
 		UvTcpListener(UvTcpListener const&) = delete;
 		UvTcpListener& operator=(UvTcpListener const&) = delete;
-		~UvTcpListener() { this->Dispose(0); }
+		~UvTcpListener() { this->Dispose(-1); }
 
 		inline virtual bool Disposed() const noexcept override {
 			return !uvTcp;
 		}
 
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (!uvTcp) return;
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvTcp) return false;
 			Uv::HandleCloseAndFree(uvTcp);
-			if (flag) {
-				listener->Dispose(1);
+			if (flag != -1) {
+				listener->Dispose(flag);
 			}
+			return true;
 		}
 	};
 
@@ -1258,14 +1248,14 @@ namespace xx {
 		}
 	}
 
-	inline void UvListener::Dispose(int const& flag) noexcept {
+	inline bool UvListener::Dispose(int const& flag) noexcept {
+		if (Disposed()) return false;
 		tcpListener.reset();
 		kcpListener.reset();
-		if (flag) {
-			auto&& holder = shared_from_this();
-			onCreatePeer = nullptr;
-			onAccept = nullptr;
-		}
+		auto&& holder = shared_from_this();
+		onCreatePeer = nullptr;
+		onAccept = nullptr;
+		return true;
 	}
 
 	struct UvDialer : UvCreateAcceptBase {
@@ -1283,11 +1273,11 @@ namespace xx {
 		UvDialer(UvDialer const&) = delete;
 		UvDialer& operator=(UvDialer const&) = delete;
 
-		~UvDialer() { this->Dispose(0); }
+		~UvDialer() { this->Dispose(-1); }
 		virtual bool Disposed() const noexcept override {
 			return disposed;
 		}
-		virtual void Dispose(int const& flag = 1) noexcept override;
+		virtual bool Dispose(int const& flag = 1) noexcept override;
 		virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 2000) noexcept;
 		virtual int Dial(std::vector<std::string> const& ips, int const& port, uint64_t const& timeoutMS = 2000) noexcept;
 		virtual int Dial(std::vector<std::pair<std::string, int>> const& ipports, uint64_t const& timeoutMS = 2000) noexcept;
@@ -1341,14 +1331,15 @@ namespace xx {
 			return dialer->CreatePeer();
 		}
 
-		~UvKcpDialer() { this->Dispose(0); }
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (disposed) return;
+		~UvKcpDialer() { this->Dispose(-1); }
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (disposed) return false;
 			disposed = true;
 			Cancel();
-			if (flag) {
-				dialer->Dispose(1);
+			if (flag != -1) {
+				dialer->Dispose(flag);
 			}
+			return true;
 		}
 
 		inline virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept override {
@@ -1383,14 +1374,15 @@ namespace xx {
 		using UvDialerBase::UvDialerBase;
 		List<uv_connect_t_ex*> reqs;
 
-		~UvTcpDialer() { this->Dispose(0); }
-		inline virtual void Dispose(int const& flag = 1) noexcept override {
-			if (disposed) return;
+		~UvTcpDialer() { this->Dispose(-1); }
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (disposed) return false;
 			disposed = true;
 			Cancel();
-			if (flag) {
-				dialer->Dispose(1);
+			if (flag != -1) {
+				dialer->Dispose(flag);
 			}
+			return true;
 		}
 
 		inline virtual int Dial(std::string const& ip, int const& port, uint64_t const& timeoutMS = 0, bool cleanup = true) noexcept override {
@@ -1515,18 +1507,19 @@ namespace xx {
 		}
 	}
 
-	inline void UvDialer::Dispose(int const& flag) noexcept {
-		if (disposed) return;
+	inline bool UvDialer::Dispose(int const& flag) noexcept {
+		if (disposed) return false;
 		disposed = true;
 		Cancel();
-		if (flag) {
+		if (flag != -1) {
 			if (tcpDialer) {
-				tcpDialer->Dispose(1);
+				tcpDialer->Dispose(flag);
 			}
 			if (kcpDialer) {
-				kcpDialer->Dispose(1);
+				kcpDialer->Dispose(flag);
 			}
 		}
+		return true;
 	}
 
 	using UvDialer_s = std::shared_ptr<UvDialer>;
