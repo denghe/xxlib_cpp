@@ -8,9 +8,13 @@ struct UvGatewayPeer : xx::UvCommandPeer {
 	std::function<int(uint8_t* const& buf, size_t const& len)> onReceive;
 
 	inline virtual bool Dispose(int const& flag = 1) noexcept override {
-		if (!this->UvCommandPeer::Dispose(flag)) return false;
+		if (Disposed()) return false;
+		xx::UvItem_s holder;
+		if (flag != -1) {
+			holder = shared_from_this();
+		}
+		this->UvCommandPeer::Dispose(flag);
 		if (flag == -1) return true;
-		auto holder = shared_from_this();
 		onReceive = nullptr;
 		onReceiveCommand = nullptr;
 		return true;

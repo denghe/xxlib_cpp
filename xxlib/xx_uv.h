@@ -4,8 +4,6 @@
 #include "xx_dict.h"
 #include "ikcp.h"
 
-// todo: 包最大长度限制
-
 namespace xx {
 	struct UvKcp;
 	struct Uv {
@@ -169,6 +167,7 @@ namespace xx {
 			if (!uvAsync) return false;
 			Uv::HandleCloseAndFree(uvAsync);
 			if (flag == -1) return true;
+			auto holder = shared_from_this();
 			actions.clear();
 			return true;
 		}
@@ -224,6 +223,7 @@ namespace xx {
 			if (!uvTimer) return false;
 			Uv::HandleCloseAndFree(uvTimer);
 			if (flag == -1) return true;
+			auto holder = shared_from_this();	// if not, gcc will crash at random place
 			onFire = nullptr;
 			return true;
 		}
@@ -316,6 +316,7 @@ namespace xx {
 			if (disposed) return false;
 			Cancel();
 			if (flag == -1) return true;
+			auto holder = shared_from_this();
 			onFinish = nullptr;
 			return true;
 		}

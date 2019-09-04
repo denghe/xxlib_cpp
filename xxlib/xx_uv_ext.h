@@ -38,9 +38,13 @@ namespace xx {
 		UvFromToGatewayBasePeer(xx::Uv& uv);
 
 		inline virtual bool Dispose(int const& flag = 1) noexcept override {
-			if (!this->UvCommandPeer::Dispose(flag)) return false;
+			if (Disposed()) return false;
+			xx::UvItem_s holder;
+			if (flag != -1) {
+				holder = shared_from_this();
+			}
+			this->UvCommandPeer::Dispose(flag);
 			if (flag == -1) return true;
-			auto holder = shared_from_this();
 			onReceive = nullptr;
 			onReceiveCommand = nullptr;
 			return true;
@@ -503,9 +507,13 @@ namespace xx {
 		}
 
 		inline virtual bool Dispose(int const& flag = 1) noexcept override {
-			if (!this->UvSimulatePeer::Dispose(flag)) return false;
+			if (Disposed()) return false;
+			xx::UvItem_s holder;
+			if (flag != -1) {
+				holder = shared_from_this();
+			}
+			this->UvSimulatePeer::Dispose(flag);
 			if (flag == -1) return true;
-			auto holder = shared_from_this();
 			onReceivePush = nullptr;
 			onReceiveRequest = nullptr;
 			return true;
@@ -592,9 +600,13 @@ namespace xx {
 		}
 
 		inline virtual bool Dispose(int const& flag = 1) noexcept override {
-			if (!this->UvPeer::Dispose(flag)) return false;
+			if (Disposed()) return false;
+			xx::UvItem_s holder;
+			if (flag != -1) {
+				holder = shared_from_this();
+			}
+			this->UvPeer::Dispose(flag);
 			if (flag == -1) return true;
-			auto holder = shared_from_this();
 			onReceivePush = nullptr;
 			onReceiveRequest = nullptr;
 			return true;
