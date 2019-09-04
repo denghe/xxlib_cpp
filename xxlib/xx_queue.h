@@ -231,7 +231,7 @@ namespace xx
 		//......Head+++++++++++Tail.......
 		if (head < tail) {
 			if constexpr (IsTrivial_v<T>) {
-				memcpy(newBuf, buf + head, dataLen * sizeof(T));
+				memcpy((void*)newBuf, buf + head, dataLen * sizeof(T));
 			}
 			else {
 				for (size_t i = 0; i < dataLen; ++i) {
@@ -247,7 +247,7 @@ namespace xx
 			//...Head++++++
 			auto frontDataLen = cap - head;
 			if constexpr (IsTrivial_v<T>) {
-				memcpy(newBuf, buf + head, frontDataLen * sizeof(T));
+				memcpy((void*)newBuf, buf + head, frontDataLen * sizeof(T));
 			}
 			else {
 				for (size_t i = 0; i < frontDataLen; ++i) {
@@ -258,7 +258,7 @@ namespace xx
 
 			// ++++++Tail...
 			if constexpr (IsTrivial_v<T>) {
-				memcpy(newBuf + frontDataLen, buf, tail * sizeof(T));
+				memcpy((void*)(newBuf + frontDataLen), buf, tail * sizeof(T));
 			}
 			else {
 				for (size_t i = 0; i < tail; ++i) {

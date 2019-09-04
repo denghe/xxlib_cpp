@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <sys/uio.h>
 #include <errno.h>
 #include <boost/context/all.hpp>
 
@@ -98,6 +99,7 @@ namespace xx {
 	struct EpollBuf {
 		uint8_t* buf = nullptr;
 		size_t len = 0;
+
 		EpollBuf() = default;
 		EpollBuf(EpollBuf const&) = delete;
 		EpollBuf& operator=(EpollBuf const&) = delete;
@@ -108,6 +110,114 @@ namespace xx {
 				::free(buf);
 				buf = nullptr;
 			}
+		}
+	};
+
+	// buf 队列。提供按字节数 pop 的功能
+	struct BufQueue : protected Queue<std::shared_ptr<EpollBuf>> {
+		typedef Queue<std::shared_ptr<EpollBuf>> BaseType;
+		size_t bytes = 0;											// 剩余字节数 = sum( bufs.len ) - offset, pop & push 时会变化
+		size_t offset = 0;											// 队列头部包已 pop 字节数
+
+		BufQueue(BufQueue const& o) = delete;
+		BufQueue& operator=(BufQueue const& o) = delete;
+
+		explicit BufQueue(size_t const& capacity = 8)
+			: BaseType(capacity) {
+		}
+
+		BufQueue(BufQueue&& o)
+			: BaseType((BaseType&&)o) {
+		}
+
+		~BufQueue() {
+			Clear();
+		}
+
+		// todo: helpers ( 方便使用，比如从 BBuffer 剥离 buf + cap + len )
+
+		void Clear() {
+			this->BaseType::Clear();
+			bytes = 0;
+			offset = 0;
+		}
+
+		// 压入 buf + len
+		void Push(std::shared_ptr<EpollBuf>&& eb) {
+			assert(eb && eb->len);
+			bytes += eb->len;
+			this->BaseType::Push(std::move(eb));
+		}
+
+		// 弹出指定字节数 for writev 返回值 < bufLen 的情况
+		void Pop(size_t bufLen) {
+			if (!bufLen) return;
+			if (bufLen >= bytes) {
+				Clear();
+				return;
+			}
+			bytes -= bufLen;
+			while (bufLen) {
+				auto&& siz = Top()->len - offset;
+				if (siz > bufLen) {
+					offset += bufLen;
+					return;
+				}
+				else {
+					bufLen -= siz;
+					offset = 0;
+					this->BaseType::Pop();
+				}
+			}
+		}
+
+		// 弹出指定个数 buf 并直接设定 offset ( 完整发送的情况 )
+		void Pop(int const& vsLen, size_t const& offset, size_t const& bufLen) {
+			bytes -= bufLen;
+			if (vsLen == 1 && Top()->len > this->offset + bufLen) {
+				this->offset = offset + bufLen;
+			}
+			else {
+				PopMulti(vsLen);
+				this->offset = offset;
+			}
+		}
+
+		// 填充指定字节数到 buf vec for writev 一次性发送多段
+		// 回填 vs 长度, 回填 实际 bufLen
+		// 返回 pop 后的预期 offset for PopUnsafe
+		template<size_t vsCap>
+		size_t Fill(std::array<iovec, vsCap>& vs, int& vsLen, size_t& bufLen) {
+			assert(bufLen);
+			assert(bytes);
+			if (bufLen > bytes) {
+				bufLen = bytes;
+			}
+			auto&& cap = std::min(vsCap, this->BaseType::Count());
+			auto o = &*At(0);
+			auto&& siz = o->len - offset;
+			vs[0].iov_base = o->buf + offset;
+			vs[0].iov_len = siz;
+			if (siz > bufLen) {
+				vsLen = 1;
+				return offset + bufLen;
+			}
+			auto&& len = bufLen - siz;
+			for (int i = 0; i < vsCap; ++i) {
+				o = &*At(i);
+				vs[i].iov_base = o->buf;
+				if (o->len > len) {
+					vs[i].iov_len = len;
+					vsLen = i + 1;
+					return len;
+				}
+				vs[i].iov_len = o->len;
+				len -= o->len;
+				if (!len) break;
+			}
+			vsLen = vsCap;
+			bufLen -= len;
+			return 0;
 		}
 	};
 
@@ -129,11 +239,14 @@ namespace xx {
 	};
 
 	struct EpollFDContext {
-		xx::Buffer recv;
-		// todo: send queue( 从 uv 旧封装找出 BytesQueue 代码 )
+		// 收数据用堆积容器
+		Buffer recv;
+
+		// 待发送队列
+		BufQueue sendQueue;
 	};
 
-	template<int timeoutMS = 100, int maxEvents = 64, int maxFD = 1000000, int readBufReserveIncrease = 65536>
+	template<int timeoutMS = 100, int maxEvents = 64, int maxFD = 1000000, int readBufReserveIncrease = 65536, int sendLen = 65536, int vsCap = 1024>
 	struct Epoll {
 
 		int efd = -1;
@@ -150,7 +263,7 @@ namespace xx {
 			epoll_event event;
 			event.data.fd = fd;
 			event.events = flags;
-			if (-1 == ::epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event)) return __LINE__;
+			if (-1 == ::epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event)) return -1;
 			return 0;
 		};
 
@@ -188,9 +301,9 @@ namespace xx {
 
 		inline int Listen(int const& port, EpollSockTypes const& sockType) {
 			listenFD = MakeFD(port, sockType);
-			if (listenFD < 0) return __LINE__;
-			if (-1 == fcntl(listenFD, F_SETFL, fcntl(listenFD, F_GETFL, 0) | O_NONBLOCK)) return __LINE__;
-			if (-1 == ::listen(listenFD, SOMAXCONN)) return __LINE__;
+			if (listenFD < 0) return -1;
+			if (-1 == fcntl(listenFD, F_SETFL, fcntl(listenFD, F_GETFL, 0) | O_NONBLOCK)) return -2;
+			if (-1 == ::listen(listenFD, SOMAXCONN)) return -3;
 			return Ctl(listenFD, EPOLLIN | EPOLLET);
 		}
 
@@ -200,7 +313,7 @@ namespace xx {
 			socklen_t inLen = sizeof(in_addr);
 			int fd = accept(listenFD, &in_addr, &inLen);
 			if (-1 == fd) return -1;
-			xx::ScopeGuard sg([&] { close(fd); });
+			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
 			if (-1 == Ctl(fd, EPOLLIN | EPOLLOUT | EPOLLET)) return -3;
 			sg.Cancel();
@@ -221,24 +334,52 @@ namespace xx {
 					auto&& m = msgs.emplace_back();
 					m.fd = events[i].data.fd;
 					m.type = EpollMessageTypes::Accept;
+					ctxs[fd].recv.Reserve(readBufReserveIncrease);
 				}
 				else {
 					auto&& fd = events[i].data.fd;
-					xx::Buffer&& buf = ctxs[fd].recv;
+					EpollFDContext& ctx = ctxs[fd];
 					if (events[i].events & EPOLLIN) {
+						auto&& buf = ctx.recv;
 						while (true) {
 							buf.Reserve(buf.len + readBufReserveIncrease);
 							auto&& count = ::read(fd, buf.buf + buf.len, buf.cap - buf.len);
 							if (count == -1) {
 								if (errno == EAGAIN) break;
 								else {
-									buf.Clear(/* true */);
+									buf.Clear(true);
 									goto LabEnd;
 								}
 							}
 						}
 					}
 					if (events[i].events & EPOLLOUT) {
+						if (ctx.sendQueue.bytes) {
+							std::array<iovec, vsCap> vs;						// buf + len 数组指针
+							int vsLen = 0;										// 数组长度
+							size_t bufLen = sendLen;							// 计划发送字节数
+
+							// 填充 vs, vsLen, bufLen 并返回预期 offset
+							auto&& offset = ctx.sendQueue.Fill(vs, vsLen, bufLen);
+
+							// 返回实际发出的字节数
+							auto&& sentLen = ::writev(fd, vs.data(), vsLen);
+							if (sentLen == -1) {
+								if (errno == EAGAIN) break;
+								else {
+									ctx.sendQueue.Clear();
+									goto LabEnd;
+								}
+							}
+
+							if (sentLen == bufLen) {
+								ctx.sendQueue.Pop(vsLen, offset, bufLen);
+							}
+							else {
+								ctx.sendQueue.Pop(sentLen);
+							}
+						}
+
 						// todo: read data from send queue & ::write(fd, ....
 					}
 				}
