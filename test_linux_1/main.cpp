@@ -16,8 +16,13 @@
 #include "xx_bbuffer.h"
 #include "xx_queue.h"
 
+#include "xx_uv.h"
+
 
 namespace xx {
+
+	xx::Uv uv;
+	xx::UvDialer dialer(uv);
 
 	struct Coros;
 	struct Coro {
@@ -96,21 +101,94 @@ namespace xx {
 		Read
 	};
 
+	// 引用计数放在 buf[len] 的后面. 从 BBuffer 剥离时 对齐追加一个定长 int 的空间但是不改变长度
 	struct EpollBuf {
-		uint8_t* buf = nullptr;
-		size_t len = 0;
 
-		EpollBuf() = default;
-		EpollBuf(EpollBuf const&) = delete;
-		EpollBuf& operator=(EpollBuf const&) = delete;
-		EpollBuf(EpollBuf&&) = default;
-		EpollBuf& operator=(EpollBuf&&) = default;
+		// 指向内存块
+		uint8_t* buf;
+
+		// 内存块内有效数据长度
+		size_t len;
+
+		// 指向内存块中引用计数变量
+		int* refs;
+
+		EpollBuf()
+			: buf(nullptr)
+			, len(0)
+			, refs(nullptr)
+		{
+		}
+
+		EpollBuf(BBuffer& bb) {
+			// 为 refs 扩容
+			bb.Reserve(bb.len + 8);
+
+			// 直读内存信息
+			buf = bb.buf;
+			len = bb.len;
+
+			// 计算出 refs 的 4 字节对齐位置
+			refs = (int*)(((((size_t)buf + len - 1) / 4) + 1) * 4);
+
+			// 内存脱钩
+			bb.Reset();
+		}
+
+		EpollBuf(EpollBuf const& o)
+			: buf(o.buf)
+			, len(o.len)
+			, refs(o.refs)
+		{
+			++(*refs);
+		}
+
+		inline EpollBuf& operator=(EpollBuf const& o) {
+			if (this == &o) return *this;
+			Dispose();
+			this->buf = o.buf;
+			this->len = o.len;
+			this->refs = o.refs;
+			++(*refs);
+			return *this;
+		}
+
 		~EpollBuf() {
+			Dispose();
+		}
+
+		EpollBuf(EpollBuf&& o)
+			: buf(o.buf)
+			, len(o.len)
+			, refs(o.refs)
+		{
+			o.buf = nullptr;
+			o.len = 0;
+			o.refs = nullptr;
+		}
+
+		EpollBuf& operator=(EpollBuf&& o) {
+			std::swap(this->buf, o.buf);
+			std::swap(this->len, o.len);
+			std::swap(this->refs, o.refs);
+			return *this;
+		}
+
+	protected:
+		inline void Dispose() {
 			if (buf) {
-				::free(buf);
+				if (-- * refs == 0) {
+					::free(buf);
+				}
 				buf = nullptr;
 			}
 		}
+	};
+
+	// 标识内存可移动
+	template<>
+	struct IsTrivial<EpollBuf, void> {
+		static const bool value = true;
 	};
 
 	// buf 队列。提供按字节数 pop 的功能
@@ -240,7 +318,7 @@ namespace xx {
 
 	struct EpollFDContext {
 		// 收数据用堆积容器
-		Buffer recv;
+		List<uint8_t> recv;
 
 		// 待发送队列
 		BufQueue sendQueue;
@@ -379,8 +457,6 @@ namespace xx {
 								ctx.sendQueue.Pop(sentLen);
 							}
 						}
-
-						// todo: read data from send queue & ::write(fd, ....
 					}
 				}
 			LabEnd:;

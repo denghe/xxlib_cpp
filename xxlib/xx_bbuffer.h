@@ -2,52 +2,13 @@
 #include "xx_list.h"
 
 namespace xx {
-
-	struct Buffer : List<uint8_t> {
-		using BaseType = List<uint8_t>;
-		using BaseType::BaseType;
-
-		Buffer(uint8_t const* const& buf, size_t const& len, size_t const& prefix = 0) {
-			assert(buf && len);
-			this->buf = (uint8_t*)malloc(len + prefix);
-			if (!this->buf) throw - 1;
-			this->len = len + prefix;
-			this->cap = cap + prefix;
-			memcpy(this->buf + prefix, buf, len);
-		}
-		Buffer(Buffer&& o) noexcept
-			: BaseType(std::move(o)) {
-		}
-
-		Buffer& operator=(Buffer&& o) noexcept {
-			this->BaseType::operator=(std::move(o));
-			return *this;
-		}
-
-		Buffer(Buffer const&) = delete;
-		Buffer& operator=(Buffer const&) = delete;
-
-		inline void RemoveFront(size_t const& len) {
-			assert(len <= this->len);
-			if (!len) return;
-			this->len -= len;
-			if (this->len) {
-				memmove(buf, buf + len, this->len);
-			}
-		}
-	};
-
-	// 适配 Buffer
-	template<>
-	struct IsTrivial<Buffer, void> {
-		static const bool value = true;
-	};
-
 	struct BBuffer;
 	using BBuffer_s = std::shared_ptr<BBuffer>;
 	using BBuffer_w = std::weak_ptr<BBuffer>;
 
-	struct BBuffer : Buffer {
+	struct BBuffer : List<uint8_t> {
+		using BaseType = List<uint8_t>;
+
 		size_t offset = 0;													// 读指针偏移量
 		size_t offsetRoot = 0;												// offset值写入修正
 		size_t readLengthLimit = 0;											// 主用于传递给容器类进行长度合法校验
@@ -57,14 +18,14 @@ namespace xx {
 		std::unordered_map<size_t, std::shared_ptr<Object>> objIdxs;
 		std::unordered_map<size_t, std::shared_ptr<std::string>> strIdxs;
 
-		BBuffer() : Buffer() {}
+		BBuffer() : BaseType() {}
 		BBuffer(BBuffer&& o) noexcept
-			: Buffer(std::move(o))
+			: BaseType(std::move(o))
 			, offset(o.offset) {
 			o.offset = 0;
 		}
 		inline BBuffer& operator=(BBuffer&& o) noexcept {
-			this->Buffer::operator=(std::move(o));
+			this->BaseType::operator=(std::move(o));
 			std::swap(offset, o.offset);
 			// ptrs, objIdxs, strIdxs 因为是临时数据, 不需要处理
 			return *this;

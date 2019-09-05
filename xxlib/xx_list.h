@@ -164,6 +164,17 @@ namespace xx
 			}
 		}
 
+		// 从 0 下标移除一段. 只支持简单类型
+		template<typename ENABLED = std::enable_if_t<std::is_pod_v<T>>>
+		inline void RemoveFront(size_t const& len) {
+			assert(len <= this->len);
+			if (!len) return;
+			this->len -= len;
+			if (this->len) {
+				memmove(buf, buf + len, this->len);
+			}
+		}
+
 		void RemoveAt(size_t const& idx) noexcept {
 			assert(idx < len);
 			--len;
@@ -323,7 +334,7 @@ namespace xx
 		}
 	};
 
-	// 适配 List<T>
+	// 标识内存可移动
 	template<typename T>
 	struct IsTrivial<List<T>, void> {
 		static const bool value = true;
