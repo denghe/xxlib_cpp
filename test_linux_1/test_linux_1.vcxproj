@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="xx_coros_boost.h" />
+    <ClInclude Include="xx_epoll.h" />
     <ClInclude Include="xx_epoll_buf.h" />
     <ClInclude Include="xx_epoll_buf_queue.h" />
   </ItemGroup>

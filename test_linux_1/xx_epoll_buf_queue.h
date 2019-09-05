@@ -23,10 +23,17 @@ namespace xx {
 			Clear();
 		}
 
-		void Clear() {
+		void Clear(bool renewBuf = false) {
 			this->BaseType::Clear();
 			bytes = 0;
 			offset = 0;
+			if (renewBuf) {
+				free(buf);
+				auto bufByteLen = Round2n(8 * sizeof(EpollBuf));
+				buf = (EpollBuf*)malloc((size_t)bufByteLen);
+				assert(buf);
+				cap = size_t(bufByteLen / sizeof(EpollBuf));
+			}
 		}
 
 		void Push(EpollBuf&& eb) {
@@ -78,7 +85,7 @@ namespace xx {
 			if (bufLen > bytes) {
 				bufLen = bytes;
 			}
-			auto&& cap = std::min(vsCap, this->BaseType::Count());
+			auto&& cap = (int)std::min(vsCap, this->BaseType::Count());
 			auto o = &At(0);
 			auto&& siz = o->len - offset;
 			vs[0].iov_base = o->buf + offset;
@@ -87,8 +94,12 @@ namespace xx {
 				vsLen = 1;
 				return offset + bufLen;
 			}
+			else if (siz == bufLen) {
+				vsLen = 1;
+				return 0;
+			}
 			auto&& len = bufLen - siz;
-			for (int i = 0; i < vsCap; ++i) {
+			for (int i = 1; i < cap; ++i) {
 				o = &At(i);
 				vs[i].iov_base = o->buf;
 				if (o->len > len) {
