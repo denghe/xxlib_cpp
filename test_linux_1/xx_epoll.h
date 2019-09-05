@@ -25,34 +25,57 @@ namespace xx {
 	};
 
 	struct EpollFDContext {
-		List<uint8_t> recv;		// 收数据用堆积容器
-		BufQueue sendQueue;		// 待发送队列
+		uint32_t id = 0;			// 自增 id
+		int sockFD = -1;			// 原始 fd
+		int listenFD = -1;			// 原始 listenFD
+		List<uint8_t> recv;			// 收数据用堆积容器
+		BufQueue sendQueue;			// 待发送队列
 
 		inline void Clear(bool freeMemory = false) {
+			id = 0;
+			sockFD = -1;
+			listenFD = -1;
 			recv.Clear(freeMemory);
 			sendQueue.Clear(freeMemory);
 		}
 	};
 
-	template<int timeoutMS = 100,int loopTimes = 100, int maxEvents = 64, int maxFD = 1000000, int readBufReserveIncrease = 65536, int sendLen = 65536, int vsCap = 1024>
+	template<int timeoutMS = 100, int loopTimes = 100, int maxEvents = 64, int maxFD = 1000000, int readBufReserveIncrease = 65536, int sendLen = 65536, int vsCap = 1024>
 	struct Epoll {
 
+		inline static std::atomic<uint32_t> id;		// 用于生成自增 id
+
+		// 当前 epoll 的 fd
 		int efd = -1;
 
+		// 所有 listener 的 fd 集合
 		List<int> listenFDs;
+
+		// 用于 epoll 填充事件的容器
 		std::array<epoll_event, maxEvents> events;
+
+		// fd 读写上下文
 		std::array<EpollFDContext, maxFD> ctxs;
 
+		// 用户事件
 		virtual void OnAccept(EpollFDContext& ctx, int const& listenFD, int const& sockFD) = 0;
-		virtual void OnDisconnect(EpollFDContext & ctx, int const& sockFD) = 0;
-		virtual void OnReceive(EpollFDContext & ctx, int const& sockFD) = 0;
+		virtual void OnDisconnect(EpollFDContext& ctx, int const& sockFD) = 0;
+		virtual int OnReceive(EpollFDContext& ctx, int const& sockFD) = 0;
+
+		// 判断 epoll 是否创建成功
+		inline operator bool() {
+			return efd != -1;
+		}
 
 		Epoll() {
 			efd = epoll_create1(0);
+			assert(-1 != efd);		// todo: assert? operator bool?
 		}
+
 		virtual ~Epoll() {
+			// todo: 各种 close
 		}
-		
+
 		inline static int MakeListenFD(int const& port, EpollSockTypes const& sockType = EpollSockTypes::TCP) {
 			char portStr[20];
 			snprintf(portStr, sizeof(portStr), "%d", port);
@@ -98,7 +121,7 @@ namespace xx {
 			if (fd < 0) return -1;
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
 			if (-1 == listen(fd, SOMAXCONN)) return -3;
-			if( -1 == Ctl(fd, EPOLLIN | EPOLLET)) return -4;
+			if (-1 == Ctl(fd, EPOLLIN | EPOLLET)) return -4;
 			listenFDs.Add(fd);
 			return 0;
 		}
@@ -126,6 +149,57 @@ namespace xx {
 			return fd;
 		}
 
+		// 向 sockFD 发送 len 字节数据. 
+		inline int Write(int const& fd, int const& len = sendLen) {
+			EpollFDContext& ctx = ctxs[fd];
+			while (ctx.sendQueue.bytes) {
+				std::array<iovec, vsCap> vs;						// buf + len 数组指针
+				int vsLen = 0;										// 数组长度
+				size_t bufLen = len;								// 计划发送字节数
+
+				// todo: 限制每 socket 每次发送总量
+
+				// 填充 vs, vsLen, bufLen 并返回预期 offset
+				auto&& offset = ctx.sendQueue.Fill(vs, vsLen, bufLen);
+
+				// 返回实际发出的字节数
+				auto&& sentLen = writev(fd, vs.data(), vsLen);
+				if (!sentLen) return -1;
+				else if (sentLen == -1) return errno == EAGAIN ? 0 : -2;
+				else {
+					if ((size_t)sentLen == bufLen) {
+						ctx.sendQueue.Pop(vsLen, offset, bufLen);
+					}
+					else {
+						ctx.sendQueue.Pop(sentLen);
+					}
+				}
+			}
+			return 0;
+		}
+
+		inline int Read(int const& fd) {
+			auto&& ctx = ctxs[fd];
+			auto&& buf = ctx.recv;
+			while (true) {
+				buf.Reserve(buf.len + readBufReserveIncrease);
+				auto&& len = read(fd, buf.buf + buf.len, buf.cap - buf.len);
+				if (!len) return -1;
+				else if (len == -1) return errno == EAGAIN ? 0 : -2;
+				else {
+					buf.len += len;
+					assert(buf.len <= buf.cap);
+				}
+			}
+			return 0;
+		}
+
+		inline int SendTo(EpollFDContext& ctx, xx::EpollBuf&& eb) {
+			auto bytes = ctx.sendQueue.bytes;
+			ctx.sendQueue.Push(std::move(eb));
+			return !bytes ? Write(ctx.sockFD) : 0;
+		}
+
 		inline int RunOnce() {
 			int counter = 0;
 		LabBegin:
@@ -134,72 +208,36 @@ namespace xx {
 			for (int i = 0; i < n; ++i) {
 				auto fd = events[i].data.fd;
 
-				// disconnect
+				// error
 				if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)) {
 					OnDisconnect(ctxs[fd], fd);
-					ctxs[fd].recv.Clear(true);
-					ctxs[fd].sendQueue.Clear(true);
+					ctxs[fd].Clear(true);
 				}
 				// accept
 				else if (listenFDs.Find(fd) != (size_t)-1) {
 					int sockFD = Accept(fd);
 					if (sockFD < 0) break;
+					ctxs[sockFD].id = ++id;
+					ctxs[sockFD].sockFD = sockFD;
+					ctxs[sockFD].listenFD = fd;
 					ctxs[sockFD].recv.Reserve(readBufReserveIncrease);
 					OnAccept(ctxs[sockFD], fd, sockFD);
 				}
 				// read, write
 				else {
-					EpollFDContext& ctx = ctxs[fd];
 					if (events[i].events & EPOLLIN) {
-						auto&& buf = ctx.recv;
-						while (true) {
-							buf.Reserve(buf.len + readBufReserveIncrease);
-							auto&& len = read(fd, buf.buf + buf.len, buf.cap - buf.len);
-							if (!len) goto LabForError;
-							else if (len == -1) {
-								if (errno == EAGAIN) break;
-								goto LabForError;
-							}
-							else {
-								ctx.recv.len += len;
-								assert(ctx.recv.len <= ctx.recv.cap);
-								OnReceive(ctx, fd);
-							}
-						}
+						if (Read(fd)) goto LabForError;
+						if (OnReceive(ctxs[fd], fd)) goto LabForError;
 					}
 					if (events[i].events & EPOLLOUT) {
-						// todo: 限制每 socket 每次发送总量
-						while (ctx.sendQueue.bytes) {
-							std::array<iovec, vsCap> vs;						// buf + len 数组指针
-							int vsLen = 0;										// 数组长度
-							size_t bufLen = sendLen;							// 计划发送字节数
-
-							// 填充 vs, vsLen, bufLen 并返回预期 offset
-							auto&& offset = ctx.sendQueue.Fill(vs, vsLen, bufLen);
-
-							// 返回实际发出的字节数
-							auto&& sentLen = writev(fd, vs.data(), vsLen);
-							if (!sentLen) goto LabForError;
-							else if (sentLen == -1) {
-								if (errno == EAGAIN) break;
-								goto LabForError;
-							}
-							else {
-								if ((size_t)sentLen == bufLen) {
-									ctx.sendQueue.Pop(vsLen, offset, bufLen);
-								}
-								else {
-									ctx.sendQueue.Pop(sentLen);
-								}
-							}
-						}
+						if (Write(fd)) goto LabForError;
 					}
 				}
 				continue;
 			LabForError:
-				ctxs[fd].Clear(true);
 				close(fd);
 				OnDisconnect(ctxs[fd], fd);
+				ctxs[fd].Clear(true);
 			}
 
 			if (n == maxEvents) {

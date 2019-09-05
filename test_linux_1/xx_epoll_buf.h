@@ -36,17 +36,9 @@ namespace xx {
 			, len(o.len)
 			, refs(o.refs)
 		{
-			++(*refs);
-		}
-
-		inline EpollBuf& operator=(EpollBuf const& o) {
-			if (this == &o) return *this;
-			Dispose();
-			this->buf = o.buf;
-			this->len = o.len;
-			this->refs = o.refs;
-			++(*refs);
-			return *this;
+			if (refs) {
+				++(*refs);
+			}
 		}
 
 		~EpollBuf() {
@@ -63,10 +55,20 @@ namespace xx {
 			o.refs = nullptr;
 		}
 
-		EpollBuf& operator=(EpollBuf&& o) {
+		inline EpollBuf& operator=(EpollBuf&& o) {
 			std::swap(this->buf, o.buf);
 			std::swap(this->len, o.len);
 			std::swap(this->refs, o.refs);
+			return *this;
+		}
+
+		inline EpollBuf& operator=(EpollBuf const& o) {
+			if (this == &o) return *this;
+			Dispose();
+			this->buf = o.buf;
+			this->len = o.len;
+			this->refs = o.refs;
+			++(*refs);
 			return *this;
 		}
 
@@ -90,6 +92,8 @@ namespace xx {
 
 			// 计算出 refs 的 4 字节对齐位置
 			refs = (int*)(((((size_t)buf + len - 1) / 4) + 1) * 4);
+
+			*refs = 1;
 
 			// 内存脱钩
 			bb.Reset();

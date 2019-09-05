@@ -15,14 +15,14 @@ namespace xx {
 		virtual void OnDisconnect(EpollFDContext& ctx, int const& sockFD) {
 			xx::CoutN("OnDisconnect: sock fd = ", sockFD);
 		}
-		virtual void OnReceive(EpollFDContext& ctx, int const& sockFD) {
-			//xx::CoutN("OnReceive: sock fd =", sockFD, ", recv = ", ctx.recv);
+		virtual int OnReceive(EpollFDContext& ctx, int const& sockFD) {
+			xx::CoutN("OnReceive: sock fd =", sockFD, ", recv = ", ctx.recv);
 
 			// echo server
 			tmpBB.Reset();
 			tmpBB.AddRange(ctx.recv.buf, ctx.recv.len);
 			ctx.recv.Clear();
-			ctx.sendQueue.Push(xx::EpollBuf(tmpBB));
+			return SendTo(ctx, xx::EpollBuf(tmpBB));
 		}
 	};
 }
@@ -110,12 +110,15 @@ int main() {
 //	return 0;
 //}
 
+
+
+
 //#include "xx_epoll_context.h"
 //
 //int main() {
 //
 //	// echo server sample
-//	xx::EpollListen(1234, xx::SockTypes::TCP, 2, [](int fd, auto read, auto write) {
+//	xx::EpollListen(12345, xx::SockTypes::TCP, 4, [](int fd, auto read, auto write) {
 //			printf("peer accepted. fd = %i\n", fd);
 //			char buf[1024];
 //			while (size_t received = read(buf, sizeof(buf))) {
