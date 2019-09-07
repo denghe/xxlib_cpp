@@ -1,55 +1,81 @@
 ﻿#include "xx_epoll.h"
+#include <signal.h>
 
 namespace xx {
 	struct EchoServer : Epoll<1000> {
+		int threadId = 0;
+
+		inline virtual void OnAccept(SockContext& sctx, int const& listenIndex) {
+			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx.id);
+		}
+
+		virtual void OnDisconnect(SockContext& sctx) {
+			xx::CoutN(threadId, "OnDisconnect: id = ", sctx.id);
+		}
+
+		// echo server
 		xx::BBuffer tmpBB;
-		EchoServer() {
-		}
-		~EchoServer() {
-			tmpBB.Reset();
-		}
-
-		inline virtual void OnAccept(EpollFDContext& ctx, int const& listenFD, int const& sockFD) {
-			xx::CoutN("OnAccept: listen fd = ", listenFD, ", sock fd = ", sockFD);
-		}
-		virtual void OnDisconnect(EpollFDContext& ctx, int const& sockFD) {
-			xx::CoutN("OnDisconnect: sock fd = ", sockFD);
-		}
-		virtual int OnReceive(EpollFDContext& ctx, int const& sockFD) {
-			xx::CoutN("OnReceive: sock fd =", sockFD, ", recv = ", ctx.recv);
-
-			// echo server
-			tmpBB.Reset();
-			tmpBB.AddRange(ctx.recv.buf, ctx.recv.len);
-			ctx.recv.Clear();
-			return SendTo(ctx, xx::EpollBuf(tmpBB));
+		virtual int OnReceive(SockContext& sctx) {
+			tmpBB.AddRange(sctx.recv);
+			sctx.recv.Clear();
+			return SendTo(sctx, xx::EpollBuf(tmpBB));
 		}
 	};
 }
 
 int main() {
+	struct sigaction sa;
+	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
+	sa.sa_flags = 0;
+	if (sigemptyset(&sa.sa_mask) == -1 || //初始化信号集为空
+		sigaction(SIGPIPE, &sa, 0) == -1) { //屏蔽SIGPIPE信号
+		perror("failed to ignore SIGPIPE; sigaction");
+		exit(EXIT_FAILURE);
+	}
+
+	sigset_t signal_mask;
+	sigemptyset(&signal_mask);
+	sigaddset(&signal_mask, SIGPIPE);
+	int rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+	if (rc != 0) {
+		printf("block sigpipe error\n");
+	}
+
 	auto&& s = std::make_unique<xx::EchoServer>();
 	int r = s->Listen(12345);
 	assert(!r);
-	r = s->Listen(23456);
-	assert(!r);
-	uint64_t counter = 0;
+	auto fd = s->listenFDs[0];
+
+	std::vector<std::thread> threads;
+	for (int i = 0; i < 4; ++i) {
+		threads.emplace_back([fd, i] {
+			auto&& s = std::make_unique<xx::EchoServer>();
+			int r = s->ListenFD(fd);
+			assert(!r);
+			s->threadId = i + 1;
+			xx::CoutN("thread:", i);
+			while (true) {
+				s->RunOnce();
+			}
+
+		}).detach();
+	}
 	while (true) {
 		r = s->RunOnce();
-		if (r) {
-			xx::Cout(r);
-		}
-		xx::Cout(".");
-		++counter;
-		if (counter % 100 == 0) {
-			xx::CoutN();
-		}
 	}
-
 	return 0;
 }
 
 
+//uint64_t counter = 0;
+//if (r) {
+//	xx::Cout(r);
+//}
+//xx::Cout(".");
+//++counter;
+//if (counter % 100 == 0) {
+//	xx::CoutN();
+//}
 
 //std::vector<EpollMessage> msgs;
 					//auto&& m = msgs.emplace_back();
@@ -58,7 +84,6 @@ int main() {
 					//auto&& m = msgs.emplace_back();
 				//m.fd = events[i].data.fd;
 				//m.type = EpollMessageTypes::Disconnect;
-
 
 
 //enum class EpollMessageTypes {

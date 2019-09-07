@@ -257,6 +257,11 @@ namespace xx
 			len += count;
 		}
 
+		template<typename T2>
+		void AddRange(List<T2> const& list) noexcept {
+			return AddRange(list.buf, list.len);
+		}
+
 		// 如果找到就返回索引. 找不到将返回 size_t(-1)
 		size_t Find(T const& v) const noexcept {
 			for (size_t i = 0; i < len; ++i) {
