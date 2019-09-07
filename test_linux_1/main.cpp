@@ -18,7 +18,8 @@ namespace xx {
 		virtual int OnReceive(SockContext& sctx) {
 			tmpBB.AddRange(sctx.recv);
 			sctx.recv.Clear();
-			return Send(sctx, xx::EpollBuf(tmpBB));
+			Send(sctx, xx::EpollBuf(tmpBB));
+			return 0;
 		}
 	};
 }
