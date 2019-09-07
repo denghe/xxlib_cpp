@@ -45,7 +45,7 @@ namespace xx {
 
 	// todo: udp + kcp ?
 
-	template<int frameTimeoutMS = 100, int maxLoopTimesPerFrame = 100, int maxNumEvents = 64, int maxNumFD = 100000, int maxNumListeners = 10, int readBufReserveIncrease = 65536, int sendLenPerFrame = 65536, int vsCap = 1024>
+	template<int frameTimeoutMS = 100, int maxLoopTimesPerFrame = 48, int maxNumEvents = 1000, int maxNumFD = 100000, int maxNumListeners = 10, int readBufReserveIncrease = 65536, int sendLenPerFrame = 65536, int vsCap = 1024>
 	struct Epoll {
 
 		// 用户事件
@@ -94,6 +94,8 @@ namespace xx {
 		inline int RunOnce() {
 			int counter = 0;
 		LabBegin:
+
+			// todo: epoll_pwait ?
 			int n = epoll_wait(efd, events.data(), maxNumEvents, frameTimeoutMS);
 			if (n == -1) return errno;
 			for (int i = 0; i < n; ++i) {
