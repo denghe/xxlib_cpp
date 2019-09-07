@@ -6,7 +6,7 @@ namespace xx {
 		int threadId = 0;
 
 		inline virtual void OnAccept(SockContext& sctx, int const& listenIndex) {
-			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx.id);
+			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx.id, ", fd = ", sctx.sockFD);
 		}
 
 		virtual void OnDisconnect(SockContext& sctx) {
@@ -18,12 +18,19 @@ namespace xx {
 		virtual int OnReceive(SockContext& sctx) {
 			tmpBB.AddRange(sctx.recv);
 			sctx.recv.Clear();
-			return SendTo(sctx, xx::EpollBuf(tmpBB));
+			return Send(sctx, xx::EpollBuf(tmpBB));
 		}
 	};
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+	if (argc != 3) {
+		xx::CoutN("need args: listenPort numThreads");
+		return -1;
+	}
+	int listenPort = std::atoi(argv[1]);
+	int numThreads = std::atoi(argv[2]);
+
 	struct sigaction sa;
 	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
 	sa.sa_flags = 0;
@@ -42,18 +49,19 @@ int main() {
 	}
 
 	auto&& s = std::make_unique<xx::EchoServer>();
-	int r = s->Listen(12345);
+	int r = s->Listen(listenPort);
 	assert(!r);
 	auto fd = s->listenFDs[0];
 
+	xx::CoutN("thread:", 0);
 	std::vector<std::thread> threads;
-	for (int i = 0; i < 4; ++i) {
+	for (int i = 0; i < numThreads; ++i) {
 		threads.emplace_back([fd, i] {
 			auto&& s = std::make_unique<xx::EchoServer>();
 			int r = s->ListenFD(fd);
 			assert(!r);
 			s->threadId = i + 1;
-			xx::CoutN("thread:", i);
+			xx::CoutN("thread:", i + 1);
 			while (true) {
 				s->RunOnce();
 			}

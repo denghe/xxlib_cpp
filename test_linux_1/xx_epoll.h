@@ -26,6 +26,7 @@ namespace xx {
 		int listenFD = -1;			// 原始 listenFD
 		List<uint8_t> recv;			// 收数据用堆积容器
 		BufQueue sendQueue;			// 待发送队列
+		bool writing = false;		// 是否正在发送( 是：不管 sendQueue 空不空，都不能 write, 只能塞 sendQueue )
 
 		inline void Clear(bool freeMemory = false) {
 			id = 0;
@@ -33,6 +34,7 @@ namespace xx {
 			listenFD = -1;
 			recv.Clear(freeMemory);
 			sendQueue.Clear(freeMemory);
+			writing = false;
 		}
 	};
 
@@ -41,7 +43,7 @@ namespace xx {
 		UDP = SOCK_DGRAM
 	};
 
-	template<int timeoutMS = 100, int loopTimes = 100, int maxEvents = 64, int maxFD = 1000000, int maxNumListeners = 100, int readBufReserveIncrease = 65536, int sendLen = 65536, int vsCap = 1024>
+	template<int frameTimeoutMS = 100, int maxLoopTimesPerFrame = 100, int maxNumEvents = 64, int maxNumFD = 100000, int maxNumListeners = 10, int readBufReserveIncrease = 65536, int sendLenPerFrame = 65536, int vsCap = 1024>
 	struct Epoll {
 
 		// 用户事件
@@ -117,16 +119,15 @@ namespace xx {
 
 		// todo: unlisten ?
 
-		inline int SendTo(SockContext& ctx, xx::EpollBuf&& eb) {
-			auto bytes = ctx.sendQueue.bytes;
+		inline int Send(SockContext& ctx, xx::EpollBuf&& eb) {
 			ctx.sendQueue.Push(std::move(eb));
-			return !bytes ? Write(ctx.sockFD) : 0;
+			return !ctx.writing ? Write(ctx.sockFD) : 0;
 		}
 
 		inline int RunOnce() {
 			int counter = 0;
 		LabBegin:
-			int n = epoll_wait(efd, events.data(), maxEvents, timeoutMS);
+			int n = epoll_wait(efd, events.data(), maxNumEvents, frameTimeoutMS);
 			if (n == -1) return errno;
 			for (int i = 0; i < n; ++i) {
 				// get fd
@@ -136,6 +137,7 @@ namespace xx {
 				if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)) {
 					OnDisconnect(ctxs[fd]);
 					ctxs[fd].Clear(true);
+					close(fd);
 					continue;
 				}
 
@@ -173,14 +175,14 @@ namespace xx {
 
 				// fd cleanup
 			LabForError:
-				close(fd);
 				OnDisconnect(ctxs[fd]);
 				ctxs[fd].Clear(true);
+				close(fd);
 			}
 
 			// limit handle times per frame
-			if (n == maxEvents) {
-				if (++counter < loopTimes) goto LabBegin;
+			if (n == maxNumEvents) {
+				if (++counter < maxLoopTimesPerFrame) goto LabBegin;
 			}
 
 			return 0;
@@ -210,8 +212,9 @@ namespace xx {
 		}
 
 		// 向 sockFD 发送 len 字节数据. 
-		inline int Write(int const& fd, int const& len = sendLen) {
+		inline int Write(int const& fd, int const& len = sendLenPerFrame) {
 			SockContext& ctx = ctxs[fd];
+			ctx.writing = false;
 			while (ctx.sendQueue.bytes) {
 				std::array<iovec, vsCap> vs;						// buf + len 数组指针
 				int vsLen = 0;										// 数组长度
@@ -225,7 +228,13 @@ namespace xx {
 				// 返回实际发出的字节数
 				auto&& sentLen = writev(fd, vs.data(), vsLen);
 				if (!sentLen) return -1;
-				else if (sentLen == -1) return errno == EAGAIN ? 0 : -2;
+				else if (sentLen == -1) {
+					if (errno == EAGAIN) {
+						ctx.writing = true;
+						return 0;
+					}
+					return -2;
+				}
 				else {
 					if ((size_t)sentLen == bufLen) {
 						ctx.sendQueue.Pop(vsLen, offset, bufLen);
@@ -268,10 +277,10 @@ namespace xx {
 	protected:
 
 		// 用于 epoll 填充事件的容器
-		std::array<epoll_event, maxEvents> events;
+		std::array<epoll_event, maxNumEvents> events;
 
 		// fd 读写上下文
-		std::array<SockContext, maxFD> ctxs;
+		inline static std::array<SockContext, maxNumFD> ctxs;
 
 	};
 }
