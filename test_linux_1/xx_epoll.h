@@ -21,7 +21,7 @@
 namespace xx {
 
 	struct SockContext {
-		uint32_t id = 0;			// 自增 id
+		uint32_t id = 0;			// 自增 id( 版本号 )
 		int sockFD = -1;			// 原始 fd
 		int listenFD = -1;			// 原始 listenFD
 		List<uint8_t> recv;			// 收数据用堆积容器
@@ -35,6 +35,20 @@ namespace xx {
 			recv.Clear(freeMemory);
 			sendQueue.Clear(freeMemory);
 			writing = false;
+		}
+	};
+
+	struct SockContextRef {
+		SockContext* ctx;
+		uint32_t id;
+		SockContextRef(SockContext& ctx)
+			: ctx(&ctx)
+			, id(ctx.id) {
+		}
+		SockContextRef(SockContextRef const&) = default;
+		SockContextRef& operator=(SockContextRef const&) = default;
+		inline operator bool() {
+			return ctx->id == id;
 		}
 	};
 
@@ -87,8 +101,15 @@ namespace xx {
 
 		// todo: unlisten ?
 
+		// 发给当前 ctx ( 不会立刻 write. OnReceive 之后才会 )
 		inline void Send(SockContext& ctx, xx::EpollBuf&& eb) {
 			ctx.sendQueue.Push(std::move(eb));
+		}
+
+		// 发给其他 ctx ( 通常会立刻 write )
+		inline void SendTo(SockContext& ctx, xx::EpollBuf&& eb) {
+			ctx.sendQueue.Push(std::move(eb));
+			return !ctx.writing ? Write(ctx.sockFD) : 0;
 		}
 
 		inline int RunOnce() {
