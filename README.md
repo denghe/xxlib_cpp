@@ -40,3 +40,13 @@ lipo -create libfcontext_ios.a libfcontext_mac.a -output libfcontext.a
 
 
 
+
+
+
+ubuntu 开启性能模式
+
+sudo systemctl disable ondemand
+
+reboot:
+
+cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor shows performance

@@ -32,22 +32,29 @@ int main(int argc, char* argv[]) {
 	int listenPort = std::atoi(argv[1]);
 	int numThreads = std::atoi(argv[2]);
 
-	struct sigaction sa;
-	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
-	sa.sa_flags = 0;
-	if (sigemptyset(&sa.sa_mask) == -1 || //初始化信号集为空
-		sigaction(SIGPIPE, &sa, 0) == -1) { //屏蔽SIGPIPE信号
-		perror("failed to ignore SIGPIPE; sigaction");
-		exit(EXIT_FAILURE);
-	}
+	//struct sigaction sa;
+	//sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
+	//sa.sa_flags = 0;
+	//if (sigemptyset(&sa.sa_mask) == -1 || //初始化信号集为空
+	//	sigaction(SIGPIPE, &sa, 0) == -1) { //屏蔽SIGPIPE信号
+	//	perror("failed to ignore SIGPIPE; sigaction");
+	//	exit(EXIT_FAILURE);
+	//}
 
-	sigset_t signal_mask;
-	sigemptyset(&signal_mask);
-	sigaddset(&signal_mask, SIGPIPE);
-	int rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
-	if (rc != 0) {
-		printf("block sigpipe error\n");
-	}
+	//signal(SIGPIPE, SIG_IGN);
+
+	//sigset_t signal_mask;
+	//sigemptyset(&signal_mask);
+	//sigaddset(&signal_mask, SIGPIPE);
+	//int rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+	//if (rc != 0) {
+	//	printf("block sigpipe error\n");
+	//}
+
+	//rc = sigprocmask(SIG_BLOCK, &signal_mask, NULL);
+	//if (rc != 0) {
+	//	printf("block sigpipe error\n");
+	//}
 
 	auto&& s = std::make_unique<xx::EchoServer>();
 	int r = s->Listen(listenPort);

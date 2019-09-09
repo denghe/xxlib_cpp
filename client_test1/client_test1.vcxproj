@@ -92,7 +92,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\sqlite3\sqlite3.c" />
-    <ClCompile Include="ikcp.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="main2.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -110,28 +109,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="fixed_function.hpp" />
-    <ClInclude Include="ikcp.h" />
-    <ClInclude Include="xx_bbuffer.h" />
-    <ClInclude Include="xx_dict.h" />
-    <ClInclude Include="xx_file.h" />
-    <ClInclude Include="xx_list.h" />
-    <ClInclude Include="xx_logger.h" />
-    <ClInclude Include="xx_mysql.h" />
-    <ClInclude Include="xx_object.h" />
-    <ClInclude Include="xx_pos.h" />
-    <ClInclude Include="xx_queue.h" />
-    <ClInclude Include="xx_random.h" />
-    <ClInclude Include="xx_random.hpp" />
-    <ClInclude Include="xx_sqlite.h" />
-    <ClInclude Include="xx_threadpool.h" />
-    <ClInclude Include="xx_uv.h" />
-    <ClInclude Include="xx_uv_lua.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Natvis Include="xx.natvis" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
