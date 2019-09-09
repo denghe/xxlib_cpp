@@ -694,7 +694,7 @@ namespace xx {
 			bb.Reserve(sizeof(uv_write_t_ex) + 4 + reserveLen);
 			bb.len = sizeof(uv_write_t_ex) + 4;		// skip header space
 		}
-		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept {
+		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept override {
 			auto buf = bb.buf + sizeof(uv_write_t_ex);						// ref to header
 			auto len = (uint32_t)(bb.len - sizeof(uv_write_t_ex) - 4);		// calc data's len
 			::memcpy(buf, &len, sizeof(len));								// fill header
@@ -915,7 +915,7 @@ namespace xx {
 			bb.len = 4;												// skip header space
 		}
 
-		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept {
+		inline virtual int SendAfterPrepare(BBuffer& bb) noexcept override {
 			auto len = uint32_t(bb.len - 4);						// calc data's len
 			memcpy(bb.buf, &len, 4);								// fill header
 			return Send(bb.buf, bb.len);							// send by kcp
