@@ -1,86 +1,74 @@
 ﻿#include "xx_epoll.h"
+#include "xx_coros_boost.h"
 #include <signal.h>
 
 namespace xx {
-	struct EchoServer : Epoll<1000> {
+	struct EchoServer : Epoll {
 		int threadId = 0;
 
-		inline virtual void OnAccept(SockContext& sctx, int const& listenIndex) {
-			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx.id, ", fd = ", sctx.sockFD);
+		inline virtual void OnAccept(int const& threadId, SockContext_r sctx, int const& listenIndex) override {
+			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx->id, ", fd = ", sctx->sockFD);
 		}
 
-		virtual void OnDisconnect(SockContext& sctx) {
-			xx::CoutN(threadId, "OnDisconnect: id = ", sctx.id);
+		virtual void OnDisconnect(int const& threadId, SockContext_r sctx) override {
+			xx::CoutN(threadId, " OnDisconnect: id = ", sctx->id);
 		}
 
 		// echo server
 		xx::BBuffer tmpBB;
-		virtual int OnReceive(SockContext& sctx) {
-			tmpBB.AddRange(sctx.recv);
-			sctx.recv.Clear();
-			Send(sctx, xx::EpollBuf(tmpBB));
+		virtual int OnReceive(int const& threadId, SockContext_r sctx) override {
+			tmpBB.AddRange(sctx->recv);
+			sctx->recv.Clear();
+			sctx->Send(xx::EpollBuf(tmpBB));
 			return 0;
 		}
 	};
 }
 
-int main(int argc, char* argv[]) {
-	if (argc != 3) {
-		xx::CoutN("need args: listenPort numThreads");
-		return -1;
-	}
-	int listenPort = std::atoi(argv[1]);
-	int numThreads = std::atoi(argv[2]);
-
-	//struct sigaction sa;
-	//sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
-	//sa.sa_flags = 0;
-	//if (sigemptyset(&sa.sa_mask) == -1 || //初始化信号集为空
-	//	sigaction(SIGPIPE, &sa, 0) == -1) { //屏蔽SIGPIPE信号
-	//	perror("failed to ignore SIGPIPE; sigaction");
-	//	exit(EXIT_FAILURE);
+int main(/*int argc, char* argv[]*/) {
+	//if (argc != 3) {
+	//	xx::CoutN("need args: listenPort numThreads");
+	//	return -1;
 	//}
-
-	//signal(SIGPIPE, SIG_IGN);
-
-	//sigset_t signal_mask;
-	//sigemptyset(&signal_mask);
-	//sigaddset(&signal_mask, SIGPIPE);
-	//int rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
-	//if (rc != 0) {
-	//	printf("block sigpipe error\n");
-	//}
-
-	//rc = sigprocmask(SIG_BLOCK, &signal_mask, NULL);
-	//if (rc != 0) {
-	//	printf("block sigpipe error\n");
-	//}
+	//int listenPort = std::atoi(argv[1]);
+	//int numThreads = std::atoi(argv[2]);
 
 	auto&& s = std::make_unique<xx::EchoServer>();
-	int r = s->Listen(listenPort);
+	int r = s->Listen(12345);
 	assert(!r);
-	auto fd = s->listenFDs[0];
-
-	xx::CoutN("thread:", 0);
-	std::vector<std::thread> threads;
-	for (int i = 0; i < numThreads; ++i) {
-		threads.emplace_back([fd, i] {
-			auto&& s = std::make_unique<xx::EchoServer>();
-			int r = s->ListenFD(fd);
-			assert(!r);
-			s->threadId = i + 1;
-			xx::CoutN("thread:", i + 1);
-			while (true) {
-				s->RunOnce();
-			}
-
-		}).detach();
-	}
-	while (true) {
-		r = s->RunOnce();
-	}
+	//s->Run();
+	s->RunMultiThreads(1);
 	return 0;
 }
+
+
+
+
+
+//struct sigaction sa;
+//sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
+//sa.sa_flags = 0;
+//if (sigemptyset(&sa.sa_mask) == -1 || //初始化信号集为空
+//	sigaction(SIGPIPE, &sa, 0) == -1) { //屏蔽SIGPIPE信号
+//	perror("failed to ignore SIGPIPE; sigaction");
+//	exit(EXIT_FAILURE);
+//}
+
+//signal(SIGPIPE, SIG_IGN);
+
+//sigset_t signal_mask;
+//sigemptyset(&signal_mask);
+//sigaddset(&signal_mask, SIGPIPE);
+//int rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+//if (rc != 0) {
+//	printf("block sigpipe error\n");
+//}
+
+//rc = sigprocmask(SIG_BLOCK, &signal_mask, NULL);
+//if (rc != 0) {
+//	printf("block sigpipe error\n");
+//}
+
 
 
 //uint64_t counter = 0;
