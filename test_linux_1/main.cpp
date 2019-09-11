@@ -4,8 +4,6 @@
 
 namespace xx {
 	struct EchoServer : Epoll {
-		int threadId = 0;
-
 		inline virtual void OnAccept(int const& threadId, SockContext_r sctx, int const& listenIndex) override {
 			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx->id, ", fd = ", sctx->sockFD);
 		}
@@ -15,12 +13,8 @@ namespace xx {
 		}
 
 		// echo server
-		xx::BBuffer tmpBB;
 		virtual int OnReceive(int const& threadId, SockContext_r sctx) override {
-			tmpBB.AddRange(sctx->recv);
-			sctx->recv.Clear();
-			sctx->Send(xx::EpollBuf(tmpBB));
-			return 0;
+			return sctx->Send(xx::EpollBuf(sctx->recv));
 		}
 	};
 }
@@ -36,8 +30,7 @@ int main(/*int argc, char* argv[]*/) {
 	auto&& s = std::make_unique<xx::EchoServer>();
 	int r = s->Listen(12345);
 	assert(!r);
-	//s->Run();
-	s->RunMultiThreads(1);
+	s->Run();
 	return 0;
 }
 

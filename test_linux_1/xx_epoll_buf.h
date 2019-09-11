@@ -15,8 +15,9 @@ namespace xx {
 		// 指向内存块中引用计数变量
 		int* refs;
 
-		EpollBuf(BBuffer& bb) {
-			Init(bb);
+		template<typename BB>
+		EpollBuf(BB& bb) {
+			Init<BB>(bb);
 		}
 
 		inline void Reset(BBuffer& bb) {
@@ -82,7 +83,8 @@ namespace xx {
 			}
 		}
 
-		inline void Init(BBuffer& bb) {
+		template<typename BB>
+		inline void Init(BB& bb) {
 			// 为 refs 扩容
 			bb.Reserve(bb.len + 8);
 

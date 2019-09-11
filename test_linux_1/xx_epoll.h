@@ -13,15 +13,35 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/signalfd.h>
+#include <netinet/tcp.h>
 
 #include "xx_bbuffer.h"
 #include "xx_queue.h"
 #include "xx_epoll_buf.h"
 #include "xx_epoll_buf_queue.h"
-#include <atomic>
 
+#include <atomic>
+#include <omp.h>
+
+#include "xx_threadpool.h"
 
 // todo: dialer, udp
+/*
+udp
+面临的问题:
+	由单个 端口 负责收发所有 client 数据, 将面临以下问题:
+		从系统态 到 内存态 的读取瓶颈, pps 提升不上去
+		, 多线程操作单个句柄自旋争用大无法提速
+		， 多进程数据无法分流等问题
+
+解决方案:
+
+
+一个 port 做 listener, 收到 client 握手信息之后返回 id + 其他 port 值, 之后由该 port 负责处理该 client 的数据收发
+
+设计要点：多 fd 多 port, 绕开单个 fd 的流量
+
+*/
 
 namespace xx {
 
@@ -43,22 +63,22 @@ namespace xx {
 	};
 
 	struct SockContext_r {
-		SockContext* ctx;
+		SockContext& ctx;
 		uint32_t id;
 		SockContext_r(SockContext& ctx)
-			: ctx(&ctx)
+			: ctx(ctx)
 			, id(ctx.id) {
 		}
 		SockContext_r(SockContext_r const&) = default;
 		SockContext_r& operator=(SockContext_r const&) = default;
 		inline operator bool() {
-			return ctx->id == id;
+			return ctx.id == id;
 		}
 		SockContext* operator->() {
-			return ctx;
+			return &ctx;
 		}
 		SockContext& operator*() {
-			return *ctx;
+			return ctx;
 		}
 	};
 
@@ -137,26 +157,23 @@ namespace xx {
 			// todo: 各种 close
 		}
 
-		// 多线程运行. 主线程带超时时间
-		inline void RunMultiThreads(int const& numMoreThreads, int const& frameTimeoutMS = 100) {
-			assert(numMoreThreads);
+		// numMoreThreads: 附加进程数. 0 则只有主线程 run
+		inline void Run(int const& numMoreThreads = 0, int const& frameTimeoutMS = 100) {
 			for (int i = 0; i < numMoreThreads; ++i) {
 				threads.emplace_back([this, threadId = i + 1] {
+					while (running) {
+						if (RunOnce(threadId, -1)) break;
+					}
 					Run(threadId);
 				});
 			}
-			Run(0, frameTimeoutMS);
+			while (running) {
+				if (RunOnce(0, -1)) break;
+			}
 			for (auto&& t : threads) {
 				t.join();
 			}
 			threads.clear();
-		}
-
-		// 单/主线程运行
-		inline virtual void Run(int const& threadId = 0, int const& frameTimeoutMS = -1) {
-			while (running) {
-				if (RunOnce(threadId, frameTimeoutMS)) break;	// todo: store last error? exit reason?
-			}
 		}
 
 		// 添加监听
@@ -186,41 +203,51 @@ namespace xx {
 
 			int n = epoll_wait(efd, events.data(), maxNumEvents, frameTimeoutMS);
 			if (n == -1) return errno;
-			for (int i = 0; i < n; ++i) {
-				// get fd
-				auto fd = events[i].data.fd;
-				auto ev = events[i].events;
-				SockContext& ctx = ctxs[fd];
 
-				// error
-				if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN)) goto LabClose;
+			{
+				xx::ThreadPool tp;
+				//#pragma omp parallel for num_threads(5)
+				for (int i = 0; i < n; ++i) {
 
-				// check is listener: accept
-				for (int idx = 0; idx < listenFDsCount; ++idx) {
-					if (fd == listenFDs[idx]) {
-						int sockFD = Accept(fd);
-						if (sockFD >= 0) {
-							OnAccept(threadId, SockContext_r(ctxs[sockFD]), (int)idx);
-							Mod(fd, &events[i]);
+					tp.Add([&, i] {
+
+						// get fd
+						auto fd = events[i].data.fd;
+						auto ev = events[i].events;
+						SockContext& ctx = ctxs[fd];
+
+						// error
+						if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN)) goto LabClose;
+
+						// check is listener: accept
+						for (int idx = 0; idx < listenFDsCount; ++idx) {
+							if (fd == listenFDs[idx]) {
+								int sockFD = Accept(fd);
+								if (sockFD >= 0) {
+									OnAccept(threadId, SockContext_r(ctxs[sockFD]), (int)idx);
+								}
+								goto LabContinue;
+							}
 						}
-						goto LabContinue;
-					}
+
+						// read
+						if (Read(fd)) goto LabClose;
+						if (OnReceive(threadId, SockContext_r(ctx))) goto LabClose;
+						if (Write(fd)) goto LabClose;
+
+					LabContinue:
+						//Mod(fd, &events[i]);
+						//continue;
+						return;
+
+						// fd cleanup
+					LabClose:
+						OnDisconnect(threadId, SockContext_r(ctx));
+						ctx.Clear(true);
+						close(fd);
+						});
 				}
 
-				// read
-				if (Read(fd)) goto LabClose;
-				if (OnReceive(threadId, SockContext_r(ctx))) goto LabClose;
-				if (Write(fd)) goto LabClose;
-				Mod(fd, &events[i]);
-
-			LabContinue:
-				continue;
-
-				// fd cleanup
-			LabClose:
-				OnDisconnect(threadId, SockContext_r(ctx));
-				ctx.Clear(true);
-				close(fd);
 			}
 
 			// limit handle times per frame
@@ -234,17 +261,17 @@ namespace xx {
 		inline int Add(int const& fd, uint32_t const& flags) {
 			epoll_event event;
 			event.data.fd = fd;
-			event.events = flags | EPOLLET | EPOLLONESHOT;
+			event.events = flags | EPOLLET;
 			auto r = epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event);
 			assert(r == 0);
 			return r;
 		};
 
-		inline int Mod(int const& fd, epoll_event* const& e) {
-			auto r = epoll_ctl(efd, EPOLL_CTL_MOD, fd, e);
-			assert(r == 0);
-			return r;
-		}
+		//inline int Mod(int const& fd, epoll_event* const& e) {
+		//	auto r = epoll_ctl(efd, EPOLL_CTL_MOD, fd, e);
+		//	assert(r == 0);
+		//	return r;
+		//}
 
 		// return value < 0: error
 		inline int Accept(int const& listenFD) {
@@ -254,7 +281,11 @@ namespace xx {
 			if (-1 == fd) return -1;
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
-			if (-1 == Add(fd, EPOLLIN/* | EPOLLOUT*/)) return -3;
+			int on = 1;
+			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) return -3;
+			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) return -4;
+			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
+			if (-1 == Add(fd, EPOLLIN/* | EPOLLOUT*/)) return -6;
 			auto&& ctx = ctxs[fd];
 			ctx.epoll = this;
 			ctx.id = ++id;
@@ -353,6 +384,7 @@ namespace xx {
 	}
 
 	inline int SockContext::Send(xx::EpollBuf&& eb) {
+		assert(eb.len);
 		sendQueue.Push(std::move(eb));
 		return epoll->Write(sockFD);
 	}

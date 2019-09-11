@@ -46,21 +46,25 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
+      <AdditionalOptions>-fopenmp %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link />
     <Link />
     <Link>
       <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-fopenmp %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
+      <AdditionalOptions>-fopenmp %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link />
     <Link />
     <Link>
       <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-fopenmp %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

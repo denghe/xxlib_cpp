@@ -155,6 +155,13 @@ namespace xx
 			}
 		}
 
+		// unsafe: direct change field value
+		void Reset(uint8_t* const& buf = nullptr, size_t const& len = 0, size_t const& cap = 0) noexcept {
+			this->buf = buf;
+			this->len = len;
+			this->cap = cap;
+		}
+
 		void Remove(T const& v) noexcept {
 			for (size_t i = 0; i < len; ++i) {
 				if (v == buf[i]) {
