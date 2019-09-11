@@ -30,7 +30,7 @@ int main(/*int argc, char* argv[]*/) {
 	auto&& s = std::make_unique<xx::EchoServer>();
 	int r = s->Listen(12345);
 	assert(!r);
-	s->Run();
+	s->Run(3);
 	return 0;
 }
 
