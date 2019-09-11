@@ -112,6 +112,9 @@ namespace xx {
 		// writev 函数 (buf + len) 数组 参数允许的最大数组长度
 		static const int maxNumIovecs = 1024;
 
+		// 线程池个数
+		static const int numThreads = 4;
+
 		// 有连接进来
 		virtual void OnAccept(int const& threadId, SockContext_r sctx, int const& listenIndex) = 0;
 
@@ -138,8 +141,9 @@ namespace xx {
 		// fd 读写上下文
 		std::array<SockContext, maxNumFD> ctxs;
 
-		// 执行线程
-		std::vector<std::thread> threads;
+
+		std::array<xx::ThreadPool, numThreads> tps;
+
 
 		// 执行标志
 		std::atomic<bool> running = true;
@@ -157,23 +161,10 @@ namespace xx {
 			// todo: 各种 close
 		}
 
-		// numMoreThreads: 附加进程数. 0 则只有主线程 run
-		inline void Run(int const& numMoreThreads = 0, int const& frameTimeoutMS = 100) {
-			for (int i = 0; i < numMoreThreads; ++i) {
-				threads.emplace_back([this, threadId = i + 1] {
-					while (running) {
-						if (RunOnce(threadId, -1)) break;
-					}
-					Run(threadId);
-				});
-			}
+		inline void Run(int const& frameTimeoutMS = 100) {
 			while (running) {
-				if (RunOnce(0, -1)) break;
+				if (RunOnce(frameTimeoutMS)) break;
 			}
-			for (auto&& t : threads) {
-				t.join();
-			}
-			threads.clear();
 		}
 
 		// 添加监听
@@ -197,57 +188,51 @@ namespace xx {
 	protected:
 
 		// threadId 可用于 RunOnce 之后的逻辑判断, 0 即主线程
-		inline virtual int RunOnce(int const& threadId, int const& frameTimeoutMS) {
+		inline virtual int RunOnce(int const& frameTimeoutMS) {
 			int counter = 0;
 		LabBegin:
 
 			int n = epoll_wait(efd, events.data(), maxNumEvents, frameTimeoutMS);
 			if (n == -1) return errno;
 
-			{
-				xx::ThreadPool tp;
-				//#pragma omp parallel for num_threads(5)
-				for (int i = 0; i < n; ++i) {
+			for (int i = 0; i < n; ++i) {
+				auto threadId = events[i].data.fd % numThreads;
+				tps[threadId].Add([this, threadId, i, e = events[i]] {
+					auto fd = e.data.fd;
+					auto ev = e.events;
 
-					tp.Add([&, i] {
+					SockContext & ctx = ctxs[fd];
 
-						// get fd
-						auto fd = events[i].data.fd;
-						auto ev = events[i].events;
-						SockContext& ctx = ctxs[fd];
+					// error
+					if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN)) goto LabClose;
 
-						// error
-						if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN)) goto LabClose;
-
-						// check is listener: accept
-						for (int idx = 0; idx < listenFDsCount; ++idx) {
-							if (fd == listenFDs[idx]) {
-								int sockFD = Accept(fd);
-								if (sockFD >= 0) {
-									OnAccept(threadId, SockContext_r(ctxs[sockFD]), (int)idx);
-								}
-								goto LabContinue;
+					// check is listener: accept
+					for (int idx = 0; idx < listenFDsCount; ++idx) {
+						if (fd == listenFDs[idx]) {
+							int sockFD = Accept(fd);
+							if (sockFD >= 0) {
+								OnAccept(threadId, SockContext_r(ctxs[sockFD]), (int)idx);
 							}
+							goto LabContinue;
 						}
+					}
 
-						// read
-						if (Read(fd)) goto LabClose;
-						if (OnReceive(threadId, SockContext_r(ctx))) goto LabClose;
-						if (Write(fd)) goto LabClose;
+					// read
+					if (Read(fd)) goto LabClose;
+					if (OnReceive(threadId, SockContext_r(ctx))) goto LabClose;
+					if (Write(fd)) goto LabClose;
 
-					LabContinue:
-						//Mod(fd, &events[i]);
-						//continue;
-						return;
+				LabContinue:
+					//Mod(fd, &events[i]);
+					//continue;
+					return;
 
-						// fd cleanup
-					LabClose:
-						OnDisconnect(threadId, SockContext_r(ctx));
-						ctx.Clear(true);
-						close(fd);
-						});
-				}
-
+					// fd cleanup
+				LabClose:
+					OnDisconnect(threadId, SockContext_r(ctx));
+					ctx.Clear(true);
+					close(fd);
+				});
 			}
 
 			// limit handle times per frame
@@ -281,7 +266,7 @@ namespace xx {
 			if (-1 == fd) return -1;
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
-			int on = 1;
+			//int on = 1;
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) return -3;
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) return -4;
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
