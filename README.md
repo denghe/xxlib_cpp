@@ -47,6 +47,6 @@ ubuntu 开启性能模式
 
 sudo systemctl disable ondemand
 
-reboot:
+after reboot: ( 应该看到 performance )
 
-cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor shows performance
+cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor

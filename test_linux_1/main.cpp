@@ -4,33 +4,52 @@
 
 namespace xx {
 	struct EchoServer : Epoll {
-		inline virtual void OnAccept(int const& threadId, SockContext_r sctx, int const& listenIndex) override {
+		int threadId = 0;
+
+		inline virtual void OnAccept(SockContext_r sctx, int const& listenIndex) override {
 			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx->id, ", fd = ", sctx->sockFD);
 		}
 
-		virtual void OnDisconnect(int const& threadId, SockContext_r sctx) override {
+		virtual void OnDisconnect(SockContext_r sctx) override {
 			xx::CoutN(threadId, " OnDisconnect: id = ", sctx->id);
 		}
 
 		// echo server
-		virtual int OnReceive(int const& threadId, SockContext_r sctx) override {
+		virtual int OnReceive(SockContext_r sctx) override {
 			return sctx->Send(xx::EpollBuf(sctx->recv));
 		}
 	};
 }
 
-int main(/*int argc, char* argv[]*/) {
-	//if (argc != 3) {
-	//	xx::CoutN("need args: listenPort numThreads");
-	//	return -1;
-	//}
-	//int listenPort = std::atoi(argv[1]);
-	//int numThreads = std::atoi(argv[2]);
+int main(int argc, char* argv[]) {
+	if (argc != 3) {
+		xx::CoutN("need args: listenPort numThreads");
+		return -1;
+	}
+	int listenPort = std::atoi(argv[1]);
+	int numThreads = std::atoi(argv[2]);
 
 	auto&& s = std::make_unique<xx::EchoServer>();
-	int r = s->Listen(12345);
+	int r = s->Listen(listenPort);
 	assert(!r);
-	s->Run(3);
+
+	xx::CoutN("thread:", 0);
+	std::vector<std::thread> threads;
+	auto fd = s->listenFDs[0];
+	for (int i = 0; i < numThreads; ++i) {
+		threads.emplace_back([fd, i] {
+			auto&& s = std::make_unique<xx::EchoServer>();
+			int r = s->ListenFD(fd);
+			assert(!r);
+			s->threadId = i + 1;
+			xx::CoutN("thread:", i + 1);
+			s->Run();
+
+			}).detach();
+	}
+
+	s->Run();
+
 	return 0;
 }
 

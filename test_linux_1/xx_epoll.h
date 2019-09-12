@@ -21,7 +21,6 @@
 #include "xx_epoll_buf_queue.h"
 
 #include <atomic>
-#include <omp.h>
 
 #include "xx_threadpool.h"
 
@@ -45,6 +44,36 @@ udp
 
 namespace xx {
 
+	/*
+	
+	// 多线程共享 listen fd 示例. 建议线程数 3. 太多会令 epoll_wait 调用频繁令导致 ksoftirq 进程 100%
+	// epoll_wait 每次拿的事件个数看上去越多越好，能有效降低 ksoftirq cpu 占用
+
+	int listenPort = std::atoi(argv[1]);
+	int numThreads = std::atoi(argv[2]);
+
+	auto&& s = std::make_unique<xx::EchoServer>();
+	int r = s->Listen(listenPort);
+	assert(!r);
+	auto fd = s->listenFDs[0];
+
+	xx::CoutN("thread:", 0);
+	std::vector<std::thread> threads;
+	for (int i = 0; i < numThreads; ++i) {
+		threads.emplace_back([fd, i] {
+			auto&& s = std::make_unique<xx::EchoServer>();
+			int r = s->ListenFD(fd);
+			assert(!r);
+			s->threadId = i + 1;
+			xx::CoutN("thread:", i + 1);
+			s->Run();
+
+			}).detach();
+	}
+	s->Run();
+	
+	*/
+
 	struct Epoll;
 	struct SockContext {
 		Epoll* epoll = nullptr;									// 指向总容器 for 方便
@@ -53,8 +82,6 @@ namespace xx {
 		int listenFD = -1;										// 原始 listenFD
 		List<uint8_t> recv;										// 收数据用堆积容器
 		BufQueue sendQueue;										// 待发送队列
-
-		std::mutex mtx;
 
 		SockContext() = default;
 		SockContext(SockContext const&) = delete;
@@ -106,7 +133,7 @@ namespace xx {
 		static const int maxLoopTimesPerFrame = 48;
 
 		// epool_wait 的返回值数量限制
-		static const int maxNumEvents = 1000;
+		static const int maxNumEvents = 10000;
 
 		// 支持的最大 fd 值 ( 应该大于等于 ulimit -n 的值 )
 		static const int maxNumFD = 100000;
@@ -124,33 +151,30 @@ namespace xx {
 		static const int maxNumIovecs = 1024;
 
 		// 有连接进来
-		virtual void OnAccept(int const& threadId, SockContext_r sctx, int const& listenIndex) = 0;
+		virtual void OnAccept(SockContext_r sctx, int const& listenIndex) = 0;
 
 		// 有连接断开
-		virtual void OnDisconnect(int const& threadId, SockContext_r sctx) = 0;
+		virtual void OnDisconnect(SockContext_r sctx) = 0;
 
 		// 有数据收到
-		virtual int OnReceive(int const& threadId, SockContext_r sctx) = 0;
-
-	protected:
-		// 用于生成唯一自增 id
-		std::atomic<uint32_t> id = 0;
-
-		// epoll fd
-		int efd = -1;
+		virtual int OnReceive(SockContext_r sctx) = 0;
 
 		// 所有 listener 的 fd 集合
 		std::array<int, maxNumListeners> listenFDs;
 		int listenFDsCount = 0;
 
+	protected:
+		// 用于生成唯一自增 id
+		inline static std::atomic<uint32_t> id = 0;
+
+		// epoll fd
+		int efd = -1;
+
 		// 用于 epoll 填充事件的容器
-		std::vector<std::array<epoll_event, maxNumEvents>> threadEvents;
+		std::array<epoll_event, maxNumEvents> events;
 
 		// fd 读写上下文
 		std::array<SockContext, maxNumFD> ctxs;
-
-		// 执行线程
-		std::vector<std::thread> threads;
 
 		// 执行标志
 		std::atomic<bool> running = true;
@@ -168,24 +192,10 @@ namespace xx {
 			// todo: 各种 close
 		}
 
-		// numMoreThreads: 附加进程数. 0 则只有主线程 run
-		inline void Run(int const& numMoreThreads = 0, int const& frameTimeoutMS = 100) {
-			threadEvents.resize(1 + numMoreThreads);
-			for (int i = 0; i < numMoreThreads; ++i) {
-				threads.emplace_back([this, threadId = i + 1]{
-					while (running) {
-						if (RunOnce(threadId, -1)) break;
-					}
-					});
-			}
+		inline virtual void Run(int const& frameTimeoutMS = 100) {
 			while (running) {
-				if (RunOnce(0, -1)) break;
+				if (RunOnce(frameTimeoutMS)) break;
 			}
-			for (auto&& t : threads) {
-				t.join();
-			}
-			threads.clear();
-			threadEvents.clear();
 		}
 
 		// 添加监听
@@ -195,10 +205,17 @@ namespace xx {
 			if (fd < 0) return -2;
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -3;
-			if (-1 == listen(fd, SOMAXCONN)) return -4;
+			if (-1 == listen(fd, 2048/*SOMAXCONN*/)) return -4;
 			if (-1 == Add(fd, EPOLLIN)) return -5;
 			listenFDs[listenFDsCount++] = fd;
 			sg.Cancel();
+			return 0;
+		}
+
+		// 和其他 Epoll 共享 FD
+		inline int ListenFD(int const& fd) {
+			if (-1 == Add(fd, EPOLLIN)) return -1;
+			listenFDs[listenFDsCount++] = fd;
 			return 0;
 		}
 
@@ -209,12 +226,11 @@ namespace xx {
 	protected:
 
 		// threadId 可用于 RunOnce 之后的逻辑判断, 0 即主线程
-		inline virtual int RunOnce(int const& threadId, int const& frameTimeoutMS) {
+		inline int RunOnce(int const& frameTimeoutMS) {
 			int counter = 0;
 		LabBegin:
 
-			auto&& events = threadEvents[threadId].data();
-			int n = epoll_wait(efd, events, maxNumEvents, frameTimeoutMS);
+			int n = epoll_wait(efd, events.data(), maxNumEvents, frameTimeoutMS);
 			if (n == -1) return errno;
 
 			for (int i = 0; i < n; ++i) {
@@ -224,8 +240,7 @@ namespace xx {
 				SockContext& ctx = ctxs[fd];
 
 				// error
-				if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN))
-					goto LabClose;
+				if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN)) goto LabClose;
 
 				// check is listener: accept
 				for (int idx = 0; idx < listenFDsCount; ++idx) {
@@ -233,36 +248,27 @@ namespace xx {
 						int sockFD = Accept(fd);
 						if (sockFD >= 0) {
 							auto&& ctx = ctxs[sockFD];
-							std::lock_guard<std::mutex> lg(ctx.mtx);
 							ctx.Init(this, sockFD, fd);
-							OnAccept(threadId, SockContext_r(ctx), (int)idx);
+							OnAccept(SockContext_r(ctx), (int)idx);
 						}
 						goto LabContinue;
 					}
 				}
-				// 已知问题：多线环境下 accept 和 read 有概率同时发生, 导致 Accept 初始化操作和 read 同时发生. 需要 lock. 如果 close 时 Clear 也需要 lock 防止另外一个线程 accept
 
-				{
-					std::lock_guard<std::mutex> lg(ctx.mtx);
-					// read
-					if (Read(fd)) goto LabClose;
-					if (OnReceive(threadId, SockContext_r(ctx))) goto LabClose;
-					if (Write(fd)) goto LabClose;
-				}
+				// read
+				if (Read(fd)) goto LabClose;
+				if (OnReceive(SockContext_r(ctx))) goto LabClose;
+				if (Write(fd)) goto LabClose;
 
 			LabContinue:
-				//Mod(fd, &events[i]);
 				continue;
 
 				// fd cleanup
 			LabClose:
-				{
-					std::lock_guard<std::mutex> lg(ctx.mtx);
-					OnDisconnect(threadId, SockContext_r(ctx));
-					ctx.Clear(true);
-					epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
-					close(fd);
-				}
+				OnDisconnect(SockContext_r(ctx));
+				ctx.Clear(true);
+				epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
+				close(fd);
 			}
 
 			// limit handle times per frame
@@ -276,17 +282,11 @@ namespace xx {
 		inline int Add(int const& fd, uint32_t const& flags) {
 			epoll_event event;
 			event.data.fd = fd;
-			event.events = flags | EPOLLET | EPOLLEXCLUSIVE;
+			event.events = flags | EPOLLET/* | EPOLLEXCLUSIVE*/;
 			auto r = epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event);
 			assert(r == 0);
 			return r;
 		};
-
-		//inline int Mod(int const& fd, epoll_event* const& e) {
-		//	/*auto r = epoll_ctl(efd, EPOLL_CTL_MOD, fd, e);
-		//	assert(r == 0);
-		//	return r;*/
-		//}
 
 		// return value < 0: error
 		inline int Accept(int const& listenFD) {
