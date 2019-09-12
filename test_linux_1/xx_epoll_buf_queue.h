@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "xx_epoll_buf.h"
-namespace xx {
+namespace xx::Epoll {
 	// todo: helpers ( 方便使用，比如从 BBuffer 剥离 buf + cap + len )
 	// buf 队列。提供按字节数 pop 的功能
-	struct BufQueue : protected Queue<EpollBuf> {
-		typedef Queue<EpollBuf> BaseType;
+	struct BufQueue : protected Queue<Buf> {
+		typedef Queue<Buf> BaseType;
 		size_t bytes = 0;											// 剩余字节数 = sum( bufs.len ) - offset, pop & push 时会变化
 		size_t offset = 0;											// 队列头部包已 pop 字节数
 
@@ -29,14 +29,14 @@ namespace xx {
 			offset = 0;
 			if (renewBuf) {
 				free(buf);
-				auto bufByteLen = Round2n(8 * sizeof(EpollBuf));
-				buf = (EpollBuf*)malloc((size_t)bufByteLen);
+				auto bufByteLen = Round2n(8 * sizeof(Buf));
+				buf = (Buf*)malloc((size_t)bufByteLen);
 				assert(buf);
-				cap = size_t(bufByteLen / sizeof(EpollBuf));
+				cap = size_t(bufByteLen / sizeof(Buf));
 			}
 		}
 
-		void Push(EpollBuf&& eb) {
+		void Push(Buf&& eb) {
 			assert(eb.len);
 			bytes += eb.len;
 			this->BaseType::Push(std::move(eb));

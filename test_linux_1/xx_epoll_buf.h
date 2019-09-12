@@ -2,9 +2,9 @@
 #include "xx_bbuffer.h"
 #include "xx_queue.h"
 
-namespace xx {
+namespace xx::Epoll {
 	// 引用计数放在 buf[len] 的后面. 从 BBuffer 剥离时 对齐追加一个定长 int 的空间但是不改变长度
-	struct EpollBuf {
+	struct Buf {
 
 		// 指向内存块
 		uint8_t* buf;
@@ -16,7 +16,7 @@ namespace xx {
 		int* refs;
 
 		template<typename BB>
-		EpollBuf(BB& bb) {
+		Buf(BB& bb) {
 			Init<BB>(bb);
 		}
 
@@ -25,14 +25,14 @@ namespace xx {
 			Init(bb);
 		}
 
-		EpollBuf()
+		Buf()
 			: buf(nullptr)
 			, len(0)
 			, refs(nullptr)
 		{
 		}
 
-		EpollBuf(EpollBuf const& o)
+		Buf(Buf const& o)
 			: buf(o.buf)
 			, len(o.len)
 			, refs(o.refs)
@@ -42,11 +42,11 @@ namespace xx {
 			}
 		}
 
-		~EpollBuf() {
+		~Buf() {
 			Dispose();
 		}
 
-		EpollBuf(EpollBuf&& o)
+		Buf(Buf&& o)
 			: buf(o.buf)
 			, len(o.len)
 			, refs(o.refs)
@@ -56,14 +56,14 @@ namespace xx {
 			o.refs = nullptr;
 		}
 
-		inline EpollBuf& operator=(EpollBuf&& o) {
+		inline Buf& operator=(Buf&& o) {
 			std::swap(this->buf, o.buf);
 			std::swap(this->len, o.len);
 			std::swap(this->refs, o.refs);
 			return *this;
 		}
 
-		inline EpollBuf& operator=(EpollBuf const& o) {
+		inline Buf& operator=(Buf const& o) {
 			if (this == &o) return *this;
 			Dispose();
 			this->buf = o.buf;
@@ -101,10 +101,11 @@ namespace xx {
 			bb.Reset();
 		}
 	};
-
+}
+namespace xx {
 	// 标识内存可移动
 	template<>
-	struct IsTrivial<EpollBuf, void> {
+	struct IsTrivial<xx::Epoll::Buf, void> {
 		static const bool value = true;
 	};
 }

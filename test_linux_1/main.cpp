@@ -13,7 +13,7 @@ namespace {
 		}
 
 		virtual int OnReceive(Peer_r pr) override {
-			return pr->Send(xx::EpollBuf(pr->recv));		// echo
+			return pr->Send(Buf(pr->recv));		// echo
 		}
 	};
 }
@@ -30,19 +30,19 @@ int main(int argc, char* argv[]) {
 	int r = s->Listen(listenPort);
 	assert(!r);
 
-	//xx::CoutN("thread:", 0);
-	//std::vector<std::thread> threads;
-	//auto fd = s->listenFDs[0];
-	//for (int i = 0; i < numThreads; ++i) {
-	//	threads.emplace_back([fd, i] {
-	//		auto&& s = std::make_unique<EchoServer>();
-	//		int r = s->ListenFD(fd);
-	//		assert(!r);
-	//		s->threadId = i + 1;
-	//		xx::CoutN("thread:", i + 1);
-	//		s->Run();
-	//		}).detach();
-	//}
+	xx::CoutN("thread:", 0);
+	std::vector<std::thread> threads;
+	auto fd = s->listenFDs[0];
+	for (int i = 0; i < numThreads; ++i) {
+		threads.emplace_back([fd, i] {
+			auto&& s = std::make_unique<EchoServer>();
+			int r = s->ListenFD(fd);
+			assert(!r);
+			s->threadId = i + 1;
+			xx::CoutN("thread:", i + 1);
+			s->Run();
+			}).detach();
+	}
 
 	s->Run();
 
