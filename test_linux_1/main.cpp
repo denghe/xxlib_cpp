@@ -1,22 +1,19 @@
 ﻿#include "xx_epoll.h"
-#include "xx_coros_boost.h"
-#include <signal.h>
+//#include "xx_coros_boost.h"
 
-namespace xx {
-	struct EchoServer : Epoll {
-		int threadId = 0;
-
-		inline virtual void OnAccept(SockContext_r sctx, int const& listenIndex) override {
-			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", sctx->id, ", fd = ", sctx->sockFD);
+namespace {
+	using namespace xx::Epoll;
+	struct EchoServer : Instance {
+		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) override {
+			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD);
 		}
 
-		virtual void OnDisconnect(SockContext_r sctx) override {
-			xx::CoutN(threadId, " OnDisconnect: id = ", sctx->id);
+		virtual void OnDisconnect(Peer_r pr) override {
+			xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
 		}
 
-		// echo server
-		virtual int OnReceive(SockContext_r sctx) override {
-			return sctx->Send(xx::EpollBuf(sctx->recv));
+		virtual int OnReceive(Peer_r pr) override {
+			return pr->Send(xx::EpollBuf(pr->recv));		// echo
 		}
 	};
 }
@@ -29,24 +26,23 @@ int main(int argc, char* argv[]) {
 	int listenPort = std::atoi(argv[1]);
 	int numThreads = std::atoi(argv[2]);
 
-	auto&& s = std::make_unique<xx::EchoServer>();
+	auto&& s = std::make_unique<EchoServer>();
 	int r = s->Listen(listenPort);
 	assert(!r);
 
-	xx::CoutN("thread:", 0);
-	std::vector<std::thread> threads;
-	auto fd = s->listenFDs[0];
-	for (int i = 0; i < numThreads; ++i) {
-		threads.emplace_back([fd, i] {
-			auto&& s = std::make_unique<xx::EchoServer>();
-			int r = s->ListenFD(fd);
-			assert(!r);
-			s->threadId = i + 1;
-			xx::CoutN("thread:", i + 1);
-			s->Run();
-
-			}).detach();
-	}
+	//xx::CoutN("thread:", 0);
+	//std::vector<std::thread> threads;
+	//auto fd = s->listenFDs[0];
+	//for (int i = 0; i < numThreads; ++i) {
+	//	threads.emplace_back([fd, i] {
+	//		auto&& s = std::make_unique<EchoServer>();
+	//		int r = s->ListenFD(fd);
+	//		assert(!r);
+	//		s->threadId = i + 1;
+	//		xx::CoutN("thread:", i + 1);
+	//		s->Run();
+	//		}).detach();
+	//}
 
 	s->Run();
 

@@ -54,7 +54,7 @@ namespace xx {
 		return ai ? fd : -2;
 	}
 
-	template <int maxEvents = 64, int maxFD = 1000000, typename H>
+	template <int maxEvents = 10000, int maxFD = 1000000, typename H>
 	int EpollListenFD(int const& listenFD, int const& numThreads, H&& peerHandler) {
 		namespace bctx = boost::context;
 
@@ -154,7 +154,7 @@ namespace xx {
 		return 0;
 	}
 
-	template <int maxEvents = 64, int maxFD = 1000000, typename H>
+	template <int maxEvents = 10000, int maxFD = 1000000, typename H>
 	int EpollListen(int const& port, SockTypes const& sockType, int const& numThreads, H&& peerHandler) {
 		return EpollListenFD<maxEvents, maxFD>(MakeFD(port, sockType), numThreads, std::forward<H>(peerHandler));
 	}

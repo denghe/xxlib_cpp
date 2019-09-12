@@ -20,7 +20,7 @@ int main() {
 	}
 
 	// echo server sample
-	xx::EpollListen(12344, xx::SockTypes::TCP, 4, [](int fd, auto read, auto write) {
+	xx::EpollListen(12344, xx::SockTypes::TCP, 3, [](int fd, auto read, auto write) {
 			printf("peer accepted. fd = %i\n", fd);
 			char buf[1024];
 			while (size_t received = read(buf, sizeof(buf))) {
