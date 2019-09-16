@@ -345,7 +345,7 @@ namespace xx {
 		auto&& iter = simulatePeers.find(id);
 		if (iter == simulatePeers.end()) return;
 		if (iter->second) {
-			iter->second->Disconnect();
+			iter->second->Dispose();
 		}
 		simulatePeers.erase(iter);
 	}
@@ -360,7 +360,7 @@ namespace xx {
 		auto&& iter = simulatePeers.find(id);
 		if (iter != simulatePeers.end()) {
 			if (iter->second && !iter->second->Disposed()) {
-				iter->second->Disconnect();
+				iter->second->Dispose();
 			}
 			iter->second = p;
 		}

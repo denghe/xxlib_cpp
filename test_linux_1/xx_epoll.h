@@ -21,16 +21,35 @@
 #include "xx_epoll_buf_queue.h"
 
 #include <atomic>
+#include <optional>
 
 #include "xx_threadpool.h"
 
 // todo: dialer, udp, 超时关 fd, timer 模拟, ip 获取, 异步域名解析
+
+// todo: EPOLLOUT 监视恢复. write 写入不能后靠可写监视来恢复. EPOLLIN 的 if 还是加上. 后面可能和 disposing 标志位同时判定
+
 /*
 
 dialer 参考
 https://stackoverflow.com/questions/51777259/how-to-code-an-epoll-based-sockets-client-in-c
 
 步骤：创建非阻塞 socket. 映射到 ctx, 存 connect时间. 之后各种判断
+
+设计思路：
+	在现有上下文中增加 target address 信息？默认为 0. 
+	EPOLLIN 事件时检测这个值，如果非 0, 说明是拨号连接成功的。成功后清除该 addr
+	同时有超时检测请求, 考虑做到 epoll 每次 timeout 之后. 
+	timer 先用时间轮方式实现, 即 设定最大超时时长，基于每秒执行的 epoll_wait 次数，可得到数组长度。
+	每数组元素只需要存起始上下文下标. 上下文元素中存储 prev, next 的下标，构成双向链表结构
+
+	初期先实现 accept 产生的 peer 的超时管理
+
+
+
+延迟掐线实现办法：
+	基于 timer. 超时发生时，打 disposing 标志位，从而跳过 recv 处理？
+
 
 
 
@@ -84,12 +103,20 @@ namespace xx::Epoll {
 	struct Instance;
 	struct Peer {
 		volatile uint32_t id = 0;								// 自增 id( 版本号 )
-		Instance* ep = nullptr;									// 指向总容器 for 方便
+
+		int prev = 0;											// 位于相同刻度时间队列中时, prev + next 组成双向链表
+		int next = 0;											//
+		uint64_t timeoutMS = 0;									// 如果该值非 0, 则启用超时检测. if (timeoutMS && timeoutMS < nowMS) Dispose()
+
 		int sockFD = -1;										// 原始 fd
 		int listenFD = -1;										// 原始 listenFD
-		List<uint8_t> recv;										// 收数据用堆积容器
-		BufQueue sendQueue;										// 待发送队列
+
+		std::optional<List<uint8_t>> recv;						// 收数据用堆积容器
+		std::optional<BufQueue> sendQueue;						// 待发送队列
+
+		Instance* ep = nullptr;									// 指向总容器 for 方便
 		void* userData = nullptr;								// 可以随便存点啥
+
 
 		Peer() = default;
 		Peer(Peer const&) = delete;
@@ -98,9 +125,11 @@ namespace xx::Epoll {
 		int Send(Buf&& eb);
 		// todo: 主动掐线
 
+		void Dispose();
+		bool Disposed();
+
 		friend Instance;
 	protected:
-		inline void Clear(bool freeMemory = false);
 		inline void Init(Instance* const& ep, int const& sockFD, int const& listenFD);
 	};
 
@@ -126,6 +155,8 @@ namespace xx::Epoll {
 		Peer& operator*() {
 			return *peer;
 		}
+
+		// todo: more func forward
 	};
 
 	struct Instance {
@@ -152,6 +183,9 @@ namespace xx::Epoll {
 
 		// writev 函数 (buf + len) 数组 参数允许的最大数组长度
 		static const int maxNumIovecs = 1024;
+
+		// 超时时间轮长度。按照典型的 60 帧逻辑，60 秒需要 3600
+		static const int timeoutWheelLen = 4096;
 
 		// 有连接进来
 		virtual void OnAccept(Peer_r sctx, int const& listenIndex) {};
@@ -181,6 +215,12 @@ namespace xx::Epoll {
 
 		// fd 读写上下文
 		std::array<Peer, maxNumFD> ctxs;
+
+		// 时间轮. 填入参与 timeout 检测的 peer 的下标( 链表头 )
+		std::array<int, timeoutWheelLen> timeoutWheel;
+
+		// 时间轮游标. 指向当前链表. 每帧 +1, 按 timeoutWheelLen 长度取余, 循环使用
+		int timeoutWheelCursor = 0;
 
 		// 执行标志
 		std::atomic<bool> running = true;
@@ -271,9 +311,7 @@ namespace xx::Epoll {
 				// fd cleanup
 			LabClose:
 				OnDisconnect(Peer_r(ctx));
-				ctx.Clear(true);
-				epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
-				close(fd);
+				ctx.Dispose();
 			}
 
 			// limit handle times per frame
@@ -311,14 +349,15 @@ namespace xx::Epoll {
 
 		// return !0: error
 		inline int Write(int const& fd) {
-			Peer& ctx = ctxs[fd];
-			while (ctx.sendQueue.bytes) {
+			assert(ctxs[fd].sendQueue.has_value());
+			auto&& q = ctxs[fd].sendQueue.value();
+			while (q.bytes) {
 				std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
 				int vsLen = 0;										// 数组长度
 				size_t bufLen = sendLenPerFrame;					// 计划发送字节数
 
 				// 填充 vs, vsLen, bufLen 并返回预期 offset
-				auto&& offset = ctx.sendQueue.Fill(vs, vsLen, bufLen);
+				auto&& offset = q.Fill(vs, vsLen, bufLen);
 
 				// 返回值为 实际发出的字节数
 				auto&& sentLen = writev(fd, vs.data(), vsLen);
@@ -329,10 +368,10 @@ namespace xx::Epoll {
 					return -2;
 				}
 				else if ((size_t)sentLen == bufLen) {
-					ctx.sendQueue.Pop(vsLen, offset, bufLen);
+					q.Pop(vsLen, offset, bufLen);
 				}
 				else {
-					ctx.sendQueue.Pop(sentLen);
+					q.Pop(sentLen);
 					return 0;										// 理论上讲如果只写入成功一部分, 不必 retry 了。这点需要验证
 				}
 			}
@@ -341,8 +380,8 @@ namespace xx::Epoll {
 
 		// return !0: error
 		inline int Read(int const& fd) {
-			auto&& ctx = ctxs[fd];
-			auto&& buf = ctx.recv;
+			assert(ctxs[fd].recv.has_value());
+			auto&& buf = ctxs[fd].recv.value();
 			while (true) {
 				buf.Reserve(buf.len + readBufReserveIncrease);
 				auto&& len = read(fd, buf.buf + buf.len, buf.cap - buf.len);
@@ -395,27 +434,37 @@ namespace xx::Epoll {
 	};
 
 
-	inline void Peer::Clear(bool freeMemory) {
-		id = 0;
-		sockFD = -1;
-		listenFD = -1;
-		recv.Clear(freeMemory);
-		sendQueue.Clear(freeMemory);
-	}
-
 	inline void Peer::Init(Instance* const& ep, int const& sockFD, int const& listenFD) {
+		assert(!this->ep);
 		this->id = ++ep->id;
 		this->ep = ep;
 		this->sockFD = sockFD;
 		this->listenFD = listenFD;
-		this->recv.Clear();
-		this->sendQueue.Clear();
+		this->recv.emplace();
+		this->sendQueue.emplace();
+	}
+
+	inline bool Peer::Disposed() {
+		return id == 0;
+	}
+
+	inline void Peer::Dispose() {
+		assert(this->ep);
+		if (id == 0) return;
+		id = 0;
+		// todo: next prev sync
+		sockFD = -1;
+		listenFD = -1;
+		recv.reset();
+		sendQueue.reset();
+		epoll_ctl(ep->efd, EPOLL_CTL_DEL, sockFD, nullptr);
+		close(sockFD);
 	}
 
 	inline int Peer::Send(Buf&& eb) {
 		assert(eb.len);
-		sendQueue.Push(std::move(eb));
+		assert(sendQueue.has_value());
+		sendQueue.value().Push(std::move(eb));
 		return ep->Write(sockFD);
 	}
 }
-

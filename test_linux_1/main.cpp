@@ -13,7 +13,7 @@ namespace {
 		}
 
 		virtual int OnReceive(Peer_r pr) override {
-			return pr->Send(Buf(pr->recv));		// echo
+			return pr->Send(Buf(pr->recv.value()));		// echo
 		}
 	};
 }
