@@ -6,14 +6,20 @@ namespace {
 	struct EchoServer : Instance {
 		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) override {
 			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD);
+			pr->SetTimeout(100);
 		}
 
-		virtual void OnDisconnect(Peer_r pr) override {
+		inline virtual void OnDisconnect(Peer_r pr) override {
 			xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
 		}
 
-		virtual int OnReceive(Peer_r pr) override {
-			return pr->Send(Buf(pr->recv.value()));		// echo
+		//virtual int OnReceive(Peer_r pr) override {
+		//	return pr->Send(Buf(pr->recv));		// echo
+		//}
+
+		inline virtual int Update(int64_t frameNumber) override {
+			xx::Cout(".");
+			return 0;
 		}
 	};
 }
@@ -40,7 +46,7 @@ int main(int argc, char* argv[]) {
 			assert(!r);
 			s->threadId = i + 1;
 			xx::CoutN("thread:", i + 1);
-			s->Run();
+			s->Run(100);
 			}).detach();
 	}
 
