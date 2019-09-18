@@ -46,11 +46,11 @@ int main(int argc, char* argv[]) {
 			assert(!r);
 			s->threadId = i + 1;
 			xx::CoutN("thread:", i + 1);
-			s->Run(100);
+			s->Run(10);
 			}).detach();
 	}
 
-	s->Run();
+	s->Run(10);
 
 	return 0;
 }

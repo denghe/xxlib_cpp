@@ -243,12 +243,11 @@ namespace xx::Epoll {
 		inline virtual int Update(int64_t frameNumber) { return 0; }
 
 		
-		// 开始运行. 期间会以固定帧率调用 Update()
-		inline int Run(double const& frameRate = 60.3) {
+		// 开始运行. 期间会以固定帧率调用 Update(). waitMS 为 epoll_wait 的等待时长，需要自己算，不能太频繁调用 wait, 也不能侵占太多业务逻辑执行时长
+		inline int Run(double const& frameRate = 60.3, int const& waitMS = 10) {
 			assert(frameRate > 0);
 			// 计算帧时间间隔
 			auto ticksPerFrame = 10000000.0 / frameRate;
-			int msPerFrame = (int)(1000.0 / frameRate);
 
 			// 稳定帧回调用的时间池
 			double ticksPool = 0;
@@ -260,7 +259,7 @@ namespace xx::Epoll {
 			// 开始循环
 			while (running) {
 				// 调用一次 epoll wait. 等待时间约为帧间隔时长.( 理论上讲应该设置的更小 )
-				if (int r = Wait(msPerFrame)) return r;
+				if (int r = Wait(waitMS)) return r;
 
 				// 计算上个循环到现在经历的时长, 并累加到 pool
 				auto currTicks = xx::NowEpoch10m();
@@ -313,9 +312,9 @@ namespace xx::Epoll {
 			timeoutWheelCursor = (timeoutWheelCursor + 1) & (timeoutWheelLen - 1);
 			auto p = timeoutWheel[timeoutWheelCursor];
 			while (p) {
-				auto o = p;		// backup
-				o->Dispose();
-				p = p->timeoutNext;
+				auto np = p->timeoutNext;
+				p->Dispose();
+				p = np;
 			};
 		}
 
