@@ -23,51 +23,6 @@
 #include <atomic>
 #include <optional>
 
-#include "xx_threadpool.h"
-
-// todo: dialer, udp, 超时关 fd, timer 模拟, ip 获取, 异步域名解析
-
-// todo: EPOLLOUT 监视恢复. write 写入不能后靠可写监视来恢复. EPOLLIN 的 if 还是加上. 后面可能和 disposing 标志位同时判定
-
-/*
-
-dialer 参考
-https://stackoverflow.com/questions/51777259/how-to-code-an-epoll-based-sockets-client-in-c
-
-步骤：创建非阻塞 socket. 映射到 ctx, 存 connect时间. 之后各种判断
-
-设计思路：
-	在现有上下文中增加 target address 信息？默认为 0.
-	EPOLLIN 事件时检测这个值，如果非 0, 说明是拨号连接成功的。成功后清除该 addr
-	同时有超时检测请求, 考虑做到 epoll 每次 timeout 之后.
-	timer 先用时间轮方式实现, 即 设定最大超时时长，基于每秒执行的 epoll_wait 次数，可得到数组长度。
-	每数组元素只需要存起始上下文下标. 上下文元素中存储 prev, next 的下标，构成双向链表结构
-
-	初期先实现 accept 产生的 peer 的超时管理
-
-
-
-延迟掐线实现办法：
-	基于 timer. 超时发生时，打 disposing 标志位，从而跳过 recv 处理？
-
-
-
-
-udp 单个 端口 大负载 面临的问题:
-	从系统态 到 内存态 的瓶颈, pps 提升不上去
-	很难并行处理( 包乱序问题 )
-
-解决方案:
-	创建多 fd 多 port, 绕开单个 fd 的流量
-	一个 port 做 listener, 收到 client 握手信息之后返回 id + 其他 port 值, 之后由该 port & fd 负责处理该 client 的数据收发
-
-需要做一个 port/fd 连接管理器模拟握手
-理论上讲收到的数据可以丢线程池. 按 id 来限定处理线程 确保单个逻辑连接在单个线程中处理
-udp 没有连接 / 断开 的说法，都要靠自己模拟, fd 也不容易失效.
-
-
-*/
-
 namespace xx::Epoll {
 
 	/*
@@ -242,38 +197,59 @@ namespace xx::Epoll {
 		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
 		inline virtual int Update(int64_t frameNumber) { return 0; }
 
-		
-		// 开始运行. 期间会以固定帧率调用 Update(). waitMS 为 epoll_wait 的等待时长，需要自己算，不能太频繁调用 wait, 也不能侵占太多业务逻辑执行时长
-		inline int Run(double const& frameRate = 60.3, int const& waitMS = 10) {
+		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
+		inline int Run(double const& frameRate = 60.3) {
 			assert(frameRate > 0);
-			// 计算帧时间间隔
-			auto ticksPerFrame = 10000000.0 / frameRate;
 
 			// 稳定帧回调用的时间池
 			double ticksPool = 0;
+
+			// 当前帧编号
 			int64_t frameNumber = 0;
+
+			// 本次要 Wait 的超时时长
+			int waitMS = 0;
+
+			// 计算帧时间间隔
+			auto ticksPerFrame = 10000000.0 / frameRate;
 
 			// 取当前时间
 			auto lastTicks = xx::NowEpoch10m();
 
 			// 开始循环
 			while (running) {
-				// 调用一次 epoll wait. 等待时间约为帧间隔时长.( 理论上讲应该设置的更小 )
-				if (int r = Wait(waitMS)) return r;
 
 				// 计算上个循环到现在经历的时长, 并累加到 pool
 				auto currTicks = xx::NowEpoch10m();
-				ticksPool += (double)(currTicks - lastTicks);
+				auto elapsedTicks = (double)(currTicks - lastTicks);
+				ticksPool += elapsedTicks;
 				lastTicks = currTicks;
 
-				// 消耗累计时长, 前进 frame 并调用 Update
-				while (ticksPool > ticksPerFrame) {
+				// 如果累计时长跨度大于一帧的时长 则 Update
+				if (ticksPool > ticksPerFrame) {
+
+					// 消耗累计时长
+					ticksPool -= ticksPerFrame;
+
+					// 本次 Wait 不等待.
+					waitMS = 0;
+
+					// 处理各种连接超时事件
 					HandleTimeout();
+
+					// 帧逻辑调用一次
 					++frameNumber;
 					if (int r = Update(frameNumber)) return r;
-					ticksPool -= ticksPerFrame;
 				}
+				else {
+					// 计算等待时长
+					waitMS = (int)((ticksPerFrame - elapsedTicks) / 10000.0);
+				}
+
+				// 调用一次 epoll wait. 
+				if (int r = Wait(waitMS)) return r;
 			}
+
 			return 0;
 		}
 

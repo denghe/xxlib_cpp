@@ -1,6 +1,67 @@
 ﻿#include "xx_epoll.h"
 //#include "xx_coros_boost.h"
 
+
+/*
+
+协程如果只有 yield() 可用，是比较粗糙的。会在每帧无脑被唤醒，进而执行自己的状态检查，虽然也能完成需求，但是会空耗 cpu, 且处理及时度降低很多.
+
+考虑参考 golang 的 select 部分, yield 变为条件式.
+
+协程事件类型分类：
+1. 网络: 连，断，收 ( 理论上讲还可以有个 发送队列已清空 )
+	根据 fd 进一步路由到
+2. 帧步进
+
+
+
+*/
+
+// todo: dialer, udp, 超时关 fd, timer 模拟, ip 获取, 异步域名解析
+
+// todo: EPOLLOUT 监视恢复. write 写入不能后靠可写监视来恢复. EPOLLIN 的 if 还是加上. 后面可能和 disposing 标志位同时判定
+
+// todo: Dispatch
+
+/*
+
+dialer 参考
+https://stackoverflow.com/questions/51777259/how-to-code-an-epoll-based-sockets-client-in-c
+
+步骤：创建非阻塞 socket. 映射到 ctx, 存 connect时间. 之后各种判断
+
+设计思路：
+	在现有上下文中增加 target address 信息？默认为 0.
+	EPOLLIN 事件时检测这个值，如果非 0, 说明是拨号连接成功的。成功后清除该 addr
+	同时有超时检测请求, 考虑做到 epoll 每次 timeout 之后.
+	timer 先用时间轮方式实现, 即 设定最大超时时长，基于每秒执行的 epoll_wait 次数，可得到数组长度。
+	每数组元素只需要存起始上下文下标. 上下文元素中存储 prev, next 的下标，构成双向链表结构
+
+	初期先实现 accept 产生的 peer 的超时管理
+
+
+
+延迟掐线实现办法：
+	基于 timer. 超时发生时，打 disposing 标志位，从而跳过 recv 处理？
+
+
+
+
+udp 单个 端口 大负载 面临的问题:
+	从系统态 到 内存态 的瓶颈, pps 提升不上去
+	很难并行处理( 包乱序问题 )
+
+解决方案:
+	创建多 fd 多 port, 绕开单个 fd 的流量
+	一个 port 做 listener, 收到 client 握手信息之后返回 id + 其他 port 值, 之后由该 port & fd 负责处理该 client 的数据收发
+
+需要做一个 port/fd 连接管理器模拟握手
+理论上讲收到的数据可以丢线程池. 按 id 来限定处理线程 确保单个逻辑连接在单个线程中处理
+udp 没有连接 / 断开 的说法，都要靠自己模拟, fd 也不容易失效.
+
+
+*/
+
 namespace {
 	using namespace xx::Epoll;
 	struct EchoServer : Instance {
@@ -19,6 +80,7 @@ namespace {
 
 		inline virtual int Update(int64_t frameNumber) override {
 			xx::Cout(".");
+			//Sleep((double)rand() / RAND_MAX * 100 + 50);		// 模拟长时间运行
 			return 0;
 		}
 	};
