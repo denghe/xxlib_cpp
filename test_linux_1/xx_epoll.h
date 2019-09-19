@@ -195,7 +195,10 @@ namespace xx::Epoll {
 		}
 
 		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
-		inline virtual int Update(int64_t frameNumber) { return 0; }
+		inline virtual int Update(int64_t frameNumber) {
+			xx::Cout(".");
+			return 0;
+		}
 
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		inline int Run(double const& frameRate = 60.3) {

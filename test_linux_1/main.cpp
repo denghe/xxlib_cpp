@@ -62,9 +62,11 @@ udp 没有连接 / 断开 的说法，都要靠自己模拟, fd 也不容易失�
 
 namespace {
 	using namespace xx::Epoll;
-	struct EchoServer : Instance {
+	struct Server : Instance {
 		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) override {
 			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD);
+
+			// 设置超时自动 close 时长( 单位为 Update 次数 )
 			pr->SetTimeout(100);
 		}
 
@@ -72,27 +74,35 @@ namespace {
 			xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
 		}
 
-		//virtual int OnReceive(Peer_r pr) override {
-		//	return pr->Send(Buf(pr->recv));		// echo
-		//}
+		virtual int OnReceive(Peer_r pr) override {
+			// 续命
+			pr->SetTimeout(1000);
+
+			// echo
+			return pr->Send(Buf(pr->recv));
+		}
 
 		inline virtual int Update(int64_t frameNumber) override {
+			// 每帧输出点啥
 			xx::Cout(".");
-			//Sleep((double)rand() / RAND_MAX * 100 + 50);		// 模拟长时间运行
+
+			// 模拟业务逻辑
+			Sleep((double)rand() / RAND_MAX * 50);
 			return 0;
 		}
 	};
 }
 
 int main(int argc, char* argv[]) {
-	if (argc != 3) {
-		xx::CoutN("need args: listenPort numThreads");
+	if (argc != 4) {
+		xx::CoutN("need args: port fps +threads");
 		return -1;
 	}
-	int listenPort = std::atoi(argv[1]);
-	int numThreads = std::atoi(argv[2]);
+	auto listenPort = std::atoi(argv[1]);
+	auto fps = std::atof(argv[2]);
+	auto numThreads = std::atoi(argv[3]);
 
-	auto&& s = std::make_unique<EchoServer>();
+	auto&& s = std::make_unique<Server>();
 	int r = s->Listen(listenPort);
 	assert(!r);
 
@@ -100,17 +110,17 @@ int main(int argc, char* argv[]) {
 	std::vector<std::thread> threads;
 	auto fd = s->listenFDs[0];
 	for (int i = 0; i < numThreads; ++i) {
-		threads.emplace_back([fd, i] {
-			auto&& s = std::make_unique<EchoServer>();
+		threads.emplace_back([fd, i, fps] {
+			auto&& s = std::make_unique<Server>();
 			int r = s->ListenFD(fd);
 			assert(!r);
 			s->threadId = i + 1;
 			xx::CoutN("thread:", i + 1);
-			s->Run(10);
+			s->Run(fps);
 			}).detach();
 	}
 
-	s->Run(10);
+	s->Run(fps);
 
 	return 0;
 }
