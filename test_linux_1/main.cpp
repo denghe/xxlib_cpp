@@ -19,8 +19,6 @@
 
 // todo: dialer, udp, 超时关 fd, timer 模拟, ip 获取, 异步域名解析
 
-// todo: EPOLLOUT 监视恢复. write 写入不能后靠可写监视来恢复. EPOLLIN 的 if 还是加上. 后面可能和 disposing 标志位同时判定
-
 // todo: Dispatch
 
 /*

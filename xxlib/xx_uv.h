@@ -182,12 +182,15 @@ namespace xx {
 
 	protected:
 		inline void Execute() noexcept {
-			{
-				std::scoped_lock<std::mutex> g(mtx);
-				action = std::move(actions.front());
-				actions.pop_front();
+			while (true) {
+				{
+					std::scoped_lock<std::mutex> g(mtx);
+					if (actions.empty()) break;
+					action = std::move(actions.front());
+					actions.pop_front();
+				}
+				action();
 			}
-			action();
 		}
 	};
 	using UvAsync_s = std::shared_ptr<UvAsync>;

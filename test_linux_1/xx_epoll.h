@@ -65,13 +65,13 @@ namespace xx::Epoll {
 
 		Instance* ep = nullptr;									// 指向总容器 for 方便
 		void* userData = nullptr;								// 可以随便存点啥
-		int userInt = 0;										// 可以随便存点啥
 
 	protected:
 		int timeoutIndex = -1;									// 位于 timeoutWheel 的下标. 如果该 peer 为 head 则该值非 -1 则可借助该值定位到 wheel 中的位置
 		Peer* timeoutPrev = nullptr;							// 位于相同刻度时间队列中时, prev + next 组成双向链表
 		Peer* timeoutNext = nullptr;							// 位于相同刻度时间队列中时, prev + next 组成双向链表
 
+		bool writing = false;									// 是否正在发送( 是：不管 sendQueue 空不空，都不能 write, 只能塞 sendQueue )
 	public:
 		List<uint8_t> recv;										// 收数据用堆积容器
 		std::optional<BufQueue> sendQueue;						// 待发送队列
@@ -306,10 +306,12 @@ namespace xx::Epoll {
 				Peer& ctx = ctxs[fd];
 
 				// error
-				if (ev & EPOLLERR || ev & EPOLLHUP || !(ev & EPOLLIN)) goto LabClose;
+				if (ev & EPOLLERR || ev & EPOLLHUP) goto LabClose;
 
-				// check is listener: accept
-				for (int idx = 0; idx < listenFDsCount; ++idx) {
+				// accept
+				else {
+					int idx = 0;
+				LabListenCheck:
 					if (fd == listenFDs[idx]) {
 						int sockFD = Accept(fd);
 						if (sockFD >= 0) {
@@ -317,19 +319,23 @@ namespace xx::Epoll {
 							ctx.Init(this, sockFD, fd);
 							OnAccept(Peer_r(ctx), (int)idx);
 						}
-						goto LabContinue;
+						continue;
 					}
+					else if (++idx < listenFDsCount) goto LabListenCheck;
 				}
 
 				// read
-				if (Read(fd)) goto LabClose;
-				if (OnReceive(Peer_r(ctx))) goto LabClose;
-				if (Write(fd)) goto LabClose;
+				if (ev & EPOLLIN) {
+					if (Read(fd)) goto LabClose;
+					if (OnReceive(Peer_r(ctx))) goto LabClose;
+					if (ctx.Disposed()) continue;
+				}
 
-			LabContinue:
-				continue;
+				// write
+				if (ev & EPOLLOUT) {
+					if (!Write(fd)) continue;
+				}
 
-				// fd cleanup
 			LabClose:
 				ctx.Dispose();
 			}
@@ -356,15 +362,18 @@ namespace xx::Epoll {
 			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) return -3;
 			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) return -4;
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
-			if (-1 == Add(fd, EPOLLIN/* | EPOLLOUT*/)) return -6;
+			// keep alive ??
+			if (-1 == Add(fd, EPOLLIN | EPOLLOUT)) return -6;
 			sg.Cancel();
 			return fd;
 		}
 
 		// return !0: error
 		inline int Write(int const& fd) {
-			if (ctxs[fd].Disposed()) return -1;
-			auto&& q = ctxs[fd].sendQueue.value();
+			auto&& ctx = ctxs[fd];
+			if (ctx.Disposed()) return -1;
+			ctx.writing = false;
+			auto&& q = ctx.sendQueue.value();
 			while (q.bytes) {
 				std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
 				int vsLen = 0;										// 数组长度
@@ -378,7 +387,10 @@ namespace xx::Epoll {
 
 				if (!sentLen) return -2;
 				else if (sentLen == -1) {
-					if (errno == EAGAIN) return 0;
+					if (errno == EAGAIN) {
+						ctx.writing = true;
+						return 0;
+					}
 					return -3;
 				}
 				else if ((size_t)sentLen == bufLen) {
@@ -497,6 +509,7 @@ namespace xx::Epoll {
 		this->listenFD = listenFD;
 		this->recv.Clear();
 		this->sendQueue.emplace();
+		this->writing = false;
 	}
 
 	inline bool Peer::Disposed() {
@@ -516,6 +529,7 @@ namespace xx::Epoll {
 		this->recv.Clear(true);
 		this->sendQueue.reset();
 		this->SetTimeout(0);
+		writing = false;
 
 		epoll_ctl(ep->efd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
@@ -524,6 +538,6 @@ namespace xx::Epoll {
 	inline int Peer::Send(Buf&& eb) {
 		assert(this->id);
 		sendQueue.value().Push(std::move(eb));
-		return ep->Write(sockFD);
+		return !writing ? ep->Write(sockFD) : 0;
 	}
 }
