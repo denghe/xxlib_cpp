@@ -1,8 +1,4 @@
-﻿#include "xx_epoll.h"
-//#include "xx_coros_boost.h"
-
-
-/*
+﻿/*
 
 协程如果只有 yield() 可用，是比较粗糙的。会在每帧无脑被唤醒，进而执行自己的状态检查，虽然也能完成需求，但是会空耗 cpu, 且处理及时度降低很多.
 
@@ -17,7 +13,7 @@
 
 */
 
-// todo: dialer, udp, 超时关 fd, timer 模拟, ip 获取, 异步域名解析
+// todo:  udp, ip 获取, 异步域名解析
 
 // todo: Dispatch
 
@@ -57,76 +53,75 @@ udp 单个 端口 大负载 面临的问题:
 理论上讲收到的数据可以丢线程池. 按 id 来限定处理线程 确保单个逻辑连接在单个线程中处理
 udp 没有连接 / 断开 的说法，都要靠自己模拟, fd 也不容易失效.
 
-
 */
 
-namespace {
-	using namespace xx::Epoll;
-	struct Server : Instance {
-		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) override {
-			xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD);
 
-			// 设置超时自动 close 时长( 单位为 Update 次数 )
-			pr->SetTimeout(100);
+#include "xx_epoll.h"
+
+struct Client : xx::Epoll::Instance {
+	Client() {
+		coros.Add([this](xx::Coro& yield) { this->Logic(yield); });
+	}
+
+	inline void Logic(xx::Coro& yield) {
+		// 开始业务逻辑
+	LabBegin:
+
+		// 防御性 yield 一次避免 goto 造成的死循环
+		yield();
+
+		// 拨号到服务器
+		auto&& fd = Dial("192.168.1.128", 11111, 5);
+
+		// 等待拨号失败 / 超时, 重试
+		while (fd) {
+			yield();
+			// 成功: 继续流程
+			if (fd->listenFD == -2) goto LabConnected;
 		}
+		goto LabBegin;
 
-		inline virtual void OnDisconnect(Peer_r pr) override {
-			xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
-		}
-
-		virtual int OnReceive(Peer_r pr) override {
-			// 续命
-			pr->SetTimeout(1000);
-
-			// echo
-			return pr->Send(Buf(pr->recv));
-		}
-
-		inline virtual int Update(int64_t frameNumber) override {
-			// 每帧输出点啥
+	LabConnected:
+		// todo: 发包
+		while (true) {
 			xx::Cout(".");
-
-			// 模拟业务逻辑
-			Sleep((double)rand() / RAND_MAX * 50);
-			return 0;
+			yield();
 		}
-	};
-}
+	}
+
+	inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
+		assert(listenIndex < 0);
+		xx::CoutN(threadId, " OnAccept: id = ", pr->id, ", fd = ", pr->sockFD);
+	}
+
+	inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
+		xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
+	}
+
+	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
+		pr->recv.Clear();
+		return 0;
+	}
+};
 
 int main(int argc, char* argv[]) {
-	if (argc != 4) {
-		xx::CoutN("need args: port fps +threads");
-		return -1;
-	}
-	auto listenPort = std::atoi(argv[1]);
-	auto fps = std::atof(argv[2]);
-	auto numThreads = std::atoi(argv[3]);
-
-	auto&& s = std::make_unique<Server>();
-	int r = s->Listen(listenPort);
-	assert(!r);
-
-	xx::CoutN("thread:", 0);
-	std::vector<std::thread> threads;
-	auto fd = s->listenFDs[0];
-	for (int i = 0; i < numThreads; ++i) {
-		threads.emplace_back([fd, i, fps] {
-			auto&& s = std::make_unique<Server>();
-			int r = s->ListenFD(fd);
-			assert(!r);
-			s->threadId = i + 1;
-			xx::CoutN("thread:", i + 1);
-			s->Run(fps);
-			}).detach();
-	}
-
-	s->Run(fps);
-
-	return 0;
+	return std::make_unique<Client>()->Run(1);
 }
 
 
 
+
+
+
+
+
+
+
+
+
+
+//// 模拟业务逻辑
+////Sleep((double)rand() / RAND_MAX * 50);
 
 
 //struct sigaction sa;

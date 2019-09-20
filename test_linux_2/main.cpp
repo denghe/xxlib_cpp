@@ -1,33 +1,33 @@
-﻿#include "xx_epoll_context.h"
-#include <signal.h>
+﻿#include "xx_epoll.h"
 
-int main() {
-	struct sigaction sa;
-	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
-	sa.sa_flags = 0;
-	if (sigemptyset(&sa.sa_mask) == -1 || //初始化信号集为空
-		sigaction(SIGPIPE, &sa, 0) == -1) { //屏蔽SIGPIPE信号
-		perror("failed to ignore SIGPIPE; sigaction");
-		exit(EXIT_FAILURE);
-	}
-
-	sigset_t signal_mask;
-	sigemptyset(&signal_mask);
-	sigaddset(&signal_mask, SIGPIPE);
-	int rc = pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
-	if (rc != 0) {
-		printf("block sigpipe error\n");
-	}
-
-	// echo server sample
-	xx::EpollListen(12344, xx::SockTypes::TCP, 3, [](int fd, auto read, auto write) {
-			printf("peer accepted. fd = %i\n", fd);
-			char buf[1024];
-			while (size_t received = read(buf, sizeof(buf))) {
-				if (write(buf, received)) break;
+struct Server : xx::Epoll::Instance {
+	Server() {
+		coros.Add([this](xx::Coro& yield) {
+			while (true) {
+				xx::Cout(".");
+				yield();
 			}
-			printf("peer disconnected: fd = %i\n", fd);
-		}
-	);
-	return 0;
+		});
+	}
+
+	inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
+		assert(listenIndex >= 0);
+		xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD);
+	}
+
+	inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
+		xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
+	}
+
+	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
+		return pr->Send(xx::Epoll::Buf(pr->recv));		// echo
+	}
+
+};
+
+int main(int argc, char* argv[]) {
+	auto&& s = std::make_unique<Server>();
+	int r = s->Listen(11111);
+	assert(!r);
+	return s->Run(1);
 }

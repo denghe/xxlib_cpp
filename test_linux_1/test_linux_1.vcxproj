@@ -37,12 +37,6 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="xx_coros_boost.h" />
-    <ClInclude Include="xx_epoll.h" />
-    <ClInclude Include="xx_epoll_buf.h" />
-    <ClInclude Include="xx_epoll_buf_queue.h" />
-  </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>

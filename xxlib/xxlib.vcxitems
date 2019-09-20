@@ -18,7 +18,11 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)fixed_function.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ikcp.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_bbuffer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_coros_boost.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_dict.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll_buf.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll_buf_queue.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll_context.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_file.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_list.h" />

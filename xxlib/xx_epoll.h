@@ -19,6 +19,7 @@
 #include "xx_queue.h"
 #include "xx_epoll_buf.h"
 #include "xx_epoll_buf_queue.h"
+#include "xx_coros_boost.h"
 
 #include <atomic>
 #include <optional>
@@ -61,7 +62,7 @@ namespace xx::Epoll {
 
 		volatile uint64_t id = 0;								// 自增 id( 版本号 )
 		int sockFD = -1;										// 原始 socket fd
-		int listenFD = -1;										// 从哪个 listen socket fd accept 来的
+		int listenFD = -1;										// 从哪个 listen socket fd accept 来的( 如果是自己拨号则该值为 -1 )
 
 		Instance* ep = nullptr;									// 指向总容器 for 方便
 		void* userData = nullptr;								// 可以随便存点啥
@@ -77,7 +78,7 @@ namespace xx::Epoll {
 		std::optional<BufQueue> sendQueue;						// 待发送队列
 
 		int Send(Buf&& eb);										// 发送
-		void Dispose();											// 掐线销毁
+		void Dispose(bool const& callOnDisconnect = true);		// 掐线销毁
 		bool Disposed();										// 返回是否已销毁
 
 		Peer() = default;
@@ -94,12 +95,12 @@ namespace xx::Epoll {
 		Peer* peer = nullptr;
 		uint64_t id = 0;
 
-		Peer_r(Peer& ctx)
-			: peer(&ctx)
-			, id(ctx.id) {
+		Peer_r(Peer& peer)
+			: peer(&peer)
+			, id(peer.id) {
 		}
 
-		Peer_r() = delete;
+		Peer_r() = default;
 		Peer_r(Peer_r const&) = default;
 		Peer_r& operator=(Peer_r const&) = default;
 
@@ -147,6 +148,12 @@ namespace xx::Epoll {
 		std::array<int, maxNumListeners> listenFDs;
 		int listenFDsCount = 0;
 
+		// 当前帧编号
+		int64_t frameNumber = 0;
+
+		// 协程容器
+		xx::Coros coros;
+
 
 	protected:
 		// 用于生成唯一自增 id
@@ -159,7 +166,7 @@ namespace xx::Epoll {
 		std::array<epoll_event, maxNumEvents> events;
 
 		// fd 读写上下文
-		std::array<Peer, maxNumFD> ctxs;
+		std::array<Peer, maxNumFD> peers;
 
 		// 时间轮. 填入参与 timeout 检测的 peer 的下标( 链表头 )
 		std::array<Peer*, timeoutWheelLen> timeoutWheel;
@@ -169,6 +176,9 @@ namespace xx::Epoll {
 
 		// 执行标志
 		std::atomic<bool> running = true;
+
+		// store errno
+		int lastErrorNumber = 0;
 
 	public:
 		Instance() {
@@ -183,7 +193,7 @@ namespace xx::Epoll {
 			// todo: 各种 close
 		}
 
-		// 有连接进来
+		// 有连接进来( listenIndex >= 0 ) 或者有 Dial 结果出来 ( listenIndex == -1 ). Dial 需要进一步判断 pr->listenFD 的值. -1 为失败. -2 为成功
 		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) {};
 
 		// 有连接断开
@@ -195,9 +205,10 @@ namespace xx::Epoll {
 		}
 
 		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
-		inline virtual int Update(int64_t frameNumber) {
-			xx::Cout(".");
+		inline virtual int Update() {
+			coros.RunOnce();
 			return 0;
+			//return coros.cs.len ? 0 : -1;
 		}
 
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
@@ -206,9 +217,6 @@ namespace xx::Epoll {
 
 			// 稳定帧回调用的时间池
 			double ticksPool = 0;
-
-			// 当前帧编号
-			int64_t frameNumber = 0;
 
 			// 本次要 Wait 的超时时长
 			int waitMS = 0;
@@ -242,7 +250,7 @@ namespace xx::Epoll {
 
 					// 帧逻辑调用一次
 					++frameNumber;
-					if (int r = Update(frameNumber)) return r;
+					if (int r = Update()) return r;
 				}
 				else {
 					// 计算等待时长
@@ -279,7 +287,69 @@ namespace xx::Epoll {
 
 		// todo: Unlisten ?
 
-		// todo: Dial?
+		// 返回负数则出错. 成功拨号返回 >=0 的 fd 值
+		inline Peer_r Dial(char const* const& ip, int const& port, int const& timeoutInterval) {
+			sockaddr_in dest;							// todo: ipv6 support
+			memset(&dest, 0, sizeof(dest));
+			dest.sin_family = AF_INET;
+			dest.sin_port = htons(port);
+			if (!inet_pton(AF_INET, ip, &dest.sin_addr.s_addr)) {
+				lastErrorNumber = errno;
+				return Peer_r();
+			}
+
+			auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+			if (fd == -1) {
+				lastErrorNumber = errno;
+				return Peer_r();
+			}
+			ScopeGuard sg([&] { close(fd); });
+
+			// todo: 这段代码和 Accept 的去重
+			int on = 1;
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) {
+				lastErrorNumber = -3;
+				return Peer_r();
+			}
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) {
+				lastErrorNumber = -4;
+				return Peer_r();
+			}
+			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
+			// keep alive ??
+
+			// listenFD 为 -1 表示该 socket 正在 connect. 该流程结束后 listenFD 被设置为 -2
+			int listenFD = -2;
+
+			if (connect(fd, (sockaddr*)& dest, sizeof(dest)) == -1) {
+				if (errno != EINPROGRESS) {
+					lastErrorNumber = errno;
+					return Peer_r();
+				}
+				listenFD = -1;
+			}
+			// else : 立刻连接上了
+
+			// 初始化上下文
+			auto&& peer = peers[fd];
+			peer.Init(this, fd, listenFD);
+			sg.Set([&] { peer.Dispose(false); });
+
+			// 放入 epoll 管理器
+			if (int r = Add(fd, EPOLLIN | EPOLLOUT)) {
+				lastErrorNumber = r;
+				return Peer_r();
+			}
+
+			// 设置拨号超时
+			if (int r = peer.SetTimeout(timeoutInterval)) {
+				lastErrorNumber = r;
+				return Peer_r();
+			}
+
+			sg.Cancel();
+			return Peer_r(peers[fd]);
+		}
 
 
 		friend struct Peer;
@@ -306,10 +376,12 @@ namespace xx::Epoll {
 				// get fd
 				auto fd = events[i].data.fd;
 				auto ev = events[i].events;
-				Peer& ctx = ctxs[fd];
 
 				// error
-				if (ev & EPOLLERR || ev & EPOLLHUP) goto LabClose;
+				if (ev & EPOLLERR || ev & EPOLLHUP) {
+					peers[fd].Dispose();
+					continue;
+				}
 
 				// accept
 				else {
@@ -318,29 +390,52 @@ namespace xx::Epoll {
 					if (fd == listenFDs[idx]) {
 						int sockFD = Accept(fd);
 						if (sockFD >= 0) {
-							auto&& ctx = ctxs[sockFD];
-							ctx.Init(this, sockFD, fd);
-							OnAccept(Peer_r(ctx), (int)idx);
+							auto&& peer = peers[sockFD];
+							peer.Init(this, sockFD, fd);
+							OnAccept(Peer_r(peer), (int)idx);
 						}
 						continue;
 					}
 					else if (++idx < listenFDsCount) goto LabListenCheck;
 				}
 
-				// read
-				if (ev & EPOLLIN) {
-					if (Read(fd)) goto LabClose;
-					if (OnReceive(Peer_r(ctx))) goto LabClose;
-					if (ctx.Disposed()) continue;
-				}
+				// for easy use
+				Peer& peer = peers[fd];
 
-				// write
-				if (ev & EPOLLOUT) {
-					if (!Write(fd)) continue;
+				// 已连接的 socket
+				if (peer.listenFD != -1) {
+					// read
+					if (ev & EPOLLIN) {
+						if (Read(fd)) {
+							peer.Dispose();
+							continue;
+						}
+						if (OnReceive(Peer_r(peer))) {
+							peer.Dispose();
+							continue;
+						}
+						if (peer.Disposed()) continue;
+					}
+					// write
+					if (ev & EPOLLOUT) {
+						if (!Write(fd)) continue;
+					}
 				}
-
-			LabClose:
-				ctx.Dispose();
+				// 正在 connect 的
+				else {
+					// 读取错误 或者读到错误 都认为是连接失败. 当前策略是无脑 Dispose. 会产生回调. Dial 发起方需要记录 Dial 返回值, 如果这个回调的 listenFD == -1
+					int err;
+					socklen_t result_len = sizeof(err);
+					if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &result_len) == -1 || err) {
+						OnAccept(Peer_r(peer), -1);
+						peer.Dispose(false);
+						continue;
+					}
+					// 拨号连接成功. 打标记. 避免再次进入该 if 分支
+					peer.listenFD = -2;
+					peer.SetTimeout(0);
+					OnAccept(Peer_r(peer), -1);
+				}
 			}
 			return 0;
 		}
@@ -373,10 +468,10 @@ namespace xx::Epoll {
 
 		// return !0: error
 		inline int Write(int const& fd) {
-			auto&& ctx = ctxs[fd];
-			if (ctx.Disposed()) return -1;
-			ctx.writing = false;
-			auto&& q = ctx.sendQueue.value();
+			auto&& peer = peers[fd];
+			if (peer.Disposed()) return -1;
+			peer.writing = false;
+			auto&& q = peer.sendQueue.value();
 			while (q.bytes) {
 				std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
 				int vsLen = 0;										// 数组长度
@@ -391,7 +486,7 @@ namespace xx::Epoll {
 				if (!sentLen) return -2;
 				else if (sentLen == -1) {
 					if (errno == EAGAIN) {
-						ctx.writing = true;
+						peer.writing = true;
 						return 0;
 					}
 					return -3;
@@ -409,7 +504,7 @@ namespace xx::Epoll {
 
 		// return !0: error
 		inline int Read(int const& fd) {
-			auto&& buf = ctxs[fd].recv;
+			auto&& buf = peers[fd].recv;
 			while (true) {
 				buf.Reserve(buf.len + readBufReserveIncrease);
 				auto&& len = read(fd, buf.buf + buf.len, buf.cap - buf.len);
@@ -510,16 +605,20 @@ namespace xx::Epoll {
 		this->ep = ep;
 		this->sockFD = sockFD;
 		this->listenFD = listenFD;
+		this->userData = nullptr;
+		this->writing = false;
 		this->recv.Clear();
 		this->sendQueue.emplace();
-		this->writing = false;
+		assert(this->timeoutIndex == -1);
+		assert(this->timeoutPrev == nullptr);
+		assert(this->timeoutNext == nullptr);
 	}
 
 	inline bool Peer::Disposed() {
 		return id == 0;
 	}
 
-	inline void Peer::Dispose() {
+	inline void Peer::Dispose(bool const& callOnDisconnect) {
 		assert(this->ep);
 		if (this->id == 0) return;
 
@@ -529,10 +628,11 @@ namespace xx::Epoll {
 		this->id = 0;
 		this->sockFD = -1;
 		this->listenFD = -1;
+		this->userData = nullptr;
+		this->writing = false;
 		this->recv.Clear(true);
 		this->sendQueue.reset();
 		this->SetTimeout(0);
-		writing = false;
 
 		epoll_ctl(ep->efd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
