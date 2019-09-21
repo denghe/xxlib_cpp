@@ -60,10 +60,12 @@ udp 没有连接 / 断开 的说法，都要靠自己模拟, fd 也不容易失�
 
 struct Client : xx::Epoll::Instance {
 	Client() {
-		coros.Add([this](xx::Coro& yield) { this->Logic(yield); });
+		for (int i = 0; i < 20; ++i) {
+			coros.Add([this, i](xx::Coro& yield) { this->Logic(yield, i); });
+		}
 	}
 
-	inline void Logic(xx::Coro& yield) {
+	inline void Logic(xx::Coro& yield, int const& i) {
 		// 开始业务逻辑
 	LabBegin:
 
@@ -71,7 +73,10 @@ struct Client : xx::Epoll::Instance {
 		yield();
 
 		// 拨号到服务器
-		auto&& fd = Dial("192.168.1.128", 11111, 5);
+		auto&& fd = Dial("192.168.1.128", 12345, 5);
+
+		// 如果拨号立刻出错, 重拨
+		if (fd < 0) goto LabBegin;
 
 		// 等待拨号失败 / 超时, 重试
 		while (fd) {
@@ -82,9 +87,11 @@ struct Client : xx::Epoll::Instance {
 		goto LabBegin;
 
 	LabConnected:
+		xx::Cout(fd, " ");
+
 		// todo: 发包
-		while (true) {
-			xx::Cout(".");
+		while (fd) {
+			//xx::CoutN(i);
 			yield();
 		}
 	}

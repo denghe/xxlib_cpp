@@ -311,10 +311,10 @@ namespace xx::Epoll {
 				lastErrorNumber = -3;
 				return Peer_r();
 			}
-			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) {
-				lastErrorNumber = -4;
-				return Peer_r();
-			}
+			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) {
+			//	lastErrorNumber = -4;
+			//	return Peer_r();
+			//}
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
 			// keep alive ??
 
@@ -372,10 +372,14 @@ namespace xx::Epoll {
 			int n = epoll_wait(efd, events.data(), maxNumEvents, timeoutMS);
 			if (n == -1) return errno;
 
+			if (n) {
+				xx::CoutN("Wait n = ", n);
+			}
 			for (int i = 0; i < n; ++i) {
 				// get fd
 				auto fd = events[i].data.fd;
 				auto ev = events[i].events;
+				xx::CoutN("fd = ", fd, ", ev = ", ev);
 
 				// error
 				if (ev & EPOLLERR || ev & EPOLLHUP) {
@@ -458,7 +462,7 @@ namespace xx::Epoll {
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
 			int on = 1;
 			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) return -3;
-			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) return -4;
+			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) return -4;
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
 			// keep alive ??
 			if (-1 == Add(fd, EPOLLIN | EPOLLOUT)) return -6;
@@ -496,7 +500,7 @@ namespace xx::Epoll {
 				}
 				else {
 					q.Pop(sentLen);
-					return 0;										// 理论上讲如果只写入成功一部分, 不必 retry 了。这点需要验证
+					//return 0;										// 理论上讲如果只写入成功一部分, 不必 retry 了。这点需要验证
 				}
 			}
 			return 0;
@@ -622,8 +626,10 @@ namespace xx::Epoll {
 		assert(this->ep);
 		if (this->id == 0) return;
 
-		ep->OnDisconnect(Peer_r(*this));
-		auto fd = sockFD;
+		if (callOnDisconnect) {
+			this->ep->OnDisconnect(Peer_r(*this));
+		}
+		auto fd = this->sockFD;
 
 		this->id = 0;
 		this->sockFD = -1;
@@ -634,8 +640,9 @@ namespace xx::Epoll {
 		this->sendQueue.reset();
 		this->SetTimeout(0);
 
-		epoll_ctl(ep->efd, EPOLL_CTL_DEL, fd, nullptr);
+		epoll_ctl(this->ep->efd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
+		xx::CoutN("close fd = ", fd);
 	}
 
 	inline int Peer::Send(Buf&& eb) {
