@@ -18,7 +18,7 @@ struct Server : xx::Epoll::Instance {
 
 	inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
 		assert(listenIndex >= 0);
-		xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD);
+		xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip);
 	}
 
 	inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
@@ -33,7 +33,7 @@ struct Server : xx::Epoll::Instance {
 
 int main(int argc, char* argv[]) {
 	auto&& s = std::make_unique<Server>();
-	int r = s->Listen(11111);
+	int r = s->Listen(12345);
 	assert(!r);
 	return s->Run(1);
 }

@@ -76,6 +76,7 @@ namespace xx::Epoll {
 	public:
 		List<uint8_t> recv;										// 收数据用堆积容器
 		std::optional<BufQueue> sendQueue;						// 待发送队列
+		std::string ip;											// accept 之后记录 ip:port
 
 		int Send(Buf&& eb);										// 发送
 		void Dispose(bool const& callOnDisconnect = true);		// 掐线销毁
@@ -271,7 +272,7 @@ namespace xx::Epoll {
 			if (fd < 0) return -2;
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -3;
-			if (-1 == listen(fd, 2048/*SOMAXCONN*/)) return -4;
+			if (-1 == listen(fd, SOMAXCONN)) return -4;
 			if (-1 == Add(fd, EPOLLIN)) return -5;
 			listenFDs[listenFDsCount++] = fd;
 			sg.Cancel();
@@ -372,14 +373,10 @@ namespace xx::Epoll {
 			int n = epoll_wait(efd, events.data(), maxNumEvents, timeoutMS);
 			if (n == -1) return errno;
 
-			if (n) {
-				xx::CoutN("Wait n = ", n);
-			}
 			for (int i = 0; i < n; ++i) {
 				// get fd
 				auto fd = events[i].data.fd;
 				auto ev = events[i].events;
-				xx::CoutN("fd = ", fd, ", ev = ", ev);
 
 				// error
 				if (ev & EPOLLERR || ev & EPOLLHUP) {
@@ -389,16 +386,25 @@ namespace xx::Epoll {
 
 				// accept
 				else {
+					// 遍历所有 listen fd, 逐个判断是不是
 					int idx = 0;
 				LabListenCheck:
 					if (fd == listenFDs[idx]) {
+
+						// 一直 accept 到没有为止
+					LabAccept:
 						int sockFD = Accept(fd);
-						if (sockFD >= 0) {
+						if (!sockFD) continue;						// 没有了: 跳出
+						else if (sockFD > 0) {						// 成功
 							auto&& peer = peers[sockFD];
 							peer.Init(this, sockFD, fd);
 							OnAccept(Peer_r(peer), (int)idx);
 						}
-						continue;
+						else {
+							// todo: 输出 accept 失败
+							continue;
+						}
+						goto LabAccept;
 					}
 					else if (++idx < listenFDsCount) goto LabListenCheck;
 				}
@@ -452,12 +458,16 @@ namespace xx::Epoll {
 			return epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event);
 		};
 
-		// return fd. <0: error
+		// return fd. <0: error. 0: empty (EAGAIN / EWOULDBLOCK), > 0: fd
 		inline int Accept(int const& listenFD) {
-			sockaddr in_addr;									// todo: ipv6 support
-			socklen_t inLen = sizeof(in_addr);
-			int fd = accept(listenFD, &in_addr, &inLen);
-			if (-1 == fd) return -1;
+			sockaddr addr;									// todo: ipv6 support
+			socklen_t len = sizeof(addr);
+			int fd = accept(listenFD, &addr, &len);
+			if (-1 == fd) {
+				lastErrorNumber = errno;
+				if (lastErrorNumber == EAGAIN || lastErrorNumber == EWOULDBLOCK) return 0;
+				else return -1;
+			}
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
 			int on = 1;
@@ -466,6 +476,13 @@ namespace xx::Epoll {
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
 			// keep alive ??
 			if (-1 == Add(fd, EPOLLIN | EPOLLOUT)) return -6;
+
+			peers[fd].ip.clear();
+			char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+			if (!getnameinfo(&addr, len, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV)) {
+				xx::Append(peers[fd].ip, hbuf, ":", sbuf);
+			}
+
 			sg.Cancel();
 			return fd;
 		}
@@ -516,7 +533,7 @@ namespace xx::Epoll {
 				else if (len == -1) return errno == EAGAIN ? 0 : -2;
 				else {
 					buf.len += len;
-					if (buf.len <= buf.cap) return 0;				// 理论上讲如果连 buf 都没读满, 不必 retry 了。这点需要验证
+					//if (buf.len <= buf.cap) return 0;				// 理论上讲如果连 buf 都没读满, 不必 retry 了。这点需要验证
 				}
 			}
 			return 0;
@@ -555,9 +572,6 @@ namespace xx::Epoll {
 			return ai ? fd : -2;
 		}
 
-		//inline static int MakeTcpSocketFD(char const* const& ip, char const* const& port) {
-		//   return
-		//}
 	};
 
 
@@ -642,7 +656,6 @@ namespace xx::Epoll {
 
 		epoll_ctl(this->ep->efd, EPOLL_CTL_DEL, fd, nullptr);
 		close(fd);
-		xx::CoutN("close fd = ", fd);
 	}
 
 	inline int Peer::Send(Buf&& eb) {

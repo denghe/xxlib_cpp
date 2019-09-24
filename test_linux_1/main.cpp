@@ -73,7 +73,7 @@ struct Client : xx::Epoll::Instance {
 		yield();
 
 		// 拨号到服务器
-		auto&& fd = Dial("192.168.1.128", 12345, 5);
+		auto&& fd = Dial("192.168.1.160", 12345, 5);
 
 		// 如果拨号立刻出错, 重拨
 		if (fd < 0) goto LabBegin;
