@@ -70,7 +70,7 @@ struct Client : xx::Epoll::Instance {
 
 	inline void Logic(xx::Coro& yield, int const& i) {
 		// 准备拨号
-	LabBegin:
+	LabDial:
 
 		// 防御性 yield 一次避免 goto 造成的死循环
 		yield();
@@ -79,32 +79,40 @@ struct Client : xx::Epoll::Instance {
 		auto&& fd = Dial("192.168.1.160", 12345, 5);
 
 		// 如果拨号立刻出错, 重拨
-		if (fd < 0) goto LabBegin;
+		if (fd < 0) goto LabDial;
 
 		auto&& pr = RefToPeer(fd);
 
-		// 等待拨号失败 / 超时, 重试
-		while (pr) {
-			yield();
+		// 等待 连接结果: 失败|超时( pr 失效 ), 成功( Connected() 返回 true )
+	LabWait:
+		// 连接成功: 继续后面的流程
+		if (pr->Connected()) goto LabSend;
 
-			// 成功: 继续流程
-			if (pr->listenFD == -2) goto LabConnected;
-		}
-		goto LabBegin;
+		// 等待一帧
+		yield();
 
-	LabConnected:
+		// pr 如果还健在就继续循环
+		if (pr) goto LabWait;
+
+		// 失败|超时: 重拨
+		goto LabDial;
+
+	LabSend:
 		xx::Cout(pr->id, " ");
 
-		// 发包
+		// 直接用底层函数发包。失败: 重拨
 		if (write(fd, "a", 1) <= 0) {
 			pr->Dispose();
-			goto LabBegin;
+			goto LabDial;
 		}
 
+		// 等待断线
 		while (pr) {
 			//xx::CoutN(i);
 			yield();
 		}
+
+		goto LabDial;
 	}
 
 	inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {

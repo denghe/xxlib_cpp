@@ -82,6 +82,8 @@ namespace xx::Epoll {
 		void Dispose(bool const& callOnDisconnect = true);			// 掐线销毁
 		bool Disposed();											// 返回是否已销毁
 
+		bool Connected();											// 返回是否已连接成功. listenFD != -1.
+
 		Peer() = default;
 		int SetTimeout(int const& interval);						// 设置或停止超时管理( interval 传 0 表示停止 ). 返回 0 表示设置成功. -1 表示超出了 wheel 界限. interval 指 RunOnce 次数
 
@@ -688,5 +690,9 @@ namespace xx::Epoll {
 		assert(this->id);
 		sendQueue.value().Push(std::move(eb));
 		return !writing ? ep->Write(sockFD) : 0;
+	}
+
+	inline bool Peer::Connected() {
+		return listenFD != -1;
 	}
 }
