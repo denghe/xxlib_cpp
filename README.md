@@ -29,13 +29,23 @@ vs2019 + linux 项目可以正常工作
 
 
 
+
+LINUX compile command line:
+cd xxlib_cpp/test_linux_1
+g++ ../xxlib/ikcp.c main.cpp -O3 -std=c++17 -pthread -o main -I./ -lboost_context -I../xxlib
+
+
+
+
+
+
+
 某种典型的运行方式：
 git clone https://github.com/denghe/xxlib_cpp
 cd xxlib_cpp/server_game
 cp ../gens/output/cfg.bin .
 ../compile.sh
 ./main
-
 
 
 
