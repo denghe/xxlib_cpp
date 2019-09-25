@@ -27,6 +27,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_file.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_list.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_logger.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_mempool.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_mysql.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_object.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_pos.h" />

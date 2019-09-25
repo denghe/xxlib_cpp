@@ -59,14 +59,17 @@ udp 没有连接 / 断开 的说法，都要靠自己模拟, fd 也不容易失�
 #include "xx_epoll.h"
 
 struct Client : xx::Epoll::Instance {
+	using BaseType = Instance;
+
+
 	Client() {
-		for (int i = 0; i < 20; ++i) {
+		for (int i = 0; i < 100; ++i) {
 			coros.Add([this, i](xx::Coro& yield) { this->Logic(yield, i); });
 		}
 	}
 
 	inline void Logic(xx::Coro& yield, int const& i) {
-		// 开始业务逻辑
+		// 准备拨号
 	LabBegin:
 
 		// 防御性 yield 一次避免 goto 造成的死循环
@@ -78,19 +81,27 @@ struct Client : xx::Epoll::Instance {
 		// 如果拨号立刻出错, 重拨
 		if (fd < 0) goto LabBegin;
 
+		auto&& pr = RefToPeer(fd);
+
 		// 等待拨号失败 / 超时, 重试
-		while (fd) {
+		while (pr) {
 			yield();
+
 			// 成功: 继续流程
-			if (fd->listenFD == -2) goto LabConnected;
+			if (pr->listenFD == -2) goto LabConnected;
 		}
 		goto LabBegin;
 
 	LabConnected:
-		xx::Cout(fd, " ");
+		xx::Cout(pr->id, " ");
 
-		// todo: 发包
-		while (fd) {
+		// 发包
+		if (write(fd, "a", 1) <= 0) {
+			pr->Dispose();
+			goto LabBegin;
+		}
+
+		while (pr) {
 			//xx::CoutN(i);
 			yield();
 		}
@@ -105,9 +116,16 @@ struct Client : xx::Epoll::Instance {
 		xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
 	}
 
+	uint64_t count = 0;
+	uint64_t last = xx::NowSteadyEpochMS();
 	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
-		pr->recv.Clear();
-		return 0;
+		++count;
+		if (count % 100000 == 0) {
+			auto now = xx::NowSteadyEpochMS();
+			xx::CoutN(now - last);
+			last = now;
+		}
+		return this->BaseType::OnReceive(pr);
 	}
 };
 

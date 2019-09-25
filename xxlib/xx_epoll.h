@@ -60,30 +60,30 @@ namespace xx::Epoll {
 	struct Peer {
 		friend Instance;
 
-		volatile uint64_t id = 0;								// 自增 id( 版本号 )
-		int sockFD = -1;										// 原始 socket fd
-		int listenFD = -1;										// 从哪个 listen socket fd accept 来的( 如果是自己拨号则该值为 -1 )
+		volatile uint64_t id = 0;									// 自增 id( 版本号 )
+		int sockFD = -1;											// 原始 socket fd
+		int listenFD = -1;											// 从哪个 listen socket fd accept 来的( 如果是自己拨号则该值为 -1 )
 
-		Instance* ep = nullptr;									// 指向总容器 for 方便
-		void* userData = nullptr;								// 可以随便存点啥
+		Instance* ep = nullptr;										// 指向总容器 for 方便
+		void* userData = nullptr;									// 可以随便存点啥
 
 	protected:
-		int timeoutIndex = -1;									// 位于 timeoutWheel 的下标. 如果该 peer 为 head 则该值非 -1 则可借助该值定位到 wheel 中的位置
-		Peer* timeoutPrev = nullptr;							// 位于相同刻度时间队列中时, prev + next 组成双向链表
-		Peer* timeoutNext = nullptr;							// 位于相同刻度时间队列中时, prev + next 组成双向链表
+		int timeoutIndex = -1;										// 位于 timeoutWheel 的下标. 如果该 peer 为 head 则该值非 -1 则可借助该值定位到 wheel 中的位置
+		Peer* timeoutPrev = nullptr;								// 位于相同刻度时间队列中时, prev + next 组成双向链表
+		Peer* timeoutNext = nullptr;								// 位于相同刻度时间队列中时, prev + next 组成双向链表
 
-		bool writing = false;									// 是否正在发送( 是：不管 sendQueue 空不空，都不能 write, 只能塞 sendQueue )
+		bool writing = false;										// 是否正在发送( 是：不管 sendQueue 空不空，都不能 write, 只能塞 sendQueue )
 	public:
-		List<uint8_t> recv;										// 收数据用堆积容器
-		std::optional<BufQueue> sendQueue;						// 待发送队列
-		std::string ip;											// accept 之后记录 ip:port
+		List<uint8_t> recv;											// 收数据用堆积容器
+		std::optional<BufQueue> sendQueue;							// 待发送队列
+		std::string ip;												// accept 之后记录 ip:port
 
-		int Send(Buf&& eb);										// 发送
-		void Dispose(bool const& callOnDisconnect = true);		// 掐线销毁
-		bool Disposed();										// 返回是否已销毁
+		int Send(Buf&& eb);											// 正常发送. 如果发不完将堆积在 sendQueue. 返回 非 0 表示出错
+		void Dispose(bool const& callOnDisconnect = true);			// 掐线销毁
+		bool Disposed();											// 返回是否已销毁
 
 		Peer() = default;
-		int SetTimeout(int const& interval);					// 设置或停止超时管理( interval 传 0 表示停止 ). 返回 0 表示设置成功. -1 表示超出了 wheel 界限. interval 指 RunOnce 次数
+		int SetTimeout(int const& interval);						// 设置或停止超时管理( interval 传 0 表示停止 ). 返回 0 表示设置成功. -1 表示超出了 wheel 界限. interval 指 RunOnce 次数
 
 	protected:
 		void Init(Instance* const& ep, int const& sockFD, int const& listenFD);
@@ -99,6 +99,11 @@ namespace xx::Epoll {
 		Peer_r(Peer& peer)
 			: peer(&peer)
 			, id(peer.id) {
+		}
+
+		void Reset(Peer& peer) {
+			this->peer = &peer;
+			this->id = peer.id;
 		}
 
 		Peer_r() = default;
@@ -131,7 +136,7 @@ namespace xx::Epoll {
 		static const int maxNumListeners = 10;
 
 		// 读缓冲区内存扩容增量
-		static const int readBufReserveIncrease = 65536;
+		static const int readBufLen = 65536;
 
 		// 每 fd 每一次可写, 写入的长度限制( 希望能实现当大量数据下发时各个 socket 公平的占用带宽 )
 		static const int sendLenPerFrame = 65536;
@@ -202,7 +207,8 @@ namespace xx::Epoll {
 
 		// 有数据收到( 默认实现 echo 效果 )
 		inline virtual int OnReceive(Peer_r pr) {
-			return pr->Send(Buf(pr->recv));
+			// 直接 write. 如果发送不完就断开( 正常写法是用 pr->Send, 发送不完就塞待发送队列 )
+			return write(pr->sockFD, pr->recv.buf, pr->recv.len) > 0 ? 0 : -1;
 		}
 
 		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
@@ -273,7 +279,7 @@ namespace xx::Epoll {
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -3;
 			if (-1 == listen(fd, SOMAXCONN)) return -4;
-			if (-1 == Add(fd, EPOLLIN)) return -5;
+			if (-1 == Ctl(fd, EPOLLIN)) return -5;
 			listenFDs[listenFDsCount++] = fd;
 			sg.Cancel();
 			return 0;
@@ -281,51 +287,51 @@ namespace xx::Epoll {
 
 		// 和其他 Instance 共享 FD
 		inline int ListenFD(int const& fd) {
-			if (-1 == Add(fd, EPOLLIN)) return -1;
+			if (-1 == Ctl(fd, EPOLLIN)) return -1;
 			listenFDs[listenFDsCount++] = fd;
 			return 0;
 		}
 
 		// todo: Unlisten ?
 
-		// 返回负数则出错. 成功拨号返回 >=0 的 fd 值
-		inline Peer_r Dial(char const* const& ip, int const& port, int const& timeoutInterval) {
+		// 返回负数则出错. lastErrorNumber = errno. 成功拨号返回 >=0 的 fd 值
+		inline int Dial(char const* const& ip, int const& port, int const& timeoutInterval) {
 			sockaddr_in dest;							// todo: ipv6 support
 			memset(&dest, 0, sizeof(dest));
 			dest.sin_family = AF_INET;
 			dest.sin_port = htons(port);
 			if (!inet_pton(AF_INET, ip, &dest.sin_addr.s_addr)) {
 				lastErrorNumber = errno;
-				return Peer_r();
+				return -1;
 			}
 
 			auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 			if (fd == -1) {
 				lastErrorNumber = errno;
-				return Peer_r();
+				return -2;
 			}
 			ScopeGuard sg([&] { close(fd); });
 
 			// todo: 这段代码和 Accept 的去重
 			int on = 1;
-			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) {
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) {
 				lastErrorNumber = -3;
-				return Peer_r();
+				return -3;
 			}
-			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) {
-			//	lastErrorNumber = -4;
-			//	return Peer_r();
-			//}
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)&on, sizeof(on))) {
+				lastErrorNumber = -4;
+				return -4;
+			}
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
 			// keep alive ??
 
 			// listenFD 为 -1 表示该 socket 正在 connect. 该流程结束后 listenFD 被设置为 -2
 			int listenFD = -2;
 
-			if (connect(fd, (sockaddr*)& dest, sizeof(dest)) == -1) {
+			if (connect(fd, (sockaddr*)&dest, sizeof(dest)) == -1) {
 				if (errno != EINPROGRESS) {
 					lastErrorNumber = errno;
-					return Peer_r();
+					return -5;
 				}
 				listenFD = -1;
 			}
@@ -337,21 +343,28 @@ namespace xx::Epoll {
 			sg.Set([&] { peer.Dispose(false); });
 
 			// 放入 epoll 管理器
-			if (int r = Add(fd, EPOLLIN | EPOLLOUT)) {
+			if (int r = Ctl(fd, EPOLLIN | EPOLLOUT)) {
 				lastErrorNumber = r;
-				return Peer_r();
+				return -6;
 			}
 
 			// 设置拨号超时
 			if (int r = peer.SetTimeout(timeoutInterval)) {
 				lastErrorNumber = r;
-				return Peer_r();
+				return -7;
 			}
 
 			sg.Cancel();
-			return Peer_r(peers[fd]);
+			return fd;
 		}
 
+		inline Peer_r RefToPeer(int const& fd) {
+			Peer_r rtv;
+			if (!peers[fd].Disposed()) {
+				rtv.Reset(peers[fd]);
+			}
+			return rtv;
+		}
 
 		friend struct Peer;
 	protected:
@@ -377,6 +390,7 @@ namespace xx::Epoll {
 				// get fd
 				auto fd = events[i].data.fd;
 				auto ev = events[i].events;
+				//xx::CoutN(fd, " ", ev);
 
 				// error
 				if (ev & EPOLLERR || ev & EPOLLHUP) {
@@ -390,29 +404,22 @@ namespace xx::Epoll {
 					int idx = 0;
 				LabListenCheck:
 					if (fd == listenFDs[idx]) {
-
 						// 一直 accept 到没有为止
 					LabAccept:
 						int sockFD = Accept(fd);
-						if (!sockFD) continue;						// 没有了: 跳出
-						else if (sockFD > 0) {						// 成功
+						if (sockFD > 0) {
 							auto&& peer = peers[sockFD];
 							peer.Init(this, sockFD, fd);
 							OnAccept(Peer_r(peer), (int)idx);
+							goto LabAccept;
 						}
-						else {
-							// todo: 输出 accept 失败
-							continue;
-						}
-						goto LabAccept;
+						continue;
 					}
 					else if (++idx < listenFDsCount) goto LabListenCheck;
 				}
 
-				// for easy use
-				Peer& peer = peers[fd];
-
 				// 已连接的 socket
+				Peer& peer = peers[fd];
 				if (peer.listenFD != -1) {
 					// read
 					if (ev & EPOLLIN) {
@@ -425,10 +432,18 @@ namespace xx::Epoll {
 							continue;
 						}
 						if (peer.Disposed()) continue;
+						else {
+							peer.recv.Clear();
+						}
 					}
 					// write
+					assert(!peer.Disposed());
 					if (ev & EPOLLOUT) {
-						if (!Write(fd)) continue;
+						// 设置为可写状态
+						peer.writing = false;
+						if (Write(fd)) {
+							peer.Dispose();
+						}
 					}
 				}
 				// 正在 connect 的
@@ -451,11 +466,11 @@ namespace xx::Epoll {
 		}
 
 		// return !0: error
-		inline int Add(int const& fd, uint32_t const& flags) {
+		inline int Ctl(int const& fd, uint32_t const& flags, int const& op = EPOLL_CTL_ADD) {
 			epoll_event event;
 			event.data.fd = fd;
-			event.events = flags | EPOLLET;
-			return epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event);
+			event.events = flags;
+			return epoll_ctl(efd, op, fd, &event);
 		};
 
 		// return fd. <0: error. 0: empty (EAGAIN / EWOULDBLOCK), > 0: fd
@@ -471,11 +486,11 @@ namespace xx::Epoll {
 			ScopeGuard sg([&] { close(fd); });
 			if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
 			int on = 1;
-			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)& on, sizeof(on))) return -3;
-			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)& on, sizeof(on))) return -4;
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) return -3;
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)&on, sizeof(on))) return -4;
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
 			// keep alive ??
-			if (-1 == Add(fd, EPOLLIN | EPOLLOUT)) return -6;
+			if (-1 == Ctl(fd, EPOLLIN)) return -6;
 
 			peers[fd].ip.clear();
 			char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
@@ -490,52 +505,64 @@ namespace xx::Epoll {
 		// return !0: error
 		inline int Write(int const& fd) {
 			auto&& peer = peers[fd];
-			if (peer.Disposed()) return -1;
-			peer.writing = false;
 			auto&& q = peer.sendQueue.value();
-			while (q.bytes) {
-				std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
-				int vsLen = 0;										// 数组长度
-				size_t bufLen = sendLenPerFrame;					// 计划发送字节数
 
-				// 填充 vs, vsLen, bufLen 并返回预期 offset
-				auto&& offset = q.Fill(vs, vsLen, bufLen);
+			// 如果没有待发送数据，停止监控 EPOLLOUT 并退出
+			if (!q.bytes) return Ctl(fd, EPOLLIN, EPOLL_CTL_MOD);
 
-				// 返回值为 实际发出的字节数
-				auto&& sentLen = writev(fd, vs.data(), vsLen);
+			// 前置准备
+			std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
+			int vsLen = 0;										// 数组长度
+			auto bufLen = (size_t)sendLenPerFrame;				// 计划发送字节数
 
-				if (!sentLen) return -2;
-				else if (sentLen == -1) {
-					if (errno == EAGAIN) {
-						peer.writing = true;
-						return 0;
-					}
-					return -3;
-				}
-				else if ((size_t)sentLen == bufLen) {
-					q.Pop(vsLen, offset, bufLen);
-				}
-				else {
-					q.Pop(sentLen);
-					//return 0;										// 理论上讲如果只写入成功一部分, 不必 retry 了。这点需要验证
-				}
+			// 填充 vs, vsLen, bufLen 并返回预期 offset. 每次只发送 bufLen 长度
+			auto&& offset = q.Fill(vs, vsLen, bufLen);
+
+			// 返回值为 实际发出的字节数
+			auto&& sentLen = writev(fd, vs.data(), vsLen);
+
+			// 已断开
+			if (sentLen == 0) return -2;
+
+			// 繁忙 或 出错
+			else if (sentLen == -1) {
+				if (errno == EAGAIN) goto LabEnd;
+				else return -3;
 			}
-			return 0;
+
+			// 完整发送
+			else if ((size_t)sentLen == bufLen) {
+				// 快速弹出已发送数据
+				q.Pop(vsLen, offset, bufLen);
+
+				// 这次就写这么多了. 直接返回. 下次继续 Write
+				return 0;
+			}
+
+			// 发送了一部分
+			else {
+				// 弹出已发送数据
+				q.Pop(sentLen);
+			}
+
+		LabEnd:
+			// 标记为不可写
+			peer.writing = true;
+
+			// 开启对可写状态的监控, 直到队列变空再关闭监控
+			return Ctl(fd, EPOLLIN | EPOLLOUT, EPOLL_CTL_MOD);
 		}
 
-		// return !0: error
+		// return <= 0: error
 		inline int Read(int const& fd) {
 			auto&& buf = peers[fd].recv;
-			while (true) {
-				buf.Reserve(buf.len + readBufReserveIncrease);
-				auto&& len = read(fd, buf.buf + buf.len, buf.cap - buf.len);
-				if (!len) return -1;
-				else if (len == -1) return errno == EAGAIN ? 0 : -2;
-				else {
-					buf.len += len;
-					//if (buf.len <= buf.cap) return 0;				// 理论上讲如果连 buf 都没读满, 不必 retry 了。这点需要验证
-				}
+			if (!buf.cap) {
+				buf.Reserve(readBufLen);
 			}
+			if (buf.len == buf.cap) return -1;
+			auto&& len = read(fd, buf.buf + buf.len, buf.cap - buf.len);
+			if (len <= 0) return -2;
+			buf.len += len;
 			return 0;
 		}
 
@@ -571,7 +598,6 @@ namespace xx::Epoll {
 
 			return ai ? fd : -2;
 		}
-
 	};
 
 
@@ -625,7 +651,7 @@ namespace xx::Epoll {
 		this->listenFD = listenFD;
 		this->userData = nullptr;
 		this->writing = false;
-		this->recv.Clear();
+		this->recv.Reserve(ep->readBufLen);
 		this->sendQueue.emplace();
 		assert(this->timeoutIndex == -1);
 		assert(this->timeoutPrev == nullptr);
