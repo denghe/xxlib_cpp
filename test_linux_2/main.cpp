@@ -29,6 +29,22 @@ int main(int argc, char* argv[]) {
 	auto&& s = std::make_unique<Server>();
 	int r = s->Listen(12345);
 	assert(!r);
+
+	xx::CoutN("thread:", 0);
+	auto fd = s->listenFDs[0];
+	std::vector<std::thread> threads;
+	for (int i = 0; i < 2; ++i) {
+		threads.emplace_back([fd, i] {
+			auto&& s = std::make_unique<Server>();
+			int r = s->ListenFD(fd);
+			assert(!r);
+			s->threadId = i + 1;
+			xx::CoutN("thread:", i + 1);
+			s->Run(1);
+
+			}).detach();
+	}
+
 	return s->Run(1);
 }
 

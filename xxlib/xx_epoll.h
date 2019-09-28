@@ -297,20 +297,20 @@ namespace xx::Epoll {
 		// todo: Unlisten ?
 
 		// 返回负数则出错. lastErrorNumber = errno. 成功拨号返回 >=0 的 fd 值
-		inline int Dial(char const* const& ip, int const& port, int const& timeoutInterval) {
+		inline Peer_r Dial(char const* const& ip, int const& port, int const& timeoutInterval) {
 			sockaddr_in dest;							// todo: ipv6 support
 			memset(&dest, 0, sizeof(dest));
 			dest.sin_family = AF_INET;
 			dest.sin_port = htons(port);
 			if (!inet_pton(AF_INET, ip, &dest.sin_addr.s_addr)) {
 				lastErrorNumber = errno;
-				return -1;
+				return Peer_r();
 			}
 
 			auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 			if (fd == -1) {
 				lastErrorNumber = errno;
-				return -2;
+				return Peer_r();
 			}
 			ScopeGuard sg([&] { close(fd); });
 
@@ -318,11 +318,11 @@ namespace xx::Epoll {
 			int on = 1;
 			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) {
 				lastErrorNumber = -3;
-				return -3;
+				return Peer_r();
 			}
 			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, (const char*)&on, sizeof(on))) {
 				lastErrorNumber = -4;
-				return -4;
+				return Peer_r();
 			}
 			//if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, (const char*)& on, sizeof(on))) return -5;
 			// keep alive ??
@@ -333,7 +333,7 @@ namespace xx::Epoll {
 			if (connect(fd, (sockaddr*)&dest, sizeof(dest)) == -1) {
 				if (errno != EINPROGRESS) {
 					lastErrorNumber = errno;
-					return -5;
+					return Peer_r();
 				}
 				listenFD = -1;
 			}
@@ -347,17 +347,17 @@ namespace xx::Epoll {
 			// 放入 epoll 管理器
 			if (int r = Ctl(fd, EPOLLIN | EPOLLOUT)) {
 				lastErrorNumber = r;
-				return -6;
+				return Peer_r();
 			}
 
 			// 设置拨号超时
 			if (int r = peer.SetTimeout(timeoutInterval)) {
 				lastErrorNumber = r;
-				return -7;
+				return Peer_r();
 			}
 
 			sg.Cancel();
-			return fd;
+			return RefToPeer(fd);
 		}
 
 		inline Peer_r RefToPeer(int const& fd) {

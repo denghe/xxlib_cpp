@@ -6,40 +6,11 @@
 
 协程事件类型分类：
 1. 网络: 连，断，收 ( 理论上讲还可以有个 发送队列已清空 )
-	根据 fd 进一步路由到
 2. 帧步进
-
-
-
-*/
-
-// todo:  udp, ip 获取, 异步域名解析
 
 // todo: Dispatch
 
-/*
-
-dialer 参考
-https://stackoverflow.com/questions/51777259/how-to-code-an-epoll-based-sockets-client-in-c
-
-步骤：创建非阻塞 socket. 映射到 ctx, 存 connect时间. 之后各种判断
-
-设计思路：
-	在现有上下文中增加 target address 信息？默认为 0.
-	EPOLLIN 事件时检测这个值，如果非 0, 说明是拨号连接成功的。成功后清除该 addr
-	同时有超时检测请求, 考虑做到 epoll 每次 timeout 之后.
-	timer 先用时间轮方式实现, 即 设定最大超时时长，基于每秒执行的 epoll_wait 次数，可得到数组长度。
-	每数组元素只需要存起始上下文下标. 上下文元素中存储 prev, next 的下标，构成双向链表结构
-
-	初期先实现 accept 产生的 peer 的超时管理
-
-
-
-延迟掐线实现办法：
-	基于 timer. 超时发生时，打 disposing 标志位，从而跳过 recv 处理？
-
-
-
+// todo:  udp, 异步域名解析
 
 udp 单个 端口 大负载 面临的问题:
 	从系统态 到 内存态 的瓶颈, pps 提升不上去
@@ -76,12 +47,10 @@ struct Client : xx::Epoll::Instance {
 		yield();
 
 		// 拨号到服务器
-		auto&& fd = Dial("192.168.1.160", 12345, 5);
+		auto&& pr = Dial("192.168.1.160", 12345, 5);
 
 		// 如果拨号立刻出错, 重拨
-		if (fd < 0) goto LabDial;
-
-		auto&& pr = RefToPeer(fd);
+		if (!pr) goto LabDial;
 
 		// 等待 连接结果: 失败|超时( pr 失效 ), 成功( Connected() 返回 true )
 	LabWait:
@@ -101,17 +70,15 @@ struct Client : xx::Epoll::Instance {
 		xx::Cout(pr->id, " ");
 
 		// 直接用底层函数发包。失败: 重拨
-		if (write(fd, "a", 1) <= 0) {
+		if (write(pr->sockFD, "a", 1) <= 0) {
 			pr->Dispose();
 			goto LabDial;
 		}
 
 		// 等待断线
 		while (pr) {
-			//xx::CoutN(i);
 			yield();
 		}
-
 		goto LabDial;
 	}
 
@@ -128,9 +95,9 @@ struct Client : xx::Epoll::Instance {
 	uint64_t last = xx::NowSteadyEpochMS();
 	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
 		++count;
-		if (count % 100000 == 0) {
+		if ((count & 0x1FFFF) == 0x1FFFF) {
 			auto now = xx::NowSteadyEpochMS();
-			xx::CoutN(now - last);
+			xx::CoutN(double(0x20000 * 1000) / double(now - last));
 			last = now;
 		}
 		return this->BaseType::OnReceive(pr);
