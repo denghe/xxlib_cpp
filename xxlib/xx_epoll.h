@@ -444,7 +444,9 @@ namespace xx::Epoll {
 		// 有数据收到( 默认实现 echo 效果 )
 		inline virtual int OnReceive(Peer_r pr) {
 			// 直接 write. 如果发送不完就断开( 正常写法是用 pr->Send, 发送不完就塞待发送队列 )
-			return write(pr->sockFD, pr->recv.buf, pr->recv.len) > 0 ? 0 : -1;
+			auto&& r = write(pr->sockFD, pr->recv.buf, pr->recv.len) > 0 ? 0 : -1;
+			pr->recv.Clear();
+			return r;
 		}
 
 		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
@@ -544,9 +546,6 @@ namespace xx::Epoll {
 							continue;
 						}
 						if (peer.Disposed()) continue;
-						else {
-							peer.recv.Clear();
-						}
 					}
 					// write
 					assert(!peer.Disposed());

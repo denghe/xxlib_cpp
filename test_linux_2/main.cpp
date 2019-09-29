@@ -2,14 +2,13 @@
 #include "xx_threadpool.h"
 
 struct Server : xx::Epoll::Instance {
-	inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
-		assert(listenIndex >= 0);
-		xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip);
-	}
-
-	inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
-		xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
-	}
+	//inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
+	//	assert(listenIndex >= 0);
+	//	xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip);
+	//}
+	//inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
+	//	xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
+	//}
 
 	// 线程池
 	xx::ThreadPool tp = xx::ThreadPool(400);
@@ -19,10 +18,13 @@ struct Server : xx::Epoll::Instance {
 		// 用智能指针包裹数据, 确保跨线程 lambda 捕获 引用计数正确
 		auto&& buf = xx::Make<xx::Epoll::Buf>(pr->recv.buf, pr->recv.len);
 
+		// 清除接收 buf 的数据
+		pr->recv.Clear();
+
 		// 往线程池压入处理函数
 		return tp.Add([this, pr, buf] {
 
-			// 模拟一个长时间的处理. 1ms
+			// 模拟解包, 以及一个长时间的处理. 1ms
 			usleep(1000);
 
 			// 将处理结果通过 epoll 线程发回
@@ -38,15 +40,15 @@ struct Server : xx::Epoll::Instance {
 		});
 	}
 
-	Server() {
-		// 通过协程, 每帧输出一个点
-		coros.Add([this](xx::Coro& yield) {
-			while (true) {
-				xx::Cout(".");
-				yield();
-			}
-		});
-	}
+	//Server() {
+	//	// 通过协程, 每帧输出一个点
+	//	coros.Add([this](xx::Coro& yield) {
+	//		while (true) {
+	//			xx::Cout(".");
+	//			yield();
+	//		}
+	//	});
+	//}
 };
 
 int main(int argc, char* argv[]) {
@@ -54,19 +56,19 @@ int main(int argc, char* argv[]) {
 	int r = s->Listen(12345);
 	assert(!r);
 
-	xx::CoutN("thread:", 0);
-	auto fd = s->listenFDs[0];
-	std::vector<std::thread> threads;
-	for (int i = 0; i < 2; ++i) {
-		threads.emplace_back([fd, i] {
-			auto&& s = std::make_unique<Server>();
-			int r = s->ListenFD(fd);
-			assert(!r);
-			s->threadId = i + 1;
-			xx::CoutN("thread:", i + 1);
-			s->Run(1);
-			}).detach();
-	}
+	//xx::CoutN("thread:", 0);
+	//auto fd = s->listenFDs[0];
+	//std::vector<std::thread> threads;
+	//for (int i = 0; i < 2; ++i) {
+	//	threads.emplace_back([fd, i] {
+	//		auto&& s = std::make_unique<Server>();
+	//		int r = s->ListenFD(fd);
+	//		assert(!r);
+	//		s->threadId = i + 1;
+	//		xx::CoutN("thread:", i + 1);
+	//		s->Run(1);
+	//		}).detach();
+	//}
 
 	// 按帧数为 1 的速度开始执行
 	return s->Run(1);
