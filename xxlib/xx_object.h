@@ -23,6 +23,7 @@
 #include <memory>
 #include <thread>
 #include <mutex>
+#include <new>
 
 #include <stdlib.h>
 #include <iostream>

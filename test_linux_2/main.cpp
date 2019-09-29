@@ -1,6 +1,5 @@
-﻿// 已知问题：性能不正常. 排查中
-
-#include "xx_epoll.h"
+﻿#include "xx_epoll.h"
+#include "xx_threadpool.h"
 
 struct Server : xx::Epoll::Instance {
 	inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
@@ -12,17 +11,42 @@ struct Server : xx::Epoll::Instance {
 		xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
 	}
 
-	//virtual int OnReceive(xx::Epoll::Peer_r pr) override {
-	//	return 0;
-	//}
-	//Server() {
-	//	coros.Add([this](xx::Coro& yield) {
-	//		while (true) {
-	//			xx::Cout(".");
-	//			yield();
-	//		}
-	//	});
-	//}
+	// 线程池
+	xx::ThreadPool tp = xx::ThreadPool(400);
+
+	// 模拟收到数据后投递到线程池处理
+	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
+		// 用智能指针包裹数据, 确保跨线程 lambda 捕获 引用计数正确
+		auto&& buf = xx::Make<xx::Epoll::Buf>(pr->recv.buf, pr->recv.len);
+
+		// 往线程池压入处理函数
+		return tp.Add([this, pr, buf] {
+
+			// 模拟一个长时间的处理. 1ms
+			usleep(1000);
+
+			// 将处理结果通过 epoll 线程发回
+			Dispatch([this, pr, buf] {
+
+				// 有可能等待处理期间 pr 已经断开了. 故用前判断一下
+				if (pr) {
+
+					// 发送
+					pr->Send(std::move(*buf));
+				}
+			});
+		});
+	}
+
+	Server() {
+		// 通过协程, 每帧输出一个点
+		coros.Add([this](xx::Coro& yield) {
+			while (true) {
+				xx::Cout(".");
+				yield();
+			}
+		});
+	}
 };
 
 int main(int argc, char* argv[]) {
@@ -41,12 +65,57 @@ int main(int argc, char* argv[]) {
 			s->threadId = i + 1;
 			xx::CoutN("thread:", i + 1);
 			s->Run(1);
-
 			}).detach();
 	}
 
+	// 按帧数为 1 的速度开始执行
 	return s->Run(1);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //#include "uv.h"

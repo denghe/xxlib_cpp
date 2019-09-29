@@ -17,7 +17,7 @@ namespace xx {
 		int autoId = 0;								// udps key, udp dialer port gen: --autoId
 		Dict<int, std::weak_ptr<UvKcp>> udps;		// key: port( dialer peer port = autoId )
 		char* recvBuf = nullptr;					// shared receive buf for kcp
-		size_t recvBufLen = 65535;					// shared receive buf's len
+		std::size_t recvBufLen = 65535;				// shared receive buf's len
 		uv_run_mode runMode = UV_RUN_DEFAULT;		// reduce frame client update kcp delay
 		uv_loop_t uvLoop;
 
@@ -78,7 +78,7 @@ namespace xx {
 				Uv::Free(handle);
 				});
 		}
-		inline static void AllocCB(uv_handle_t* h, size_t suggested_size, uv_buf_t* buf) noexcept {
+		inline static void AllocCB(uv_handle_t* h, std::size_t suggested_size, uv_buf_t* buf) noexcept {
 			buf->base = (char*)::malloc(suggested_size);
 			buf->len = decltype(uv_buf_t::len)(suggested_size);
 		}
@@ -190,6 +190,7 @@ namespace xx {
 					actions.pop_front();
 				}
 				action();
+				action = nullptr;
 			}
 		}
 	};
@@ -405,8 +406,8 @@ namespace xx {
 		UvPeer* peer = nullptr;
 		virtual std::string GetIP() noexcept = 0;
 
-		virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept = 0;		// direct send anything
-		virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept = 0;		// resize ctx & header space to bb
+		virtual int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept = 0;		// direct send anything
+		virtual void SendPrepare(BBuffer& bb, std::size_t const& reserveLen) noexcept = 0;		// resize ctx & header space to bb
 		virtual int SendAfterPrepare(BBuffer& bb) noexcept = 0;								// fill ctx & header & send
 
 		virtual void Flush() noexcept = 0;
@@ -513,7 +514,7 @@ namespace xx {
 			return onReceiveRequest ? onReceiveRequest(serial, std::move(msg)) : 0;
 		}
 
-		inline int SendDirect(uint8_t* const& buf, size_t const& len) noexcept {
+		inline int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept {
 			return peerBase->SendDirect(buf, len);
 		}
 
@@ -678,7 +679,7 @@ namespace xx {
 			return ip;
 		}
 
-		inline virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept override {
+		inline virtual int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept override {
 			auto&& bb = uv.sendBB;
 			bb.Reserve(sizeof(uv_write_t_ex) + len);
 			bb.len = sizeof(uv_write_t_ex);
@@ -693,7 +694,7 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept override {
+		inline virtual void SendPrepare(BBuffer& bb, std::size_t const& reserveLen) noexcept override {
 			bb.Reserve(sizeof(uv_write_t_ex) + 4 + reserveLen);
 			bb.len = sizeof(uv_write_t_ex) + 4;		// skip header space
 		}
@@ -736,7 +737,7 @@ namespace xx {
 		// 4 byte len header. can override for write custom header format
 		virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
-			size_t offset = 0;
+			std::size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
 				uint32_t len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
 				if (len > uv.maxPackageLength) return -1;			// invalid length
@@ -909,11 +910,11 @@ namespace xx {
 			return 0;
 		}
 
-		inline virtual int SendDirect(uint8_t* const& buf, size_t const& len) noexcept override {
+		inline virtual int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept override {
 			return Send(buf, len);
 		}
 
-		inline virtual void SendPrepare(BBuffer& bb, size_t const& reserveLen) noexcept override {
+		inline virtual void SendPrepare(BBuffer& bb, std::size_t const& reserveLen) noexcept override {
 			bb.Reserve(4 + reserveLen);
 			bb.len = 4;												// skip header space
 		}
@@ -945,7 +946,7 @@ namespace xx {
 		// 4 bytes len header. can override for custom header format.
 		inline virtual int Unpack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
 			buf.AddRange(recvBuf, recvLen);
-			size_t offset = 0;
+			std::size_t offset = 0;
 			while (offset + 4 <= buf.len) {							// ensure header len( 4 bytes )
 				uint32_t len = buf[offset + 0] + (buf[offset + 1] << 8) + (buf[offset + 2] << 16) + (buf[offset + 3] << 24);
 				if (len > uv.maxPackageLength) return -1;			// invalid length
@@ -1438,7 +1439,7 @@ namespace xx {
 		inline virtual void Cancel() noexcept override {
 			if (disposed) return;
 			if (reqs.len) {
-				for (auto i = reqs.len - 1; i != (size_t)-1; --i) {
+				for (auto i = reqs.len - 1; i != (std::size_t)-1; --i) {
 					auto req = reqs[i];
 					assert(req->peer);
 					uv_cancel((uv_req_t*)& req->req);				// ios call this do nothing
@@ -1455,7 +1456,7 @@ namespace xx {
 		auto&& dialer = dialer_w.lock();
 		if (!dialer) return;
 		auto idx = dialer->reqs.Find(this);
-		if (idx == (size_t)-1) return;
+		if (idx == (std::size_t)-1) return;
 		dialer->reqs.SwapRemoveAt(idx);
 	}
 

@@ -21,8 +21,7 @@
 #include "xx_epoll_buf_queue.h"
 #include "xx_coros_boost.h"
 
-#include <atomic>
-#include <optional>
+
 
 namespace xx::Epoll {
 
@@ -34,7 +33,7 @@ namespace xx::Epoll {
 	int listenPort = std::atoi(argv[1]);
 	int numThreads = std::atoi(argv[2]);
 
-	auto&& s = std::make_unique<xx::EchoServer>();
+	auto&& s = std::make_unique<XXXXXXXXXXXXXXXXX>();
 	int r = s->Listen(listenPort);
 	assert(!r);
 
@@ -48,11 +47,11 @@ namespace xx::Epoll {
 			assert(!r);
 			s->threadId = i + 1;
 			xx::CoutN("thread:", i + 1);
-			s->Run();
+			s->Run(???);
 
 			}).detach();
 	}
-	s->Run();
+	s->Run(???);
 
 	*/
 
@@ -112,13 +111,13 @@ namespace xx::Epoll {
 		Peer_r(Peer_r const&) = default;
 		Peer_r& operator=(Peer_r const&) = default;
 
-		inline operator bool() {
+		inline operator bool() const {
 			return peer->id == id;
 		}
-		Peer* operator->() {
+		Peer* operator->() const {
 			return peer;
 		}
-		Peer& operator*() {
+		Peer& operator*() const {
 			return *peer;
 		}
 
@@ -129,9 +128,9 @@ namespace xx::Epoll {
 	struct Instance {
 		// 各种配置
 		// epool_wait 的返回值数量限制
-		static const int maxNumEvents = 8192;
+		static const int maxNumEvents = 4096;
 
-		// 支持的最大 fd 值 ( 应该大于等于 ulimit -n 的值 )
+		// 支持的最大 fd 值 ( 应参考 ulimit -n 等系统设定值 )
 		static const int maxNumFD = 65536;
 
 		// 支持的最大监听端口数量
@@ -188,36 +187,68 @@ namespace xx::Epoll {
 		// store errno
 		int lastErrorNumber = 0;
 
+
+
+		// 其他线程封送到 epoll 线程的函数容器
+		std::deque<std::function<void()>> actions;
+
+		// 用于锁 actions
+		std::mutex actionsMutex;
+
+		// 0 读 1 写 用于 dispatch 时通知 epoll_wait
+		std::array<int, 2> actionsPipes;
+
+		// 当前正要执行的函数
+		std::function<void()> action;
+
+
 	public:
 		Instance() {
+			// 创建 epoll fd
 			efd = epoll_create1(0);
 			if (-1 == efd) throw - 1;
+
+			// 创建 pipe fd
+			if (pipe(actionsPipes.data())) {
+				close(efd);
+				throw - 2;
+			}
+
+			// 将 pipe fd 纳入 epoll 管理
+			Ctl(actionsPipes[0], EPOLLIN);
+
+			// 设置 pipe 为非阻塞( 当前逻辑因为是只要进入一次 HandleActions 就执行光队列里的函数, 故写失败可忽略 )
+			fcntl(actionsPipes[1], F_SETFL, O_NONBLOCK);
+			fcntl(actionsPipes[0], F_SETFL, O_NONBLOCK);
+
+			// todo: check 返回值?
 		}
 
 		Instance(Instance const&) = delete;
 		Instance& operator=(Instance const&) = delete;
 
 		virtual ~Instance() {
+			if (efd != -1) {
+				close(efd);
+				efd = -1;
+			}
+
+			if (actionsPipes[0]) {
+				close(actionsPipes[0]);
+				close(actionsPipes[1]);
+				actionsPipes.fill(0);
+			}
+
 			// todo: 各种 close
 		}
 
-		// 有连接进来( listenIndex >= 0 ) 或者有 Dial 结果出来 ( listenIndex == -1 ). Dial 需要进一步判断 pr->listenFD 的值. -1 为失败. -2 为成功
-		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) {};
-
-		// 有连接断开
-		inline virtual void OnDisconnect(Peer_r pr) {};
-
-		// 有数据收到( 默认实现 echo 效果 )
-		inline virtual int OnReceive(Peer_r pr) {
-			// 直接 write. 如果发送不完就断开( 正常写法是用 pr->Send, 发送不完就塞待发送队列 )
-			return write(pr->sockFD, pr->recv.buf, pr->recv.len) > 0 ? 0 : -1;
-		}
-
-		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
-		inline virtual int Update() {
-			coros.RunOnce();
-			return 0;
-			//return coros.cs.len ? 0 : -1;
+		// 封送函数到 epoll 线程执行( 线程安全 ). 可能会阻塞.
+		inline int Dispatch(std::function<void()>&& action) {
+			{
+				std::scoped_lock<std::mutex> g(actionsMutex);
+				actions.push_back(std::move(action));
+			}
+			return write(actionsPipes[1], ".", 1) == 1 ? -1 : 0;
 		}
 
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
@@ -368,11 +399,63 @@ namespace xx::Epoll {
 			return rtv;
 		}
 
+		// return fd. <0: error
+		inline static int MakeListenFD(int const& port) {
+			char portStr[20];
+			snprintf(portStr, sizeof(portStr), "%d", port);
+
+			addrinfo hints;														// todo: ipv6 support
+			memset(&hints, 0, sizeof(addrinfo));
+			hints.ai_family = AF_UNSPEC;										// ipv4 / 6
+			hints.ai_socktype = SOCK_STREAM;									// SOCK_STREAM / SOCK_DGRAM
+			hints.ai_flags = AI_PASSIVE;										// all interfaces
+
+			addrinfo* ai_, * ai;
+			if (getaddrinfo(nullptr, portStr, &hints, &ai_)) return -1;
+
+			int fd;
+			for (ai = ai_; ai != nullptr; ai = ai->ai_next) {
+				fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+				if (fd == -1) continue;
+
+				int enable = 1;
+				if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+					close(fd);
+					continue;
+				}
+				if (!bind(fd, ai->ai_addr, ai->ai_addrlen)) break;				// success
+
+				close(fd);
+			}
+			freeaddrinfo(ai_);
+
+			return ai ? fd : -2;
+		}
+
 		friend struct Peer;
 	protected:
 
+		// 有连接进来( listenIndex >= 0 ) 或者有 Dial 结果出来 ( listenIndex == -1 ). Dial 需要进一步判断 pr->listenFD 的值. -1 为失败. -2 为成功
+		inline virtual void OnAccept(Peer_r pr, int const& listenIndex) {};
+
+		// 有连接断开
+		inline virtual void OnDisconnect(Peer_r pr) {};
+
+		// 有数据收到( 默认实现 echo 效果 )
+		inline virtual int OnReceive(Peer_r pr) {
+			// 直接 write. 如果发送不完就断开( 正常写法是用 pr->Send, 发送不完就塞待发送队列 )
+			return write(pr->sockFD, pr->recv.buf, pr->recv.len) > 0 ? 0 : -1;
+		}
+
+		// 帧逻辑可以放在这. 返回非 0 将令 Run 退出
+		inline virtual int Update() {
+			coros.RunOnce();
+			return 0;
+			//return coros.cs.len ? 0 : -1;
+		}
+
+		// 超时管理。对超时 peer 进行 Dispose 操作
 		inline void HandleTimeout() {
-			// 超时管理。对超时 peer 进行 Dispose 操作
 			// 循环递增游标
 			timeoutWheelCursor = (timeoutWheelCursor + 1) & (timeoutWheelLen - 1);
 			auto p = timeoutWheel[timeoutWheelCursor];
@@ -381,6 +464,23 @@ namespace xx::Epoll {
 				p->Dispose();
 				p = np;
 			};
+		}
+
+		// 执行所有 Dispatch 的函数
+		inline int HandleActions() {
+			char buf[512];
+			if (read(actionsPipes[0], buf, sizeof(buf)) <= 0) return -1;
+			while (true) {
+				{
+					std::scoped_lock<std::mutex> g(actionsMutex);
+					if (actions.empty()) break;
+					action = std::move(actions.front());
+					actions.pop_front();
+				}
+				action();
+				action = nullptr;
+			}
+			return 0;
 		}
 
 		// 进入一次 epoll wait. 可传入超时时间. 
@@ -406,6 +506,9 @@ namespace xx::Epoll {
 					int idx = 0;
 				LabListenCheck:
 					if (fd == listenFDs[idx]) {
+
+						// todo: 多线程环境下，如果 accept 超出数量限制, 或者负载极不均匀, 是否可以挪移到别的 epoll?
+
 						// 一直 accept 到没有为止
 					LabAccept:
 						int sockFD = Accept(fd);
@@ -418,6 +521,13 @@ namespace xx::Epoll {
 						continue;
 					}
 					else if (++idx < listenFDsCount) goto LabListenCheck;
+				}
+
+				// action
+				if (fd == actionsPipes[0]) {
+					assert(ev & EPOLLIN);
+					if (HandleActions()) return -1;
+					else continue;
 				}
 
 				// 已连接的 socket
@@ -448,7 +558,7 @@ namespace xx::Epoll {
 						}
 					}
 				}
-				// 正在 connect 的
+				// 正在连接的 socket
 				else {
 					// 读取错误 或者读到错误 都认为是连接失败. 当前策略是无脑 Dispose. 会产生回调. Dial 发起方需要记录 Dial 返回值, 如果这个回调的 listenFD == -1
 					int err;
@@ -566,39 +676,6 @@ namespace xx::Epoll {
 			if (len <= 0) return -2;
 			buf.len += len;
 			return 0;
-		}
-
-		// return fd. <0: error
-		inline static int MakeListenFD(int const& port) {
-			char portStr[20];
-			snprintf(portStr, sizeof(portStr), "%d", port);
-
-			addrinfo hints;														// todo: ipv6 support
-			memset(&hints, 0, sizeof(addrinfo));
-			hints.ai_family = AF_UNSPEC;										// ipv4 / 6
-			hints.ai_socktype = SOCK_STREAM;									// SOCK_STREAM / SOCK_DGRAM
-			hints.ai_flags = AI_PASSIVE;										// all interfaces
-
-			addrinfo* ai_, * ai;
-			if (getaddrinfo(nullptr, portStr, &hints, &ai_)) return -1;
-
-			int fd;
-			for (ai = ai_; ai != nullptr; ai = ai->ai_next) {
-				fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-				if (fd == -1) continue;
-
-				int enable = 1;
-				if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-					close(fd);
-					continue;
-				}
-				if (!bind(fd, ai->ai_addr, ai->ai_addrlen)) break;				// success
-
-				close(fd);
-			}
-			freeaddrinfo(ai_);
-
-			return ai ? fd : -2;
 		}
 	};
 

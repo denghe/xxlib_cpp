@@ -10,16 +10,18 @@ namespace xx::Epoll {
 		uint8_t* buf;
 
 		// 内存块内有效数据长度
-		size_t len;
+		std::size_t len;
 
 		// 指向内存块中引用计数变量
 		int* refs;
 
+		// 从 bb 直接移走内存
 		template<typename BB>
 		Buf(BB& bb) {
 			Init<BB>(bb);
 		}
 
+		// 重设数据
 		inline void Reset(BBuffer& bb) {
 			Dispose();
 			Init(bb);
@@ -32,6 +34,7 @@ namespace xx::Epoll {
 		{
 		}
 
+		// 增加引用计数
 		Buf(Buf const& o)
 			: buf(o.buf)
 			, len(o.len)
@@ -40,6 +43,12 @@ namespace xx::Epoll {
 			if (refs) {
 				++(*refs);
 			}
+		}
+
+		// 复制内存
+		Buf(void* const& buf, std::size_t const& len) {
+			Init(malloc(len + 8), len);
+			memcpy(this->buf, buf, len);
 		}
 
 		~Buf() {
@@ -88,17 +97,24 @@ namespace xx::Epoll {
 			// 为 refs 扩容
 			bb.Reserve(bb.len + 8);
 
-			// 直读内存信息
-			buf = bb.buf;
-			len = bb.len;
-
-			// 计算出 refs 的 4 字节对齐位置
-			refs = (int*)(((((size_t)buf + len - 1) / 4) + 1) * 4);
-
-			*refs = 1;
+			// 复制 buf 信息并填充 refs
+			Init(bb.buf, bb.len);
 
 			// 内存脱钩
 			bb.Reset();
+		}
+
+		// buf 需要有额外的存 refs 的内存空间
+		inline void Init(void* const& buf, std::size_t const& len) {
+			// 直读内存信息
+			this->buf = (uint8_t*)buf;
+			this->len = len;
+
+			// 计算出 refs 的 4 字节对齐位置
+			refs = (int*)(((((std::size_t)buf + len - 1) / 4) + 1) * 4);
+
+			// 初始引用计数为 1
+			*refs = 1;
 		}
 	};
 }
