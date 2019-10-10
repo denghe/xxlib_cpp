@@ -9,7 +9,7 @@ namespace xx {
 	struct Coro {
 		boost::context::continuation c1;
 		boost::context::continuation c2;
-		size_t idx = -1;
+		std::size_t idx = -1;
 		Coros& coros;
 
 		void operator()() {

@@ -28,7 +28,7 @@ namespace xx {
 	// 连上 gateway 后产生的链路 peer. 为 模拟的 peers 的父容器
 	struct UvFromToGatewayBasePeer : UvCommandPeer {
 
-		std::function<int(uint32_t const& id, uint8_t* const& buf, size_t const& len)> onReceive;
+		std::function<int(uint32_t const& id, uint8_t* const& buf, std::size_t const& len)> onReceive;
 
 		std::unordered_map<uint32_t, std::shared_ptr<UvSimulatePeer>> simulatePeers;
 
@@ -439,7 +439,7 @@ namespace xx {
 				return 0;
 			};
 
-			peer->onReceive = [this](uint32_t const& id, uint8_t* const& buf, size_t const& len)->int {
+			peer->onReceive = [this](uint32_t const& id, uint8_t* const& buf, std::size_t const& len)->int {
 				peer->ResetTimeoutMS(5000);
 				auto&& iter = peer->simulatePeers.find(id);
 				if (iter == peer->simulatePeers.end()

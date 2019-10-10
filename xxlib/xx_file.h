@@ -11,7 +11,7 @@ namespace xx
 		xx::ScopeGuard sg([&] { f.close(); });
 		f.seekg(0, f.end);
 		auto&& siz = f.tellg();
-		if ((uint64_t)siz > std::numeric_limits<size_t>::max()) return -2;	// too big
+		if ((uint64_t)siz > std::numeric_limits<std::size_t>::max()) return -2;	// too big
 		f.seekg(0, f.beg);
 		bb.Resize(siz);
 		f.read((char*)bb.buf, siz);
@@ -19,7 +19,7 @@ namespace xx
 		return 0;
 	}
 
-	inline int ReadAllBytes(std::filesystem::path const& path, std::unique_ptr<uint8_t[]>& outBuf, size_t& outSize) noexcept {
+	inline int ReadAllBytes(std::filesystem::path const& path, std::unique_ptr<uint8_t[]>& outBuf, std::size_t& outSize) noexcept {
 		outBuf.reset();
 		outSize = 0;
 		std::ifstream f(path, std::ifstream::binary);
@@ -27,7 +27,7 @@ namespace xx
 		ScopeGuard sg([&] { f.close(); });
 		f.seekg(0, f.end);
 		auto&& siz = f.tellg();
-		if ((uint64_t)siz > std::numeric_limits<size_t>::max()) return -2;	// too big
+		if ((uint64_t)siz > std::numeric_limits<std::size_t>::max()) return -2;	// too big
 		f.seekg(0, f.beg);
 		auto&& buf = new(std::nothrow) uint8_t[siz];
 		if (!buf) return -3;												// not enough memory
@@ -38,7 +38,7 @@ namespace xx
 		return 0;
 	}
 
-	inline int WriteAllBytes(std::filesystem::path const& path, char const* const& buf, size_t const& len) noexcept {
+	inline int WriteAllBytes(std::filesystem::path const& path, char const* const& buf, std::size_t const& len) noexcept {
 		std::ofstream f(path, std::ios::binary | std::ios::trunc);
 		if (!f) return -1;						// no create permission? exists readonly?
 		xx::ScopeGuard sg([&] { f.close(); });
@@ -51,7 +51,7 @@ namespace xx
 		return WriteAllBytes(path, (char*)bb.buf, bb.len);
 	}
 
-	template<size_t len>
+	template<std::size_t len>
 	inline int WriteAllBytes(std::filesystem::path const& path, char const(&s)[len]) noexcept {
 		return WriteAllBytes(path, s, len - 1);
 	}

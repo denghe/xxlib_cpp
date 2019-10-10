@@ -72,7 +72,7 @@ namespace xx {
 
 			Query(Connection& owner);
 			Query(Connection& owner, char const* const& sql, int const& sqlLen = 0);
-			template<size_t sqlLen>
+			template<std::size_t sqlLen>
 			Query(Connection& owner, char const(&sql)[sqlLen]);
 			~Query();
 			Query() = delete;
@@ -95,15 +95,15 @@ namespace xx {
 			void SetParameter(int const& parmIdx, int const& v);
 			void SetParameter(int const& parmIdx, int64_t const& v);
 			void SetParameter(int const& parmIdx, double const& v);
-			void SetParameter(int const& parmIdx, char const* const& str, size_t const& len, bool const& makeCopy = false);		// str 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
-			void SetParameter(int const& parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy = false);		// buf 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
+			void SetParameter(int const& parmIdx, char const* const& str, std::size_t const& len, bool const& makeCopy = false);		// str 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
+			void SetParameter(int const& parmIdx, uint8_t const* const& buf, std::size_t const& len, bool const& makeCopy = false);		// buf 传入 nullptr 将视作空值. sqlite 不支持 len > 2G
 
 			// 枚举( 会转为 int / int64_t 再填 )
 			template<typename EnumType, typename ENABLED = std::enable_if_t<std::is_enum_v<EnumType>>>
 			void SetParameter(int const& parmIdx, EnumType const& v);
 
 			// 字串类
-			template<size_t len>
+			template<std::size_t len>
 			void SetParameter(int const& parmIdx, char const(&str)[len], bool const& makeCopy = false);
 			void SetParameter(int const& parmIdx, char const* const& str, bool const& makeCopy = false);
 			void SetParameter(int const& parmIdx, std::string const& str, bool const& makeCopy = false);
@@ -239,7 +239,7 @@ namespace xx {
 			template<typename T = void>
 			T Execute(char const* const& sql, int const& sqlLen);
 
-			template<typename T = void, size_t sqlLen>
+			template<typename T = void, std::size_t sqlLen>
 			T Execute(char const(&sql)[sqlLen]);
 
 			// todo: 如果 T 是 tuple 则多值填充
@@ -417,7 +417,7 @@ namespace xx {
 			}
 		}
 
-		template<typename T, size_t sqlLen>
+		template<typename T, std::size_t sqlLen>
 		T Connection::Execute(char const(&sql)[sqlLen]) {
 			return Execute<T>(sql, (int)sqlLen);
 		}
@@ -480,7 +480,7 @@ namespace xx {
 			SetQuery(sql, sqlLen);
 		}
 
-		template<size_t sqlLen>
+		template<std::size_t sqlLen>
 		inline Query::Query(Connection& owner, char const(&sql)[sqlLen])
 			: owner(owner) {
 			SetQuery(sql, sqlLen - 1);
@@ -531,7 +531,7 @@ namespace xx {
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int const& parmIdx, char const* const& str, size_t const& len, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, char const* const& str, std::size_t const& len, bool const& makeCopy) {
 			if (!str) {
 				SetParameter(parmIdx, Null{});
 				return;
@@ -542,7 +542,7 @@ namespace xx {
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		inline void Query::SetParameter(int const& parmIdx, uint8_t const* const& buf, size_t const& len, bool const& makeCopy) {
+		inline void Query::SetParameter(int const& parmIdx, uint8_t const* const& buf, std::size_t const& len, bool const& makeCopy) {
 			if (!buf) {
 				SetParameter(parmIdx, Null{});
 				return;
@@ -553,7 +553,7 @@ namespace xx {
 			if (r != SQLITE_OK) owner.ThrowError(r);
 		}
 
-		template<size_t len>
+		template<std::size_t len>
 		inline void Query::SetParameter(int const& parmIdx, char const(&str)[len], bool const& makeCopy) {
 			SetParameter(parmIdx, str, len - 1, makeCopy);
 		}

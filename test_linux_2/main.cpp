@@ -15,6 +15,7 @@ struct Server : xx::Epoll::Instance {
 
 	// 模拟收到数据后投递到线程池处理
 	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
+		// 复制已收数据到 buf
 		// 用智能指针包裹数据, 确保跨线程 lambda 捕获 引用计数正确
 		auto&& buf = xx::Make<xx::Epoll::Buf>(pr->recv.buf, pr->recv.len);
 

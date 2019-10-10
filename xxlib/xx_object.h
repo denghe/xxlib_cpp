@@ -53,8 +53,8 @@
 #endif
 
 #ifndef _countof
-template<typename T, size_t N>
-size_t _countof_helper(T const (&arr)[N])
+template<typename T, std::size_t N>
+std::size_t _countof_helper(T const (&arr)[N])
 {
 	return N;
 }
@@ -62,7 +62,7 @@ size_t _countof_helper(T const (&arr)[N])
 #endif
 
 #ifndef _offsetof
-#define _offsetof(s,m) ((size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
+#define _offsetof(s,m) ((std::size_t)&reinterpret_cast<char const volatile&>((((s*)0)->m)))
 #endif
 
 #ifndef container_of
@@ -282,7 +282,7 @@ namespace xx {
 	};
 
 	// 适配 literal char[len] string
-	template<size_t len>
+	template<std::size_t len>
 	struct SFuncs<char[len], void> {
 		static inline void WriteTo(std::string& s, char const(&in)[len]) noexcept {
 			s.append(in);
@@ -640,16 +640,16 @@ namespace xx {
 	template<typename T>
 	struct IsArray : std::false_type {};
 
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct IsArray<std::array<T, len>> : std::true_type {};
 
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct IsArray<const T(&)[len]> : std::true_type {};
 
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct IsArray<T(&)[len]> : std::true_type {};
 
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct IsArray<T[len]> : std::true_type {};
 
 	template<typename T>
@@ -675,31 +675,31 @@ namespace xx {
 	template<typename T>
 	struct ArrayInfo {
 		using type = void;
-		static constexpr size_t size = 0;
+		static constexpr std::size_t size = 0;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ArrayInfo<std::array<T, len>> {
 		using type = T;
-		static constexpr size_t size = len;
+		static constexpr std::size_t size = len;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ArrayInfo<const T(&)[len]> {
 		using type = T;
-		static constexpr size_t size = len;
+		static constexpr std::size_t size = len;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ArrayInfo<T(&)[len]> {
 		using type = T;
-		static constexpr size_t size = len;
+		static constexpr std::size_t size = len;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ArrayInfo<T[len]> {
 		using type = T;
-		static constexpr size_t size = len;
+		static constexpr std::size_t size = len;
 	};
 
 	template<typename T>
-	constexpr size_t ArrayInfo_v = ArrayInfo<T>::size;
+	constexpr std::size_t ArrayInfo_v = ArrayInfo<T>::size;
 
 	template<typename T>
 	using ArrayInfo_t = typename ArrayInfo<T>::type;
@@ -720,19 +720,19 @@ namespace xx {
 	struct ChildType<std::vector<T>> {
 		using type = T;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ChildType<std::array<T, len>> {
 		using type = T;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ChildType<const T(&)[len]> {
 		using type = T;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ChildType<T(&)[len]> {
 		using type = T;
 	};
-	template<typename T, size_t len>
+	template<typename T, std::size_t len>
 	struct ChildType<T[len]> {
 		using type = T;
 	};
@@ -873,7 +873,7 @@ namespace xx {
 	/*********************************/
 	// 内存对齐相关
 
-	inline size_t Calc2n(size_t const& n) noexcept {
+	inline std::size_t Calc2n(std::size_t const& n) noexcept {
 		assert(n);
 #ifdef _MSC_VER
 		unsigned long r = 0;
@@ -882,7 +882,7 @@ namespace xx {
 # else
 		_BitScanReverse(&r, n);
 # endif
-		return (size_t)r;
+		return (std::size_t)r;
 #else
 #if defined(__LP64__) || __WORDSIZE == 64
 		return int(63 - __builtin_clzl(n));
@@ -893,8 +893,8 @@ namespace xx {
 	}
 
 	// 返回一个刚好大于 n 的 2^x 对齐数
-	inline size_t Round2n(size_t const& n) noexcept {
-		auto rtv = size_t(1) << Calc2n(n);
+	inline std::size_t Round2n(std::size_t const& n) noexcept {
+		auto rtv = std::size_t(1) << Calc2n(n);
 		if (rtv == n) return n;
 		else return rtv << 1;
 	}
@@ -919,11 +919,11 @@ namespace xx {
 		1048573, 2097143, 4194301, 8388593, 16777213, 33554393, 67108859, 134217689, 268435399, 536870909, 1073741789
 	};
 
-	inline bool IsPrime(size_t const& candidate) noexcept
+	inline bool IsPrime(std::size_t const& candidate) noexcept
 	{
 		if ((candidate & 1) != 0) {
-			size_t limit = size_t(std::sqrt(candidate));
-			for (size_t divisor = 3; divisor <= limit; divisor += 2) {
+			std::size_t limit = std::size_t(std::sqrt(candidate));
+			for (std::size_t divisor = 3; divisor <= limit; divisor += 2) {
 				if ((candidate % divisor) == 0) return false;
 			}
 			return true;
@@ -932,15 +932,15 @@ namespace xx {
 	}
 
 	inline int32_t GetPrime(int32_t const& capacity, int32_t const& dataSize) noexcept {
-		auto memUsage = Round2n((size_t)capacity * (size_t)dataSize);
+		auto memUsage = Round2n((std::size_t)capacity * (std::size_t)dataSize);
 		auto maxCapacity = memUsage / dataSize;
-		if (maxCapacity == (size_t)capacity) {
+		if (maxCapacity == (std::size_t)capacity) {
 			return primes2n[Calc2n(capacity)];
 		}
 		if (dataSize >= 8 && dataSize <= 512) {                     // 数据长在 查表 范围内的
 			return *std::upper_bound(std::begin(primes), std::end(primes), (int32_t)maxCapacity);
 		}
-		for (size_t i = maxCapacity + 1; i <= 0x7fffffff; i += 2) { // maxCapacity 是双数. +1 即为单数
+		for (std::size_t i = maxCapacity + 1; i <= 0x7fffffff; i += 2) { // maxCapacity 是双数. +1 即为单数
 			if (IsPrime(i)) return (int32_t)i;
 		}
 		assert(false);
@@ -952,7 +952,7 @@ namespace xx {
 	// 大尾相关
 
 	// 从大尾数据流读出一个定长数字
-	template<typename NumberType, size_t size = sizeof(NumberType), typename ENABLED = std::enable_if_t<std::is_arithmetic_v<NumberType> && size <= 8>>
+	template<typename NumberType, std::size_t size = sizeof(NumberType), typename ENABLED = std::enable_if_t<std::is_arithmetic_v<NumberType> && size <= 8>>
 	NumberType ReadBigEndianNumber(uint8_t const* const& buf) {
 		NumberType n;
 #ifdef __LITTLE_ENDIAN__

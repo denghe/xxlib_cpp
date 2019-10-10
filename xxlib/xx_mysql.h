@@ -259,7 +259,7 @@ namespace xx
 				return 0;
 			}
 
-			template<size_t len>
+			template<std::size_t len>
 			int TryExecute(char const(&sql)[len]) {
 				return TryExecute(sql, (unsigned long)(len - 1));
 			}
@@ -274,7 +274,7 @@ namespace xx
 				if (int r = TryExecute(sql, len)) throw r;
 			}
 
-			template<size_t len>
+			template<std::size_t len>
 			void Execute(char const(&sql)[len]) {
 				Execute(sql, (unsigned long)(len - 1));
 			}

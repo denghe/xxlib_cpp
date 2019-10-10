@@ -21,12 +21,8 @@
 #include "xx_epoll_buf_queue.h"
 #include "xx_coros_boost.h"
 
-
-
 namespace xx::Epoll {
-
 	/*
-
 	// 多线程共享 listen fd 示例. 建议线程数 3. 太多会令 epoll_wait 调用频繁令导致 ksoftirq 进程 100%
 	// epoll_wait 每次拿的事件个数看上去越多越好，能有效降低 ksoftirq cpu 占用
 
@@ -52,7 +48,6 @@ namespace xx::Epoll {
 			}).detach();
 	}
 	s->Run(???);
-
 	*/
 
 	struct Instance;
@@ -164,7 +159,7 @@ namespace xx::Epoll {
 
 	protected:
 		// 用于生成唯一自增 id
-		inline static std::atomic<uint64_t> id = 0;
+		uint64_t id = 0;
 
 		// epoll fd
 		int efd = -1;
@@ -182,7 +177,7 @@ namespace xx::Epoll {
 		int timeoutWheelCursor = 0;
 
 		// 执行标志
-		std::atomic<bool> running = true;
+		bool running = true;
 
 		// store errno
 		int lastErrorNumber = 0;
@@ -332,7 +327,7 @@ namespace xx::Epoll {
 			sockaddr_in dest;							// todo: ipv6 support
 			memset(&dest, 0, sizeof(dest));
 			dest.sin_family = AF_INET;
-			dest.sin_port = htons(port);
+			dest.sin_port = htons((uint16_t)port);
 			if (!inet_pton(AF_INET, ip, &dest.sin_addr.s_addr)) {
 				lastErrorNumber = errno;
 				return Peer_r();
@@ -624,7 +619,7 @@ namespace xx::Epoll {
 			// 前置准备
 			std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
 			int vsLen = 0;										// 数组长度
-			auto bufLen = (size_t)sendLenPerFrame;				// 计划发送字节数
+			auto bufLen = (std::size_t)sendLenPerFrame;			// 计划发送字节数
 
 			// 填充 vs, vsLen, bufLen 并返回预期 offset. 每次只发送 bufLen 长度
 			auto&& offset = q.Fill(vs, vsLen, bufLen);
@@ -642,7 +637,7 @@ namespace xx::Epoll {
 			}
 
 			// 完整发送
-			else if ((size_t)sentLen == bufLen) {
+			else if ((std::size_t)sentLen == bufLen) {
 				// 快速弹出已发送数据
 				q.Pop(vsLen, offset, bufLen);
 

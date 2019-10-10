@@ -1405,8 +1405,9 @@ namespace xx {
 				if (int r = uv_ip6_addr(ip.c_str(), port, &addr)) return r;
 			}
 
-			auto&& req = new (std::nothrow) uv_connect_t_ex();
-			if (!req) return -1;
+			// 先注释掉 nothrow 避免 vs2019 报红
+			auto&& req = new /*(std::nothrow)*/ uv_connect_t_ex();
+			/*if (!req) return -1;*/
 			xx::ScopeGuard sgReq([&req] { delete req; });
 
 			req->peer = xx::TryMake<UvTcpPeerBase>(uv);

@@ -9,14 +9,14 @@ namespace xx {
 	struct BBuffer : List<uint8_t> {
 		using BaseType = List<uint8_t>;
 
-		size_t offset = 0;													// 读指针偏移量
-		size_t offsetRoot = 0;												// offset值写入修正
-		size_t readLengthLimit = 0;											// 主用于传递给容器类进行长度合法校验
+		std::size_t offset = 0;													// 读指针偏移量
+		std::size_t offsetRoot = 0;												// offset值写入修正
+		std::size_t readLengthLimit = 0;											// 主用于传递给容器类进行长度合法校验
 
 		// todo: 这些容器改为指针, XxxxxRoot 函数中检测并创建
-		std::unordered_map<void*, size_t> ptrs;
-		std::unordered_map<size_t, std::shared_ptr<Object>> objIdxs;
-		std::unordered_map<size_t, std::shared_ptr<std::string>> strIdxs;
+		std::unordered_map<void*, std::size_t> ptrs;
+		std::unordered_map<std::size_t, std::shared_ptr<Object>> objIdxs;
+		std::unordered_map<std::size_t, std::shared_ptr<std::string>> strIdxs;
 
 		BBuffer() : BaseType() {}
 		BBuffer(BBuffer&& o) noexcept
@@ -34,12 +34,15 @@ namespace xx {
 		BBuffer& operator=(BBuffer const&) = delete;
 
 		// unsafe: direct change field value( for Read )
-		inline void Reset(uint8_t* const& buf = nullptr, size_t const& len = 0, size_t const& cap = 0, size_t const& offset = 0) noexcept {
+		inline void Reset(uint8_t* const& buf = nullptr, std::size_t const& len = 0, std::size_t const& cap = 0, std::size_t const& offset = 0) noexcept {
 			this->buf = buf;
 			this->len = len;
 			this->cap = cap;
 			this->offset = offset;
 		}
+
+
+		// todo: creators, Register, CreateByTypeId 变非静态, creators 移到生成物, ReadRoot WriteRoot 前可切换 creators 以便同时支持多份 PKG 生成物
 
 		typedef std::shared_ptr<Object>(*Creator)();
 		inline static std::array<Creator, 1 << (sizeof(uint16_t) * 8)> creators;
@@ -116,7 +119,7 @@ namespace xx {
 			Write(typeId);
 
 			auto iter = ptrs.find((void*)&*v);
-			size_t offs;
+			std::size_t offs;
 			if (iter == ptrs.end()) {
 				offs = len - offsetRoot;
 				ptrs[(void*)&*v] = offs;
@@ -151,7 +154,7 @@ namespace xx {
 			if (typeId > 2 && !creators[typeId]) return -3;		// forget Register?
 
 			auto offs = offset - offsetRoot;
-			size_t ptrOffset;
+			std::size_t ptrOffset;
 			if (auto r = Read(ptrOffset)) return r;
 			if (ptrOffset == offs) {
 				if constexpr (std::is_same_v<std::string, T>) {
@@ -221,7 +224,7 @@ namespace xx {
 		inline int ReadVarInteger(T& v) {
 			using UT = std::make_unsigned_t<T>;
 			UT u(0);
-			for (size_t shift = 0; shift < sizeof(T) * 8; shift += 7) {
+			for (std::size_t shift = 0; shift < sizeof(T) * 8; shift += 7) {
 				if (offset == len) return -9;
 				auto b = buf[offset++];
 				u |= UT((b & 0x7Fu) << shift);
@@ -251,7 +254,7 @@ namespace xx {
 
 		inline virtual int FromBBuffer(BBuffer& bb) noexcept override {
 			assert(this != &bb);
-			size_t len = 0;
+			std::size_t len = 0;
 			if (auto r = bb.Read(len)) return r;
 			if (bb.offset + len > bb.len) return -11;
 			Clear();
@@ -262,7 +265,7 @@ namespace xx {
 
 		inline virtual void ToString(std::string& s) const noexcept override {
 			Append(s, "{ \"len\":", len, ", \"cap\":", cap, ", \"offset\":", offset, ", \"buf\":[ ");
-			for (size_t i = 0; i < len; i++) {
+			for (std::size_t i = 0; i < len; i++) {
 				Append(s, (int)buf[i], ", ");
 			}
 			if (len) s.resize(s.size() - 2);
@@ -270,8 +273,8 @@ namespace xx {
 		}
 	};
 
-	template<typename T>
-	void List<T>::ToBBuffer(BBuffer& bb) const noexcept {
+	template<typename T, std::size_t reservedHeaderLen>
+	void List<T, reservedHeaderLen>::ToBBuffer(BBuffer& bb) const noexcept {
 		bb.Reserve(bb.len + 5 + len * sizeof(T));
 		bb.Write(len);
 		if (!len) return;
@@ -280,14 +283,14 @@ namespace xx {
 			bb.len += len * sizeof(T);
 		}
 		else {
-			for (size_t i = 0; i < len; ++i) {
+			for (std::size_t i = 0; i < len; ++i) {
 				bb.Write(buf[i]);
 			}
 		}
 	}
-	template<typename T>
-	int List<T>::FromBBuffer(BBuffer& bb) noexcept {
-		size_t len = 0;
+	template<typename T, std::size_t reservedHeaderLen>
+	int List<T, reservedHeaderLen>::FromBBuffer(BBuffer& bb) noexcept {
+		std::size_t len = 0;
 		if (auto rtv = bb.Read(len)) return rtv;
 		if (bb.readLengthLimit != 0 && len > bb.readLengthLimit) return -1;
 		if (bb.offset + len > bb.len) return -2;
@@ -299,7 +302,7 @@ namespace xx {
 			this->len = len;
 		}
 		else {
-			for (size_t i = 0; i < len; ++i) {
+			for (std::size_t i = 0; i < len; ++i) {
 				if (int r = bb.Read(buf[i])) return r;
 			}
 		}
@@ -410,14 +413,14 @@ namespace xx {
 
 
 	// 适配 literal char[len] string  ( 写入 32b长度 + 内容. 不写入末尾 0 )
-	template<size_t len>
+	template<std::size_t len>
 	struct BFuncs<char[len], void> {
 		static inline void WriteTo(BBuffer& bb, char const(&in)[len]) noexcept {
-			bb.Write((size_t)(len - 1));
+			bb.Write((std::size_t)(len - 1));
 			bb.AddRange((uint8_t*)in, len - 1);
 		}
 		static inline int ReadFrom(BBuffer& bb, char (&out)[len]) noexcept {
-			size_t readLen = 0;
+			std::size_t readLen = 0;
 			if (auto r = bb.Read(readLen)) return r;
 			if (bb.readLengthLimit && bb.readLengthLimit < readLen) return -18;
 			if (bb.offset + readLen > bb.len) return -19;
@@ -437,7 +440,7 @@ namespace xx {
 			bb.AddRange((uint8_t*)in.data(), in.size());
 		}
 		static inline int ReadFrom(BBuffer& bb, std::string& out) noexcept {
-			size_t len = 0;
+			std::size_t len = 0;
 			if (auto r = bb.Read(len)) return r;
 			if (bb.readLengthLimit && bb.readLengthLimit < len) return -16;
 			if (bb.offset + len > bb.len) return -17;

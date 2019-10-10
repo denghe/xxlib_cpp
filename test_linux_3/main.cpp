@@ -1,8 +1,6 @@
 ﻿#include "xx_epoll.h"
 
-int main()
-{
-
+int main() {
 	int pipeFDs[2];
 	auto&& r = pipe(pipeFDs);
 	assert(r >= 0);
@@ -54,7 +52,6 @@ int main()
 	//sleep(3);
 	//write(fd[1], ...)
 	//read(fd[0], readbuf, sizeof(readbuf));
-
 
 	return 0;
 }

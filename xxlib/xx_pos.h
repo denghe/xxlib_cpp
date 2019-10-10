@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "xx_bbuffer.h"
 #include <math.h>
 
 namespace xx
