@@ -205,14 +205,16 @@ namespace xx {
 			return (SOut)(in >> 1) ^ (-(SOut)(in & 1));
 		}
 
-		template<typename T>
+		template<typename T, bool needReserve = true>
 		inline void WriteVarIntger(T const& v) {
 			using UT = std::make_unsigned_t<T>;
 			UT u(v);
 			if constexpr (std::is_signed_v<T>) {
 				u = ZigZagEncode(v);
 			}
-			Reserve(len + sizeof(T) + 1);
+			if constexpr (needReserve) {
+				Reserve(len + sizeof(T) + 1);
+			}
 			while (u >= 1 << 7) {
 				buf[len++] = uint8_t((u & 0x7fu) | 0x80u);
 				u = UT(u >> 7);
@@ -369,7 +371,7 @@ namespace xx {
 				auto i = (int32_t)in;
 				if (in == (double)i) {
 					bb.buf[bb.len++] = 4;
-					bb.WriteVarIntger(i);
+					bb.WriteVarIntger<int32_t, false>(i);
 				}
 				else {
 					bb.buf[bb.len] = 5;

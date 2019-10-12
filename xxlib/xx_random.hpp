@@ -151,7 +151,7 @@ namespace xx {
 	//==============================================================================*/
 	//void NextBytes(BBuffer* buffer);
 
-	double Random::NextDouble(double const& minValue, double const& maxValue) noexcept {
+	inline double Random::NextDouble(double const& minValue, double const& maxValue) noexcept {
 		if (minValue == maxValue || maxValue - minValue <= 0) return minValue;
 		return minValue + (maxValue - minValue) * NextDouble();
 	}

@@ -17,7 +17,7 @@ namespace xx {
 		int32_t seedArray[56];
 	protected:
 
-		inline void Init(int32_t const& seed = 0) noexcept;
+		 void Init(int32_t const& seed = 0) noexcept;
 
 		/*====================================Sample====================================
 		**Action: Return a new random number [0..1) and reSeed the Seed array.
@@ -25,10 +25,10 @@ namespace xx {
 		**Arguments: None
 		**Exceptions: None
 		==============================================================================*/
-		inline double Sample() noexcept;
+		 double Sample() noexcept;
 
-		inline int32_t InternalSample() noexcept;
-		inline double GetSampleForLargeRange() noexcept;
+		 int32_t InternalSample() noexcept;
+		 double GetSampleForLargeRange() noexcept;
 
 	public:
 		explicit Random(int32_t const& seed = 0);
@@ -40,7 +40,7 @@ namespace xx {
 		**Arguments: None
 		**Exceptions: None.
 		==============================================================================*/
-		inline int32_t Next() noexcept;
+		 int32_t Next() noexcept;
 
 		/*=====================================Next=====================================
 		**Returns: An int32_t [minvalue..maxvalue)
@@ -48,7 +48,7 @@ namespace xx {
 		**           maxValue -- One greater than the greatest legal return value.
 		**Exceptions: None.
 		==============================================================================*/
-		inline int32_t Next(int32_t const& minValue, int32_t const& maxValue) noexcept;
+		int32_t Next(int32_t const& minValue, int32_t const& maxValue) noexcept;
 
 
 		/*=====================================Next=====================================
@@ -56,7 +56,7 @@ namespace xx {
 		**Arguments: maxValue -- One more than the greatest legal return value.
 		**Exceptions: None.
 		==============================================================================*/
-		inline int32_t Next(int32_t const& maxValue) noexcept;
+		 int32_t Next(int32_t const& maxValue) noexcept;
 
 
 		/*=====================================Next=====================================
@@ -64,7 +64,7 @@ namespace xx {
 		**Arguments: None
 		**Exceptions: None
 		==============================================================================*/
-		inline double NextDouble() noexcept;
+		 double NextDouble() noexcept;
 
 
 		///*==================================NextBytes===================================
@@ -81,10 +81,10 @@ namespace xx {
 		// object's interface
 
 		virtual uint16_t GetTypeId() const noexcept override;
-		inline void ToBBuffer(BBuffer& bb) const noexcept override;
-		inline int FromBBuffer(BBuffer& bb) noexcept override;
+		 void ToBBuffer(BBuffer& bb) const noexcept override;
+		 int FromBBuffer(BBuffer& bb) noexcept override;
 
-		inline void ToString(std::string& s) const noexcept override;
+		 void ToString(std::string& s) const noexcept override;
 	};
 
 	using Random_s = std::shared_ptr<Random>;
