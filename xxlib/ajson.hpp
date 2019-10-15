@@ -697,7 +697,7 @@ namespace ajson
     char * m_write_ptr;
     char * m_tail_ptr;
     int							m_status;
-    std::std::size_t			m_length;
+    std::size_t			m_length;
 
     enum{ INIT_BUFF_SIZE = 1024 };
     ajson_string_stream() :m_length(INIT_BUFF_SIZE), m_status(good)
@@ -713,7 +713,7 @@ namespace ajson
       this->alloc.deallocate(m_header_ptr, this->m_length);
     }
 
-    inline std::std::size_t read(char * buffer, std::std::size_t len)
+    inline std::size_t read(char * buffer, std::size_t len)
     {
       if (this->m_read_ptr + len > this->m_tail_ptr)
       {
@@ -725,11 +725,11 @@ namespace ajson
       return len;
     }
 
-    inline std::std::size_t growpup(std::std::size_t want_size)
+    inline std::size_t growpup(std::size_t want_size)
     {
-      std::std::size_t new_size = ((want_size + INIT_BUFF_SIZE - 1) / INIT_BUFF_SIZE)*INIT_BUFF_SIZE;
-      std::std::size_t write_pos = this->m_write_ptr - this->m_header_ptr;
-      std::std::size_t read_pos = this->m_read_ptr - this->m_header_ptr;
+      std::size_t new_size = ((want_size + INIT_BUFF_SIZE - 1) / INIT_BUFF_SIZE)*INIT_BUFF_SIZE;
+      std::size_t write_pos = this->m_write_ptr - this->m_header_ptr;
+      std::size_t read_pos = this->m_read_ptr - this->m_header_ptr;
       char * temp = this->m_header_ptr;
       this->m_header_ptr = this->alloc.allocate(new_size);
       std::memcpy(this->m_header_ptr, temp, this->m_length);
@@ -741,9 +741,9 @@ namespace ajson
       return new_size;
     }
 
-    inline std::std::size_t write(const char * buffer, std::std::size_t len)
+    inline std::size_t write(const char * buffer, std::size_t len)
     {
-      std::std::size_t writed_len = this->m_write_ptr + len - this->m_header_ptr;
+      std::size_t writed_len = this->m_write_ptr + len - this->m_header_ptr;
       if (writed_len > this->m_length)
       {
         this->growpup(writed_len);
@@ -755,7 +755,7 @@ namespace ajson
 
     inline void put(char c)
     {
-      std::std::size_t writed_len = this->m_write_ptr + 1 - this->m_header_ptr;
+      std::size_t writed_len = this->m_write_ptr + 1 - this->m_header_ptr;
       if (writed_len > this->m_length)
       {
         this->growpup(writed_len);
@@ -835,12 +835,12 @@ namespace ajson
       return s;
     }
 
-    inline ::std::std::size_t read_length() const
+    inline ::std::size_t read_length() const
     {
       return this->m_read_ptr - this->m_header_ptr;
     }
 
-    inline ::std::std::size_t write_length() const
+    inline ::std::size_t write_length() const
     {
       return this->m_write_ptr - this->m_header_ptr;
     }

@@ -663,5 +663,6 @@ namespace xx {
 	};
 
 	using UvSerialBBufferPeer_s = std::shared_ptr<UvSerialBBufferPeer>;
+	using UvSerialBBufferSimulatePeer_s = std::shared_ptr<UvSerialBBufferSimulatePeer>;
 
 }

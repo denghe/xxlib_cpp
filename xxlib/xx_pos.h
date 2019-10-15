@@ -29,10 +29,41 @@ namespace xx
 		inline Pos operator/(float const& s) const noexcept {
 			return Pos{ x / s, y / s };
 		}
-
+		inline float distance(Pos const& v) const
+		{
+			float dx = v.x - x;
+			float dy = v.y - y;
+			return std::sqrt(dx * dx + dy * dy);
+		}
 #ifdef CC_TARGET_PLATFORM
 		inline operator cocos2d::Vec2() const noexcept {
 			return *(cocos2d::Vec2*)this;
+		}
+
+		inline bool operator==(const cocos2d::Vec2& v) const noexcept {
+			return x == v.x && y == v.y;
+		}
+		inline Pos* operator=(const cocos2d::Vec2& v) noexcept {
+			x = v.x;
+			y = v.y;
+			return this;
+		}
+		inline Pos& operator+=(cocos2d::Vec2 const& v) noexcept {
+			x += v.x;
+			y += v.y;
+			return *this;
+		}
+		inline Pos operator+(cocos2d::Vec2 const& v) const noexcept {
+			return Pos{ x + v.x, y + v.y };
+		}
+		inline Pos operator-(cocos2d::Vec2 const& v) const noexcept {
+			return Pos{ x - v.x, y - v.y };
+		}
+		inline float distance(cocos2d::Vec2 const& v) const
+		{
+			float dx = v.x - x;
+			float dy = v.y - y;
+			return std::sqrt(dx * dx + dy * dy);
 		}
 #endif
 	};
@@ -40,7 +71,7 @@ namespace xx
 	// 适配 Pos 之 ToString
 	template<>
 	struct SFuncs<Pos, void> {
-		static inline void WriteTo(std::string& s, Pos const &in) {
+		static inline void WriteTo(std::string& s, Pos const& in) {
 			Append(s, "{ \"x\":", in.x, ", \"y\":", in.y, " }");
 		}
 	};
@@ -48,12 +79,12 @@ namespace xx
 	// 适配 Pos 之 序列化 & 反序列化
 	template<>
 	struct BFuncs<Pos, void> {
-		static inline void WriteTo(BBuffer& bb, Pos const &in) {
+		static inline void WriteTo(BBuffer& bb, Pos const& in) {
 			bb.Reserve(bb.len + sizeof(Pos));
 			memcpy(bb.buf + bb.len, &in, sizeof(Pos));
 			bb.len += sizeof(Pos);
 		}
-		static inline int ReadFrom(BBuffer& bb, Pos &out) {
+		static inline int ReadFrom(BBuffer& bb, Pos& out) {
 			if (bb.offset + sizeof(Pos) > bb.len) return -1;
 			memcpy(&out, bb.buf + bb.offset, sizeof(Pos));
 			bb.offset += sizeof(Pos);
@@ -62,6 +93,7 @@ namespace xx
 	};
 
 	// 判断两线段( p0-p1, p2-p3 )是否相交, 并且往 p 填充交点
+
 	inline bool GetSegmentIntersection(Pos const& p0, Pos const& p1, Pos const& p2, Pos const& p3, Pos* const& p = nullptr) noexcept {
 		Pos s02, s10, s32;
 		float s_numer, t_numer, denom, t;
@@ -91,7 +123,11 @@ namespace xx
 		}
 		return true;
 	}
-
+#ifdef CC_TARGET_PLATFORM
+	inline bool GetSegmentIntersection(cocos2d::Vec2  const& p0, cocos2d::Vec2  const& p1, cocos2d::Vec2  const& p2, cocos2d::Vec2  const& p3, cocos2d::Vec2* const& p = nullptr) noexcept {
+		return GetSegmentIntersection(*(Pos*)& p0, *(Pos*)& p1, *(Pos*)& p2, *(Pos*)& p3, (Pos*)p);
+	}
+#endif
 	// 计算直线的弧度( 转为角度还要  * (180.0f / float(M_PI) )
 	inline float GetAngle(Pos const& from, Pos const& to) noexcept
 	{

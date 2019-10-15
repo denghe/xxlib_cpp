@@ -112,12 +112,12 @@ namespace xx {
 									return (size_t)count;
 								};
 
-								auto&& write = [fd, &c](char const* buf, size_t const& dataLen)->int {
-									auto&& count = ::write(fd, buf, dataLen);
+								auto&& write = [fd, &c](char const* buf, size_t const& len)->int {
+									auto&& count = ::write(fd, buf, len);
 									if (count > 0) {
 										buf += count;
 									}
-									auto&& end = buf + dataLen;
+									auto&& end = buf + len;
 									while (buf != end) {
 										if ((count < 0 && errno != EAGAIN) || count == 0) return -1;	// error
 										c = c.resume();

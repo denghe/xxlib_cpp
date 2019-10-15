@@ -396,7 +396,7 @@ namespace xx {
 			return 0;
 		}
 	};
-
+	
 	struct UvPeer;
 	using UvPeer_s = std::shared_ptr<UvPeer>;
 	using UvPeer_w = std::weak_ptr<UvPeer>;
@@ -404,6 +404,7 @@ namespace xx {
 	struct UvPeerBase : UvItem {
 		using UvItem::UvItem;
 		UvPeer* peer = nullptr;
+		List<uint8_t, 8> buf;		// 8 reserved header space for gateway fill header & memcpy
 		virtual std::string GetIP() noexcept = 0;
 
 		virtual int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept = 0;		// direct send anything
@@ -645,7 +646,6 @@ namespace xx {
 	struct UvTcpPeerBase : UvPeerBase {
 		uv_tcp_t* uvTcp = nullptr;
 		std::string ip;
-		List<uint8_t> buf;
 
 		UvTcpPeerBase(Uv& uv) : UvPeerBase(uv) {
 			uvTcp = Uv::Alloc<uv_tcp_t>(this);
@@ -836,7 +836,6 @@ namespace xx {
 		int64_t createMS = 0;						// fill by creater
 		ikcpcb* kcp = nullptr;
 		uint32_t nextUpdateMS = 0;					// for kcp update interval control. reduce cpu usage
-		List<uint8_t> buf;
 		sockaddr_in6 addr;							// for Send. fill by owner Unpack
 
 		// require: fill udp, conv, createMS, addr

@@ -16,6 +16,9 @@ public static class GenCPP_Class
         // template namespace
         sb.Append(@"#pragma once
 #include ""xx_bbuffer.h""
+#include ""xx_pos.h""
+#include ""xx_random.h""
+#include """ + templateName + @"_class_partial.h""
 namespace " + templateName + @" {
 	struct PkgGenMd5 {
 		inline static const std::string value = """ + md5 + @""";
@@ -336,6 +339,10 @@ namespace xx {");
                 {
                     sb.Append((f == fs.First() ? "" : @", ") + "in." + f.Name);
                 }
+                else
+                {
+                    sb.Append((f == fs.First() ? "" : @", ") + "decltype(in." + f.Name + ")()");
+                }
             }
             sb.Append(@");
 		}
@@ -380,6 +387,7 @@ namespace xx {");
 
         sb.Append(@"
 }
+#include ""xx_random.hpp""
 ");
 
 
@@ -416,6 +424,7 @@ namespace xx {");
         // defines ( cpp )
 
         sb2.Append(@"#include """ + templateName + "_class" + (filter != null ? "_filter" : "") + ".h" + @"""
+#include """ + templateName + @"_class_partial.hpp""
 namespace " + templateName + @" {");
 
         cs = ts._GetClasss();   //._SortByInheritRelation();
@@ -476,8 +485,8 @@ namespace " + c.Namespace.Replace(".", "::") + @" {");
                 if (ft._IsExternal() && !ft._GetExternalSerializable()) continue;
                 if (f._Has<TemplateLibrary.NotSerialize>())
                 {
-                    //            sb2.Append(@"
-                    //bb.WriteDefaultValue<" + ft._GetTypeDecl_Cpp(templateName, "_s") + ">();");
+                    sb2.Append(@"
+        bb.Write(decltype(this->" + f.Name + ")());");
                 }
                 else if (f._Has<TemplateLibrary.CustomSerialize>())
                 {
@@ -624,8 +633,9 @@ namespace " + templateName + @" {
         {
             return false;
         }
+        // 如果无变化就退出。后面的都不必做了
 
-        // 写文件。如果无变化就退出。后面的都不必做了
+        // 开始写文件
         // 追加子包含文件
         foreach (var c in cs)
         {
@@ -647,6 +657,9 @@ namespace " + templateName + @" {
                 sb._WriteToFile(Path.Combine(outDir, c._GetTypeDecl_Lua(templateName) + ".hpp"));
             }
         }
+
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class_partial.h"));
+        sb._WriteToFile(Path.Combine(outDir, templateName + "_class_partial.hpp"));
 
         return true;
     }

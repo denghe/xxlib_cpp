@@ -228,7 +228,7 @@ namespace xx {
 			UT u(0);
 			for (std::size_t shift = 0; shift < sizeof(T) * 8; shift += 7) {
 				if (offset == len) return -9;
-				auto b = buf[offset++];
+				auto b = (UT)buf[offset++];
 				u |= UT((b & 0x7Fu) << shift);
 				if ((b & 0x80) == 0) {
 					if constexpr (std::is_signed_v<T>) {

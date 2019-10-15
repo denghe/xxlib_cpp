@@ -5,7 +5,7 @@ struct UvGatewayPeer : xx::UvCommandPeer {
 	using UvCommandPeer::UvCommandPeer;
 
 	// 直接投递原始 buf 方便小改转发
-	std::function<int(uint8_t* const& buf, size_t const& len)> onReceive;
+	std::function<int(uint8_t* const& buf, std::size_t const& len)> onReceive;
 
 	inline virtual bool Dispose(int const& flag = 1) noexcept override {
 		if (Disposed()) return false;
@@ -163,7 +163,7 @@ struct Gateway {
 			};
 
 			// 注册事件：收到数据之后解析 serviceId 部分并定位到 service peer 转发
-			cp->onReceive = [this, cp](uint8_t* const& buf, size_t const& len)->int {
+			cp->onReceive = [this, cp](uint8_t* const& buf, std::size_t const& len)->int {
 				uint32_t serviceId = 0;
 
 				// 取出 serviceId
@@ -267,7 +267,7 @@ struct Gateway {
 				// 从存储区移除
 				this->serviceDialerPeers[sp->serviceId].second.reset();
 
-				// 从所有 client peers 里的白名单中移除 并自动下发 close. 如果  白名单 空了，直接物理断开
+				// 从所有 client peers 里的白名单中移除 并自动下发 close.	// todo: 如果  白名单 空了，直接物理断开
 				for (auto&& kv : clientPeers) {
 					if (kv.second && !kv.second->Disposed()) {
 						kv.second->SendCommand_Close(sp->serviceId);
@@ -278,7 +278,7 @@ struct Gateway {
 			};
 
 			// 注册事件：收到推送的处理
-			sp->onReceive = [this, sp](uint8_t* const& buf, size_t const& len)->int {
+			sp->onReceive = [this, sp](uint8_t* const& buf, std::size_t const& len)->int {
 				// 读出 clientId
 				uint32_t clientId = 0;
 				if (len < sizeof(clientId)) return -1;
@@ -307,9 +307,6 @@ struct Gateway {
 					// 试读出 clientId
 					uint32_t clientId = 0;
 					if (int r = bb.Read(clientId)) return r;
-
-					// 前置检查
-					if (!clientId) return -1;
 
 					// 如果没找到 或已断开 则返回，忽略错误
 					auto&& iter = this->clientPeers.find(clientId);
@@ -372,10 +369,11 @@ struct Gateway {
 
 					if (delayMS) {
 						// 延迟断开，先解绑事件处理函数，再设置超时时长，到时会 Dispose()
-						cp->onDisconnect();						// 解除映射并发送断线通知
-						cp->onDisconnect = [cp] {};				// 清除旧函数并持有
-						cp->onReceive = nullptr;
-						cp->ResetTimeoutMS(delayMS);
+						auto cp1 = cp;							// onDisconnect 会导致 cp 变量失效故复制
+						cp1->onDisconnect();					// 解除映射并发送断线通知
+						cp1->onDisconnect = [cp1] {};			// 清除旧函数并持有
+						cp1->onReceive = nullptr;
+						cp1->ResetTimeoutMS(delayMS);
 					}
 					else {
 						// 立刻断开连接，触发 onDisconnect( 从 this->clientPeers 移除并向白名单 serviceIds 对应 peer 广播断开通知 )

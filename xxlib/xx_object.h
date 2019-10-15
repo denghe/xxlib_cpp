@@ -870,6 +870,54 @@ namespace xx {
 	// 各式计算辅助函数
 	/************************************************************************************/
 
+	// 各种string的比较函数以及拷贝函数
+
+	inline bool StringEqals(std::string_s const& str1, std::string_s const& str2) {
+		if (!str1 && !str2)return true;
+		if (!str1 || !str2)return false;
+		return *str1 == *str2;
+	}
+	inline bool StringEqals(std::string const& str1, std::string_s const& str2) {
+		if (!str2)return false;
+		return str1 == *str2;
+	}
+	inline bool StringEqals(std::string_s const& str1, std::string const& str2) {
+		if (!str1)return false;
+		return *str1 == str2;
+	}
+	inline bool StringEqals(std::string const& str1, std::string const& str2) {
+		return str1 == str2;
+	}
+	inline void StringCopy(std::string_s& dest, std::string_s const& src) {
+		if (!src) {
+			dest.reset();
+			return;
+		}
+		if (!dest) {
+			xx::MakeTo(dest, *src);
+		}
+		else {
+			*dest = *src;
+		}
+	}
+	inline void StringCopy(std::string& dest, std::string_s const& src) {
+		if (!src) {
+			dest.clear();
+			return;
+		}
+		dest = *src;
+	}
+	inline void StringCopy(std::string_s& dest, std::string const& src) {
+		if (!dest) {
+			xx::MakeTo(dest, src);
+		}
+		else {
+			*dest = src;
+		}
+	}
+	inline void StringCopy(std::string& dest, std::string const& src) {
+		dest = src;
+	}
 	/*********************************/
 	// 内存对齐相关
 
