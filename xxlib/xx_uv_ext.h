@@ -396,38 +396,52 @@ namespace xx {
 	struct UvToGatewayDialer : UvDialer {
 		using UvDialer::UvDialer;
 
+		// 物理链路 peer
 		std::shared_ptr<UvFromToGatewayBasePeer> peer;
-		std::function<void(std::shared_ptr<SimulatePeerType>&)> onAcceptSimulatePeer;
 
+		// 默认自动掐线超时毫秒( 可 bind 到 lua 于 Dial 前设置 )
+		int peerTimeoutMS = 10000;
+
+		// peer check 检测时间间隔 ms( 可 bind 到 lua 于 PeerAlive 前设置 )
+		int peerCheckIntervalMS = 5000;
+
+		std::function<void(std::shared_ptr<SimulatePeerType>&)> onAcceptSimulatePeer;
 		inline virtual UvPeer_s CreatePeer() noexcept override {
 			return TryMake<UvFromToGatewayBasePeer>(uv);
 		}
-
 		inline virtual void Accept(UvPeer_s peer_) noexcept override {
 			if (!peer_) return;
 
 			peer = As<UvFromToGatewayBasePeer>(peer_);
 
 			peer->onReceiveCommand = [this](BBuffer& bb)->int {
-				peer->ResetTimeoutMS(5000);
+				peer->ResetTimeoutMS(peerTimeoutMS);
 				std::string cmd;
 				if (int r = bb.Read(cmd)) return r;
-				if (cmd == "open") {
+				if (cmd == "ping") {
+					int64_t lastMS = 0;
+					if (int r = bb.Read(lastMS)) return r;
+					this->peerChecking = false;
+					this->peerPing = xx::NowSteadyEpochMS() - (this->peerCheckNextMS - this->peerCheckIntervalMS);
+					return 0;
+				}
+
+				else if (cmd == "open") {
 					uint32_t serviceId = 0;
 					if (int r = bb.Read(serviceId)) return r;
 
-					auto&& cp = peer->CreateSimulatePeer<SimulatePeerType>(serviceId);
-					onAcceptSimulatePeer(cp);
+					auto&& sp = peer->CreateSimulatePeer<SimulatePeerType>(serviceId);
+					onAcceptSimulatePeer(sp);
 
 					//CoutN("UvToGatewayPeer recv cmd open: serviceId = ", serviceId);
 					return 0;
 				}
 
 				else if (cmd == "close") {
-					uint32_t clientId = 0;
-					if (int r = bb.Read(clientId)) return r;
+					uint32_t id = 0;
+					if (int r = bb.Read(id)) return r;
 
-					peer->DisconnectSimulatePeer(clientId);
+					peer->DisconnectSimulatePeer(id);
 
 					//CoutN("UvToGatewayPeer recv cmd disconnect: clientId = ", clientId);
 					return 0;
@@ -440,7 +454,7 @@ namespace xx {
 			};
 
 			peer->onReceive = [this](uint32_t const& id, uint8_t* const& buf, std::size_t const& len)->int {
-				peer->ResetTimeoutMS(5000);
+				peer->ResetTimeoutMS(peerTimeoutMS);
 				auto&& iter = peer->simulatePeers.find(id);
 				if (iter == peer->simulatePeers.end()
 					|| !iter->second
@@ -459,11 +473,48 @@ namespace xx {
 				peer->DisconnectSimulatePeers();
 			};
 
-			peer->ResetTimeoutMS(5000);
+			peer->ResetTimeoutMS(peerTimeoutMS);
 		}
 
-		inline bool PeerAlive() {
-			return peer && !peer->Disposed();
+
+		// 标志位. true: 正在等待 gateway 回包
+		bool peerChecking = false;
+
+		// peer 下次可发送 check 的时间. 同时也是等待超时的时间.
+		int64_t peerCheckNextMS = 0;
+
+		// 存放 peer check 回包后计算出来的延迟 MS( 可 bind 到 lua 方便读取 )
+		int peerPing = 0;
+
+		// 返回 >= 0 表示 peer 状态正常 且该值为上次检测到的 ping 值，返回 -1 表示 peer 已断。
+		inline int PeerAlive() {
+			// 如果已断开 直接返回 false
+			if (!peer || peer->Disposed()) 
+				return -1;
+			auto&& now = xx::NowSteadyEpochMS();
+			// 如果判断时间点没到 直接返回 true
+			if (now < peerCheckNextMS) return peerPing;
+			// 如果正在等回包，则为超时，干掉 Peer 并返回 false（ 网络正常情况下会在 peerNextCheckTime 前收到回包并 修改 peerChecking 为 false ）
+			if (peerChecking) {
+				peer->Dispose();
+				peer.reset();
+				peerChecking = false;
+				return -1;
+			}
+			// 发送当前 ms 并设置正在发送标志，计算下一个检测时间点
+			peer->SendCommand("ping", now);
+			std::cout << "send ping" << std::endl;
+			peerChecking = true;
+			peerCheckNextMS = now + peerCheckIntervalMS;
+			return peerPing;
+		}
+
+		// 直接干掉 peer
+		inline void PeerDispose() {
+			if (peer) {
+				peer->Dispose();
+				peer.reset();
+			}
 		}
 	};
 
