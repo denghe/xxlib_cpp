@@ -7,6 +7,7 @@ struct Foo {
 	xx::BBuffer_s bb;
 	bool callbacked = false;
 	int r = 0;
+	int count = 0;
 
 	Foo() {
 		xx::MakeTo(dialer, uv);
@@ -22,40 +23,56 @@ struct Foo {
 		xx::MakeTo(bb);
 	}
 
+	void Reset() {
+		peer.reset();
+		callbacked = false;
+	}
+
 	int Update() {
 		COR_BEGIN
-			LabDial:
-		xx::CoutN("dial...");
-		if (peer) {
-			peer->Dispose();
-			peer.reset();
-		}
+
+			LabDial :
+		COR_YIELD
+			xx::CoutN("dial...");
+
+		Reset();
 		dialer->Dial("127.0.0.1", 12345);
 		while (dialer->Busy()) {
 			COR_YIELD
 		}
 		if (!peer || peer->Disposed()) goto LabDial;
+
+		callbacked = false;
 		r = peer->SendRequest(bb, [this](xx::Object_s&& msg)->int {
-			xx::CoutN("recv request", msg);
+			xx::CoutN("recv request ", msg);
+			if (!msg) {
+				xx::CoutN("");
+			}
 			callbacked = true;
 			return 0;
 		}, 0);
 		assert(!r);
+
 		while (!callbacked) {
 			COR_YIELD
 		}
 		xx::CoutN("end...");
+
+		if (++count > 10) return 0;
 		goto LabDial;
+
 		COR_END
 	}
 };
 
 int main() {
+	xx::IgnoreSigment();
 	Foo f;
 	while (true) {
-		f.uv.Run(UV_RUN_ONCE);
+		f.uv.Run(UV_RUN_NOWAIT);
 		f.lineNumber = f.Update();
 		if (!f.lineNumber) break;
+		//usleep(100000);
 	}
 	return 0;
 }

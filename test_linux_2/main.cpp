@@ -6,7 +6,9 @@
 // 如果客户端循环拨号并发送, listner 会崩出, 输出内容顺序不对, 但 vs 调试状态似乎又没事
 
 #include "xx_uv.h"
+
 int main() {
+	xx::IgnoreSigment();
 	xx::Uv uv;
 	xx::UvListener listener(uv, "0.0.0.0", 12345, 0);
 	listener.onAccept = [](xx::UvPeer_s peer) {
