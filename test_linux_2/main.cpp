@@ -1,79 +1,146 @@
-﻿#include "xx_epoll.h"
-#include "xx_threadpool.h"
+﻿// 需要验证的 bug report:  simu peer 当发起 Request 时 如果此时断线或收到一个 Push ，则该 Request 无法回调
 
-struct Server : xx::Epoll::Instance {
-	//inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
-	//	assert(listenIndex >= 0);
-	//	xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip);
-	//}
-	//inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
-	//	xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
-	//}
+// 先测试一下物理 peer 是否有这些问题
 
-	// 线程池
-	xx::ThreadPool tp = xx::ThreadPool(400);
+// 发现的问题：如果 先 dial 再启动 listener 则 listener 的 peer 似乎不会触发 Dispose / onDisconnect
+// 如果客户端循环拨号并发送, listner 会崩出, 输出内容顺序不对, 但 vs 调试状态似乎又没事
 
-	// 模拟收到数据后投递到线程池处理
-	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
-		// 复制已收数据到 buf
-		// 用智能指针包裹数据, 确保跨线程 lambda 捕获 引用计数正确
-		auto&& buf = xx::Make<xx::Epoll::Buf>(pr->recv.buf, pr->recv.len);
-
-		// 清除接收 buf 的数据
-		pr->recv.Clear();
-
-		// 往线程池压入处理函数
-		return tp.Add([this, pr, buf] {
-
-			// 模拟解包, 以及一个长时间的处理. 1ms
-			usleep(1000);
-
-			// 将处理结果通过 epoll 线程发回
-			Dispatch([this, pr, buf] {
-
-				// 有可能等待处理期间 pr 已经断开了. 故用前判断一下
-				if (pr) {
-
-					// 发送
-					pr->Send(std::move(*buf));
-				}
-			});
-		});
-	}
-
-	//Server() {
-	//	// 通过协程, 每帧输出一个点
-	//	coros.Add([this](xx::Coro& yield) {
-	//		while (true) {
-	//			xx::Cout(".");
-	//			yield();
-	//		}
-	//	});
-	//}
-};
-
-int main(int argc, char* argv[]) {
-	auto&& s = std::make_unique<Server>();
-	int r = s->Listen(12345);
-	assert(!r);
-
-	//xx::CoutN("thread:", 0);
-	//auto fd = s->listenFDs[0];
-	//std::vector<std::thread> threads;
-	//for (int i = 0; i < 2; ++i) {
-	//	threads.emplace_back([fd, i] {
-	//		auto&& s = std::make_unique<Server>();
-	//		int r = s->ListenFD(fd);
-	//		assert(!r);
-	//		s->threadId = i + 1;
-	//		xx::CoutN("thread:", i + 1);
-	//		s->Run(1);
-	//		}).detach();
-	//}
-
-	// 按帧数为 1 的速度开始执行
-	return s->Run(1);
+#include "xx_uv.h"
+int main() {
+	xx::Uv uv;
+	xx::UvListener listener(uv, "0.0.0.0", 12345, 0);
+	listener.onAccept = [](xx::UvPeer_s peer) {
+		xx::CoutN(peer->GetIP(), " connected.");
+		peer->onReceiveRequest = [peer](int const& serial, xx::Object_s&& msg)->int {
+			xx::CoutN("recv request ", msg);
+			int r = peer->SendPush(msg);
+			assert(!r);
+			return peer->SendResponse(serial, msg);
+		};
+		peer->onDisconnect = [peer] {
+			xx::CoutN(peer->GetIP(), " disconnected.");
+		};
+	};
+	return uv.Run();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//#include "xx_epoll.h"
+//#include "xx_threadpool.h"
+//
+//struct Server : xx::Epoll::Instance {
+//	//inline virtual void OnAccept(xx::Epoll::Peer_r pr, int const& listenIndex) override {
+//	//	assert(listenIndex >= 0);
+//	//	xx::CoutN(threadId, " OnAccept: listenIndex = ", listenIndex, ", id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip);
+//	//}
+//	//inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
+//	//	xx::CoutN(threadId, " OnDisconnect: id = ", pr->id);
+//	//}
+//
+//	// 线程池
+//	xx::ThreadPool tp = xx::ThreadPool(400);
+//
+//	// 模拟收到数据后投递到线程池处理
+//	virtual int OnReceive(xx::Epoll::Peer_r pr) override {
+//		// 复制已收数据到 buf
+//		// 用智能指针包裹数据, 确保跨线程 lambda 捕获 引用计数正确
+//		auto&& buf = xx::Make<xx::Epoll::Buf>(pr->recv.buf, pr->recv.len);
+//
+//		// 清除接收 buf 的数据
+//		pr->recv.Clear();
+//
+//		// 往线程池压入处理函数
+//		return tp.Add([this, pr, buf] {
+//
+//			// 模拟解包, 以及一个长时间的处理. 1ms
+//			usleep(1000);
+//
+//			// 将处理结果通过 epoll 线程发回
+//			Dispatch([this, pr, buf] {
+//
+//				// 有可能等待处理期间 pr 已经断开了. 故用前判断一下
+//				if (pr) {
+//
+//					// 发送
+//					pr->Send(std::move(*buf));
+//				}
+//			});
+//		});
+//	}
+//
+//	//Server() {
+//	//	// 通过协程, 每帧输出一个点
+//	//	coros.Add([this](xx::Coro& yield) {
+//	//		while (true) {
+//	//			xx::Cout(".");
+//	//			yield();
+//	//		}
+//	//	});
+//	//}
+//};
+//
+//int main(int argc, char* argv[]) {
+//	auto&& s = std::make_unique<Server>();
+//	int r = s->Listen(12345);
+//	assert(!r);
+//
+//	//xx::CoutN("thread:", 0);
+//	//auto fd = s->listenFDs[0];
+//	//std::vector<std::thread> threads;
+//	//for (int i = 0; i < 2; ++i) {
+//	//	threads.emplace_back([fd, i] {
+//	//		auto&& s = std::make_unique<Server>();
+//	//		int r = s->ListenFD(fd);
+//	//		assert(!r);
+//	//		s->threadId = i + 1;
+//	//		xx::CoutN("thread:", i + 1);
+//	//		s->Run(1);
+//	//		}).detach();
+//	//}
+//
+//	// 按帧数为 1 的速度开始执行
+//	return s->Run(1);
+//}
 
 
 
