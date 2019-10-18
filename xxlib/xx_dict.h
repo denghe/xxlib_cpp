@@ -655,7 +655,7 @@ namespace xx
 		}
 
 		void Clear() noexcept {
-			DictForEach<numKeys - 1, V, KS...>::Clear();
+			DictForEach<numKeys - 1, V, KS...>::Clear(*this);
 		}
 
 		uint32_t Count() const noexcept {
