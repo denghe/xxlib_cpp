@@ -8,7 +8,7 @@
 #include "xx_uv.h"
 
 int main() {
-	xx::IgnoreSigment();
+	xx::IgnoreSignal();
 	xx::Uv uv;
 	xx::UvListener listener(uv, "0.0.0.0", 12345, 0);
 	listener.onAccept = [](xx::UvPeer_s peer) {

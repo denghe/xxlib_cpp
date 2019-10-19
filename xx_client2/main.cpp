@@ -65,7 +65,7 @@ struct Client {
 		Cleanup();
 
 		// 开始拨号
-		r = gatewayDialer->Dial("192.168.1.251", 20000, 500);		// 500 ms 超时
+		r = gatewayDialer->Dial("192.168.1.52", 20000, 500);		// 500 ms 超时
 		xx::CoutN("client gatewayDialer dial........");
 
 		// 没开始拨号立刻失败（可能没网络堆栈）

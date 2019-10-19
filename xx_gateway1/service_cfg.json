@@ -1,0 +1,10 @@
+{
+  "gatewayId": 1,
+  "services": [
+    {
+      "serviceId": 0,
+      "ip": "127.0.0.1",
+      "port": 18000
+    }
+  ]
+}

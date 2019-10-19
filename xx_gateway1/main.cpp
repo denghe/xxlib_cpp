@@ -1,6 +1,23 @@
 #include <xx_uv_ext.h>
 #include <unordered_set>
 
+#include"ajson.hpp"
+struct ServiceInfo
+{
+	int serviceId;
+	std::string ip;
+	int port;
+};
+struct ServiceCfg
+{
+	// 代理内部编号
+	int gatewayId;
+	//代理的服务器信息
+	std::vector<ServiceInfo> services;
+};
+AJSON(ServiceInfo, serviceId, ip, port);
+AJSON(ServiceCfg, gatewayId, services);
+
 struct UvGatewayPeer : xx::UvCommandPeer {
 	using UvCommandPeer::UvCommandPeer;
 
@@ -107,8 +124,11 @@ struct Gateway {
 	static_assert(sizeof(UvToServicePeer::serviceId) == sizeof(UvFromClientPeer::clientId));
 	xx::Uv uv;
 
-	// 代理内部编号( 可能来自配置文件或启动参数等 )
-	uint32_t gatewayId = 1;
+	// client alive 检测超时时长( 可能来自配置文件或启动参数等 )
+	uint32_t clientTimeoutMS = 30000;
+
+	// client 监听端口( 可能来自配置文件或启动参数等 )
+	uint32_t clientListenerPort = 20000;
 
 	/***********************************************************************************************/
 	// client
@@ -125,7 +145,7 @@ struct Gateway {
 
 	void InitClientListener() {
 		// 创建 listener( tcp, kcp 同时支持 )
-		xx::MakeTo(clientListener, uv, "0.0.0.0", 20000, 2);
+		xx::MakeTo(clientListener, uv, "0.0.0.0", clientListenerPort, 2);
 
 		// 接受连接时分配自增 id 放入字典 并设置相应事件处理代码
 		clientListener->onAccept = [this](xx::UvPeer_s peer) {
@@ -162,6 +182,14 @@ struct Gateway {
 				xx::CoutN("client peer disconnect: ", cp->GetIP());
 			};
 
+			// 注册事件：收到客户端发来的指令，直接 echo 返回
+			cp->onReceiveCommand = [this, cp](xx::BBuffer& bb)->int {
+				// 续命
+				cp->ResetTimeoutMS(clientTimeoutMS);
+				// echo 发回
+				return cp->SendDirect(bb.buf - 4, bb.len + 4);
+			};
+
 			// 注册事件：收到数据之后解析 serviceId 部分并定位到 service peer 转发
 			cp->onReceive = [this, cp](uint8_t* const& buf, std::size_t const& len)->int {
 				uint32_t serviceId = 0;
@@ -179,16 +207,16 @@ struct Gateway {
 				//// 如果未映射或已断开 就返回错误码，这将导致 client peer 断开
 				if (!sp || sp->Disposed()) return -2;
 
-				// 续命 5 秒. 每次收到合法数据续一下
-				cp->ResetTimeoutMS(5000);
+				// 续命. 每次收到合法数据续一下
+				cp->ResetTimeoutMS(clientTimeoutMS);
 
 				// 篡改 serviceId 为 clientId, 转发包含 header 的整包
 				::memcpy(buf, &cp->clientId, sizeof(serviceId));
 				return sp->SendDirect(buf - 4, len + 4);
 			};
 
-			// 续命 5 秒. 连接后 5 秒内如果没有收到任何数据，连接将断开
-			cp->ResetTimeoutMS(5000);
+			// 续命. 连接后 xx MS 内如果没有收到任何数据，连接将断开
+			cp->ResetTimeoutMS(clientTimeoutMS);
 
 			// 向默认服务发送 accept 通知
 			sp_0->SendCommand_Accept(cp->clientId, cp->GetIP());
@@ -224,7 +252,7 @@ struct Gateway {
 				if (!peer || peer->Disposed()) {
 					if (!dialer->Busy()) {
 						dialer->Dial();
-						xx::CoutN("service dialer dial...");
+						//xx::CoutN("service dialer dial...");
 					}
 				}
 			}
@@ -233,7 +261,18 @@ struct Gateway {
 
 		// todo: 根据配置来得到 要连接的 service 的明细. 配置可能是经由某个内部服务来获取
 		// 创建几个 dialer	
-		TryCreateServiceDialer(0, "127.0.0.1", 22222);
+		for (auto&& i : cfg.services)
+		{
+			TryCreateServiceDialer(i.serviceId, i.ip, i.port);
+			xx::CoutN("serviceId:", i.serviceId,"  ip:",i.ip,"  port:",i.port);
+		}
+		//TryCreateServiceDialer(0, "192.168.1.196", 20000);
+		//TryCreateServiceDialer(2000, "192.168.1.51", 21000);
+		//TryCreateServiceDialer(2010, "192.168.1.51", 20010);
+		//TryCreateServiceDialer(2020, "192.168.1.118", 21001);
+		//TryCreateServiceDialer(2030, "192.168.1.118", 20215);
+		//TryCreateServiceDialer(2040, "192.168.1.51", 20010);
+
 	}
 
 	int TryCreateServiceDialer(uint32_t const& serviceId, std::string const& ip, int const& port) {
@@ -390,7 +429,7 @@ struct Gateway {
 			};
 
 			// 向 service 发送自己的 gatewayId
-			sp->SendCommand_GatewayId(gatewayId);
+			sp->SendCommand_GatewayId(cfg.gatewayId);
 
 			xx::CoutN("service peer connect: ", sp->GetIP());
 		};
@@ -402,14 +441,17 @@ struct Gateway {
 	/***********************************************************************************************/
 	// constructor
 	/***********************************************************************************************/
-
+	ServiceCfg cfg;
 	Gateway() {
+		ajson::load_from_file(cfg, "service_cfg.json");
+
 		InitClientListener();
 		InitServiceDialers();
 	}
 };
 
 int main() {
+	
 	Gateway g;
 	g.uv.Run();
 	return 0;

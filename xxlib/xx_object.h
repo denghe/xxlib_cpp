@@ -40,6 +40,10 @@
 #include <objbase.h>
 #endif
 
+#ifdef __linux__
+#include <csignal>
+#endif
+
 /************************************************************************************/
 // 各式修正宏
 /************************************************************************************/
@@ -188,13 +192,13 @@ namespace xx {
 
 
 	/***********************************************************************************/
-	// Ignore Sigment
+	// Ignore Signal
 	/***********************************************************************************/
 
 	// 忽略某信号量
 	// linux 下在 main() 一开始执行, 可解决 socket 发送时的 broken pipe 问题
 #ifdef __linux__
-	static int IgnoreSigment(int const& sig = SIGPIPE) {
+	inline static int IgnoreSignal(int const& sig = SIGPIPE) {
 		struct sigaction sa;
 		sa.sa_handler = SIG_IGN;
 		sa.sa_flags = 0;
@@ -207,7 +211,7 @@ namespace xx {
 		return sigprocmask(SIG_BLOCK, &signal_mask, NULL);
 	}
 #else
-	static int IgnoreSigment(int const& sig = 0) { return 0; }
+	static int IgnoreSignal(int const& sig = 0) { return 0; }
 #endif
 
 

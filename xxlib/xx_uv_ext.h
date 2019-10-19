@@ -198,6 +198,7 @@ namespace xx {
 		// 指向总容器
 		std::weak_ptr<UvFromToGatewayBasePeer> gatewayPeer;
 		uint32_t id = 0xFFFFFFFFu;
+		bool disposed = false;
 
 		// 下面代码抄自 UvPeer 并小改. peerBase 变为了 gatewayPeer
 
@@ -240,7 +241,7 @@ namespace xx {
 		}
 
 		inline int SendRequest(Object_s const& msg, std::function<int(Object_s&& msg)>&& cb, uint64_t const& timeoutMS) noexcept {
-			if (id == 0xFFFFFFFFu) return -1;
+			if (disposed) return -1;
 			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
 			serial = (serial + 1) & 0x7FFFFFFF;			// uint circle use
 			v.second = NowSteadyEpochMS() + (timeoutMS ? timeoutMS : uv.defaultRequestTimeoutMS);
@@ -277,7 +278,7 @@ namespace xx {
 
 		// call by gatewayPeer's timer
 		inline virtual int Update(int64_t const& nowMS) noexcept {
-			if (id == 0xFFFFFFFFu) return -1;
+			if (disposed) return -1;
 
 			if (timeoutMS && timeoutMS < nowMS) {
 				Dispose();
@@ -297,12 +298,12 @@ namespace xx {
 		}
 
 		inline virtual bool Disposed() const noexcept override {
-			return id == 0xFFFFFFFFu;
+			return disposed;
 		}
 
 		inline virtual bool Dispose(int const& flag = 1) noexcept override {
-			if (id == 0xFFFFFFFFu) return false;
-			id = 0xFFFFFFFFu;
+			if (disposed) return false;
+			disposed = true;
 			gatewayPeer.reset();
 			for (auto&& kv : callbacks) {
 				kv.value.first(nullptr);
@@ -316,6 +317,7 @@ namespace xx {
 			onDisconnect = nullptr;
 			onReceivePush = nullptr;
 			onReceiveRequest = nullptr;
+			id = 0xFFFFFFFFu;
 			return true;
 		}
 	};
@@ -422,7 +424,7 @@ namespace xx {
 					int64_t lastMS = 0;
 					if (int r = bb.Read(lastMS)) return r;
 					this->peerChecking = false;
-					this->peerPing = xx::NowSteadyEpochMS() - (this->peerCheckNextMS - this->peerCheckIntervalMS);
+					this->peerPing = (int)(xx::NowSteadyEpochMS() - (this->peerCheckNextMS - this->peerCheckIntervalMS));
 					return 0;
 				}
 
@@ -597,7 +599,7 @@ namespace xx {
 		}
 
 		inline virtual int Update(int64_t const& nowMS) noexcept override {
-			if (id == 0xFFFFFFFFu) return -1;
+			if (Disposed()) return -1;
 
 			if (timeoutMS && timeoutMS < nowMS) {
 				Dispose();

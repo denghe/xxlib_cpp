@@ -8,6 +8,7 @@ struct Foo {
 	bool callbacked = false;
 	int r = 0;
 	int count = 0;
+	int64_t beginTime = 0;
 
 	Foo() {
 		xx::MakeTo(dialer, uv);
@@ -15,12 +16,13 @@ struct Foo {
 			if (p) {
 				peer = std::move(p);
 				peer->onReceivePush = [&](xx::Object_s&& msg)->int {
-					xx::CoutN("recv push ", msg);
+					//xx::CoutN("recv push ", msg);
 					return 0;
 				};
 			}
 		};
 		xx::MakeTo(bb);
+		beginTime = xx::NowSteadyEpochMS();
 	}
 
 	void Reset() {
@@ -46,11 +48,11 @@ struct Foo {
 		r = peer->SendRequest(bb, [this](xx::Object_s&& msg)->int {
 			xx::CoutN("recv request ", msg);
 			if (!msg) {
-				xx::CoutN("");
+				throw - 1;
 			}
 			callbacked = true;
 			return 0;
-		}, 0);
+			}, 0);
 		assert(!r);
 
 		while (!callbacked) {
@@ -58,7 +60,10 @@ struct Foo {
 		}
 		xx::CoutN("end...");
 
-		if (++count > 10) return 0;
+		if (++count > 10000) {
+			xx::CoutN(xx::NowSteadyEpochMS() - beginTime);
+			return 0;
+		}
 		goto LabDial;
 
 		COR_END
@@ -66,7 +71,7 @@ struct Foo {
 };
 
 int main() {
-	xx::IgnoreSigment();
+	xx::IgnoreSignal();
 	Foo f;
 	while (true) {
 		f.uv.Run(UV_RUN_NOWAIT);
