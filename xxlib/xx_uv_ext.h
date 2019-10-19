@@ -443,7 +443,11 @@ namespace xx {
 					uint32_t id = 0;
 					if (int r = bb.Read(id)) return r;
 
-					peer->DisconnectSimulatePeer(id);
+					if (id) {
+						peer->DisconnectSimulatePeer(id);
+					}
+					// id == 0 意思是直接自杀 以加速关闭的速度, 降低靠 ping 探测延迟发现已断开的时长( 通常需要几秒 )
+					else return -1;
 
 					//CoutN("UvToGatewayPeer recv cmd disconnect: clientId = ", clientId);
 					return 0;
@@ -717,5 +721,126 @@ namespace xx {
 
 	using UvSerialBBufferPeer_s = std::shared_ptr<UvSerialBBufferPeer>;
 	using UvSerialBBufferSimulatePeer_s = std::shared_ptr<UvSerialBBufferSimulatePeer>;
+
+
+
+
+	// 与 gateway 接洽的服务基类
+	// 使用方法：继承并覆盖 Accept. 之后 InitGatewayListener( listenIP, port )
+	template<typename PeerType = xx::UvSimulatePeer>
+	struct UvServiceBase {
+		xx::Uv uv;
+
+		// 创建虚拟 peer 事件逻辑
+		virtual void AcceptSimulatePeer(std::shared_ptr<PeerType>& cp) = 0;
+
+		// 0 号服务才需要覆盖的接入检查
+		virtual int ConnectIncomming(uint32_t const& clientId, std::string const& ip) { return 0; };
+
+		UvServiceBase() = default;
+		virtual ~UvServiceBase() {}
+		UvServiceBase(UvServiceBase const&) = delete;
+		UvServiceBase& operator=(UvServiceBase const&) = delete;
+
+		// gateway 专用监听器
+		std::shared_ptr<xx::UvFromGatewayListener> gatewayListener;
+
+		// key: gatewayId
+		std::unordered_map<uint32_t, std::shared_ptr<xx::UvFromGatewayPeer>> gatewayPeers;
+
+		// 初始化网关监听器. 成功返回 0
+		int InitGatewayListener(char const* const& ip, int const& port) {
+			xx::TryMakeTo(gatewayListener, uv, ip, port);
+			if (!gatewayListener) return -1;
+			gatewayListener->onAccept = [this](xx::UvPeer_s peer) {
+				auto&& gp = xx::As<xx::UvFromGatewayPeer>(peer);
+
+				gp->onReceiveCommand = [this, gp](xx::BBuffer& bb)->int {
+					std::string cmd;
+					if (int r = bb.Read(cmd)) return r;
+					if (cmd == "gatewayId") {
+						uint32_t gatewayId = 0;
+						if (int r = bb.Read(gatewayId)) return r;
+
+						// gatewayId 已存在: 已注册, 直接断开新连接
+						if (gp->gatewayId != 0xFFFFFFFFu) return -1;
+						auto&& iter = gatewayPeers.find(gatewayId);
+						if (iter != gatewayPeers.end()) return -2;
+
+						// 注册在案
+						gp->gatewayId = gatewayId;
+						gatewayPeers.emplace(gatewayId, gp);
+
+						xx::CoutN("UvFromGatewayPeer recv cmd gatewayId: gatewayId = ", gatewayId);
+						return 0;
+					}
+
+					else if (cmd == "disconnect") {
+						uint32_t clientId = 0;
+						if (int r = bb.Read(clientId)) return r;
+
+						// 及时断开 特定peer
+						gp->DisconnectSimulatePeer(clientId);
+
+						xx::CoutN("UvFromGatewayPeer recv cmd disconnect: clientId = ", clientId);
+						return 0;
+					}
+
+					else if (cmd == "accept") {
+						uint32_t clientId = 0;
+						std::string ip;
+						if (int r = bb.Read(clientId, ip)) return r;
+						xx::CoutN("UvFromGatewayPeer recv cmd accept: clientId: ", clientId, ", ip = ", ip);
+
+						// 如果允许接入
+						if (!ConnectIncomming(clientId, ip)) {
+							// 打开当前服务到 client 的端口
+							gp->SendCommand_Open(clientId);
+
+							// 创建虚拟 peer ( 如果已存在就会被顶下线 )
+							auto&& cp = gp->CreateSimulatePeer<xx::UvSimulatePeer>(clientId);
+							AcceptSimulatePeer(cp);
+						}
+						return 0;
+					}
+
+					else {
+						return -3;
+					}
+					return 0;
+				};
+
+				gp->onReceive = [this, gp](uint32_t const& id, uint8_t* const& buf, size_t const& len)->int {
+					auto&& iter = gp->simulatePeers.find(id);
+					if (iter == gp->simulatePeers.end()
+						|| !iter->second
+						|| iter->second->Disposed()) {
+						// 向 gp 发 close
+						gp->SendCommand_Close(id);
+						return 0;
+					}
+					int r = iter->second->HandlePack(buf, (uint32_t)len);
+					if (r) {
+						gp->DisconnectSimulatePeer(id);
+					}
+					return 0;
+				};
+
+				gp->onDisconnect = [this, gp] {
+					if (gp->gatewayId != 0xFFFFFFFFu) {
+						this->gatewayPeers.erase(gp->gatewayId);
+					}
+
+					// 及时断开 peers
+					gp->DisconnectSimulatePeers();
+
+					xx::CoutN("UvFromGatewayPeer disconnected: ip = ", gp->GetIP(), ", gatewayId = ", gp->gatewayId);
+				};
+
+				xx::CoutN("gateway peer connected: ip = ", gp->GetIP());
+			};
+			return 0;
+		}
+	};
 
 }

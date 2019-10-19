@@ -435,6 +435,9 @@ struct Gateway {
 					if (!cp || cp->Disposed()) return 0;
 
 					if (delayMS) {
+						// 追加一个 close 指令以便 client 收到后直接自杀
+						if (auto r = cp->SendCommand_Close(0)) return r;
+
 						// 延迟断开，先解绑事件处理函数，再设置超时时长，到时会 Dispose()
 						auto cp1 = cp;							// onDisconnect 会导致 cp 变量失效故复制
 						cp1->onDisconnect();					// 解除映射并发送断线通知
