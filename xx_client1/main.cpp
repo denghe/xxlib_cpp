@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-int* ints = NULL;
+int* ints = nullptr;
 int xxx(int len, int idx) {
 	ints = (int*)malloc(sizeof(int) * len);
 	return idx;

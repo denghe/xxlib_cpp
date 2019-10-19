@@ -1,10 +1,14 @@
 {
   "gatewayId": 1,
+  "listenIP": "0.0.0.0",
+  "listenPort": 12345,
+  "listenTcpKcpOpt": 2,
+  "clientTimeoutMS": 30000,
   "services": [
     {
       "serviceId": 0,
       "ip": "127.0.0.1",
-      "port": 18000
+      "port": 12345
     }
   ]
 }

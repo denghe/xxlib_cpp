@@ -18,7 +18,7 @@ struct Service0 {
 	std::unordered_map<uint32_t, std::shared_ptr<xx::UvFromGatewayPeer>> gatewayPeers;
 
 	void InitGatewayListener() {
-		xx::MakeTo(gatewayListener, uv, "0.0.0.0", 22222);
+		xx::MakeTo(gatewayListener, uv, "0.0.0.0", 12345);
 		gatewayListener->onAccept = [this](xx::UvPeer_s peer) {
 			auto&& gp = xx::As<xx::UvFromGatewayPeer>(peer);
 			gp->onReceiveCommand = [this, gp](xx::BBuffer& bb)->int {

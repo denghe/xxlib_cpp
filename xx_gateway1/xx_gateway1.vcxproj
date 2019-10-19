@@ -37,10 +37,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>../xxlib</IncludePath>
     <MultiProcNumber>4</MultiProcNumber>
+    <AdditionalSourcesToCopyMapping>service_cfg.json:=$(RemoteOutDir)service_cfg.json</AdditionalSourcesToCopyMapping>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>../xxlib</IncludePath>
     <MultiProcNumber>4</MultiProcNumber>
+    <AdditionalSourcesToCopyMapping>service_cfg.json:=$(RemoteOutDir)service_cfg.json</AdditionalSourcesToCopyMapping>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

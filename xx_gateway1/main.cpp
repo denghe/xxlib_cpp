@@ -1,22 +1,35 @@
 #include <xx_uv_ext.h>
 #include <unordered_set>
 
+/***********************************************************************************************************************/
+// 配置文件相关
+/***********************************************************************************************************************/
+
 #include"ajson.hpp"
-struct ServiceInfo
-{
-	int serviceId;
+
+struct ServiceInfo {
+	int serviceId = 0;
 	std::string ip;
-	int port;
-};
-struct ServiceCfg
-{
-	// 代理内部编号
-	int gatewayId;
-	//代理的服务器信息
-	std::vector<ServiceInfo> services;
+	int port = 0;
 };
 AJSON(ServiceInfo, serviceId, ip, port);
+
+struct ServiceCfg {
+	int gatewayId = 0;						// 当前网关内部编号
+	std::string listenIP;					// 监听到哪个 ip 上( 通常为 0.0.0.0 )
+	int listenPort = 0;						// 监听端口
+	int listenTcpKcpOpt = 0;				// 协议选择: 0: tcp only;  1: kcp ony;   2: tcp + kcp
+	int clientTimeoutMS = 0;				// 客户端掉线检测时长 ms. 超出这个时间没有收到客户端的合法数据则会断掉客户端
+	std::vector<ServiceInfo> services;		// 要连接到哪些服务
+};
 AJSON(ServiceCfg, gatewayId, services);
+
+
+
+
+/***********************************************************************************************************************/
+// 通信 peer 相关
+/***********************************************************************************************************************/
 
 struct UvGatewayPeer : xx::UvCommandPeer {
 	using UvCommandPeer::UvCommandPeer;
@@ -120,15 +133,30 @@ struct UvFromClientListener : xx::UvListener {
 	}
 };
 
+
+
+
+/***********************************************************************************************************************/
+// 网关主体
+/***********************************************************************************************************************/
+
 struct Gateway {
 	static_assert(sizeof(UvToServicePeer::serviceId) == sizeof(UvFromClientPeer::clientId));
 	xx::Uv uv;
 
-	// client alive 检测超时时长( 可能来自配置文件或启动参数等 )
-	uint32_t clientTimeoutMS = 30000;
+	// 服务启动配置. 从 json 加载
+	ServiceCfg cfg;
 
-	// client 监听端口( 可能来自配置文件或启动参数等 )
-	uint32_t clientListenerPort = 20000;
+	/***********************************************************************************************/
+	// constructor
+	/***********************************************************************************************/
+	Gateway() {
+		ajson::load_from_file(cfg, "service_cfg.json");
+
+		InitClientListener();
+		InitServiceDialers();
+	}
+
 
 	/***********************************************************************************************/
 	// client
@@ -145,7 +173,7 @@ struct Gateway {
 
 	void InitClientListener() {
 		// 创建 listener( tcp, kcp 同时支持 )
-		xx::MakeTo(clientListener, uv, "0.0.0.0", clientListenerPort, 2);
+		xx::MakeTo(clientListener, uv, cfg.listenIP, cfg.listenPort, cfg.listenTcpKcpOpt);
 
 		// 接受连接时分配自增 id 放入字典 并设置相应事件处理代码
 		clientListener->onAccept = [this](xx::UvPeer_s peer) {
@@ -185,7 +213,7 @@ struct Gateway {
 			// 注册事件：收到客户端发来的指令，直接 echo 返回
 			cp->onReceiveCommand = [this, cp](xx::BBuffer& bb)->int {
 				// 续命
-				cp->ResetTimeoutMS(clientTimeoutMS);
+				cp->ResetTimeoutMS(cfg.clientTimeoutMS);
 				// echo 发回
 				return cp->SendDirect(bb.buf - 4, bb.len + 4);
 			};
@@ -208,7 +236,7 @@ struct Gateway {
 				if (!sp || sp->Disposed()) return -2;
 
 				// 续命. 每次收到合法数据续一下
-				cp->ResetTimeoutMS(clientTimeoutMS);
+				cp->ResetTimeoutMS(cfg.clientTimeoutMS);
 
 				// 篡改 serviceId 为 clientId, 转发包含 header 的整包
 				::memcpy(buf, &cp->clientId, sizeof(serviceId));
@@ -216,7 +244,7 @@ struct Gateway {
 			};
 
 			// 续命. 连接后 xx MS 内如果没有收到任何数据，连接将断开
-			cp->ResetTimeoutMS(clientTimeoutMS);
+			cp->ResetTimeoutMS(cfg.clientTimeoutMS);
 
 			// 向默认服务发送 accept 通知
 			sp_0->SendCommand_Accept(cp->clientId, cp->GetIP());
@@ -436,22 +464,9 @@ struct Gateway {
 
 		return dialer->Dial();
 	}
-
-
-	/***********************************************************************************************/
-	// constructor
-	/***********************************************************************************************/
-	ServiceCfg cfg;
-	Gateway() {
-		ajson::load_from_file(cfg, "service_cfg.json");
-
-		InitClientListener();
-		InitServiceDialers();
-	}
 };
 
 int main() {
-	
 	Gateway g;
 	g.uv.Run();
 	return 0;
