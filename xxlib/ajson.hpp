@@ -85,7 +85,7 @@ namespace ajson
     {
       if (c > ' ' || c <= 0)
         return false;
-      return char_table()[c] == 17;
+      return char_table()[(std::size_t)c] == 17;
     }
 
     inline char const * skip_ws(char const * str)
@@ -205,12 +205,12 @@ namespace ajson
   class reader
   {
     token   cur_tok_;
+    const char  * ptr_ = nullptr;
+    std::size_t  len_ = 0;
     std::size_t  cur_col_ = 0;
     std::size_t  cur_line_ = 0;
-    std::size_t  len_ = 0;
     std::size_t  cur_offset_ = 0;
     bool    end_mark_ = false;
-    const char  * ptr_ = nullptr;
     double decimal = 0.1;
     int    exp = 0;
     inline void decimal_reset(){ decimal = 0.1; }
@@ -1407,7 +1407,7 @@ namespace ajson
   {
     if (v>=0 && v <= 'f')
     {
-      v = detail::char_table()[v];
+      v = detail::char_table()[(std::size_t)v];
     }
     else
     {

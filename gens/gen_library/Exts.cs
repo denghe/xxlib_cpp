@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 
 
 public static class GenExtensions
@@ -296,9 +294,9 @@ public static class GenExtensions
     /// </summary>
     public static bool _IsStruct(this Type t)
     {
-        return t.IsValueType && !t.IsEnum && !t._IsNullable();
+        return t.IsValueType && !t.IsEnum && !t._IsNullable() && !t._IsNumeric();
     }
-    
+
 
     /// <summary>
     /// 返回 t 是否为 Tuple<........>
@@ -1383,7 +1381,7 @@ public static class GenExtensions
         {
             var oldTxt = File.ReadAllText(fn);
             if (numIgnoreLines == 0 && oldTxt == sb.ToString()
-                || oldTxt.IsSame(sb.ToString(), numIgnoreLines))
+                /*|| oldTxt.IsSame(sb.ToString(), numIgnoreLines)*/)
             {
                 System.Console.WriteLine("文件内容无变化，跳过生成： " + fn);
                 return false;

@@ -1,6 +1,25 @@
 #include <xx_uv_ext.h>
 #include <unordered_set>
 
+
+#define PRINT_LOG_SERVICE_CONFIG			1
+#define PRINT_LOG_SERVICE0_NOT_READY		0
+#define PRINT_LOG_SERVICE_CONNECTD			1
+#define PRINT_LOG_SERVICE_DISCONNECTD		1
+#define PRINT_LOG_SERVICE_DIAL				0
+
+#define PRINT_LOG_CLIENT_PEER_ACCEPT		1
+#define PRINT_LOG_CLIENT_PEER_DISCONNECT	1
+
+#define PRINT_LOG_CP_SENDTO_SP				0
+#define PRINT_LOG_SP_SENDTO_CP				0
+
+#define PRINT_LOG_RECV_OPEN					1
+#define PRINT_LOG_RECV_CLOSE				1
+#define PRINT_LOG_RECV_KICK					1
+
+
+
 /***********************************************************************************************************************/
 // 配置文件相关
 /***********************************************************************************************************************/
@@ -22,7 +41,7 @@ struct ServiceCfg {
 	int clientTimeoutMS = 0;				// 客户端掉线检测时长 ms. 超出这个时间没有收到客户端的合法数据则会断掉客户端
 	std::vector<ServiceInfo> services;		// 要连接到哪些服务
 };
-AJSON(ServiceCfg, gatewayId, services);
+AJSON(ServiceCfg, gatewayId, listenIP, listenPort, listenTcpKcpOpt, clientTimeoutMS, services);
 
 
 
@@ -183,7 +202,9 @@ struct Gateway {
 			// 如果默认转发处理服务未就绪，不接受连接
 			auto&& sp_0 = serviceDialerPeers[0].second;
 			if (!sp_0 || sp_0->Disposed()) {
+#if PRINT_LOG_SERVICE0_NOT_READY
 				xx::CoutN("service 0 is not ready");
+#endif
 				return;
 			}
 
@@ -206,8 +227,9 @@ struct Gateway {
 						sp->SendCommand_Disconnect(cp->clientId);
 					}
 				}
-
+#if PRINT_LOG_CLIENT_PEER_DISCONNECT
 				xx::CoutN("client peer disconnect: ", cp->GetIP());
+#endif
 			};
 
 			// 注册事件：收到客户端发来的指令，直接 echo 返回
@@ -226,13 +248,17 @@ struct Gateway {
 				if (len < sizeof(serviceId)) return -1;
 				::memcpy(&serviceId, buf, sizeof(serviceId));
 
+#if PRINT_LOG_CP_SENDTO_SP
+				xx::CoutN("cp -> sp. size = ", len, ", serviceId = ", serviceId);
+#endif
+
 				// 判断该服务编号是否在白名单中. 找不到则断开
 				if (cp->serviceIds.find(serviceId) == cp->serviceIds.end()) return -1;
 
 				// 查找对应的 servicePeer
 				auto&& sp = serviceDialerPeers[serviceId].second;
 
-				//// 如果未映射或已断开 就返回错误码，这将导致 client peer 断开
+				// 如果未映射或已断开 就返回错误码，这将导致 client peer 断开
 				if (!sp || sp->Disposed()) return -2;
 
 				// 续命. 每次收到合法数据续一下
@@ -249,7 +275,9 @@ struct Gateway {
 			// 向默认服务发送 accept 通知
 			sp_0->SendCommand_Accept(cp->clientId, cp->GetIP());
 
+#if PRINT_LOG_CLIENT_PEER_ACCEPT
 			xx::CoutN("client peer accept: ", cp->GetIP(), ", protocol = ", (cp->IsKcp() ? "kcp" : "tcp"));
+#endif
 		};
 
 	}
@@ -280,27 +308,21 @@ struct Gateway {
 				if (!peer || peer->Disposed()) {
 					if (!dialer->Busy()) {
 						dialer->Dial();
-						//xx::CoutN("service dialer dial...");
+#if PRINT_LOG_SERVICE_DIAL
+						xx::CoutN("service dialer dial...");
+#endif
 					}
 				}
 			}
-			});
+		});
 
-
-		// todo: 根据配置来得到 要连接的 service 的明细. 配置可能是经由某个内部服务来获取
-		// 创建几个 dialer	
-		for (auto&& i : cfg.services)
-		{
-			TryCreateServiceDialer(i.serviceId, i.ip, i.port);
-			xx::CoutN("serviceId:", i.serviceId,"  ip:",i.ip,"  port:",i.port);
+		// 创建 dialers
+		for (auto&& cfg : cfg.services) {
+			TryCreateServiceDialer(cfg.serviceId, cfg.ip, cfg.port);
+#if PRINT_LOG_SERVICE_CONFIG
+			xx::CoutN("serviceId:", cfg.serviceId,"  ip:",cfg.ip,"  port:",cfg.port);
+#endif
 		}
-		//TryCreateServiceDialer(0, "192.168.1.196", 20000);
-		//TryCreateServiceDialer(2000, "192.168.1.51", 21000);
-		//TryCreateServiceDialer(2010, "192.168.1.51", 20010);
-		//TryCreateServiceDialer(2020, "192.168.1.118", 21001);
-		//TryCreateServiceDialer(2030, "192.168.1.118", 20215);
-		//TryCreateServiceDialer(2040, "192.168.1.51", 20010);
-
 	}
 
 	int TryCreateServiceDialer(uint32_t const& serviceId, std::string const& ip, int const& port) {
@@ -341,7 +363,9 @@ struct Gateway {
 					}
 				}
 
+#if PRINT_LOG_SERVICE_DISCONNECTD
 				xx::CoutN("service peer disconnect: ", sp->GetIP(), ", serviceId = ", sp->serviceId);
+#endif
 			};
 
 			// 注册事件：收到推送的处理
@@ -350,6 +374,10 @@ struct Gateway {
 				uint32_t clientId = 0;
 				if (len < sizeof(clientId)) return -1;
 				::memcpy(&clientId, buf, sizeof(clientId));
+
+#if PRINT_LOG_SP_SENDTO_CP
+				xx::CoutN("sp -> cp. size = ", len, ", clientId = ", clientId);
+#endif
 
 				// 如果没找到 或已断开 则返回，忽略错误
 				auto&& iter = this->clientPeers.find(clientId);
@@ -387,7 +415,9 @@ struct Gateway {
 					// 下发 open
 					cp->SendCommand_Open(sp->serviceId);
 
-					xx::CoutN("gateway service peer recv cmd open: clientId: ", clientId, ", serviceId = ", sp->serviceId);
+#if PRINT_LOG_RECV_OPEN
+					xx::CoutN("service peer recv cmd open: clientId: ", clientId, ", serviceId = ", sp->serviceId);
+#endif
 					return 0;
 				}
 
@@ -413,7 +443,9 @@ struct Gateway {
 					// 下发 close
 					cp->SendCommand_Close(sp->serviceId);
 
-					xx::CoutN("gateway service peer recv cmd close: clientId: ", clientId, ", serviceId = ", sp->serviceId);
+#if PRINT_LOG_RECV_CLOSE
+					xx::CoutN("service peer recv cmd close: clientId: ", clientId, ", serviceId = ", sp->serviceId);
+#endif
 					return 0;
 				}
 
@@ -450,7 +482,9 @@ struct Gateway {
 						cp->Dispose();
 					}
 
-					xx::CoutN("gateway service peer recv cmd kick: clientId: ", clientId);
+#if PRINT_LOG_RECV_KICK
+					xx::CoutN("service peer recv cmd kick: clientId: ", clientId);
+#endif
 					return 0;
 				}
 
@@ -462,7 +496,9 @@ struct Gateway {
 			// 向 service 发送自己的 gatewayId
 			sp->SendCommand_GatewayId(cfg.gatewayId);
 
-			xx::CoutN("service peer connect: ", sp->GetIP());
+#if PRINT_LOG_SERVICE_CONNECTD
+			xx::CoutN("service peer connected to: ", sp->GetIP(), ", serviceId = ", sp->serviceId);
+#endif
 		};
 
 		return dialer->Dial();

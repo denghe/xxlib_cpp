@@ -1,3 +1,13 @@
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+#ifdef _MSC_VER
+#pragma  warning( push ) 
+#pragma  warning( disable: 4018 4267 )
+#endif
+
 //=====================================================================
 //
 // KCP - A Better ARQ Protocol Implementation
@@ -1272,3 +1282,9 @@ IUINT32 ikcp_getconv(const void *ptr)
 }
 
 
+#ifdef _MSC_VER
+#pragma  warning( pop ) 
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
