@@ -830,6 +830,10 @@ namespace xx {
 			}
 			this->UvPeer::Dispose(flag);
 			if (flag == -1) return true;
+			for (auto&& kv : callbacks) {
+				kv.value.first(nullptr);
+			}
+			callbacks.Clear();
 			onReceivePush = nullptr;
 			onReceiveRequest = nullptr;
 			return true;
