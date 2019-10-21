@@ -1,6 +1,6 @@
-#include <xx_uv_ext.h>
+ï»¿#include <xx_uv_ext.h>
 
-// Ä£ÄâÁËÒ»¸ö 0 ºÅ·şÎñ for bug test
+// æ¨¡æ‹Ÿäº†ä¸€ä¸ª 0 å·æœåŠ¡ for bug test
 
 using PeerType = xx::UvSimulatePeer;
 struct Service0 : xx::UvServiceBase<PeerType, true> {
@@ -13,12 +13,12 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 			xx::CoutN("recv msg = ", msg);
 
 			if (rand() % 2) {
-				// ÌıËµÏÈ push ÔÙ response ½ÓÊÜ·½»áÊÕ²»µ½ response? È»¶ø²¢Ã»³öÏÖÕâÖÖÏÖÏó
+				// å¬è¯´å…ˆ push å† response æ¥å—æ–¹ä¼šæ”¶ä¸åˆ° response? ç„¶è€Œå¹¶æ²¡å‡ºç°è¿™ç§ç°è±¡
 				if (int r = sp->SendPush(msg)) return r;
 				return sp->SendResponse(serial, msg);
 			}
 			else {
-				// ¶ÏÏß²âÊÔ. ÌıËµ¶ÏÏßºó ¶Ô·½²»»Øµ÷? ÒÑĞŞ¸´
+				// æ–­çº¿æµ‹è¯•. å¬è¯´æ–­çº¿å å¯¹æ–¹ä¸å›è°ƒ? å·²ä¿®å¤
 				return -1;
 			}
 		};
