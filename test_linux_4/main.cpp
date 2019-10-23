@@ -1,5 +1,6 @@
 ﻿#include "xx_uv_http.h"
 
+// todo: 超时检测机制
 // todo: http dialer
 
 int main() {
