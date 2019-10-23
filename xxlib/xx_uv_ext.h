@@ -461,7 +461,8 @@ namespace xx {
 						peer->DisconnectSimulatePeer(id);
 					}
 					// id == 0 意思是直接自杀 以加速关闭的速度, 降低靠 ping 探测延迟发现已断开的时长( 通常需要几秒 )
-					else return -1;
+					else 
+						return -1;
 
 					//CoutN("UvToGatewayPeer recv cmd disconnect: clientId = ", clientId);
 					return 0;
@@ -727,7 +728,7 @@ namespace xx {
 							gp->SendCommand_Open(clientId);
 
 							// 创建虚拟 peer ( 如果已存在就会被顶下线 )
-							auto&& cp = gp->CreateSimulatePeer<xx::UvSimulatePeer>(clientId);
+							auto&& cp = gp->CreateSimulatePeer<PeerType>(clientId);
 							AcceptSimulatePeer(cp);
 						}
 						return 0;

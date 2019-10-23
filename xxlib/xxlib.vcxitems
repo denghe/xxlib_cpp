@@ -16,6 +16,7 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)ajson.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)fixed_function.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)http_parser.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ikcp.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_bbuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_coros_boost.h" />
@@ -41,6 +42,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_ext.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)http_parser.c" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ikcp.c" />
   </ItemGroup>
   <ItemGroup>
