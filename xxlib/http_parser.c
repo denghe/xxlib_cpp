@@ -1,4 +1,14 @@
-﻿/* Copyright Joyent, Inc. and other Node contributors.
+﻿#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+#ifdef _MSC_VER
+#pragma  warning( push ) 
+#pragma  warning( disable: 4018 4267 )
+#endif
+
+/* Copyright Joyent, Inc. and other Node contributors.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -2460,3 +2470,13 @@ http_parser_version(void) {
          HTTP_PARSER_VERSION_MINOR * 0x00100 |
          HTTP_PARSER_VERSION_PATCH * 0x00001;
 }
+
+
+
+
+#ifdef _MSC_VER
+#pragma  warning( pop ) 
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif

@@ -40,6 +40,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool_ex.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_ext.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_http.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)http_parser.c" />
