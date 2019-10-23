@@ -680,14 +680,11 @@ namespace xx {
 		}
 
 		inline virtual int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept override {
-			auto&& bb = uv.sendBB;
-			bb.Reserve(sizeof(uv_write_t_ex) + len);
-			bb.len = sizeof(uv_write_t_ex);
-			auto&& req = *(uv_write_t_ex*)bb.buf;
-			req.buf.base = (char*)buf;										// fill req.buf
-			req.buf.len = decltype(uv_buf_t::len)(len);
-			bb.Reset();														// unbind bb.buf for callback ::free(req)
-			if (int r = uv_write(&req, (uv_stream_t*)uvTcp, &req.buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
+			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + len);
+			req->buf.base = (char*)req + sizeof(uv_write_t_ex);
+			req->buf.len = decltype(uv_buf_t::len)(len);
+			::memcpy(req->buf.base, buf, len);
+			if (int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
 				Dispose();
 				return r;
 			}

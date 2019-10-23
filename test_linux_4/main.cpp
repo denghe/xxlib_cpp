@@ -4,9 +4,110 @@
 // todo: 需要专门写独立的 listener & peer 只需要支持 tcp 并且收包逻辑简单粗暴.
 
 namespace xx {
+
+	struct UvHttpPeer;
+	using UvHttpPeer_s = std::shared_ptr<UvHttpPeer>;
+
+	struct UvHttpListener : UvItem {
+		uv_tcp_t* uvTcp = nullptr;
+		sockaddr_in6 addr;
+
+		std::function<UvHttpPeer_s(Uv & uv)> onCreatePeer;
+		std::function<void(UvHttpPeer_s peer)> onAccept;
+		virtual UvHttpPeer_s CreatePeer() noexcept;
+		virtual void Accept(UvHttpPeer_s peer) noexcept;
+
+
+		UvHttpListener(Uv& uv, std::string const& ip, int const& port, int const& backlog = 128);
+
+		UvHttpListener(UvHttpListener const&) = delete;
+		UvHttpListener& operator=(UvHttpListener const&) = delete;
+		~UvHttpListener() { this->Dispose(-1); }
+
+		inline virtual bool Disposed() const noexcept override {
+			return !uvTcp;
+		}
+
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvTcp) return false;
+			Uv::HandleCloseAndFree(uvTcp);
+			return true;
+		}
+	};
+
+
 	// http 服务 peer 基类
-	// 基类的 SendXxxx, onReceiveXxxxx 不要用
-	struct UvHttpPeer : UvPeer {
+	struct UvHttpPeer : UvItem {
+
+		std::string ip;
+	
+		uv_tcp_t* uvTcp = nullptr;
+		inline void TcpInit() {
+			uvTcp = Uv::Alloc<uv_tcp_t>(this);
+			if (!uvTcp) throw - 1;
+			if (int r = uv_tcp_init(&uv.uvLoop, uvTcp)) {
+				uvTcp = nullptr;
+				throw r;
+			}
+		}
+	
+		inline virtual bool Dispose(int const& flag = 1) noexcept override {
+			if (!uvTcp) return false;
+			Uv::HandleCloseAndFree(uvTcp);
+			auto holder = shared_from_this();
+			onReceiveHttp = nullptr;
+			onError = nullptr;
+			return true;
+		}
+
+		~UvHttpPeer() { this->Dispose(-1); }
+
+		inline virtual bool Disposed() const noexcept {
+			return !uvTcp;
+		}
+
+		inline std::string GetIP() noexcept {
+			return ip;
+		}
+
+		inline int SendDirect(uint8_t* const& buf, std::size_t const& len) noexcept {
+			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + len);
+			req->buf.base = (char*)req + sizeof(uv_write_t_ex);
+			req->buf.len = decltype(uv_buf_t::len)(len);
+			::memcpy(req->buf.base, buf, len);
+			if (int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
+				Dispose();
+				return r;
+			}
+			return 0;
+		}
+
+		// called by dialer or listener
+		inline int ReadStart() noexcept {
+			if (!uvTcp) return -1;
+			return uv_read_start((uv_stream_t*)uvTcp, Uv::AllocCB, [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+				auto self = Uv::GetSelf<UvHttpPeer>(stream);
+				auto holder = self->shared_from_this();	// hold for callback Dispose
+				if (nread > 0) {
+					auto&& parsedLen = (ssize_t)http_parser_execute(&self->parser, &self->parser_settings, buf->base, nread);
+					if (parsedLen < nread) {
+						if (self->onError) {
+							self->onError(self->parser.http_errno, http_errno_description((http_errno)self->parser.http_errno));
+						}
+						self->Dispose();
+					}
+					// todo: 需要探测如果一次传入多份 http 完整信息会怎样, 是否触发多次回调。如果中间一次回调执行了 Dispose 会怎样？是否能终止解析并层层退出
+				}
+				if (buf) ::free(buf->base);
+				if (nread < 0) {
+					self->Dispose();
+				}
+			});
+		}
+
+
+
+
 
 		// 来自 libuv 作者的转换器及配置
 		http_parser_settings parser_settings;
@@ -45,10 +146,10 @@ namespace xx {
 		std::string* lastValue = nullptr;
 
 		// 成功接收完一段信息时的回调.
-		std::function<void()> OnReceiveHttp = []() noexcept {};
+		std::function<void()> onReceiveHttp = []() noexcept {};
 
 		// 接收出错回调. 接着会发生 Release
-		std::function<void(uint32_t errorNumber, char const* errorMessage)> OnError;
+		std::function<void(uint32_t errorNumber, char const* errorMessage)> onError;
 
 		inline static const std::string responseHeader_Json =
 			"HTTP/1.1 200 OK\r\n"
@@ -56,13 +157,17 @@ namespace xx {
 			"Content-Length: "
 			;
 
-		UvHttpPeer(Uv& uv) : UvPeer(uv) {
+		// 默认为解析 请求包. http_parser_type = HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH
+		UvHttpPeer(Uv& uv, http_parser_type parseType = HTTP_BOTH) : UvItem(uv) {
+			TcpInit();
+
 			parser.data = this;
-			http_parser_init(&parser, HTTP_REQUEST);									// too: 挪到函数中去? 以便作为 client 用? HTTP_RESPONSE
+			http_parser_init(&parser, parseType);
 
 			http_parser_settings_init(&parser_settings);
 			parser_settings.on_message_begin = [](http_parser* parser) noexcept {
 				auto self = (UvHttpPeer*)parser->data;
+				if (self->Disposed()) return -1;
 				self->method.clear();
 				self->headers.clear();
 				self->keepAlive = false;
@@ -112,7 +217,7 @@ namespace xx {
 			};
 			parser_settings.on_message_complete = [](http_parser* parser) noexcept {
 				auto self = (UvHttpPeer*)parser->data;
-				self->OnReceiveHttp();
+				self->onReceiveHttp();
 				return 0;
 			};
 			parser_settings.on_chunk_header = [](http_parser* parser) noexcept { return 0; };
@@ -130,7 +235,7 @@ namespace xx {
 
 			// write len\r\n\r\n
 			lastKey.clear();
-			lastKey += len;
+			lastKey += std::to_string(len);
 			bb.AddRange((uint8_t*)lastKey.data(), lastKey.size());
 			bb.AddRange((uint8_t*)"\r\n\r\n", 4);
 
@@ -158,7 +263,7 @@ namespace xx {
 			int i = 0;
 			queries.resize(i + 1);
 			queries[i++].first = q;
-			while (q = strchr(q, '&')) {
+			while ((q = strchr(q, '&'))) {
 				queries.reserve(i + 1);
 				queries.resize(i + 1);
 				*q = '\0';
@@ -170,7 +275,7 @@ namespace xx {
 				}
 				i++;
 			}
-			if (queries[i - 1].second = strchr(queries[i - 1].first, '=')) {
+			if ((queries[i - 1].second = strchr(queries[i - 1].first, '='))) {
 				*(queries[i - 1].second)++ = '\0';
 			}
 		}
@@ -182,7 +287,7 @@ namespace xx {
 			return s + 1;
 		}
 
-		inline static uint8_t FromHex(uint8_t const& c) noexcept {
+		inline static int FromHex(uint8_t const& c) noexcept {
 			if (c >= 'A' && c <= 'Z') return c - 'A' + 10;
 			else if (c >= 'a' && c <= 'z') return c - 'a' + 10;
 			else if (c >= '0' && c <= '9') return c - '0';
@@ -203,31 +308,68 @@ namespace xx {
 			}
 		}
 
-		// todo: 下面代码在解析完成时
-		/*
-		void xx::UvHttpPeer::ReceiveImpl(char const* const& bufPtr, int const& len) noexcept
-		{
-			if (rawData)
-			{
-				rawData->AddRange(bufPtr, len);	// 如果粘包, 尾部可能会多点东西出来, 当前不方便去除
-			}
-			auto vn = memHeader().versionNumber;
-			auto parsed = http_parser_execute(parser, parser_settings, bufPtr, len);
-			if (IsReleased(vn)) return;
-			if ((int)parsed < len)
-			{
-				if (OnError)
-				{
-					OnError(parser->http_errno, http_errno_description((http_errno)parser->http_errno));
-					if (IsReleased(vn)) return;
-				}
-				Release();
-			}
-		}*/
+		inline std::string Dump() {
+			std::string s;
+			xx::Append(s
+				, "url:", url
+				, "method:", method
+				, "body:", body
+			);
+			return s;
+		}
 	};
+
+
+	inline UvHttpListener::UvHttpListener(Uv& uv, std::string const& ip, int const& port, int const& backlog)
+		: UvItem(uv) {
+		uvTcp = Uv::Alloc<uv_tcp_t>(this);
+		if (!uvTcp) throw - 4;
+		if (int r = uv_tcp_init(&uv.uvLoop, uvTcp)) {
+			uvTcp = nullptr;
+			throw r;
+		}
+
+		if (ip.find(':') == std::string::npos) {
+			if (uv_ip4_addr(ip.c_str(), port, (sockaddr_in*)&addr)) throw - 1;
+		}
+		else {
+			if (uv_ip6_addr(ip.c_str(), port, &addr)) throw - 2;
+		}
+		if (uv_tcp_bind(uvTcp, (sockaddr*)&addr, 0)) throw - 3;
+
+		if (uv_listen((uv_stream_t*)uvTcp, backlog, [](uv_stream_t* server, int status) {
+			if (status) return;
+			auto&& self = Uv::GetSelf<UvHttpListener>(server);
+			auto&& peer = self->CreatePeer();
+			if (!peer) return;
+			if (uv_accept(server, (uv_stream_t*)peer->uvTcp)) return;
+			if (peer->ReadStart()) return;
+			Uv::FillIP(peer->uvTcp, peer->ip);
+			self->Accept(std::move(peer));
+			})) throw - 4;
+	};
+
+	inline UvHttpPeer_s UvHttpListener::CreatePeer() noexcept {
+		return xx::Make<UvHttpPeer>(uv);
+	}
+
+	inline void UvHttpListener::Accept(UvHttpPeer_s p) noexcept {
+		if (onAccept) {
+			onAccept(p);
+		}
+	}
 }
 
 int main() {
 	xx::IgnoreSignal();
+
+	xx::Uv uv;
+	xx::UvHttpListener listener(uv, "0.0.0.0", 12345);
+	listener.onAccept = [](xx::UvHttpPeer_s peer) {
+		peer->onReceiveHttp = [peer] {
+			xx::CoutN(peer->Dump());
+		};
+	};
+	uv.Run();
 	return 0;
 }
