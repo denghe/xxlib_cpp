@@ -105,6 +105,7 @@ struct Client : xx::Epoll::Instance {
 };
 
 int main(int argc, char* argv[]) {
+	xx::IgnoreSignal();
 	return std::make_unique<Client>()->Run(1);
 }
 

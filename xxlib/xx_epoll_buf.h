@@ -51,6 +51,11 @@ namespace xx::Epoll {
 			memcpy(this->buf, buf, len);
 		}
 
+		// unsafe: 直接使用传入的内存( len 后面还需要 refs 的存储空间 )
+		Buf(std::size_t const& len, void* const& buf) {
+			Init(buf, len);
+		}
+
 		~Buf() {
 			Dispose();
 		}
