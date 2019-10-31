@@ -68,7 +68,7 @@ namespace xx {
 
 		~UvHttpPeer() { this->Dispose(-1); }
 
-		inline virtual bool Disposed() const noexcept {
+		inline virtual bool Disposed() const noexcept override {
 			return !uvTcp;
 		}
 

@@ -116,6 +116,9 @@ namespace xx {
 		int SendCommand_Kick(uint32_t const& clientId, int64_t const& delayMS) {
 			return SendCommand("kick", clientId, delayMS);
 		}
+		int SendCommand_Ping(int64_t const& ticks) {
+			return SendCommand("ping", ticks);
+		}
 	};
 
 	// service 监听 gateways 专用
@@ -677,7 +680,7 @@ namespace xx {
 			if (!gatewayListener) return -1;
 			gatewayListener->onAccept = [this](xx::UvPeer_s peer) {
 				auto&& gp = xx::As<xx::UvFromGatewayPeer>(peer);
-
+				gp->ResetTimeoutMS(10L * 1000L);
 				gp->onReceiveCommand = [this, gp](xx::BBuffer& bb)->int {
 					std::string cmd;
 					if (int r = bb.Read(cmd)) return r;
@@ -699,7 +702,7 @@ namespace xx {
 						}
 						return 0;
 					}
-
+					
 					else if (cmd == "disconnect") {
 						uint32_t clientId = 0;
 						if (int r = bb.Read(clientId)) return r;
@@ -711,6 +714,12 @@ namespace xx {
 							xx::CoutN("UvFromGatewayPeer recv cmd disconnect: clientId = ", clientId);
 						}
 						return 0;
+					}					
+					else if (cmd == "ping") {
+						int64_t ticks = 0;
+						if (int r = bb.Read(ticks)) return r;
+						gp->ResetTimeoutMS(10L * 1000L);
+						return gp->SendCommand_Ping(ticks);
 					}
 
 					else if (cmd == "accept") {
