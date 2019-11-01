@@ -44,6 +44,8 @@ struct Foo {
 		}
 		if (!peer || peer->Disposed()) goto LabDial;
 
+		LabSend:
+
 		callbacked = false;
 		r = peer->SendRequest(bb, [this](xx::Object_s&& msg)->int {
 			xx::CoutN("recv request ", msg);
@@ -60,11 +62,11 @@ struct Foo {
 		}
 		xx::CoutN("end...");
 
-		if (++count > 10000) {
-			xx::CoutN(xx::NowSteadyEpochMS() - beginTime);
-			return 0;
-		}
-		goto LabDial;
+		//if (++count > 10000) {
+		//	xx::CoutN(xx::NowSteadyEpochMS() - beginTime);
+		//	return 0;
+		//}
+		goto LabSend;
 
 		COR_END
 	}

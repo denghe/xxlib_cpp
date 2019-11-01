@@ -10,11 +10,13 @@
 int main() {
 	xx::IgnoreSignal();
 	xx::Uv uv;
-	xx::UvListener listener(uv, "0.0.0.0", 12345, 0);
-	listener.onAccept = [](xx::UvPeer_s peer) {
+	xx::UvListener_s listener;
+	xx::MakeTo(listener, uv, "0.0.0.0", 12345, 0);
+	listener->onAccept = [&](xx::UvPeer_s peer) {
 		xx::CoutN(peer->GetIP(), " connected.");
-		peer->onReceiveRequest = [peer](int const& serial, xx::Object_s&& msg)->int {
+		peer->onReceiveRequest = [peer, &listener](int const& serial, xx::Object_s&& msg)->int {
 			xx::CoutN("recv request ", msg);
+			listener->Dispose();
 			int r = peer->SendPush(msg);
 			assert(!r);
 			return peer->SendResponse(serial, msg);
