@@ -527,7 +527,6 @@ namespace xx {
 			}
 			// 发送当前 ms 并设置正在发送标志，计算下一个检测时间点
 			peer->SendCommand("ping", now);
-			std::cout << "send ping" << std::endl;
 			peerChecking = true;
 			peerCheckNextMS = now + peerCheckIntervalMS;
 			return peerPing;

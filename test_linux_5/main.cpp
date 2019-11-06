@@ -187,11 +187,7 @@ struct SimpleHttpServer : xx::Epoll::Instance {
 		auto&& count = hp->GetFinishedCtxsCount();
 		while(count) {
 			auto&& h = hp->ctxs.front();
-			
-			// todo: handle h
-			xx::CoutN(threadId, " OnReceive http text: id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip, ", url = ", h.url);
-			hp->SendHttpResponse_Text("hi~~~");
-
+			if (auto&& r = Handle(pr, hp, h)) return r;
 			hp->ctxs.pop_front();
 			--count;
 		}
@@ -200,6 +196,15 @@ struct SimpleHttpServer : xx::Epoll::Instance {
 	inline virtual void OnDisconnect(xx::Epoll::Peer_r pr) override {
 		xx::CoutN(threadId, " OnDisconnect: id = ", pr->id, ", ip = ", pr->ip);
 		delete (HttpParser*)pr->userData;
+	}
+
+	inline int Handle(xx::Epoll::Peer_r const& pr, HttpParser* const& hp, HttpParserContext& h) {
+		xx::CoutN(threadId, " OnReceive http text: id = ", pr->id, ", fd = ", pr->sockFD, ", ip = ", pr->ip, ", url = ", h.url);
+
+		
+
+		hp->SendHttpResponse_Text("hi~~~");
+		return 0;
 	}
 };
 int main() {
