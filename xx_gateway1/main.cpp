@@ -113,7 +113,7 @@ struct UvToServicePeer : UvGatewayPeer {
 
 	// 内部服务编号, 从配置填充
 	uint32_t serviceId = 0xFFFFFFFFu;
-
+	bool waitPingBack = false;
 	int SendCommand_GatewayId(uint32_t const& gatewayId) {
 		return SendCommand("gatewayId", gatewayId);
 	}
@@ -124,6 +124,9 @@ struct UvToServicePeer : UvGatewayPeer {
 
 	int SendCommand_Disconnect(uint32_t const& clientId) {
 		return SendCommand("disconnect", clientId);
+	}
+	int SendCommand_Ping() {
+		return SendCommand("ping", xx::NowEpoch10m());
 	}
 };
 
@@ -166,12 +169,29 @@ struct Gateway {
 	// 服务启动配置. 从 json 加载
 	ServiceCfg cfg;
 
+	xx::UvTimer_s pingTimer;
 	/***********************************************************************************************/
 	// constructor
 	/***********************************************************************************************/
 	Gateway() {
 		ajson::load_from_file(cfg, "service_cfg.json");
 
+		xx::MakeTo(pingTimer, uv, 1000, 5 * 1000, [this]() {
+			for (auto&& kv : serviceDialerPeers) {
+				auto&& peer = kv.second.second;
+				if (peer && !peer->Disposed()) {
+					if (!peer->waitPingBack)
+					{
+						peer->waitPingBack = true;
+						peer->SendCommand_Ping();
+					}
+					else
+					{
+						peer->Dispose();
+					}
+				}
+			}
+			});
 		InitClientListener();
 		InitServiceDialers();
 	}
@@ -448,8 +468,11 @@ struct Gateway {
 #endif
 					return 0;
 				}
-
-
+				else if (cmd == "ping") {
+					
+					sp->waitPingBack = false;
+					return 0;
+				}
 				// 踢玩家下线. 参数: clientId, delayMS
 				else if (cmd == "kick") {
 					// 试读出参数
