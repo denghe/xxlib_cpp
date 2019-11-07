@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "xx_epoll.h"
-#include "xx_httpreceiver.h"
+#include "xx_http.h"
 
 namespace xx {
 	struct SimpleHttpServer : xx::Epoll::Instance {
