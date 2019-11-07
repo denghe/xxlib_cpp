@@ -46,6 +46,24 @@ namespace xx {
 		char* fragment = nullptr;
 
 
+		
+		// 从 queries 查找 queryKey 并转换数据类型填充 value
+		template<typename T>
+		inline bool TryParseQuery(char const* const& key, T& value) {
+			for (auto&& item : queries) {
+				if (!strcmp(key, item.first)) {
+					return TryParse(item.second, value);
+				}
+			}
+			return false;
+		}
+
+		// 从 queries 下标定位 并转换数据类型填充 value
+		template<typename T>
+		inline bool TryParseQuery(std::size_t const& index, T& value) {
+			if (index >= queries.size()) return false;
+			return TryParse(queries[index].second, value);
+		}
 
 		// 会 urldecode 并 填充 path, queries, fragment. 需要手动调用
 		inline void ParseUrl() noexcept {

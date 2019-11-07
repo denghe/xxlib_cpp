@@ -405,6 +405,46 @@ namespace xx {
 
 
 	/************************************************************************************/
+	// string convert to type
+	/************************************************************************************/
+
+	// 转换 s 数据类型 为 T 填充 dst. 成功返回 true. 失败 dst 将填充默认值并返回 false
+	template<typename T>
+	inline bool TryParse(char const* const& s, T& dst) {
+		if (!s) {
+			dst = T();
+			return false;
+		}
+		else if constexpr (std::is_integral_v<T>&& std::is_unsigned_v<T> && sizeof(T) <= 4) {
+			dst = (T)strtoul(s, nullptr, 0);
+		}
+		else if constexpr (std::is_integral_v<T> && !std::is_unsigned_v<T> && sizeof(T) <= 4) {
+			dst = (T)atoi(s);
+		}
+		else if constexpr (std::is_integral_v<T>&& std::is_unsigned_v<T> && sizeof(T) == 8) {
+			dst = strtoull(s, nullptr, 0);
+		}
+		else if constexpr (std::is_integral_v<T> && !std::is_unsigned_v<T> && sizeof(T) == 8) {
+			dst = atoll(s);
+		}
+		else if constexpr (std::is_floating_point_v<T> && sizeof(T) == 4) {
+			dst = strtof(s, nullptr);
+		}
+		else if constexpr (std::is_floating_point_v<T> && sizeof(T) == 8) {
+			dst = atof(s);
+		}
+		else if constexpr (std::is_same_v<T, bool>) {
+			dst = s[0] == '1' || s[0] == 't' || s[0] == 'T' || s[0] == 'y' || s[0] == 'Y';
+		}
+		else if constexpr (std::is_same_v<T, std::string>) {
+			dst = s;
+		}
+		// todo: more
+		return false;
+	}
+
+
+	/************************************************************************************/
 	// time_point <--> .net DateTime.Now.ToUniversalTime().Ticks converts
 	/************************************************************************************/
 

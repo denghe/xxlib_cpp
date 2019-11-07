@@ -39,16 +39,31 @@ struct MyHtmlHandler {
 
 		handlers["cmd1"] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
 			return response.SendHtmlBody(R"--(
-todo1</br>
+<form action="/cmd2">
+  <p>username: <input type="text" name="un" /></p>
+  <p>password: <input type="text" name="pw" /></p>
+  <p>age: <input type="number" name="age" /></p>
+  <input type="submit" value="Submit" />
+</form>
 <a href="/">home</a>
 )--");
 		};
 
 		handlers["cmd2"] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
-			return response.SendHtmlBody(R"--(
-todo2</br>
-<a href="/">home</a>
-)--");
+			std::string un, pw;
+			int age = 0;
+			request.TryParseQuery("un", un);
+			request.TryParseQuery("pw", pw);
+			request.TryParseQuery("age", age);
+			return response.Send(
+				response.prefixHtml, 
+				"<html><body>"
+				"<p>un = ", un, "</p>"
+				"<p>pw = ", pw, "</p>"
+				"<p>age = ", age, "</p>"
+				"<a href=\"/\">home</a>"
+				"</body></html>"
+			);
 		};
 
 		handlers["cmd3"] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
