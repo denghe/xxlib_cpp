@@ -4,7 +4,6 @@
 
 namespace xx {
 	struct HttpReceiver;
-	struct SimpleHttpServer;
 	struct HttpContext {
 		HttpContext(HttpReceiver* parser) : parser(parser) {};
 		HttpContext(HttpContext const&) = delete;
@@ -48,18 +47,6 @@ namespace xx {
 
 
 
-		friend struct HttpReceiver;
-		friend struct SimpleHttpServer;
-	protected:
-		// 当收到 key 时, 先往这 append. 出现 value 时再塞 headers
-		std::string lastKey;
-
-		// 指向最后一次塞入 headers 的 value 以便 append
-		std::string* lastValue = nullptr;
-
-		// url decode 数据容器, 不可以修改内容( queries 里面的 char* 会指向这里 )
-		std::string tmp;
-
 		// 会 urldecode 并 填充 path, queries, fragment. 需要手动调用
 		inline void ParseUrl() noexcept {
 			tmp.reserve(url.size());
@@ -95,6 +82,18 @@ namespace xx {
 			}
 		}
 
+		friend struct HttpReceiver;
+	protected:
+		// 当收到 key 时, 先往这 append. 出现 value 时再塞 headers
+		std::string lastKey;
+
+		// 指向最后一次塞入 headers 的 value 以便 append
+		std::string* lastValue = nullptr;
+
+		// url decode 数据容器, 不可以修改内容( queries 里面的 char* 会指向这里 )
+		std::string tmp;
+
+
 		inline static char* FindAndTerminate(char* s, char const& c) noexcept {
 			s = strchr(s, c);
 			if (!s) return nullptr;
@@ -124,7 +123,73 @@ namespace xx {
 		}
 	};
 
+	struct HttpResponse {
+
+		// 兼容 text json 下发格式的前缀
+		inline static std::string prefixText =
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/plain;charset=utf-8\r\n"
+			"Connection: close\r\n"
+			"Content-Length: ";
+
+		inline static std::string prefixHtml =
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/html;charset=utf-8\r\n"
+			"Connection: close\r\n"
+			"Content-Length: ";
+
+		inline static std::string prefix404 =
+			"HTTP/1.1 404 Not Found\r\n"
+			"Content-Type: text/html;charset=utf-8\r\n"
+			"Connection: close\r\n"
+			"Content-Length: ";
+
+		// 公用输出拼接容器
+		std::string tmp;
+
+		// 下发 html( 由外部赋值 )
+		std::function<int(std::string const& prefix, char const* const& buf, std::size_t const& len)> onSend;
+
+		// 会多一次复制但是方便拼接的下发 html 函数
+		template<typename...Args>
+		inline int Send(std::string const& prefix, Args const& ...args) noexcept {
+			tmp.clear();
+			xx::Append(tmp, args...);
+			return onSend(prefix, tmp.data(), tmp.size());
+		}
+
+		inline int SendHtml(std::string const& html) {
+			return onSend(prefixHtml, html.data(), html.size());
+		}
+
+		inline int SendText(std::string const& text) {
+			return onSend(prefixText, text.data(), text.size());
+		}
+
+		inline int SendJson(std::string const& json) {
+			return onSend(prefixText, json.data(), json.size());
+		}
+
+		inline int Send404(std::string const& html) {
+			return onSend(prefix404, html.data(), html.size());
+		}
+
+		inline int SendHtmlBody(std::string const& body) {
+			return Send(prefix404, "<html><body>", body, "</body></html>");
+		}
+
+		inline int Send404Body(std::string const& body) {
+			return Send(prefixHtml, "<html><body>", body, "</body></html>");
+		}
+	};
+
+
 	struct HttpReceiver {
+		HttpReceiver(HttpReceiver const&) = delete;
+		HttpReceiver(HttpReceiver&&) = default;
+		HttpReceiver& operator=(HttpReceiver const&) = delete;
+		HttpReceiver& operator=(HttpReceiver&&) = default;
+
 		// 来自 libuv 作者的转换器及配置
 		http_parser_settings parser_settings;
 		http_parser parser;
@@ -200,10 +265,10 @@ namespace xx {
 		inline int Input(char const* const& buf, std::size_t const& len) {
 			auto&& parsedLen = http_parser_execute(&parser, &parser_settings, buf, len);
 			if (parsedLen < len) {
-				//xx::CoutN(http_errno_description((http_errno)parser.http_errno));
-				return parser.http_errno;
+				return parser.http_errno;	// http_errno_description((http_errno)parser.http_errno)
 			}
 			return 0;
 		}
 	};
+
 }

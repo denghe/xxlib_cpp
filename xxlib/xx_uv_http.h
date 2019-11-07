@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "xx_uv.h"
-#include "http_parser.h"
+#include "xx_httpreceiver.h"
 
 namespace xx {
 
@@ -34,18 +34,82 @@ namespace xx {
 		}
 	};
 
-
-	// http 服务 peer 基类
 	struct UvHttpPeer : UvItem {
 
 		uv_tcp_t* uvTcp = nullptr;
-		inline void TcpInit() {
+
+		// ip:port
+		std::string ip;
+
+		// 成功接收完一段信息时的回调.
+		std::function<int(HttpContext & request, HttpResponse & response)> onReceiveHttp;
+		inline virtual int OnReceiveHttp(HttpContext& request, HttpResponse& response) {
+			if (onReceiveHttp) {
+				return onReceiveHttp(request, response);
+			}
+			else {
+				return response.Send404Body("unhandled");
+			}
+		}
+
+		// 接收出错回调. 接着会发生 Release
+		std::function<void(int errorNumber, char const* errorMessage)> onError;
+
+		// Dispose 时会触发
+		std::function<void()> onDisconnect;
+
+		// http 数据接收器
+		HttpReceiver receiver;
+
+		// http 数据下发器
+		HttpResponse response;
+
+		UvHttpPeer(Uv& uv)
+			: UvItem(uv) {
 			uvTcp = Uv::Alloc<uv_tcp_t>(this);
 			if (!uvTcp) throw - 1;
 			if (int r = uv_tcp_init(&uv.uvLoop, uvTcp)) {
 				uvTcp = nullptr;
 				throw r;
 			}
+
+			response.onSend = [this](std::string const& prefix, char const* const& buf, std::size_t const& len)->int {
+				// calc buf max len
+				auto cap = sizeof(uv_write_t_ex) + /* partial http header */prefix.size() + /* len */20 + /*\r\n\r\n*/4 + /* body */len;
+
+				// alloc memory
+				auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + cap);
+				auto&& data = req->buf.base;
+				auto&& dataLen = req->buf.len;
+
+				// init
+				data = (char*)req + sizeof(uv_write_t_ex);
+				dataLen = 0;
+
+				// append partial http header
+				::memcpy(data + dataLen, prefix.data(), prefix.size());
+				dataLen += prefix.size();
+
+				// append len
+				auto&& lenStr = std::to_string(len);
+				::memcpy(data + dataLen, lenStr.data(), lenStr.size());
+				dataLen += lenStr.size();
+
+				// append \r\n\r\n
+				::memcpy(data + dataLen, "\r\n\r\n", 4);
+				dataLen += 4;
+
+				// append content
+				::memcpy(data + dataLen, buf, len);
+				dataLen += len;
+
+				// send
+				if (int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
+					Dispose();
+					return r;
+				}
+				return 0;
+			};
 		}
 
 		inline virtual void Disconnect() noexcept {
@@ -79,259 +143,35 @@ namespace xx {
 				auto self = Uv::GetSelf<UvHttpPeer>(stream);
 				auto holder = self->shared_from_this();	// hold for callback Dispose
 				if (nread > 0) {
-					auto&& parsedLen = (ssize_t)http_parser_execute(&self->parser, &self->parser_settings, buf->base, nread);
-					if (parsedLen < nread) {
+					// fill data to http receiver
+					if (auto r = self->receiver.Input(buf->base, nread)) {
 						if (self->onError) {
-							self->onError(self->parser.http_errno, http_errno_description((http_errno)self->parser.http_errno));
+							self->onError(r, http_errno_description((http_errno)r));
 						}
-						self->Dispose();
+						else {
+							self->response.Send404Body(http_errno_description((http_errno)r));
+						}
 					}
-					// todo: 需要探测如果一次传入多份 http 完整信息会怎样, 是否触发多次回调。如果中间一次回调执行了 Dispose 会怎样？是否能终止解析并层层退出
+					// foreach finished context & callback
+					auto&& count = self->receiver.GetFinishedCtxsCount();
+					while (count) {
+						auto&& request = self->receiver.ctxs.front();
+
+						if (self->onReceiveHttp) {
+							if (self->onReceiveHttp(request, self->response)) {
+								self->response.Send404Body("bad request!");
+							}
+						}
+
+						self->receiver.ctxs.pop_front();
+						--count;
+					}
 				}
 				if (buf) ::free(buf->base);
 				if (nread < 0) {
 					self->Dispose();
 				}
-				});
-		}
-
-		// ip:port
-		std::string ip;
-
-		// 成功接收完一段信息时的回调.
-		std::function<int()> onReceiveHttp = []() noexcept { return 0; };
-
-		// 接收出错回调. 接着会发生 Release
-		std::function<void(uint32_t errorNumber, char const* errorMessage)> onError;
-
-		// Dispose 时会触发
-		std::function<void()> onDisconnect;
-
-
-		// 来自 libuv 作者的转换器及配置
-		http_parser_settings parser_settings;
-		http_parser parser;
-
-		// GET / POST / ...
-		std::string method;
-
-		// 头部所有键值对
-		std::unordered_map<std::string, std::string> headers;
-
-		// 是否保持连接
-		bool keepAlive = false;
-
-		// 正文
-		std::string body;
-
-		// 原始 url 串( 未 urldecode 解码 )
-		std::string url;
-
-		// url decode 后的结果 url 串, 同时也是 url parse 后的容器, 不可以修改内容
-		std::string urlDecoded;
-
-		// ParseUrl 后将填充下面三个属性. 这些指针都指向 std::string 内部, 可能失效, 需要注意访问时机
-		char* path = nullptr;
-		std::vector<std::pair<char*, char*>> queries;	// 键值对
-		char* fragment = nullptr;
-
-		// 原始 status 串
-		std::string status;
-
-		// 当收到 key 时, 先往这 append. 出现 value 时再塞 headers
-		std::string lastKey;
-
-		// 指向最后一次塞入 headers 的 value 以便 append
-		std::string* lastValue = nullptr;
-
-
-
-		// 返回文本 / json 的通用 http 头
-		inline static const std::string responseHeader_Json =
-			"HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/plain;charset=utf-8\r\n"		// text/json
-			"Content-Length: "
-			;
-
-		// 默认为解析 请求包. http_parser_type = HTTP_REQUEST, HTTP_RESPONSE, HTTP_BOTH
-		UvHttpPeer(Uv& uv, http_parser_type parseType = HTTP_BOTH) : UvItem(uv) {
-			TcpInit();
-
-			parser.data = this;
-			http_parser_init(&parser, parseType);
-
-			http_parser_settings_init(&parser_settings);
-			parser_settings.on_message_begin = [](http_parser* parser) noexcept {
-				auto self = (UvHttpPeer*)parser->data;
-				if (self->Disposed()) return -1;
-				self->method.clear();
-				self->headers.clear();
-				self->keepAlive = false;
-				self->body.clear();
-				self->url.clear();
-				self->urlDecoded.clear();
-				self->status.clear();
-				self->lastKey.clear();
-				self->lastValue = nullptr;
-				return 0;
-			};
-			parser_settings.on_url = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
-				((UvHttpPeer*)parser->data)->url.append(buf, length);
-				return 0;
-			};
-			parser_settings.on_status = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
-				((UvHttpPeer*)parser->data)->status.append(buf, length);
-				return 0;
-			};
-			parser_settings.on_header_field = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
-				auto self = (UvHttpPeer*)parser->data;
-				if (self->lastValue) {
-					self->lastValue = nullptr;
-				}
-				self->lastKey.append(buf, length);
-				return 0;
-			};
-			parser_settings.on_header_value = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
-				auto self = (UvHttpPeer*)parser->data;
-				if (!self->lastValue) {
-					auto&& r = self->headers[self->lastKey];
-					self->lastValue = &r;
-				}
-				self->lastValue->append(buf, length);
-				return 0;
-			};
-			parser_settings.on_headers_complete = [](http_parser* parser) noexcept {
-				auto self = (UvHttpPeer*)parser->data;
-				self->lastValue = nullptr;
-				self->method = http_method_str((http_method)parser->method);
-				self->keepAlive = http_should_keep_alive(parser);
-				return 0;
-			};
-			parser_settings.on_body = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
-				((UvHttpPeer*)parser->data)->body.append(buf, length);
-				return 0;
-			};
-			parser_settings.on_message_complete = [](http_parser* parser) noexcept {
-				auto self = (UvHttpPeer*)parser->data;
-				return self->onReceiveHttp();
-			};
-			parser_settings.on_chunk_header = [](http_parser* parser) noexcept { return 0; };
-			parser_settings.on_chunk_complete = [](http_parser* parser) noexcept { return 0; };
-		}
-
-		// 快捷发回 json 内容响应
-		inline int SendHttpResponse_Text(char const* const& bufPtr, std::size_t const& len) noexcept {
-			// calc buf max len
-			auto cap = sizeof(uv_write_t_ex) + /* http header */responseHeader_Json.size() + /* len */20 + /*\r\n\r\n*/4 + /* body */len;
-
-			// alloc memory
-			auto req = (uv_write_t_ex*)::malloc(sizeof(uv_write_t_ex) + cap);
-			auto&& data = req->buf.base;
-			auto&& dataLen = req->buf.len;
-
-			// init
-			data = (char*)req + sizeof(uv_write_t_ex);
-			dataLen = 0;
-
-			// append http header
-			::memcpy(data + dataLen, responseHeader_Json.data(), responseHeader_Json.size());
-			dataLen += responseHeader_Json.size();
-
-			// append len
-			auto&& lenStr = std::to_string(len);
-			::memcpy(data + dataLen, lenStr.data(), lenStr.size());
-			dataLen += lenStr.size();
-
-			// append \r\n\r\n
-			::memcpy(data + dataLen, "\r\n\r\n", 4);
-			dataLen += 4;
-
-			// append body
-			::memcpy(data + dataLen, bufPtr, len);
-			dataLen += len;
-
-			// send
-			if (int r = uv_write(req, (uv_stream_t*)uvTcp, &req->buf, 1, [](uv_write_t* req, int status) { ::free(req); })) {
-				Dispose();
-				return r;
-			}
-			return 0;
-		}
-
-		inline int SendHttpResponse_Text(std::string const& json) noexcept {
-			return SendHttpResponse_Text(json.data(), json.size());
-		}
-
-		// 会 urldecode 并 填充 path, queries, fragment. 需要手动调用
-		inline void ParseUrl() noexcept {
-			urlDecoded.reserve(url.size());
-			UrlDecode(url, urlDecoded);
-			auto u = (char*)urlDecoded.c_str();
-
-			// 从后往前扫
-			fragment = FindAndTerminate(u, '#');
-			auto q = FindAndTerminate(u, '?');
-			path = FindAndTerminate(u, '/');
-
-			queries.clear();
-			if (!q || '\0' == *q) return;
-			queries.reserve(16);
-			int i = 0;
-			queries.resize(i + 1);
-			queries[i++].first = q;
-			while ((q = strchr(q, '&'))) {
-				queries.reserve(i + 1);
-				queries.resize(i + 1);
-				*q = '\0';
-				queries[i].first = ++q;
-				queries[i].second = nullptr;
-
-				if (i && (queries[i - 1].second = strchr(queries[i - 1].first, '='))) {
-					*(queries[i - 1].second)++ = '\0';
-				}
-				i++;
-			}
-			if ((queries[i - 1].second = strchr(queries[i - 1].first, '='))) {
-				*(queries[i - 1].second)++ = '\0';
-			}
-		}
-
-		inline static char* FindAndTerminate(char* s, char const& c) noexcept {
-			s = strchr(s, c);
-			if (!s) return nullptr;
-			*s = '\0';
-			return s + 1;
-		}
-
-		inline static int FromHex(uint8_t const& c) noexcept {
-			if (c >= 'A' && c <= 'Z') return c - 'A' + 10;
-			else if (c >= 'a' && c <= 'z') return c - 'a' + 10;
-			else if (c >= '0' && c <= '9') return c - '0';
-			else return 0;
-		}
-
-		inline static void UrlDecode(std::string& src, std::string& dst) noexcept {
-			for (std::size_t i = 0; i < src.size(); i++) {
-				if (src[i] == '+') {
-					dst += ' ';
-				}
-				else if (src[i] == '%') {
-					auto high = FromHex(src[++i]);
-					auto low = FromHex(src[++i]);
-					dst += ((char)(uint8_t)(high * 16 + low));
-				}
-				else dst += src[i];
-			}
-		}
-
-		inline std::string Dump() {
-			std::string s;
-			xx::Append(s
-				, "url : ", url
-				, "\nmethod : ", method
-				, "\nbody : ", body
-			);
-			return s;
+			});
 		}
 	};
 
