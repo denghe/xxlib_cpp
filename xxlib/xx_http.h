@@ -39,20 +39,34 @@ namespace xx {
 		// 前面不带 /, 不含 ? 和 #
 		std::string path;
 
-		// ?a=1&b=2....参数部分的键值对
-		std::vector<std::pair<char*, char*>> queries;
-
 		// #xxxxxx 部分
 		char* fragment = nullptr;
 
+		// ?a=1&b=2....参数部分的键值对
+		std::vector<std::pair<char*, char*>> queries;
 
-		
+		// POST 模式 body 内容 a=1&b=2....参数部分的键值对
+		std::vector<std::pair<char*, char*>> posts;
+
+
+		// 依次在 queries 和 posts 中查找, 找到后立马返回. 未找到则返回 nullptr
+		inline char const* operator[](char const* const& key) const noexcept {
+			for (auto&& kv : queries) {
+				if (!strcmp(kv.first, key)) return kv.second;
+			}
+			for (auto&& kv : posts) {
+				if (!strcmp(kv.first, key)) return kv.second;
+			}
+			return nullptr;
+		}
+
+
 		// 从 queries 查找 queryKey 并转换数据类型填充 value
 		template<typename T>
-		inline bool TryParseQuery(char const* const& key, T& value) {
-			for (auto&& item : queries) {
+		inline bool TryParse(std::vector<std::pair<char*, char*>> const& kvs, char const* const& key, T& value) {
+			for (auto&& item : kvs) {
 				if (!strcmp(key, item.first)) {
-					return TryParse(item.second, value);
+					return xx::TryParse(item.second, value);
 				}
 			}
 			return false;
@@ -60,9 +74,9 @@ namespace xx {
 
 		// 从 queries 下标定位 并转换数据类型填充 value
 		template<typename T>
-		inline bool TryParseQuery(std::size_t const& index, T& value) {
-			if (index >= queries.size()) return false;
-			return TryParse(queries[index].second, value);
+		inline bool TryParse(std::vector<std::pair<char*, char*>> const& kvs, std::size_t const& index, T& value) {
+			if (index >= kvs.size()) return false;
+			return xx::TryParse(kvs[index].second, value);
 		}
 
 		// 会 urldecode 并 填充 path, queries, fragment. 需要手动调用
@@ -77,27 +91,13 @@ namespace xx {
 			auto q = FindAndTerminate(u, '?');
 			path = FindAndTerminate(u, '/');
 
-			queries.clear();
-			if (!q || '\0' == *q) return;
-			queries.reserve(16);
-			int i = 0;
-			queries.resize(i + 1);
-			queries[i++].first = q;
-			while ((q = strchr(q, '&'))) {
-				queries.reserve(i + 1);
-				queries.resize(i + 1);
-				*q = '\0';
-				queries[i].first = ++q;
-				queries[i].second = nullptr;
+			FillQueries(queries, q);
+		}
 
-				if (i && (queries[i - 1].second = strchr(queries[i - 1].first, '='))) {
-					*(queries[i - 1].second)++ = '\0';
-				}
-				i++;
-			}
-			if ((queries[i - 1].second = strchr(queries[i - 1].first, '='))) {
-				*(queries[i - 1].second)++ = '\0';
-			}
+		// 会 解析 body 填充 posts. 需要手动调用
+		inline void ParsePost() noexcept {
+			tmp = body;
+			FillQueries(posts, (char*)tmp.c_str());
 		}
 
 		friend struct HttpReceiver;
@@ -111,33 +111,38 @@ namespace xx {
 		// url decode 数据容器, 不可以修改内容( queries 里面的 char* 会指向这里 )
 		std::string tmp;
 
+		// url decode 数据容器, 不可以修改内容( posts 里面的 char* 会指向这里 )
+		std::string tmp2;
+
+		inline void FillQueries(std::vector<std::pair<char*, char*>>& kvs, char* q) noexcept {
+			kvs.clear();
+			if (!q || '\0' == *q) return;
+			kvs.reserve(16);
+			int i = 0;
+			kvs.resize(i + 1);
+			kvs[i++].first = q;
+			while ((q = strchr(q, '&'))) {
+				kvs.reserve(i + 1);
+				kvs.resize(i + 1);
+				*q = '\0';
+				kvs[i].first = ++q;
+				kvs[i].second = nullptr;
+
+				if (i && (kvs[i - 1].second = strchr(kvs[i - 1].first, '='))) {
+					*(kvs[i - 1].second)++ = '\0';
+				}
+				i++;
+			}
+			if ((kvs[i - 1].second = strchr(kvs[i - 1].first, '='))) {
+				*(kvs[i - 1].second)++ = '\0';
+			}
+		}
 
 		inline static char* FindAndTerminate(char* s, char const& c) noexcept {
 			s = strchr(s, c);
 			if (!s) return nullptr;
 			*s = '\0';
 			return s + 1;
-		}
-
-		inline static int FromHex(uint8_t const& c) noexcept {
-			if (c >= 'A' && c <= 'Z') return c - 'A' + 10;
-			else if (c >= 'a' && c <= 'z') return c - 'a' + 10;
-			else if (c >= '0' && c <= '9') return c - '0';
-			else return 0;
-		}
-
-		inline static void UrlDecode(std::string const& src, std::string& dst) noexcept {
-			for (std::size_t i = 0; i < src.size(); i++) {
-				if (src[i] == '+') {
-					dst += ' ';
-				}
-				else if (src[i] == '%') {
-					auto high = FromHex(src[++i]);
-					auto low = FromHex(src[++i]);
-					dst += ((char)(uint8_t)(high * 16 + low));
-				}
-				else dst += src[i];
-			}
 		}
 	};
 
@@ -147,19 +152,19 @@ namespace xx {
 		inline static std::string prefixText =
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/plain;charset=utf-8\r\n"
-			"Connection: close\r\n"
+			"Connection: keep-alive\r\n"
 			"Content-Length: ";
 
 		inline static std::string prefixHtml =
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/html;charset=utf-8\r\n"
-			"Connection: close\r\n"
+			"Connection: keep-alive\r\n"
 			"Content-Length: ";
 
 		inline static std::string prefix404 =
 			"HTTP/1.1 404 Not Found\r\n"
 			"Content-Type: text/html;charset=utf-8\r\n"
-			"Connection: close\r\n"
+			"Connection: keep-alive\r\n"
 			"Content-Length: ";
 
 		// 公用输出拼接容器
@@ -193,11 +198,11 @@ namespace xx {
 		}
 
 		inline int SendHtmlBody(std::string const& body) {
-			return Send(prefix404, "<html><body>", body, "</body></html>");
+			return Send(prefixHtml, "<html><body>", body, "</body></html>");
 		}
 
 		inline int Send404Body(std::string const& body) {
-			return Send(prefixHtml, "<html><body>", body, "</body></html>");
+			return Send(prefix404, "<html><body>", body, "</body></html>");
 		}
 	};
 
