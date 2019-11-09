@@ -1,4 +1,6 @@
-#include <xx_uv_ext.h>
+ï»¿#include <xx_uv_ext.h>
+#include <xx_uv_http.h>
+#include <xx_html.h>
 #include <unordered_set>
 
 
@@ -21,7 +23,7 @@
 
 
 /***********************************************************************************************************************/
-// ÅäÖÃÎÄ¼şÏà¹Ø
+// é…ç½®æ–‡ä»¶ç›¸å…³
 /***********************************************************************************************************************/
 
 #include"ajson.hpp"
@@ -34,26 +36,29 @@ struct ServiceInfo {
 AJSON(ServiceInfo, serviceId, ip, port);
 
 struct ServiceCfg {
-	int gatewayId = 0;						// µ±Ç°Íø¹ØÄÚ²¿±àºÅ
-	std::string listenIP;					// ¼àÌıµ½ÄÄ¸ö ip ÉÏ( Í¨³£Îª 0.0.0.0 )
-	int listenPort = 0;						// ¼àÌı¶Ë¿Ú
-	int listenTcpKcpOpt = 0;				// Ğ­ÒéÑ¡Ôñ: 0: tcp only;  1: kcp ony;   2: tcp + kcp
-	int clientTimeoutMS = 0;				// ¿Í»§¶ËµôÏß¼ì²âÊ±³¤ ms. ³¬³öÕâ¸öÊ±¼äÃ»ÓĞÊÕµ½¿Í»§¶ËµÄºÏ·¨Êı¾İÔò»á¶Ïµô¿Í»§¶Ë
-	std::vector<ServiceInfo> services;		// ÒªÁ¬½Óµ½ÄÄĞ©·şÎñ
+	int gatewayId = 0;						// å½“å‰ç½‘å…³å†…éƒ¨ç¼–å·
+	std::string listenIP;					// ç›‘å¬åˆ°å“ªä¸ª ip ä¸Š( é€šå¸¸ä¸º 0.0.0.0 )
+	int listenPort = 0;						// ç›‘å¬ç«¯å£
+	int listenTcpKcpOpt = 0;				// åè®®é€‰æ‹©: 0: tcp only;  1: kcp ony;   2: tcp + kcp
+	int clientTimeoutMS = 0;				// å®¢æˆ·ç«¯æ‰çº¿æ£€æµ‹æ—¶é•¿ ms. è¶…å‡ºè¿™ä¸ªæ—¶é—´æ²¡æœ‰æ”¶åˆ°å®¢æˆ·ç«¯çš„åˆæ³•æ•°æ®åˆ™ä¼šæ–­æ‰å®¢æˆ·ç«¯
+	std::string webListenIP;				// ç›‘è§†å™¨ç›‘å¬åˆ°å“ªä¸ª ip ä¸Š( é€šå¸¸ä¸º 0.0.0.0 )
+	int webListenPort = 0;					// ç›‘å¬ç«¯å£
+	std::vector<ServiceInfo> services;		// è¦è¿æ¥åˆ°å“ªäº›æœåŠ¡
 };
-AJSON(ServiceCfg, gatewayId, listenIP, listenPort, listenTcpKcpOpt, clientTimeoutMS, services);
+AJSON(ServiceCfg, gatewayId, listenIP, listenPort, listenTcpKcpOpt, clientTimeoutMS, webListenIP, webListenPort, services);
 
+struct WebHandler;
 
 
 
 /***********************************************************************************************************************/
-// Í¨ĞÅ peer Ïà¹Ø
+// é€šä¿¡ peer ç›¸å…³
 /***********************************************************************************************************************/
 
 struct UvGatewayPeer : xx::UvCommandPeer {
 	using UvCommandPeer::UvCommandPeer;
 
-	// Ö±½ÓÍ¶µİÔ­Ê¼ buf ·½±ãĞ¡¸Ä×ª·¢
+	// ç›´æ¥æŠ•é€’åŸå§‹ buf æ–¹ä¾¿å°æ”¹è½¬å‘
 	std::function<int(uint8_t* const& buf, std::size_t const& len)> onReceive;
 
 	inline virtual bool Dispose(int const& flag = 1) noexcept override {
@@ -93,10 +98,10 @@ protected:
 struct UvFromClientPeer : UvGatewayPeer {
 	using UvGatewayPeer::UvGatewayPeer;
 
-	// ×ÔÔö±àºÅ, accept Ê±Ìî³ä
+	// è‡ªå¢ç¼–å·, accept æ—¶å¡«å……
 	uint32_t clientId = 0xFFFFFFFFu;
 
-	// ÔÊĞí·ÃÎÊµÄ service peers µÄ id µÄ°×Ãûµ¥
+	// å…è®¸è®¿é—®çš„ service peers çš„ id çš„ç™½åå•
 	std::unordered_set<uint32_t> serviceIds;
 
 	int SendCommand_Open(uint32_t const& serviceId) {
@@ -111,7 +116,7 @@ struct UvFromClientPeer : UvGatewayPeer {
 struct UvToServicePeer : UvGatewayPeer {
 	using UvGatewayPeer::UvGatewayPeer;
 
-	// ÄÚ²¿·şÎñ±àºÅ, ´ÓÅäÖÃÌî³ä
+	// å†…éƒ¨æœåŠ¡ç¼–å·, ä»é…ç½®å¡«å……
 	uint32_t serviceId = 0xFFFFFFFFu;
 	bool waitPingBack = false;
 	int SendCommand_GatewayId(uint32_t const& gatewayId) {
@@ -138,7 +143,7 @@ struct UvToServiceDialer : xx::UvDialer {
 		};
 	}
 
-	// ĞèÒª±£´æÏÂÀ´µÄĞÅÏ¢£¬·´¸´ Dial »ò onConnect Ê±¿ÉÒÔ·½±ãµÄ¶ÁÈ¡
+	// éœ€è¦ä¿å­˜ä¸‹æ¥çš„ä¿¡æ¯ï¼Œåå¤ Dial æˆ– onConnect æ—¶å¯ä»¥æ–¹ä¾¿çš„è¯»å–
 	uint32_t serviceId = 0;
 	std::string ip;
 	int port = 0;
@@ -159,14 +164,14 @@ struct UvFromClientListener : xx::UvListener {
 
 
 /***********************************************************************************************************************/
-// Íø¹ØÖ÷Ìå
+// ç½‘å…³ä¸»ä½“
 /***********************************************************************************************************************/
 
 struct Gateway {
 	static_assert(sizeof(UvToServicePeer::serviceId) == sizeof(UvFromClientPeer::clientId));
 	xx::Uv uv;
 
-	// ·şÎñÆô¶¯ÅäÖÃ. ´Ó json ¼ÓÔØ
+	// æœåŠ¡å¯åŠ¨é…ç½®. ä» json åŠ è½½
 	ServiceCfg cfg;
 
 	xx::UvTimer_s pingTimer;
@@ -194,6 +199,7 @@ struct Gateway {
 			});
 		InitClientListener();
 		InitServiceDialers();
+		InitWebListener();
 	}
 
 
@@ -201,7 +207,7 @@ struct Gateway {
 	// client
 	/***********************************************************************************************/
 
-	// µÈ´ı client µÄ½ÓÈë
+	// ç­‰å¾… client çš„æ¥å…¥
 	std::shared_ptr<UvFromClientListener> clientListener;
 
 	// new cp.clientId = ++clientPeerAutoId
@@ -211,15 +217,15 @@ struct Gateway {
 	std::unordered_map<uint32_t, std::shared_ptr<UvFromClientPeer>> clientPeers;
 
 	void InitClientListener() {
-		// ´´½¨ listener( tcp, kcp Í¬Ê±Ö§³Ö )
+		// åˆ›å»º listener( tcp, kcp åŒæ—¶æ”¯æŒ )
 		xx::MakeTo(clientListener, uv, cfg.listenIP, cfg.listenPort, cfg.listenTcpKcpOpt);
 
-		// ½ÓÊÜÁ¬½ÓÊ±·ÖÅä×ÔÔö id ·ÅÈë×Öµä ²¢ÉèÖÃÏàÓ¦ÊÂ¼ş´¦Àí´úÂë
+		// æ¥å—è¿æ¥æ—¶åˆ†é…è‡ªå¢ id æ”¾å…¥å­—å…¸ å¹¶è®¾ç½®ç›¸åº”äº‹ä»¶å¤„ç†ä»£ç 
 		clientListener->onAccept = [this](xx::UvPeer_s peer) {
-			// ×ªÎªÕıÈ·µÄÀàĞÍ
+			// è½¬ä¸ºæ­£ç¡®çš„ç±»å‹
 			auto&& cp = xx::As<UvFromClientPeer>(peer);
 
-			// Èç¹ûÄ¬ÈÏ×ª·¢´¦Àí·şÎñÎ´¾ÍĞ÷£¬²»½ÓÊÜÁ¬½Ó
+			// å¦‚æœé»˜è®¤è½¬å‘å¤„ç†æœåŠ¡æœªå°±ç»ªï¼Œä¸æ¥å—è¿æ¥
 			auto&& sp_0 = serviceDialerPeers[0].second;
 			if (!sp_0 || sp_0->Disposed()) {
 #if PRINT_LOG_SERVICE0_NOT_READY
@@ -228,19 +234,19 @@ struct Gateway {
 				return;
 			}
 
-			// ²úÉú×ÔÔö id
+			// äº§ç”Ÿè‡ªå¢ id
 			cp->clientId = ++clientPeerAutoId;
 
-			// ·ÅÈëÓ³Éä×Öµä
+			// æ”¾å…¥æ˜ å°„å­—å…¸
 			clientPeers.emplace(cp->clientId, cp);
 
-			// ×¢²áÊÂ¼ş£º¶ÏÏßÊ±´Ó×ÖµäÒÆ³ı
+			// æ³¨å†Œäº‹ä»¶ï¼šæ–­çº¿æ—¶ä»å­—å…¸ç§»é™¤
 			cp->onDisconnect = [this, cp] {
 				assert(cp->clientId);
 				this->clientPeers.erase(cp->clientId);
 
-				// Èº·¢¶Ï¿ªÍ¨Öª
-				cp->serviceIds.emplace(0);	// È·±£Ïò 0 service Ò²¹ã²¥
+				// ç¾¤å‘æ–­å¼€é€šçŸ¥
+				cp->serviceIds.emplace(0);	// ç¡®ä¿å‘ 0 service ä¹Ÿå¹¿æ’­
 				for (auto&& serviceId : cp->serviceIds) {
 					auto&& sp = serviceDialerPeers[serviceId].second;
 					if (sp && !sp->Disposed()) {
@@ -252,19 +258,19 @@ struct Gateway {
 #endif
 			};
 
-			// ×¢²áÊÂ¼ş£ºÊÕµ½¿Í»§¶Ë·¢À´µÄÖ¸Áî£¬Ö±½Ó echo ·µ»Ø
+			// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°å®¢æˆ·ç«¯å‘æ¥çš„æŒ‡ä»¤ï¼Œç›´æ¥ echo è¿”å›
 			cp->onReceiveCommand = [this, cp](xx::BBuffer& bb)->int {
-				// ĞøÃü
+				// ç»­å‘½
 				cp->ResetTimeoutMS(cfg.clientTimeoutMS);
-				// echo ·¢»Ø
+				// echo å‘å›
 				return cp->SendDirect(bb.buf - 4, bb.len + 4);
 			};
 
-			// ×¢²áÊÂ¼ş£ºÊÕµ½Êı¾İÖ®ºó½âÎö serviceId ²¿·Ö²¢¶¨Î»µ½ service peer ×ª·¢
+			// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°æ•°æ®ä¹‹åè§£æ serviceId éƒ¨åˆ†å¹¶å®šä½åˆ° service peer è½¬å‘
 			cp->onReceive = [this, cp](uint8_t* const& buf, std::size_t const& len)->int {
 				uint32_t serviceId = 0;
 
-				// È¡³ö serviceId
+				// å–å‡º serviceId
 				if (len < sizeof(serviceId)) return -1;
 				::memcpy(&serviceId, buf, sizeof(serviceId));
 
@@ -272,27 +278,27 @@ struct Gateway {
 				xx::CoutN("cp -> sp. size = ", len, ", serviceId = ", serviceId);
 #endif
 
-				// ÅĞ¶Ï¸Ã·şÎñ±àºÅÊÇ·ñÔÚ°×Ãûµ¥ÖĞ. ÕÒ²»µ½Ôò¶Ï¿ª
+				// åˆ¤æ–­è¯¥æœåŠ¡ç¼–å·æ˜¯å¦åœ¨ç™½åå•ä¸­. æ‰¾ä¸åˆ°åˆ™æ–­å¼€
 				if (cp->serviceIds.find(serviceId) == cp->serviceIds.end()) return -1;
 
-				// ²éÕÒ¶ÔÓ¦µÄ servicePeer
+				// æŸ¥æ‰¾å¯¹åº”çš„ servicePeer
 				auto&& sp = serviceDialerPeers[serviceId].second;
 
-				// Èç¹ûÎ´Ó³Éä»òÒÑ¶Ï¿ª ¾Í·µ»Ø´íÎóÂë£¬Õâ½«µ¼ÖÂ client peer ¶Ï¿ª
+				// å¦‚æœæœªæ˜ å°„æˆ–å·²æ–­å¼€ å°±è¿”å›é”™è¯¯ç ï¼Œè¿™å°†å¯¼è‡´ client peer æ–­å¼€
 				if (!sp || sp->Disposed()) return -2;
 
-				// ĞøÃü. Ã¿´ÎÊÕµ½ºÏ·¨Êı¾İĞøÒ»ÏÂ
+				// ç»­å‘½. æ¯æ¬¡æ”¶åˆ°åˆæ³•æ•°æ®ç»­ä¸€ä¸‹
 				cp->ResetTimeoutMS(cfg.clientTimeoutMS);
 
-				// ´Û¸Ä serviceId Îª clientId, ×ª·¢°üº¬ header µÄÕû°ü
+				// ç¯¡æ”¹ serviceId ä¸º clientId, è½¬å‘åŒ…å« header çš„æ•´åŒ…
 				::memcpy(buf, &cp->clientId, sizeof(serviceId));
 				return sp->SendDirect(buf - 4, len + 4);
 			};
 
-			// ĞøÃü. Á¬½Óºó xx MS ÄÚÈç¹ûÃ»ÓĞÊÕµ½ÈÎºÎÊı¾İ£¬Á¬½Ó½«¶Ï¿ª
+			// ç»­å‘½. è¿æ¥å xx MS å†…å¦‚æœæ²¡æœ‰æ”¶åˆ°ä»»ä½•æ•°æ®ï¼Œè¿æ¥å°†æ–­å¼€
 			cp->ResetTimeoutMS(cfg.clientTimeoutMS);
 
-			// ÏòÄ¬ÈÏ·şÎñ·¢ËÍ accept Í¨Öª
+			// å‘é»˜è®¤æœåŠ¡å‘é€ accept é€šçŸ¥
 			sp_0->SendCommand_Accept(cp->clientId, cp->GetIP());
 
 #if PRINT_LOG_CLIENT_PEER_ACCEPT
@@ -308,10 +314,10 @@ struct Gateway {
 	// service
 	/***********************************************************************************************/
 
-	// ²¦ºÅÓÃ timer
+	// æ‹¨å·ç”¨ timer
 	std::shared_ptr<xx::UvTimer> serviceDialTimer;
 
-	// ²¦ºÅÆ÷ºÍ peer ´æ´¢ÔÚÒ»Æğ£¬°ó¶¨¹ØÏµ
+	// æ‹¨å·å™¨å’Œ peer å­˜å‚¨åœ¨ä¸€èµ·ï¼Œç»‘å®šå…³ç³»
 	using DialerPeer = std::pair<std::shared_ptr<UvToServiceDialer>, std::shared_ptr<UvToServicePeer>>;
 
 	// key: serviceId
@@ -319,7 +325,7 @@ struct Gateway {
 
 
 	void InitServiceDialers() {
-		// ´´½¨²¦ºÅÓÃ timer
+		// åˆ›å»ºæ‹¨å·ç”¨ timer
 		xx::MakeTo(serviceDialTimer, uv, 500, 500, [this] {
 			for (auto&& kv : serviceDialerPeers) {
 				//auto&& serviceId = kv.first;
@@ -334,13 +340,13 @@ struct Gateway {
 					}
 				}
 			}
-		});
+			});
 
-		// ´´½¨ dialers
+		// åˆ›å»º dialers
 		for (auto&& cfg : cfg.services) {
 			TryCreateServiceDialer(cfg.serviceId, cfg.ip, cfg.port);
 #if PRINT_LOG_SERVICE_CONFIG
-			xx::CoutN("serviceId:", cfg.serviceId,"  ip:",cfg.ip,"  port:",cfg.port);
+			xx::CoutN("serviceId:", cfg.serviceId, "  ip:", cfg.ip, "  port:", cfg.port);
 #endif
 		}
 	}
@@ -356,27 +362,27 @@ struct Gateway {
 		dialer->ip = ip;
 		dialer->port = port;
 
-		// ÉèÖÃÏàÓ¦ÊÂ¼ş´¦Àí´úÂë
+		// è®¾ç½®ç›¸åº”äº‹ä»¶å¤„ç†ä»£ç 
 		dialer->onConnect = [this, serviceId](xx::UvPeer_s peer) {
-			// Èç¹ûÃ»Á¬ÉÏ, ºöÂÔ
+			// å¦‚æœæ²¡è¿ä¸Š, å¿½ç•¥
 			if (!peer) return;
 
-			// »¹Ô­³öÔ­Ê¼ÀàĞÍ±¸ÓÃ
+			// è¿˜åŸå‡ºåŸå§‹ç±»å‹å¤‡ç”¨
 			auto&& sp = xx::As<UvToServicePeer>(peer);
 
-			// ÉèÖÃÆä serviceId
+			// è®¾ç½®å…¶ serviceId
 			sp->serviceId = serviceId;
 
-			// ·ÅÈëÈİÆ÷
+			// æ”¾å…¥å®¹å™¨
 			serviceDialerPeers[serviceId].second = sp;
 
-			// ×¢²áÊÂ¼ş£º¶Ï¿ªÊ±Çå³ıÏàÓ¦ peer ´æ´¢±äÁ¿
+			// æ³¨å†Œäº‹ä»¶ï¼šæ–­å¼€æ—¶æ¸…é™¤ç›¸åº” peer å­˜å‚¨å˜é‡
 			sp->onDisconnect = [this, sp] {
 
-				// ´Ó´æ´¢ÇøÒÆ³ı
+				// ä»å­˜å‚¨åŒºç§»é™¤
 				this->serviceDialerPeers[sp->serviceId].second.reset();
 
-				// ´ÓËùÓĞ client peers ÀïµÄ°×Ãûµ¥ÖĞÒÆ³ı ²¢×Ô¶¯ÏÂ·¢ close.	// todo: Èç¹û  °×Ãûµ¥ ¿ÕÁË£¬Ö±½ÓÎïÀí¶Ï¿ª
+				// ä»æ‰€æœ‰ client peers é‡Œçš„ç™½åå•ä¸­ç§»é™¤ å¹¶è‡ªåŠ¨ä¸‹å‘ close.	// todo: å¦‚æœ  ç™½åå• ç©ºäº†ï¼Œç›´æ¥ç‰©ç†æ–­å¼€
 				for (auto&& kv : clientPeers) {
 					if (kv.second && !kv.second->Disposed()) {
 						kv.second->SendCommand_Close(sp->serviceId);
@@ -388,9 +394,9 @@ struct Gateway {
 #endif
 			};
 
-			// ×¢²áÊÂ¼ş£ºÊÕµ½ÍÆËÍµÄ´¦Àí
+			// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°æ¨é€çš„å¤„ç†
 			sp->onReceive = [this, sp](uint8_t* const& buf, std::size_t const& len)->int {
-				// ¶Á³ö clientId
+				// è¯»å‡º clientId
 				uint32_t clientId = 0;
 				if (len < sizeof(clientId)) return -1;
 				::memcpy(&clientId, buf, sizeof(clientId));
@@ -399,40 +405,40 @@ struct Gateway {
 				xx::CoutN("sp -> cp. size = ", len, ", clientId = ", clientId);
 #endif
 
-				// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+				// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 				auto&& iter = this->clientPeers.find(clientId);
 				if (iter == this->clientPeers.end()) return 0;
 				auto&& cp = iter->second;
 				if (!cp || cp->Disposed()) return 0;
 
-				// ´Û¸Ä clientId Îª serviceId ×ª·¢( ´ø header )
+				// ç¯¡æ”¹ clientId ä¸º serviceId è½¬å‘( å¸¦ header )
 				::memcpy(buf, &sp->serviceId, sizeof(sp->serviceId));
 				(void)cp->SendDirect(buf - 4, len + 4);
 				return 0;
 			};
 
-			// ×¢²áÊÂ¼ş£ºÊÕµ½ÄÚ²¿Ö¸ÁîµÄ´¦Àí
+			// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°å†…éƒ¨æŒ‡ä»¤çš„å¤„ç†
 			sp->onReceiveCommand = [this, sp](xx::BBuffer& bb)->int {
-				// ÊÔ¶ÁÈ¡ cmd ×Ö´®
+				// è¯•è¯»å– cmd å­—ä¸²
 				std::string cmd;
 				if (int r = bb.Read(cmd)) return r;
 
-				// ¿ª¶Ë¿Ú. ²ÎÊı: clientId
+				// å¼€ç«¯å£. å‚æ•°: clientId
 				if (cmd == "open") {
-					// ÊÔ¶Á³ö clientId
+					// è¯•è¯»å‡º clientId
 					uint32_t clientId = 0;
 					if (int r = bb.Read(clientId)) return r;
 
-					// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+					// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 					auto&& iter = this->clientPeers.find(clientId);
 					if (iter == this->clientPeers.end()) return 0;
 					auto&& cp = iter->second;
 					if (!cp || cp->Disposed()) return 0;
 
-					// ·ÅÈë°×Ãûµ¥
+					// æ”¾å…¥ç™½åå•
 					cp->serviceIds.emplace(sp->serviceId);
 
-					// ÏÂ·¢ open
+					// ä¸‹å‘ open
 					cp->SendCommand_Open(sp->serviceId);
 
 #if PRINT_LOG_RECV_OPEN
@@ -442,25 +448,25 @@ struct Gateway {
 				}
 
 
-				// ¹Ø¶Ë¿Ú. ²ÎÊı: clientId
+				// å…³ç«¯å£. å‚æ•°: clientId
 				else if (cmd == "close") {
-					// ÊÔ¶Á³ö clientId
+					// è¯•è¯»å‡º clientId
 					uint32_t clientId = 0;
 					if (int r = bb.Read(clientId)) return r;
 
-					// Ç°ÖÃ¼ì²é
+					// å‰ç½®æ£€æŸ¥
 					if (!clientId) return -1;
 
-					// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+					// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 					auto&& iter = this->clientPeers.find(clientId);
 					if (iter == this->clientPeers.end()) return 0;
 					auto&& cp = iter->second;
 					if (!cp || cp->Disposed()) return 0;
 
-					// ´Ó°×Ãûµ¥ÒÆ³ı
+					// ä»ç™½åå•ç§»é™¤
 					cp->serviceIds.erase(sp->serviceId);
 
-					// ÏÂ·¢ close
+					// ä¸‹å‘ close
 					cp->SendCommand_Close(sp->serviceId);
 
 #if PRINT_LOG_RECV_CLOSE
@@ -469,39 +475,39 @@ struct Gateway {
 					return 0;
 				}
 				else if (cmd == "ping") {
-					
+
 					sp->waitPingBack = false;
 					return 0;
 				}
-				// ÌßÍæ¼ÒÏÂÏß. ²ÎÊı: clientId, delayMS
+				// è¸¢ç©å®¶ä¸‹çº¿. å‚æ•°: clientId, delayMS
 				else if (cmd == "kick") {
-					// ÊÔ¶Á³ö²ÎÊı
+					// è¯•è¯»å‡ºå‚æ•°
 					uint32_t clientId = 0;
 					int64_t delayMS = 0;
 					if (int r = bb.Read(clientId, delayMS)) return r;
 
-					// Ç°ÖÃ¼ì²é
+					// å‰ç½®æ£€æŸ¥
 					if (!clientId) return -1;
 
-					// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+					// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 					auto&& iter = this->clientPeers.find(clientId);
 					if (iter == this->clientPeers.end()) return 0;
 					auto&& cp = iter->second;
 					if (!cp || cp->Disposed()) return 0;
 
 					if (delayMS) {
-						// ×·¼ÓÒ»¸ö close Ö¸ÁîÒÔ±ã client ÊÕµ½ºóÖ±½Ó×ÔÉ±
+						// è¿½åŠ ä¸€ä¸ª close æŒ‡ä»¤ä»¥ä¾¿ client æ”¶åˆ°åç›´æ¥è‡ªæ€
 						if (auto r = cp->SendCommand_Close(0)) return r;
 
-						// ÑÓ³Ù¶Ï¿ª£¬ÏÈ½â°óÊÂ¼ş´¦Àíº¯Êı£¬ÔÙÉèÖÃ³¬Ê±Ê±³¤£¬µ½Ê±»á Dispose()
-						auto cp1 = cp;							// onDisconnect »áµ¼ÖÂ cp ±äÁ¿Ê§Ğ§¹Ê¸´ÖÆ
-						cp1->onDisconnect();					// ½â³ıÓ³Éä²¢·¢ËÍ¶ÏÏßÍ¨Öª
-						cp1->onDisconnect = [cp1] {};			// Çå³ı¾Éº¯Êı²¢³ÖÓĞ
+						// å»¶è¿Ÿæ–­å¼€ï¼Œå…ˆè§£ç»‘äº‹ä»¶å¤„ç†å‡½æ•°ï¼Œå†è®¾ç½®è¶…æ—¶æ—¶é•¿ï¼Œåˆ°æ—¶ä¼š Dispose()
+						auto cp1 = cp;							// onDisconnect ä¼šå¯¼è‡´ cp å˜é‡å¤±æ•ˆæ•…å¤åˆ¶
+						cp1->onDisconnect();					// è§£é™¤æ˜ å°„å¹¶å‘é€æ–­çº¿é€šçŸ¥
+						cp1->onDisconnect = [cp1] {};			// æ¸…é™¤æ—§å‡½æ•°å¹¶æŒæœ‰
 						cp1->onReceive = nullptr;
 						cp1->ResetTimeoutMS(delayMS);
 					}
 					else {
-						// Á¢¿Ì¶Ï¿ªÁ¬½Ó£¬´¥·¢ onDisconnect( ´Ó this->clientPeers ÒÆ³ı²¢Ïò°×Ãûµ¥ serviceIds ¶ÔÓ¦ peer ¹ã²¥¶Ï¿ªÍ¨Öª )
+						// ç«‹åˆ»æ–­å¼€è¿æ¥ï¼Œè§¦å‘ onDisconnect( ä» this->clientPeers ç§»é™¤å¹¶å‘ç™½åå• serviceIds å¯¹åº” peer å¹¿æ’­æ–­å¼€é€šçŸ¥ )
 						cp->Dispose();
 					}
 
@@ -516,7 +522,7 @@ struct Gateway {
 				}
 			};
 
-			// Ïò service ·¢ËÍ×Ô¼ºµÄ gatewayId
+			// å‘ service å‘é€è‡ªå·±çš„ gatewayId
 			sp->SendCommand_GatewayId(cfg.gatewayId);
 
 #if PRINT_LOG_SERVICE_CONNECTD
@@ -526,7 +532,146 @@ struct Gateway {
 
 		return dialer->Dial();
 	}
+
+
+
+
+	/***********************************************************************************************/
+	// web ç›¸å…³
+	/***********************************************************************************************/
+
+	// ç­‰å¾… æµè§ˆå™¨ çš„æ¥å…¥
+	std::shared_ptr<xx::UvHttpListener> webListener;
+
+	std::shared_ptr<WebHandler> webHandler;
+
+	void InitWebListener();
 };
+
+// 
+struct WebHandler {
+	// æŒ‡å‘æœåŠ¡ä¸Šä¸‹æ–‡
+	Gateway* gateway = nullptr;
+
+	// ç½‘å€ path : å¤„ç†å‡½æ•° æ˜ å°„å¡«å……åˆ°æ­¤
+	std::unordered_map<std::string, std::function<int(xx::HttpContext & request, xx::HttpResponse & response)>> handlers;
+
+	// è°ƒç”¨å…¥å£
+	inline int operator()(xx::HttpContext& request, xx::HttpResponse& response) {
+		// å¡«å…… request.path ç­‰
+		request.ParseUrl();
+
+		// ç”¨ path æŸ¥æ‰¾å¤„ç†å‡½æ•°
+		auto&& iter = handlers.find(request.path);
+
+		// å¦‚æœæ²¡æ‰¾åˆ°ï¼šè¾“å‡ºé»˜è®¤æŠ¥é”™é¡µé¢
+		if (iter == handlers.end()) {
+			response.Send404Body("the page not found!");
+		}
+		// æ‰¾åˆ°åˆ™æ‰§è¡Œ
+		else {
+			// å¦‚æœæ‰§è¡Œå‡ºé”™ï¼Œè¾“å‡ºé»˜è®¤æŠ¥é”™é¡µé¢
+			if (iter->second(request, response)) {
+				response.Send404Body("bad request!");
+			}
+		}
+		return 0;
+	}
+
+	// ç»‘å®šå¤„ç†å‡½æ•°
+	WebHandler(Gateway* gateway)
+		: gateway(gateway) {
+
+		handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
+			return response.SendHtmlBody(R"--(
+<p><a href="/watch_service_cfg">æŸ¥çœ‹ cfg</a></p>
+<p><a href="/watch_connected_services">æŸ¥çœ‹ å†…éƒ¨æœåŠ¡è¿æ¥çŠ¶æ€</a></p>
+)--");
+		};
+
+		handlers["watch_service_cfg"] = [gw = this->gateway](xx::HttpContext& request, xx::HttpResponse& response)->int {
+			auto&& cfg = gw->cfg;
+			xx::Html::Document doc;
+			auto&& body = doc.Add(xx::Html::Body::Create());
+			body->Add(xx::Html::Paragrapth::Create("gatewayId = ", cfg.gatewayId));
+			body->Add(xx::Html::Paragrapth::Create("listenIP = ", cfg.listenIP));
+			body->Add(xx::Html::Paragrapth::Create("listenPort = ", cfg.listenPort));
+			body->Add(xx::Html::Paragrapth::Create("listenTcpKcpOpt = ", cfg.listenTcpKcpOpt));
+			body->Add(xx::Html::Paragrapth::Create("clientTimeoutMS = ", cfg.clientTimeoutMS));
+			body->Add(xx::Html::Paragrapth::Create("webListenIP = ", cfg.webListenIP));
+			body->Add(xx::Html::Paragrapth::Create("webListenPort = ", cfg.webListenPort));
+			if (cfg.services.size()) {
+				body->Add(xx::Html::Table::Create(3, [&](int const& columnIndex, std::string& s) {
+					switch (columnIndex) {
+					case 0:	xx::Append(s, "serviceId");							break;
+					case 1:	xx::Append(s, "ip");								break;
+					case 2:	xx::Append(s, "port");								break;
+					}
+				}, [&ss = cfg.services](int const& rowIndex, int const& columnIndex, std::string& s)->bool {
+					switch (columnIndex) {
+					case 0:	xx::Append(s, ss[rowIndex].serviceId);				break;
+					case 1:	xx::Append(s, ss[rowIndex].ip);						break;
+					case 2:	xx::Append(s, ss[rowIndex].port);					break;
+					}
+					return rowIndex + 1 < (int)ss.size();
+				}));
+			}
+			body->Add(xx::Html::HyperLink::Create("å›åˆ°ä¸»èœå•", "/"));
+			return response.Send(response.prefixHtml, doc);
+		};
+
+		handlers["watch_connected_services"] = [gw = this->gateway](xx::HttpContext& request, xx::HttpResponse& response)->int {
+			std::vector<std::tuple<uint32_t, std::shared_ptr<UvToServiceDialer>*, std::shared_ptr<UvToServicePeer>*>> rows;
+			for (auto&& kv : gw->serviceDialerPeers) {
+				rows.emplace_back(kv.first, &kv.second.first, &kv.second.second);
+			}
+			xx::Html::Document doc;
+			auto&& body = doc.Add(xx::Html::Body::Create());
+			if (rows.size()) {
+				body->Add(xx::Html::Table::Create(5, [&](int const& columnIndex, std::string& s) {
+					switch (columnIndex) {
+					case 0:	xx::Append(s, "key");								break;
+					case 1:	xx::Append(s, "serviceId");							break;
+					case 2:	xx::Append(s, "ip:port");							break;
+					case 3:	xx::Append(s, "busy");								break;
+					case 4:	xx::Append(s, "peer alive");						break;
+					}
+					}, [&](int const& rowIndex, int const& columnIndex, std::string& s)->bool {
+						auto&& row = rows[rowIndex];
+						auto&& dialer = *std::get<1>(row);
+						switch (columnIndex) {
+						case 0:	xx::Append(s, std::get<0>(row));				break;
+						case 1:	xx::Append(s, dialer->serviceId);				break;
+						case 2:	xx::Append(s, dialer->ip, ":", dialer->port);	break;
+						case 3:	xx::Append(s, dialer->Busy());					break;
+						case 4:
+							auto && peer = *std::get<2>(row);
+							xx::Append(s, peer && !peer->Disposed());
+							break;
+						}
+						return rowIndex + 1 < (int)rows.size();
+					}));
+			}
+			body->Add(xx::Html::HyperLink::Create("å›åˆ°ä¸»èœå•", "/"));
+			return response.Send(response.prefixHtml, doc);
+		};
+	}
+};
+
+inline void Gateway::InitWebListener() {
+	// åˆ›å»º web listener( åªæ”¯æŒ tcp )
+	xx::MakeTo(webListener, uv, cfg.webListenIP, cfg.webListenPort);
+	xx::MakeTo(webHandler, this);
+
+	webListener->onAccept = [this](xx::UvHttpPeer_s peer) {
+		peer->onReceiveHttp = [this, peer](xx::HttpContext& request, xx::HttpResponse& response)->int {
+			return (*webHandler)(request, response);
+		};
+	};
+}
+
+
+
 
 int main() {
 	Gateway g;

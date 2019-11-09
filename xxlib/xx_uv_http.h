@@ -121,6 +121,7 @@ namespace xx {
 		inline virtual bool Dispose(int const& flag = 1) noexcept override {
 			if (!uvTcp) return false;
 			Uv::HandleCloseAndFree(uvTcp);
+			if (flag == -1) return true;
 			auto holder = shared_from_this();
 			if (flag == 1) {
 				Disconnect();
