@@ -58,6 +58,14 @@ namespace xx::Html {
 		inline virtual void ToHtml(std::string& s) const noexcept override {
 			xx::Append(s, "<html>", childs, "</html>");
 		}
+
+		// 直接拼接辅助函数
+		inline static void AppendHead(std::string& s) {
+			xx::Append(s, "<html>");
+		}
+		inline static void AppendFoot(std::string& s) {
+			xx::Append(s, "</html>");
+		}
 	};
 
 	struct Body : Base {
@@ -73,6 +81,14 @@ namespace xx::Html {
 
 		inline virtual void ToHtml(std::string& s) const noexcept override {
 			xx::Append(s, "<body>", childs, "</body>");
+		}
+
+		// 直接拼接辅助函数
+		inline static void AppendHead(std::string& s) {
+			xx::Append(s, "<body>");
+		}
+		inline static void AppendFoot(std::string& s) {
+			xx::Append(s, "</body>");
 		}
 	};
 
@@ -94,6 +110,14 @@ namespace xx::Html {
 
 		inline virtual void ToHtml(std::string& s) const noexcept override {
 			xx::Append(s, "<form method=\"post\" action=\"", action, "\">", childs, "<input type=\"submit\" value=\"Submit\" /></form>");
+		}
+
+		// 直接拼接辅助函数
+		inline static void AppendHead(std::string& s, std::string&& action = "") {
+			xx::Append(s, "<form method=\"post\" action=\"", action, "\">");
+		}
+		inline static void AppendFoot(std::string& s) {
+			xx::Append(s, "<input type=\"submit\" value=\"Submit\" /></form>");
 		}
 	};
 
@@ -118,6 +142,11 @@ namespace xx::Html {
 		std::string value;
 		std::string type;
 		inline virtual void ToHtml(std::string& s) const noexcept override {
+			xx::Append(s, "<p>", (title.size() ? title : name), ":<input type=\"", (type.size() ? type : std::string("text")), "\" name=\"", (name.size() ? name : title), "\" value=\"", value, "\" /></p>");
+		}
+
+		// 直接拼接辅助函数
+		inline static void Append(std::string& s, std::string&& title, std::string&& name = "", std::string&& value = "", std::string&& type = "") {
 			xx::Append(s, "<p>", (title.size() ? title : name), ":<input type=\"", (type.size() ? type : std::string("text")), "\" name=\"", (name.size() ? name : title), "\" value=\"", value, "\" /></p>");
 		}
 	};
@@ -154,6 +183,20 @@ namespace xx::Html {
 		inline virtual void ToHtml(std::string& s) const noexcept override {
 			xx::Append(s, "<a href=\"", href, "\">", content, childs, "</a>");
 		}
+
+		// 直接拼接辅助函数
+		template<typename ...Args>
+		inline static void AppendHead(std::string& s, Args const& ... hrefs) {
+			xx::Append(s, "<a href=\"", hrefs..., "\">");
+		}
+		inline static void AppendFoot(std::string& s) {
+			xx::Append(s, "</a>");
+		}
+
+		template<typename ...Args>
+		inline static void Append(std::string& s, std::string&& content, Args const& ... hrefs) {
+			xx::Append(s, "<a href=\"", hrefs..., "\">", content, "</a>");
+		}
 	};
 
 	struct Paragrapth : Base {
@@ -179,6 +222,14 @@ namespace xx::Html {
 		std::string content;
 		inline virtual void ToHtml(std::string& s) const noexcept override {
 			xx::Append(s, "<p>", content, childs, "</p>");
+		}
+
+		// 直接拼接辅助函数
+		inline static void AppendHead(std::string& s) {
+			xx::Append(s, "<p>");
+		}
+		inline static void AppendFoot(std::string& s) {
+			xx::Append(s, "</p>");
 		}
 	};
 
@@ -261,6 +312,40 @@ namespace xx::Html {
 			}
 			xx::Append(s, "</table>");
 		}
-	};
 
+
+		// 下面是直接追加拼接模式辅助函数
+
+		template<typename ...Args>
+		inline static void AppendHead(std::string& s, Args const& ... titles) {
+			xx::Append(s, "<table border=\"1\">");
+			xx::Append(s, "<thead><tr>");
+			std::initializer_list<int> n{ ((AppendHeadCore(s, titles)), 0)... };
+			(void)(n);
+			xx::Append(s, "</tr></thead><tbody>");
+		}
+
+		template<typename ...Args>
+		inline static void AppendRow(std::string& s, Args const& ... columns) {
+			xx::Append(s, "<tr>");
+			std::initializer_list<int> n{ ((AppendRowCore(s, columns)), 0)... };
+			(void)(n);
+			xx::Append(s, "</tr>");
+		}
+
+		inline static void AppendFoot(std::string& s) {
+			xx::Append(s, "</tbody></table>");
+		}
+
+	protected:
+		template<typename T>
+		inline static void AppendHeadCore(std::string& s, T const& v) {
+			xx::Append(s, "<th>", v, "</th>");
+		}
+
+		template<typename T>
+		inline static void AppendRowCore(std::string& s, T const& v) {
+			xx::Append(s, "<td>", v, "</td>");
+		}
+	};
 }

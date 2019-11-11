@@ -582,6 +582,9 @@ struct WebHandler {
 	WebHandler(Gateway* gateway)
 		: gateway(gateway) {
 
+		// 简化下命名空间书写
+		namespace H = xx::Html;
+
 		handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
 			return response.SendHtmlBody(R"--(
 <p><a href="/watch_service_cfg">查看 cfg</a></p>
@@ -591,69 +594,46 @@ struct WebHandler {
 
 		handlers["watch_service_cfg"] = [gw = this->gateway](xx::HttpContext& request, xx::HttpResponse& response)->int {
 			auto&& cfg = gw->cfg;
-			xx::Html::Document doc;
-			auto&& body = doc.Add(xx::Html::Body::Create());
-			body->Add(xx::Html::Paragrapth::Create("gatewayId = ", cfg.gatewayId));
-			body->Add(xx::Html::Paragrapth::Create("listenIP = ", cfg.listenIP));
-			body->Add(xx::Html::Paragrapth::Create("listenPort = ", cfg.listenPort));
-			body->Add(xx::Html::Paragrapth::Create("listenTcpKcpOpt = ", cfg.listenTcpKcpOpt));
-			body->Add(xx::Html::Paragrapth::Create("clientTimeoutMS = ", cfg.clientTimeoutMS));
-			body->Add(xx::Html::Paragrapth::Create("webListenIP = ", cfg.webListenIP));
-			body->Add(xx::Html::Paragrapth::Create("webListenPort = ", cfg.webListenPort));
-			if (cfg.services.size()) {
-				body->Add(xx::Html::Table::Create(3, [&](int const& columnIndex, std::string& s) {
-					switch (columnIndex) {
-					case 0:	xx::Append(s, "serviceId");							break;
-					case 1:	xx::Append(s, "ip");								break;
-					case 2:	xx::Append(s, "port");								break;
-					}
-				}, [&ss = cfg.services](int const& rowIndex, int const& columnIndex, std::string& s)->bool {
-					switch (columnIndex) {
-					case 0:	xx::Append(s, ss[rowIndex].serviceId);				break;
-					case 1:	xx::Append(s, ss[rowIndex].ip);						break;
-					case 2:	xx::Append(s, ss[rowIndex].port);					break;
-					}
-					return rowIndex + 1 < (int)ss.size();
-				}));
+			H::Document doc;
+			auto&& body = doc.Add(H::Body::Create());
+			body->Add(H::Paragrapth::Create("gatewayId = ", cfg.gatewayId));
+			body->Add(H::Paragrapth::Create("listenIP = ", cfg.listenIP));
+			body->Add(H::Paragrapth::Create("listenPort = ", cfg.listenPort));
+			body->Add(H::Paragrapth::Create("listenTcpKcpOpt = ", cfg.listenTcpKcpOpt));
+			body->Add(H::Paragrapth::Create("clientTimeoutMS = ", cfg.clientTimeoutMS));
+			body->Add(H::Paragrapth::Create("webListenIP = ", cfg.webListenIP));
+			body->Add(H::Paragrapth::Create("webListenPort = ", cfg.webListenPort));
+			auto&& literal = body->Add(H::Literal::Create());
+			H::Table::AppendHead(literal->content, "serviceId", "ip", "port");
+			for (auto&& service : cfg.services) {
+				H::Table::AppendRow(literal->content, service.serviceId, service.ip, service.port);
 			}
-			body->Add(xx::Html::HyperLink::Create("回到主菜单", "/"));
+			H::Table::AppendFoot(literal->content);
+			body->Add(H::HyperLink::Create("回到主菜单", "/"));
 			return response.Send(response.prefixHtml, doc);
 		};
 
 		handlers["watch_connected_services"] = [gw = this->gateway](xx::HttpContext& request, xx::HttpResponse& response)->int {
-			std::vector<std::tuple<uint32_t, std::shared_ptr<UvToServiceDialer>*, std::shared_ptr<UvToServicePeer>*>> rows;
+			auto&& s = response.tmp;
+			s.clear();
+			H::Document::AppendHead(s);
+			H::Body::AppendHead(s);
+			H::Table::AppendHead(s, "key", "serviceId", "ip:port", "busy", "peer alive");
 			for (auto&& kv : gw->serviceDialerPeers) {
-				rows.emplace_back(kv.first, &kv.second.first, &kv.second.second);
+				auto&& dialer = kv.second.first;
+				auto&& peer = kv.second.second;
+				H::Table::AppendRow(s
+					, kv.first
+					, dialer->serviceId
+					, (dialer->ip + ":" + std::to_string(dialer->port))
+					, dialer->Busy()
+					, (peer && !peer->Disposed()));
 			}
-			xx::Html::Document doc;
-			auto&& body = doc.Add(xx::Html::Body::Create());
-			if (rows.size()) {
-				body->Add(xx::Html::Table::Create(5, [&](int const& columnIndex, std::string& s) {
-					switch (columnIndex) {
-					case 0:	xx::Append(s, "key");								break;
-					case 1:	xx::Append(s, "serviceId");							break;
-					case 2:	xx::Append(s, "ip:port");							break;
-					case 3:	xx::Append(s, "busy");								break;
-					case 4:	xx::Append(s, "peer alive");						break;
-					}
-					}, [&](int const& rowIndex, int const& columnIndex, std::string& s)->bool {
-						auto&& row = rows[rowIndex];
-						auto&& dialer = *std::get<1>(row);
-						switch (columnIndex) {
-						case 0:	xx::Append(s, std::get<0>(row));				break;
-						case 1:	xx::Append(s, dialer->serviceId);				break;
-						case 2:	xx::Append(s, dialer->ip, ":", dialer->port);	break;
-						case 3:	xx::Append(s, dialer->Busy());					break;
-						case 4:
-							auto && peer = *std::get<2>(row);
-							xx::Append(s, peer && !peer->Disposed());
-							break;
-						}
-						return rowIndex + 1 < (int)rows.size();
-					}));
-			}
-			body->Add(xx::Html::HyperLink::Create("回到主菜单", "/"));
-			return response.Send(response.prefixHtml, doc);
+			H::Table::AppendFoot(s);
+			H::HyperLink::Append(s, "回到主菜单", "/");
+			H::Body::AppendFoot(s);
+			H::Document::AppendFoot(s);
+			return response.onSend(response.prefixHtml, s.data(), s.size());
 		};
 	}
 };
