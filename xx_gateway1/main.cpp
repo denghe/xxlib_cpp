@@ -358,7 +358,7 @@ struct Gateway {
 		xx::TryMakeTo(dialer, uv);
 		if (!dialer) return -2;
 
-		dialer->serviceId = 0;
+		dialer->serviceId = serviceId;
 		dialer->ip = ip;
 		dialer->port = port;
 
@@ -533,7 +533,25 @@ struct Gateway {
 		return dialer->Dial();
 	}
 
+	int RemoveServiceDialerPeer(uint32_t const& serviceId) {
+		auto&& iter = serviceDialerPeers.find(serviceId);
+		if (iter == serviceDialerPeers.end()) 
+			return -1;
 
+		auto&& dialer = iter->second.first;
+		auto&& peer = iter->second.second;
+
+		if (dialer) {
+			dialer->Dispose();
+		}
+		if (peer) {
+			peer->Dispose();
+		
+		}
+
+		serviceDialerPeers.erase(iter);
+		return 0;
+	}
 
 
 	/***********************************************************************************************/
@@ -543,110 +561,145 @@ struct Gateway {
 	// 等待 浏览器 的接入
 	std::shared_ptr<xx::UvHttpListener> webListener;
 
-	std::shared_ptr<WebHandler> webHandler;
-
-	void InitWebListener();
-};
-
-// 
-struct WebHandler {
-	// 指向服务上下文
-	Gateway* gateway = nullptr;
-
 	// 网址 path : 处理函数 映射填充到此
 	std::unordered_map<std::string, std::function<int(xx::HttpContext & request, xx::HttpResponse & response)>> handlers;
 
-	// 调用入口
-	inline int operator()(xx::HttpContext& request, xx::HttpResponse& response) {
-		// 填充 request.path 等
-		request.ParseUrl();
-
-		// 用 path 查找处理函数
-		auto&& iter = handlers.find(request.path);
-
-		// 如果没找到：输出默认报错页面
-		if (iter == handlers.end()) {
-			response.Send404Body("the page not found!");
-		}
-		// 找到则执行
-		else {
-			// 如果执行出错，输出默认报错页面
-			if (iter->second(request, response)) {
-				response.Send404Body("bad request!");
-			}
-		}
-		return 0;
-	}
-
-	// 绑定处理函数
-	WebHandler(Gateway* gateway)
-		: gateway(gateway) {
-
-		// 简化下命名空间书写
-		namespace H = xx::Html;
-
-		handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
-			return response.SendHtmlBody(R"--(
-<p><a href="/watch_service_cfg">查看 cfg</a></p>
-<p><a href="/watch_connected_services">查看 内部服务连接状态</a></p>
-)--");
-		};
-
-		handlers["watch_service_cfg"] = [gw = this->gateway](xx::HttpContext& request, xx::HttpResponse& response)->int {
-			auto&& cfg = gw->cfg;
-			H::Document doc;
-			auto&& body = doc.Add(H::Body::Create());
-			body->Add(H::Paragrapth::Create("gatewayId = ", cfg.gatewayId));
-			body->Add(H::Paragrapth::Create("listenIP = ", cfg.listenIP));
-			body->Add(H::Paragrapth::Create("listenPort = ", cfg.listenPort));
-			body->Add(H::Paragrapth::Create("listenTcpKcpOpt = ", cfg.listenTcpKcpOpt));
-			body->Add(H::Paragrapth::Create("clientTimeoutMS = ", cfg.clientTimeoutMS));
-			body->Add(H::Paragrapth::Create("webListenIP = ", cfg.webListenIP));
-			body->Add(H::Paragrapth::Create("webListenPort = ", cfg.webListenPort));
-			auto&& literal = body->Add(H::Literal::Create());
-			H::Table::AppendHead(literal->content, "serviceId", "ip", "port");
-			for (auto&& service : cfg.services) {
-				H::Table::AppendRow(literal->content, service.serviceId, service.ip, service.port);
-			}
-			H::Table::AppendFoot(literal->content);
-			body->Add(H::HyperLink::Create("回到主菜单", "/"));
-			return response.Send(response.prefixHtml, doc);
-		};
-
-		handlers["watch_connected_services"] = [gw = this->gateway](xx::HttpContext& request, xx::HttpResponse& response)->int {
-			auto&& s = response.tmp;
-			s.clear();
-			H::Document::AppendHead(s);
-			H::Body::AppendHead(s);
-			H::Table::AppendHead(s, "key", "serviceId", "ip:port", "busy", "peer alive");
-			for (auto&& kv : gw->serviceDialerPeers) {
-				auto&& dialer = kv.second.first;
-				auto&& peer = kv.second.second;
-				H::Table::AppendRow(s
-					, kv.first
-					, dialer->serviceId
-					, (dialer->ip + ":" + std::to_string(dialer->port))
-					, dialer->Busy()
-					, (peer && !peer->Disposed()));
-			}
-			H::Table::AppendFoot(s);
-			H::HyperLink::Append(s, "回到主菜单", "/");
-			H::Body::AppendFoot(s);
-			H::Document::AppendFoot(s);
-			return response.onSend(response.prefixHtml, s.data(), s.size());
-		};
-	}
+	void InitWebListener();
 };
 
 inline void Gateway::InitWebListener() {
 	// 创建 web listener( 只支持 tcp )
 	xx::MakeTo(webListener, uv, cfg.webListenIP, cfg.webListenPort);
-	xx::MakeTo(webHandler, this);
 
 	webListener->onAccept = [this](xx::UvHttpPeer_s peer) {
 		peer->onReceiveHttp = [this, peer](xx::HttpContext& request, xx::HttpResponse& response)->int {
-			return (*webHandler)(request, response);
+			// 填充 request.path 等
+			request.ParseUrl();
+
+			// 用 path 查找处理函数
+			auto&& iter = handlers.find(request.path);
+
+			// 如果没找到：输出默认报错页面
+			if (iter == handlers.end()) {
+				response.Send404Body("the page not found!");
+			}
+			// 找到则执行
+			else {
+				// 如果执行出错，输出默认报错页面
+				if (iter->second(request, response)) {
+					response.Send404Body("bad request!");
+				}
+			}
+			return 0;
 		};
+	};
+
+	// 简化下命名空间书写
+	namespace H = xx::Html;
+
+	handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
+		return response.SendHtmlBody(R"--(
+<p><a href="/watch_service_cfg">查看 cfg</a></p>
+<p><a href="/watch_connected_services">查看 内部服务连接状态</a></p>
+<p><a href="/reload_service_cfg">重新加载配置文件</a></p>
+)--");
+	};
+
+	handlers["watch_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
+		auto&& s = response.tmp;
+		s.clear();
+		H::Document::AppendHead(s);
+		H::Body::AppendHead(s);
+
+		H::Paragrapth::Append(s, "gatewayId = ", cfg.gatewayId);
+		H::Paragrapth::Append(s, "listenIP = ", cfg.listenIP);
+		H::Paragrapth::Append(s, "listenPort = ", cfg.listenPort);
+		H::Paragrapth::Append(s, "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
+		H::Paragrapth::Append(s, "clientTimeoutMS = ", cfg.clientTimeoutMS);
+		H::Paragrapth::Append(s, "webListenIP = ", cfg.webListenIP);
+		H::Paragrapth::Append(s, "webListenPort = ", cfg.webListenPort);
+
+		H::Table::AppendHead(s, "serviceId", "ip", "port");
+		for (auto&& service : cfg.services) {
+			H::Table::AppendRow(s, service.serviceId, service.ip, service.port);
+		}
+		H::Table::AppendFoot(s);
+
+		H::HyperLink::Append(s, "回到主菜单", "/");
+
+		H::Body::AppendFoot(s);
+		H::Document::AppendFoot(s);
+		return response.onSend(response.prefixHtml, s.data(), s.size());
+	};
+
+	handlers["watch_connected_services"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
+		auto&& s = response.tmp;
+		s.clear();
+		H::Document::AppendHead(s);
+		H::Body::AppendHead(s);
+
+		H::Table::AppendHead(s, "serviceId", "ip:port", "busy", "peer alive");
+		for (auto&& kv : serviceDialerPeers) {
+			auto&& dialer = kv.second.first;
+			auto&& peer = kv.second.second;
+			H::Table::AppendRow(s
+				, dialer->serviceId
+				, (dialer->ip + ":" + std::to_string(dialer->port))
+				, dialer->Busy()
+				, (peer && !peer->Disposed()));
+		}
+		H::Table::AppendFoot(s);
+
+		H::HyperLink::Append(s, "回到主菜单", "/");
+
+		H::Body::AppendFoot(s);
+		H::Document::AppendFoot(s);
+		return response.onSend(response.prefixHtml, s.data(), s.size());
+	};
+
+	handlers["reload_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
+		ServiceCfg cfg2;
+		ajson::load_from_file(cfg2, "service_cfg.json");
+
+		// gatewayId, listenIP， listenPort，listenTcpKcpOpt, webListenIP, webListenPort 不可变, 也不检查
+		cfg.clientTimeoutMS = cfg2.clientTimeoutMS;
+
+		// 开始对比. foreach old
+		for (auto&& service : cfg.services) {
+			// 按 serviceId 作为匹配条件
+			auto&& iter = std::find_if(cfg2.services.begin(), cfg2.services.end(), [&](ServiceInfo const& o) {
+				return service.serviceId == o.serviceId;
+			});
+
+			// 如果没找到：删掉相关 dialer & peer
+			if (iter == cfg2.services.end()) {
+				RemoveServiceDialerPeer(service.serviceId);
+			}
+			// 如果找到但是 ip 或端口有变化, 则 remove + add
+			else if (service.ip != iter->ip || service.port != iter->port){
+				RemoveServiceDialerPeer(iter->serviceId);
+				TryCreateServiceDialer(iter->serviceId, iter->ip, iter->port);
+			}
+		}
+
+		// 再次对比. foreach new
+		for (auto&& service : cfg2.services) {
+			// 按 serviceId 作为匹配条件
+			auto&& iter = std::find_if(cfg.services.begin(), cfg.services.end(), [&](ServiceInfo const& o) {
+				return service.serviceId == o.serviceId;
+			});
+
+			// 如果没找到：add
+			if (iter == cfg.services.end()) {
+				TryCreateServiceDialer(service.serviceId, service.ip, service.port);
+			}
+		}
+
+		// 更新 cfg
+		cfg.services = cfg2.services;
+
+		// 显示新配置
+		return handlers["watch_service_cfg"](request, response);
 	};
 }
 

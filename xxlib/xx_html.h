@@ -231,6 +231,10 @@ namespace xx::Html {
 		inline static void AppendFoot(std::string& s) {
 			xx::Append(s, "</p>");
 		}
+		template<typename ...Args>
+		inline static void Append(std::string& s, Args const& ... args) {
+			xx::Append(s, "<p>", args..., "</p>");
+		}
 	};
 
 	// 这个就是直接字符串本身, 前后不加料
