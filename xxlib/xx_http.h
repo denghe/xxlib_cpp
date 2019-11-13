@@ -146,7 +146,33 @@ namespace xx {
 		}
 	};
 
+	// 靠析构来写入 </ tag >
+	struct HtmlTag {
+		HtmlTag(HtmlTag const&) = delete;
+		HtmlTag(HtmlTag&&) = default;
+		HtmlTag& operator=(HtmlTag const&) = delete;
+		HtmlTag& operator=(HtmlTag&&) = default;
+
+		std::string& tmp;
+		char const* tag;
+
+		template<typename ...Args>
+		HtmlTag(std::string& tmp, char const* const& tag, Args const& ... props)
+			: tmp(tmp)
+			, tag(tag) {
+			xx::Append(tmp, "<", tag, props..., ">");
+		}
+		~HtmlTag() {
+			xx::Append(tmp, "</", tag, ">");
+		}
+	};
+
 	struct HttpResponse {
+		HttpResponse() = default;
+		HttpResponse(HttpResponse const&) = delete;
+		HttpResponse(HttpResponse&&) = default;
+		HttpResponse& operator=(HttpResponse const&) = delete;
+		HttpResponse& operator=(HttpResponse&&) = default;
 
 		// 兼容 text json 下发格式的前缀
 		inline static std::string prefixText =
@@ -168,17 +194,73 @@ namespace xx {
 			"Content-Length: ";
 
 		// 公用输出拼接容器
-		std::string tmp;
+		std::string text;
+
+		// 创建一个会在析构时自动填充 </ tag> 的元素
+		template<typename ...Args>
+		inline HtmlTag Scope(char const* const& tag, Args const& ... props) {
+			return HtmlTag(text, tag, props...);
+		}
+
+		// 向 text 追加 <tag>...</tag> 或 <tag.../>  内容. 参数 tag 不能带 <>
+		template<typename ...Args>
+		inline void Tag(char const* const& tag, Args const& ... content) {
+			if constexpr (sizeof...(content)) {
+				xx::Append(text, "<", tag, ">", content..., "<", tag, "/>");
+			}
+			else {
+				xx::Append(text, "<", tag, "/>");
+			}
+		}
+
+		// 向 text 追加任意内容
+		template<typename ...Args>
+		inline void Any(Args const& ... content) {
+			xx::Append(text, content...);
+		}
+
+		template<typename ...Args>
+		inline void TableHead(Args const& ... titles) {
+			xx::Append(s, "<table border=\"1\">");
+			xx::Append(s, "<thead><tr>");
+			std::initializer_list<int> n{ ((AppendHeadCore(s, titles)), 0)... };
+			(void)(n);
+			xx::Append(s, "</tr></thead><tbody>");
+		}
+
+		template<typename ...Args>
+		inline void TableRow(Args const& ... columns) {
+			xx::Append(s, "<tr>");
+			std::initializer_list<int> n{ ((AppendRowCore(s, columns)), 0)... };
+			(void)(n);
+			xx::Append(s, "</tr>");
+		}
+
+		inline void TableFoot() {
+			xx::Append(text, "</tbody></table>");
+		}
+
+		template<typename ...Args>
+		inline void HyperLink(std::string&& content, Args const& ... hrefs) {
+			xx::Append(tmp, "<a href=\"", hrefs..., "\">", content, "</a>");
+		}
+
+
 
 		// 下发 html( 由外部赋值 )
 		std::function<int(std::string const& prefix, char const* const& buf, std::size_t const& len)> onSend;
 
+		// 将 text 以 html 格式发出
+		inline int Send() {
+			return onSend(prefixHtml, text.data(), text.size());
+		}
+
 		// 会多一次复制但是方便拼接的下发 html 函数
 		template<typename...Args>
 		inline int Send(std::string const& prefix, Args const& ...args) noexcept {
-			tmp.clear();
-			xx::Append(tmp, args...);
-			return onSend(prefix, tmp.data(), tmp.size());
+			text.clear();
+			xx::Append(text, args...);
+			return onSend(prefix, text.data(), text.size());
 		}
 
 		inline int SendHtml(std::string const& html) {

@@ -535,7 +535,7 @@ struct Gateway {
 
 	int RemoveServiceDialerPeer(uint32_t const& serviceId) {
 		auto&& iter = serviceDialerPeers.find(serviceId);
-		if (iter == serviceDialerPeers.end()) 
+		if (iter == serviceDialerPeers.end())
 			return -1;
 
 		auto&& dialer = iter->second.first;
@@ -546,7 +546,7 @@ struct Gateway {
 		}
 		if (peer) {
 			peer->Dispose();
-		
+
 		}
 
 		serviceDialerPeers.erase(iter);
@@ -585,6 +585,9 @@ inline void Gateway::InitWebListener() {
 			}
 			// 找到则执行
 			else {
+				// 重置一下临时变量 方便使用
+				response.text.clear();
+
 				// 如果执行出错，输出默认报错页面
 				if (iter->second(request, response)) {
 					response.Send404Body("bad request!");
@@ -605,56 +608,55 @@ inline void Gateway::InitWebListener() {
 )--");
 	};
 
-	handlers["watch_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
-		auto&& s = response.tmp;
-		s.clear();
-		H::Document::AppendHead(s);
-		H::Body::AppendHead(s);
+	handlers["watch_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
+		{
+			auto&& html = r.Scope("html");
+			{
+				auto&& body = r.Scope("body");
 
-		H::Paragrapth::Append(s, "gatewayId = ", cfg.gatewayId);
-		H::Paragrapth::Append(s, "listenIP = ", cfg.listenIP);
-		H::Paragrapth::Append(s, "listenPort = ", cfg.listenPort);
-		H::Paragrapth::Append(s, "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
-		H::Paragrapth::Append(s, "clientTimeoutMS = ", cfg.clientTimeoutMS);
-		H::Paragrapth::Append(s, "webListenIP = ", cfg.webListenIP);
-		H::Paragrapth::Append(s, "webListenPort = ", cfg.webListenPort);
+				r.Tag("p", "gatewayId = ", cfg.gatewayId);
+				r.Tag("p", "gatewayId = ", cfg.gatewayId);
+				r.Tag("p", "listenIP = ", cfg.listenIP);
+				r.Tag("p", "listenPort = ", cfg.listenPort);
+				r.Tag("p", "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
+				r.Tag("p", "clientTimeoutMS = ", cfg.clientTimeoutMS);
+				r.Tag("p", "webListenIP = ", cfg.webListenIP);
+				r.Tag("p", "webListenPort = ", cfg.webListenPort);
 
-		H::Table::AppendHead(s, "serviceId", "ip", "port");
-		for (auto&& service : cfg.services) {
-			H::Table::AppendRow(s, service.serviceId, service.ip, service.port);
+				r.TableHead("serviceId", "ip", "port");
+				for (auto&& service : cfg.services) {
+					r.TableRow(service.serviceId, service.ip, service.port);
+				}
+				r.TableFoot();
+
+				r.HyperLink("回到主菜单", "/");
+			}
 		}
-		H::Table::AppendFoot(s);
-
-		H::HyperLink::Append(s, "回到主菜单", "/");
-
-		H::Body::AppendFoot(s);
-		H::Document::AppendFoot(s);
-		return response.onSend(response.prefixHtml, s.data(), s.size());
+		return r.Send();
 	};
 
-	handlers["watch_connected_services"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
-		auto&& s = response.tmp;
-		s.clear();
-		H::Document::AppendHead(s);
-		H::Body::AppendHead(s);
+	handlers["watch_connected_services"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
+		{
+			auto&& html = r.Scope("html");
+			{
+				auto&& body = r.Scope("body");
 
-		H::Table::AppendHead(s, "serviceId", "ip:port", "busy", "peer alive");
-		for (auto&& kv : serviceDialerPeers) {
-			auto&& dialer = kv.second.first;
-			auto&& peer = kv.second.second;
-			H::Table::AppendRow(s
-				, dialer->serviceId
-				, (dialer->ip + ":" + std::to_string(dialer->port))
-				, dialer->Busy()
-				, (peer && !peer->Disposed()));
+				r.TableHead("serviceId", "ip:port", "busy", "peer alive");
+				for (auto&& kv : serviceDialerPeers) {
+					auto&& dialer = kv.second.first;
+					auto&& peer = kv.second.second;
+					r.TableRow(
+						dialer->serviceId
+						, (dialer->ip + ":" + std::to_string(dialer->port))
+						, dialer->Busy()
+						, (peer && !peer->Disposed()));
+				}
+				r.TableFoot();
+
+				r.HyperLink("回到主菜单", "/");
+			}
 		}
-		H::Table::AppendFoot(s);
-
-		H::HyperLink::Append(s, "回到主菜单", "/");
-
-		H::Body::AppendFoot(s);
-		H::Document::AppendFoot(s);
-		return response.onSend(response.prefixHtml, s.data(), s.size());
+		return r.Send();
 	};
 
 	handlers["reload_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
@@ -669,14 +671,14 @@ inline void Gateway::InitWebListener() {
 			// 按 serviceId 作为匹配条件
 			auto&& iter = std::find_if(cfg2.services.begin(), cfg2.services.end(), [&](ServiceInfo const& o) {
 				return service.serviceId == o.serviceId;
-			});
+				});
 
 			// 如果没找到：删掉相关 dialer & peer
 			if (iter == cfg2.services.end()) {
 				RemoveServiceDialerPeer(service.serviceId);
 			}
 			// 如果找到但是 ip 或端口有变化, 则 remove + add
-			else if (service.ip != iter->ip || service.port != iter->port){
+			else if (service.ip != iter->ip || service.port != iter->port) {
 				RemoveServiceDialerPeer(iter->serviceId);
 				TryCreateServiceDialer(iter->serviceId, iter->ip, iter->port);
 			}
@@ -687,7 +689,7 @@ inline void Gateway::InitWebListener() {
 			// 按 serviceId 作为匹配条件
 			auto&& iter = std::find_if(cfg.services.begin(), cfg.services.end(), [&](ServiceInfo const& o) {
 				return service.serviceId == o.serviceId;
-			});
+				});
 
 			// 如果没找到：add
 			if (iter == cfg.services.end()) {
