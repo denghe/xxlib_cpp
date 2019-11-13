@@ -610,27 +610,24 @@ inline void Gateway::InitWebListener() {
 
 	handlers["watch_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
 		{
-			auto&& html = r.Scope("html");
-			{
-				auto&& body = r.Scope("body");
+			auto&& html_body = r.Scope("<html><body>", "</body></html>");
 
-				r.Tag("p", "gatewayId = ", cfg.gatewayId);
-				r.Tag("p", "gatewayId = ", cfg.gatewayId);
-				r.Tag("p", "listenIP = ", cfg.listenIP);
-				r.Tag("p", "listenPort = ", cfg.listenPort);
-				r.Tag("p", "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
-				r.Tag("p", "clientTimeoutMS = ", cfg.clientTimeoutMS);
-				r.Tag("p", "webListenIP = ", cfg.webListenIP);
-				r.Tag("p", "webListenPort = ", cfg.webListenPort);
+			r.Tag("p", "gatewayId = ", cfg.gatewayId);
+			r.Tag("p", "gatewayId = ", cfg.gatewayId);
+			r.Tag("p", "listenIP = ", cfg.listenIP);
+			r.Tag("p", "listenPort = ", cfg.listenPort);
+			r.Tag("p", "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
+			r.Tag("p", "clientTimeoutMS = ", cfg.clientTimeoutMS);
+			r.Tag("p", "webListenIP = ", cfg.webListenIP);
+			r.Tag("p", "webListenPort = ", cfg.webListenPort);
 
-				r.TableHead("serviceId", "ip", "port");
-				for (auto&& service : cfg.services) {
-					r.TableRow(service.serviceId, service.ip, service.port);
-				}
-				r.TableFoot();
-
-				r.HyperLink("回到主菜单", "/");
+			r.TableHead("serviceId", "ip", "port");
+			for (auto&& service : cfg.services) {
+				r.TableRow(service.serviceId, service.ip, service.port);
 			}
+			r.TableFoot();
+
+			r.HyperLink("回到主菜单", "/");
 		}
 		return r.Send();
 	};
@@ -638,23 +635,21 @@ inline void Gateway::InitWebListener() {
 	handlers["watch_connected_services"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
 		{
 			auto&& html = r.Scope("html");
-			{
-				auto&& body = r.Scope("body");
+			auto&& body = r.Scope("body");
 
-				r.TableHead("serviceId", "ip:port", "busy", "peer alive");
-				for (auto&& kv : serviceDialerPeers) {
-					auto&& dialer = kv.second.first;
-					auto&& peer = kv.second.second;
-					r.TableRow(
-						dialer->serviceId
-						, (dialer->ip + ":" + std::to_string(dialer->port))
-						, dialer->Busy()
-						, (peer && !peer->Disposed()));
-				}
-				r.TableFoot();
-
-				r.HyperLink("回到主菜单", "/");
+			r.TableHead("serviceId", "ip:port", "busy", "peer alive");
+			for (auto&& kv : serviceDialerPeers) {
+				auto&& dialer = kv.second.first;
+				auto&& peer = kv.second.second;
+				r.TableRow(
+					dialer->serviceId
+					, (dialer->ip + ":" + std::to_string(dialer->port))
+					, dialer->Busy()
+					, (peer && !peer->Disposed()));
 			}
+			r.TableFoot();
+
+			r.HyperLink("回到主菜单", "/");
 		}
 		return r.Send();
 	};

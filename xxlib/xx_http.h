@@ -147,23 +147,29 @@ namespace xx {
 	};
 
 	// 靠析构来写入 </ tag >
-	struct HtmlTag {
-		HtmlTag(HtmlTag const&) = delete;
-		HtmlTag(HtmlTag&&) = default;
-		HtmlTag& operator=(HtmlTag const&) = delete;
-		HtmlTag& operator=(HtmlTag&&) = default;
+	struct HtmlScope {
+		HtmlScope(HtmlScope const&) = delete;
+		HtmlScope(HtmlScope&&) = default;
+		HtmlScope& operator=(HtmlScope const&) = delete;
+		HtmlScope& operator=(HtmlScope&&) = default;
 
 		std::string& tmp;
-		char const* tag;
+		std::string foot;
 
-		template<typename ...Args>
-		HtmlTag(std::string& tmp, char const* const& tag, Args const& ... props)
-			: tmp(tmp)
-			, tag(tag) {
-			xx::Append(tmp, "<", tag, props..., ">");
+		HtmlScope(std::string& tmp, char const* const& head, char const* const& foot = nullptr)
+			: tmp(tmp) {
+			if (foot) {
+				xx::Append(tmp, head);
+				this->foot = foot;
+			}
+			else {
+				xx::Append(tmp, "<", head, ">");
+				xx::Append(this->foot, "</", head, ">");
+			}
 		}
-		~HtmlTag() {
-			xx::Append(tmp, "</", tag, ">");
+
+		~HtmlScope() {
+			xx::Append(tmp, foot);
 		}
 	};
 
@@ -198,8 +204,8 @@ namespace xx {
 
 		// 创建一个会在析构时自动填充 </ tag> 的元素
 		template<typename ...Args>
-		inline HtmlTag Scope(char const* const& tag, Args const& ... props) {
-			return HtmlTag(text, tag, props...);
+		inline HtmlScope Scope(char const* const& head, char const* const& foot = nullptr) {
+			return HtmlScope(text, head, foot);
 		}
 
 		// 向 text 追加 <tag>...</tag> 或 <tag.../>  内容. 参数 tag 不能带 <>
@@ -221,19 +227,19 @@ namespace xx {
 
 		template<typename ...Args>
 		inline void TableHead(Args const& ... titles) {
-			xx::Append(s, "<table border=\"1\">");
-			xx::Append(s, "<thead><tr>");
-			std::initializer_list<int> n{ ((AppendHeadCore(s, titles)), 0)... };
+			xx::Append(text, "<table border=\"1\">");
+			xx::Append(text, "<thead><tr>");
+			std::initializer_list<int> n{ ((xx::Append(text, "<th>", titles, "</th>")), 0)... };
 			(void)(n);
-			xx::Append(s, "</tr></thead><tbody>");
+			xx::Append(text, "</tr></thead><tbody>");
 		}
 
 		template<typename ...Args>
 		inline void TableRow(Args const& ... columns) {
-			xx::Append(s, "<tr>");
-			std::initializer_list<int> n{ ((AppendRowCore(s, columns)), 0)... };
+			xx::Append(text, "<tr>");
+			std::initializer_list<int> n{ ((xx::Append(text, "<td>", columns, "</td>")), 0)... };
 			(void)(n);
-			xx::Append(s, "</tr>");
+			xx::Append(text, "</tr>");
 		}
 
 		inline void TableFoot() {
@@ -242,10 +248,8 @@ namespace xx {
 
 		template<typename ...Args>
 		inline void HyperLink(std::string&& content, Args const& ... hrefs) {
-			xx::Append(tmp, "<a href=\"", hrefs..., "\">", content, "</a>");
+			xx::Append(text, "<a href=\"", hrefs..., "\">", content, "</a>");
 		}
-
-
 
 		// 下发 html( 由外部赋值 )
 		std::function<int(std::string const& prefix, char const* const& buf, std::size_t const& len)> onSend;
