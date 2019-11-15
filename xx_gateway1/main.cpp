@@ -1,6 +1,5 @@
 ﻿#include <xx_uv_ext.h>
 #include <xx_uv_http.h>
-#include <xx_html.h>
 #include <unordered_set>
 
 
@@ -597,15 +596,15 @@ inline void Gateway::InitWebListener() {
 		};
 	};
 
-	// 简化下命名空间书写
-	namespace H = xx::Html;
-
-	handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& response)->int {
-		return response.SendHtmlBody(R"--(
+	handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& r)->int {
+		char const str[] = R"--(
+<html><body>
 <p><a href="/watch_service_cfg">查看 cfg</a></p>
 <p><a href="/watch_connected_services">查看 内部服务连接状态</a></p>
 <p><a href="/reload_service_cfg">重新加载配置文件</a></p>
-)--");
+</body></html>
+)--";
+		return r.onSend(r.prefixHtml, str, sizeof(str));
 	};
 
 	handlers["watch_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
@@ -621,13 +620,13 @@ inline void Gateway::InitWebListener() {
 			r.Tag("p", "webListenIP = ", cfg.webListenIP);
 			r.Tag("p", "webListenPort = ", cfg.webListenPort);
 
-			r.TableHead("serviceId", "ip", "port");
+			r.TableBegin("serviceId", "ip", "port");
 			for (auto&& service : cfg.services) {
 				r.TableRow(service.serviceId, service.ip, service.port);
 			}
-			r.TableFoot();
+			r.TableEnd();
 
-			r.HyperLink("回到主菜单", "/");
+			r.A("回到主菜单", "/");
 		}
 		return r.Send();
 	};
@@ -637,7 +636,7 @@ inline void Gateway::InitWebListener() {
 			auto&& html = r.Scope("html");
 			auto&& body = r.Scope("body");
 
-			r.TableHead("serviceId", "ip:port", "busy", "peer alive");
+			r.TableBegin("serviceId", "ip:port", "busy", "peer alive");
 			for (auto&& kv : serviceDialerPeers) {
 				auto&& dialer = kv.second.first;
 				auto&& peer = kv.second.second;
@@ -647,9 +646,9 @@ inline void Gateway::InitWebListener() {
 					, dialer->Busy()
 					, (peer && !peer->Disposed()));
 			}
-			r.TableFoot();
+			r.TableEnd();
 
-			r.HyperLink("回到主菜单", "/");
+			r.A("回到主菜单", "/");
 		}
 		return r.Send();
 	};

@@ -26,7 +26,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll_buf_queue.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll_context.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_file.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)xx_html.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_http.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_list.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_logger.h" />

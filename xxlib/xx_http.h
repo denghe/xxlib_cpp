@@ -146,7 +146,7 @@ namespace xx {
 		}
 	};
 
-	// 靠析构来写入 </ tag >
+	// 靠析构来写入 foot
 	struct HtmlScope {
 		HtmlScope(HtmlScope const&) = delete;
 		HtmlScope(HtmlScope&&) = default;
@@ -221,12 +221,12 @@ namespace xx {
 
 		// 向 text 追加任意内容
 		template<typename ...Args>
-		inline void Any(Args const& ... content) {
+		inline void Append(Args const& ... content) {
 			xx::Append(text, content...);
 		}
 
 		template<typename ...Args>
-		inline void TableHead(Args const& ... titles) {
+		inline void TableBegin(Args const& ... titles) {
 			xx::Append(text, "<table border=\"1\">");
 			xx::Append(text, "<thead><tr>");
 			std::initializer_list<int> n{ ((xx::Append(text, "<th>", titles, "</th>")), 0)... };
@@ -242,14 +242,44 @@ namespace xx {
 			xx::Append(text, "</tr>");
 		}
 
-		inline void TableFoot() {
+		inline void TableEnd() {
 			xx::Append(text, "</tbody></table>");
 		}
 
 		template<typename ...Args>
-		inline void HyperLink(std::string&& content, Args const& ... hrefs) {
+		inline void P(Args const& ... contents) {
+			xx::Append(text, "<p>", contents..., "</p>");
+		}
+
+		template<typename ...Args>
+		inline void A(char const* const& content, Args const& ... hrefs) {
 			xx::Append(text, "<a href=\"", hrefs..., "\">", content, "</a>");
 		}
+
+		template<typename ...Args>
+		inline void ABegin(Args const& ... hrefs) {
+			xx::Append(text, "<a href=\"", hrefs..., "\">");
+		}
+
+		inline void AEnd() {
+			xx::Append(text, "</a>");
+		}
+
+		template<typename ...Args>
+		inline void FormBegin(Args const& ... actions) {
+			xx::Append(text, "<form method=\"post\" action=\"", actions..., "\">");
+		}
+
+		template<typename ...Args>
+		inline void FormEnd(Args const& ... submitTexts) {
+			xx::Append(text, "<input type=\"submit\" value=\"", submitTexts...,"\" /></form>");
+		}
+
+		inline void Input(char const* const& title, char const* const& name = nullptr, char const* const& value = nullptr, char const* const& type = nullptr) {
+			xx::Append(text, "<p>", (title ? title : name), ":<input type=\"", (type ? type : "text"), "\" name=\"", (name ? name : title), "\" value=\"", value, "\" /></p>");
+		}
+
+
 
 		// 下发 html( 由外部赋值 )
 		std::function<int(std::string const& prefix, char const* const& buf, std::size_t const& len)> onSend;
