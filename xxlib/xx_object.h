@@ -100,7 +100,7 @@ std::size_t _countof_helper(T const (&arr)[N])
 {														\
 	auto i = tar->indexMember;							\
 	auto lastIndex = (int)container.size() - 1;			\
-	if (i < lastIndex) {								\
+	if ((int)i < lastIndex) {							\
 		container[i] = container[lastIndex];			\
 		container[lastIndex]->indexMember = i;			\
 	}													\

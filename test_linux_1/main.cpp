@@ -146,12 +146,12 @@ namespace xx {
 
 	inline void Resumer::ResumeByFrame(bool const& enable) {
 		if (enable) {
-			if (resumeFrameIndex == -1) {
+			if ((int)resumeFrameIndex == -1) {
 				resumeFrameIndex = resumeManager.resumersFrame.size();
 				resumeManager.resumersFrame.emplace_back(this);
 			}
 		}
-		else if (resumeFrameIndex != -1) {
+		else if ((int)resumeFrameIndex != -1) {
 			XX_SWAP_REMOVE(this, resumeFrameIndex, resumeManager.resumersFrame);
 		}
 	}
@@ -220,10 +220,10 @@ struct Foo : xx::Resumer {
 	int i = 0;
 	int Update(xx::ResumeConditions const& resumeReason) override {
 		COR_BEGIN;
-		ResumeByFrame(true);
 		for (i = 0; i < 10; i++)
 		{
-			xx::Cout(".");
+			xx::CoutN(i);
+			ResumeByTimeout(3);
 			COR_YIELD;
 		}
 		COR_END;
@@ -233,8 +233,9 @@ struct Foo : xx::Resumer {
 int main() {
 	xx::ResumerManager rm;
 	auto r = new Foo(rm);
-	rm.Add(r);
+	rm.Add(r, true);
 	while (rm.resumers.size()) {
+		Sleep(1000);
 		rm.HandleEvent_Frame();
 	}
 	return 0;
