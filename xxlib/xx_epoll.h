@@ -170,7 +170,7 @@ namespace xx::Epoll {
 		// fd 读写上下文
 		std::array<Peer, maxNumFD> peers;
 
-		// 时间轮. 填入参与 timeout 检测的 peer 的下标( 链表头 )
+		// 时间轮. 填入参与 timeout 检测的 对象指针 ( 链表头 )
 		std::array<Peer*, timeoutWheelLen> timeoutWheel;
 
 		// 时间轮游标. 指向当前链表. 每帧 +1, 按 timeoutWheelLen 长度取余, 循环使用

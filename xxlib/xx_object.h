@@ -95,6 +95,18 @@ std::size_t _countof_helper(T const (&arr)[N])
 #    endif
 #endif
 
+
+#define XX_SWAP_REMOVE( tar, indexMember, container )	\
+{														\
+	auto i = tar->indexMember;							\
+	auto lastIndex = (int)container.size() - 1;			\
+	if (i < lastIndex) {								\
+		container[i] = container[lastIndex];			\
+		container[lastIndex]->indexMember = i;			\
+	}													\
+	container.resize(lastIndex);						\
+}
+
 /***********************************************************************************/
 // Sleep
 /***********************************************************************************/
