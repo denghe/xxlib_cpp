@@ -10,20 +10,20 @@ namespace xx {
 		Network = 4
 	};
 
-	struct ResumeManager;
+	struct ResumerManager;
 	struct Resumer {
-		friend struct ResumeManager;
+		friend struct ResumerManager;
 	protected:
 		// 指向管理器
-		ResumeManager& mgr;
+		ResumerManager& resumeManager;
 
-		// 指向自己位于 cs 父容器的下标
-		std::size_t csIndex = -1;
+		// 指向自己位于 父容器的下标
+		std::size_t resumesIndex = -1;
 
-		// 指向自己位于 csFrame 条件父容器的下标
-		std::size_t csFrameIndex = -1;
+		// 指向自己位于 frame 条件父容器的下标
+		std::size_t resumeFrameIndex = -1;
 
-		// 指向自己位于 csTimeout 条件父容器的下标
+		// 指向自己位于 timeout 条件父容器的下标
 		int timeoutIndex = -1;				// 位于 timeoutWheel 的下标. 如果该 peer 为 head 则该值非 -1 则可借助该值定位到 wheel 中的位置
 		Resumer* timeoutPrev = nullptr;		// 位于相同刻度时间队列中时, prev + next 组成双向链表
 		Resumer* timeoutNext = nullptr;		// 位于相同刻度时间队列中时, prev + next 组成双向链表
@@ -31,9 +31,10 @@ namespace xx {
 		// 备份 fd 条件参数
 		int networkFD = -1;
 
-		virtual int Update(ResumeConditions const& resumeReason) = 0;
+		virtual int Update(ResumeConditions const& resumeReason);
 		virtual ~Resumer();
 	public:
+		std::function<int(int& lineNumber, ResumeConditions const& resumeReason)> onUpdate;
 
 		// 存放 Update 进入后要跳转到的行号。 lineNumber = Update( .... )
 		int lineNumber = 0;
@@ -47,19 +48,19 @@ namespace xx {
 		// 传入 -1, 0 取消
 		void ResumeByNetworkTimeout(int const& fd, int64_t const& interval);
 
-		Resumer(ResumeManager& mgr) : mgr(mgr) {}
+		Resumer(ResumerManager& resumeManager) : resumeManager(resumeManager) {}
 		Resumer(Resumer&&) = delete;
 		Resumer& operator=(Resumer&&) = delete;
 		Resumer(Resumer&) = delete;
 		Resumer& operator=(Resumer&) = delete;
 	};
 
-	struct ResumeManager {
+	struct ResumerManager {
 		// 主容器
-		std::vector<Resumer*> cs;
+		std::vector<Resumer*> resumers;
 
 		// 条件容器: 每帧回调
-		std::vector<Resumer*> csFrame;
+		std::vector<Resumer*> resumersFrame;
 
 		// 超时时间轮长度。需要 2^n 对齐以实现快速取余. 按照典型的 60 帧逻辑，60 秒需要 3600
 		static const int timeoutWheelLen = 1 << 12;
@@ -73,13 +74,17 @@ namespace xx {
 		// 条件容器: 网络事件. fd 为 key
 		std::unordered_map<int, Resumer*> csNet;
 
+		ResumerManager() {
+			timeoutWheel.fill(0);
+		}
+
 		// 添加一个 job
 		inline void Add(Resumer* const& job, bool const& runImmediately = false) {
 			assert(job);
 
 			// 放入主容器
-			job->csIndex = cs.size();
-			cs.push_back(job);
+			job->resumesIndex = resumers.size();
+			resumers.push_back(job);
 
 			// 如果需要的话, 立刻执行一次. 如果已退出，则不必放入容器
 			if (runImmediately) {
@@ -113,8 +118,8 @@ namespace xx {
 			};
 
 			// 遍历每帧触发的对象
-			for (int i = (int)csFrame.size() - 1; i >= 0; --i) {
-				if (Run(csFrame[i], ResumeConditions::Timeout)) continue;
+			for (int i = (int)resumersFrame.size() - 1; i >= 0; --i) {
+				if (Run(resumersFrame[i], ResumeConditions::Timeout)) continue;
 			}
 		}
 
@@ -122,28 +127,32 @@ namespace xx {
 			// todo
 		}
 
-		~ResumeManager() {
-			for (int i = (int)cs.size() - 1; i >= 0; --i) {
-				delete cs[i];
+		~ResumerManager() {
+			for (int i = (int)resumers.size() - 1; i >= 0; --i) {
+				delete resumers[i];
 			}
 		}
 	};
 
+	inline int Resumer::Update(ResumeConditions const& resumeReason) {
+		if (onUpdate) return onUpdate(lineNumber, resumeReason);
+	}
+
 	inline Resumer::~Resumer() {
 		ResumeByFrame(false);
 		ResumeByNetworkTimeout(-1, 0);
-		XX_SWAP_REMOVE(this, csIndex, mgr.cs);
+		XX_SWAP_REMOVE(this, resumesIndex, resumeManager.resumers);
 	}
 
 	inline void Resumer::ResumeByFrame(bool const& enable) {
 		if (enable) {
-			if (csFrameIndex == -1) {
-				csFrameIndex = mgr.csFrame.size();
-				mgr.csFrame.emplace_back(this);
+			if (resumeFrameIndex == -1) {
+				resumeFrameIndex = resumeManager.resumersFrame.size();
+				resumeManager.resumersFrame.emplace_back(this);
 			}
 		}
-		else if (csFrameIndex != -1) {
-			XX_SWAP_REMOVE(this, csFrameIndex, mgr.csFrame);
+		else if (resumeFrameIndex != -1) {
+			XX_SWAP_REMOVE(this, resumeFrameIndex, resumeManager.resumersFrame);
 		}
 	}
 
@@ -157,7 +166,7 @@ namespace xx {
 				timeoutPrev->timeoutNext = timeoutNext;
 			}
 			else {
-				mgr.timeoutWheel[timeoutIndex] = timeoutNext;
+				resumeManager.timeoutWheel[timeoutIndex] = timeoutNext;
 			}
 		}
 
@@ -165,15 +174,15 @@ namespace xx {
 		if (interval) {
 			// 如果设置了新的超时时间, 则放入相应的链表
 			// 安全检查
-			if (interval < 0 || interval > mgr.timeoutWheelLen) return -1;
+			if (interval < 0 || interval > resumeManager.timeoutWheelLen) return -1;
 
 			// 环形定位到 wheel 元素目标链表下标
-			timeoutIndex = (interval + mgr.timeoutWheelCursor) & (mgr.timeoutWheelLen - 1);
+			timeoutIndex = (interval + resumeManager.timeoutWheelCursor) & (resumeManager.timeoutWheelLen - 1);
 
 			// 成为链表头
 			timeoutPrev = nullptr;
-			timeoutNext = mgr.timeoutWheel[timeoutIndex];
-			mgr.timeoutWheel[timeoutIndex] = this;
+			timeoutNext = resumeManager.timeoutWheel[timeoutIndex];
+			resumeManager.timeoutWheel[timeoutIndex] = this;
 
 			// 和之前的链表头连起来( 如果有的话 )
 			if (timeoutNext) {
@@ -192,18 +201,42 @@ namespace xx {
 	inline void Resumer::ResumeByNetworkTimeout(int const& fd, int64_t const& interval) {
 		if (networkFD != fd) {
 			if (networkFD != -1) {
-				mgr.csNet.erase(networkFD);
+				resumeManager.csNet.erase(networkFD);
 			}
 			networkFD = fd;
 		}
 		if (fd != -1) {
-			mgr.csNet.emplace(fd, this);
+			resumeManager.csNet.emplace(fd, this);
 		}
 		ResumeByTimeout(interval);
 	}
 }
 
+
+struct Foo : xx::Resumer {
+	using BaseType = xx::Resumer;
+	using BaseType::BaseType;
+
+	int i = 0;
+	int Update(xx::ResumeConditions const& resumeReason) override {
+		COR_BEGIN;
+		ResumeByFrame(true);
+		for (i = 0; i < 10; i++)
+		{
+			xx::Cout(".");
+			COR_YIELD;
+		}
+		COR_END;
+	}
+};
+
 int main() {
+	xx::ResumerManager rm;
+	auto r = new Foo(rm);
+	rm.Add(r);
+	while (rm.resumers.size()) {
+		rm.HandleEvent_Frame();
+	}
 	return 0;
 }
 

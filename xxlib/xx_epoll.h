@@ -199,6 +199,9 @@ namespace xx::Epoll {
 
 	public:
 		Instance() {
+			// 初始化内存
+			timeoutWheel.fill(0);
+
 			// 创建 epoll fd
 			efd = epoll_create1(0);
 			if (-1 == efd) throw - 1;

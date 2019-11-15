@@ -25,7 +25,7 @@ namespace xx {
 	};
 
 	struct Coros {
-		List<Coro*> cs;
+		List<Coro*> resumers;
 
 		void Add(std::function<void(Coro& yield)>&& job, bool runImmediately = false) {
 
@@ -36,7 +36,7 @@ namespace xx {
 				return std::move(co.c2);
 			});
 
-			auto&& c = cs[cs.len - 1]->c1;
+			auto&& c = resumers[resumers.len - 1]->c1;
 			c = std::move(c1);
 
 			if (runImmediately) {
@@ -45,14 +45,14 @@ namespace xx {
 		}
 
 		void RunOnce() {
-			for (int i = (int)cs.len - 1; i >= 0; --i) {
-				auto&& co = cs[i];
+			for (int i = (int)resumers.len - 1; i >= 0; --i) {
+				auto&& co = resumers[i];
 				co->c1 = co->c1.resume();
 			}
 		}
 
 		void Run() {
-			while (cs.len) {
+			while (resumers.len) {
 				RunOnce();
 			}
 		}
@@ -62,13 +62,13 @@ namespace xx {
 		: c2(std::move(c))
 		, coros(coros)
 	{
-		idx = coros.cs.len;
-		coros.cs.Add(this);
+		idx = coros.resumers.len;
+		coros.resumers.Add(this);
 	}
 
 	inline Coro::~Coro() {
-		coros.cs[coros.cs.len - 1]->idx = idx;
-		coros.cs.SwapRemoveAt(idx);
+		coros.resumers[coros.resumers.len - 1]->idx = idx;
+		coros.resumers.SwapRemoveAt(idx);
 	}
 
 }
