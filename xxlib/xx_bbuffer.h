@@ -197,12 +197,12 @@ namespace xx {
 
 		template<typename SIn, typename UOut = std::make_unsigned_t<SIn>>
 		inline static UOut ZigZagEncode(SIn const& in) noexcept {
-			return ((UOut)in << 1) ^ ((UOut)in >> (sizeof(SIn) * 8 - 1));
+			return (UOut)(((UOut)in << 1) ^ ((UOut)in >> (sizeof(SIn) * 8 - 1)));
 		}
 
 		template<typename UIn, typename SOut = std::make_signed_t<UIn>>
 		inline static SOut ZigZagDecode(UIn const& in) noexcept {
-			return (SOut)(in >> 1) ^ (-(SOut)(in & 1));
+			return (SOut)((SOut)(in >> 1) ^ (-(SOut)(in & 1)));
 		}
 
 		template<typename T, bool needReserve = true>
