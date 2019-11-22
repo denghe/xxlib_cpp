@@ -136,6 +136,7 @@ namespace xx {
 
 	inline int Resumer::Update(ResumeConditions const& resumeReason) {
 		if (onUpdate) return onUpdate(lineNumber, resumeReason);
+		return 0;
 	}
 
 	inline Resumer::~Resumer() {

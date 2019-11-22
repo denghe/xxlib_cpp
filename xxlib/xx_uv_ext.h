@@ -430,7 +430,7 @@ namespace xx {
 		}
 		inline virtual void Accept(UvPeer_s peer_) noexcept override {
 			if (!peer_) return;
-
+			peerChecking = false;
 			peer = As<UvFromToGatewayBasePeer>(peer_);
 
 			peer->onReceiveCommand = [this](BBuffer& bb)->int {

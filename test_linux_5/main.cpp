@@ -31,21 +31,21 @@ struct MyHtmlHandler {
 	MyHtmlHandler() {
 
 		// 直接输出模式，zero copy, 性能最快
-		handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& r)->int {
-			char const str[] = R"--(<html><body>hello world!</body></html>)--";
-//			char const str[] = R"--(
-//<html><body>
-//<p><a href="/cmd1">test form get</a></p>
-//<p><a href="/cmd3">test form post</a></p>
-//<p><a href="/cmd5">test table</a></p>
-//<p><a href="/cmd6">test a</a></p>
-//</body></html>
-//)--";
+		handlers[""] = [](xx::HttpContext& q, xx::HttpResponse& r)->int {
+			//char const str[] = R"--(<html><body>hello world!</body></html>)--";
+			char const str[] = R"--(
+<html><body>
+<p><a href="/cmd1">test form get</a></p>
+<p><a href="/cmd3">test form post</a></p>
+<p><a href="/cmd5">test table</a></p>
+<p><a href="/cmd6">test a</a></p>
+</body></html>
+)--";
 			return r.onSend(r.prefixHtml, str, sizeof(str));
 		};
 
 		// 借助 r.text 抠洞 拼接内容，性能还行
-		handlers["cmd1"] = [](xx::HttpContext& request, xx::HttpResponse& r)->int {
+		handlers["cmd1"] = [](xx::HttpContext& q, xx::HttpResponse& r)->int {
 			return r.Send(r.prefixHtml, R"+-+(
 <html><body>
 <p>ticks = )+-+", xx::NowEpoch10m(), R"+-+(</p>
@@ -74,7 +74,7 @@ struct MyHtmlHandler {
 			return r.Send();
 		};
 
-		handlers["cmd3"] = [](xx::HttpContext& request, xx::HttpResponse& r)->int {
+		handlers["cmd3"] = [](xx::HttpContext& q, xx::HttpResponse& r)->int {
 			{
 				auto&& hb = r.Scope("<html><body>", "</body></html>");
 				r.FormBegin("/cmd4");
@@ -121,7 +121,7 @@ struct MyHtmlHandler {
 			return r.Send();
 		};
 
-		handlers["cmd6"] = [](xx::HttpContext& request, xx::HttpResponse& r)->int {
+		handlers["cmd6"] = [](xx::HttpContext& q, xx::HttpResponse& r)->int {
 			{
 				auto&& hb = r.Scope("<html><body>", "</body></html>");
 				r.A("中文", "/中文!哦哦哦?asdf=", xx::UrlEncode("汉汉<%' \">字字"));
@@ -175,18 +175,18 @@ int main() {
 	int r = s->Listen(54321);
 	assert(!r);
 
-	auto fd = s->listenFDs[0];
-	std::vector<std::thread> threads;
-	for (int i = 0; i < 2; ++i) {
-		threads.emplace_back([fd, i] {
-			auto&& s = std::make_unique<MyHttpServer>();
-			int r = s->ListenFD(fd);
-			assert(!r);
-			s->threadId = i + 1;
-			xx::CoutN("thread:", i + 1);
-			s->Run(1);
-			}).detach();
-	}
+	//auto fd = s->listenFDs[0];
+	//std::vector<std::thread> threads;
+	//for (int i = 0; i < 5; ++i) {
+	//	threads.emplace_back([fd, i] {
+	//		auto&& s = std::make_unique<MyHttpServer>();
+	//		int r = s->ListenFD(fd);
+	//		assert(!r);
+	//		s->threadId = i + 1;
+	//		xx::CoutN("thread:", i + 1);
+	//		s->Run(1);
+	//		}).detach();
+	//}
 
 	s->Run(1);
 	return 0;

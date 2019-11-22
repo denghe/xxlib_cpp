@@ -113,11 +113,11 @@ namespace xx {
 		int64_t range = (int64_t)maxValue - minValue;
 		if (range <= (int64_t)std::numeric_limits<int32_t>::max())
 		{
-			return ((int32_t)(Sample() * range) + minValue);
+			return ((int32_t)(Sample() * (double)range) + minValue);
 		}
 		else
 		{
-			return (int32_t)((int64_t)(GetSampleForLargeRange() * range) + minValue);
+			return (int32_t)((int64_t)(GetSampleForLargeRange() * (double)range) + minValue);
 		}
 	}
 
