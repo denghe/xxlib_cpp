@@ -1221,6 +1221,7 @@ namespace xx {
 // 当前主要用到这些宏。只有 lineNumber 一个特殊变量名要求
 #define COR_BEGIN	switch (lineNumber) { case 0:
 #define COR_YIELD	return __LINE__; case __LINE__:;
+#define COR_EXIT	return 0;
 #define COR_END		} return 0;
 
 /*
