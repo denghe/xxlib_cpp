@@ -232,13 +232,17 @@ struct Foo : xx::Resumer {
 };
 
 int main() {
-	xx::ResumerManager rm;
-	auto r = new Foo(rm);
-	rm.Add(r, true);
-	while (rm.resumers.size()) {
-		Sleep(1000);
-		rm.HandleEvent_Frame();
-	}
+	auto n = xx::ZigZagEncode((std::ptrdiff_t)123);
+	auto n2 = xx::ZigZagDecode(n);
+	xx::CoutN(n, " ", n2);
+
+	//xx::ResumerManager rm;
+	//auto r = new Foo(rm);
+	//rm.Add(r, true);
+	//while (rm.resumers.size()) {
+	//	Sleep(1000);
+	//	rm.HandleEvent_Frame();
+	//}
 	return 0;
 }
 

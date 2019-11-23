@@ -295,6 +295,32 @@ namespace xx {
 		}
 	};
 
+	inline uint16_t ZigZagEncode(int16_t const& in) noexcept
+	{
+		return (uint16_t)((in << 1) ^ (in >> 15));
+	}
+	inline uint32_t ZigZagEncode(int32_t const& in) noexcept
+	{
+		return (in << 1) ^ (in >> 31);
+	}
+	inline uint64_t ZigZagEncode(int64_t const& in) noexcept
+	{
+		return (in << 1) ^ (in >> 63);
+	}
+
+	inline int16_t ZigZagDecode(uint16_t const& in) noexcept
+	{
+		return (int16_t)((int16_t)(in >> 1) ^ (-(int16_t)(in & 1)));
+	}
+	inline int32_t ZigZagDecode(uint32_t const& in) noexcept
+	{
+		return (int32_t)(in >> 1) ^ (-(int32_t)(in & 1));
+	}
+	inline int64_t ZigZagDecode(uint64_t const& in) noexcept
+	{
+		return (int64_t)(in >> 1) ^ (-(int64_t)(in & 1));
+	}
+
 
 	/************************************************************************************/
 	// SFuncs
