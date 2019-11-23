@@ -158,11 +158,8 @@ namespace xx {
 					while (count) {
 						auto&& request = self->receiver.ctxs.front();
 
-						if (self->onReceiveHttp) {
-							if (self->onReceiveHttp(request, self->response)) {
-								self->response.Send404Body("bad request!");
-							}
-						}
+						self->response.output.clear();
+						self->OnReceiveHttp(request, self->response);
 
 						self->receiver.ctxs.pop_front();
 						--count;

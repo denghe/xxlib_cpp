@@ -584,9 +584,6 @@ inline void Gateway::InitWebListener() {
 			}
 			// 找到则执行
 			else {
-				// 重置一下临时变量 方便使用
-				response.text.clear();
-
 				// 如果执行出错，输出默认报错页面
 				if (iter->second(request, response)) {
 					response.Send404Body("bad request!");
