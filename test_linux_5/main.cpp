@@ -18,7 +18,6 @@ struct MyHtmlHandler {
 		}
 		// 找到则执行
 		else {
-			response.text.clear();
 			// 如果执行出错，输出默认报错页面
 			if (iter->second(request, response)) {
 				response.Send404Body("bad request!");
@@ -175,18 +174,18 @@ int main() {
 	int r = s->Listen(54321);
 	assert(!r);
 
-	//auto fd = s->listenFDs[0];
-	//std::vector<std::thread> threads;
-	//for (int i = 0; i < 5; ++i) {
-	//	threads.emplace_back([fd, i] {
-	//		auto&& s = std::make_unique<MyHttpServer>();
-	//		int r = s->ListenFD(fd);
-	//		assert(!r);
-	//		s->threadId = i + 1;
-	//		xx::CoutN("thread:", i + 1);
-	//		s->Run(1);
-	//		}).detach();
-	//}
+	auto fd = s->listenFDs[0];
+	std::vector<std::thread> threads;
+	for (int i = 0; i < 5; ++i) {
+		threads.emplace_back([fd, i] {
+			auto&& s = std::make_unique<MyHttpServer>();
+			int r = s->ListenFD(fd);
+			assert(!r);
+			s->threadId = i + 1;
+			xx::CoutN("thread:", i + 1);
+			s->Run(1);
+			}).detach();
+	}
 
 	s->Run(1);
 	return 0;

@@ -73,7 +73,8 @@ namespace xx
 				}
 			}
 
-			if (buf) ::free(buf - reservedHeaderLen);
+			// 这里判断 cap 不判断 buf, 是因为 gcc 优化会导致 if 失效, 无论如何都会执行 free
+			if (this->cap) ::free(buf - reservedHeaderLen);
 			buf = newBuf;
 			this->cap = std::size_t(newBufByteLen / sizeof(T) - reservedHeaderLen);
 		}
@@ -138,7 +139,7 @@ namespace xx
 		}
 
 		void Clear(bool const& freeBuf = false) noexcept {
-			if (!buf) return;
+			if (!cap) return;
 			if (len) {
 				if constexpr (!std::is_pod_v<T>) {
 					for (std::size_t i = len - 1; i != (std::size_t) - 1; --i) {

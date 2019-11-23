@@ -1,7 +1,6 @@
 ﻿#pragma once
-#include "xx_epoll_buf.h"
-namespace xx::Epoll {
-	// todo: helpers ( 方便使用，比如从 BBuffer 剥离 buf + cap + len )
+#include "xx_buf.h"
+namespace xx {
 	// buf 队列。提供按字节数 pop 的功能
 	struct BufQueue : protected Queue<Buf> {
 		typedef Queue<Buf> BaseType;

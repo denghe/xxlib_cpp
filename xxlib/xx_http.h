@@ -173,6 +173,7 @@ namespace xx {
 		}
 	};
 
+	// 输出容器 & 辅助输出的拼接函数
 	struct HttpResponse {
 		HttpResponse() = default;
 		HttpResponse(HttpResponse const&) = delete;
@@ -180,7 +181,10 @@ namespace xx {
 		HttpResponse& operator=(HttpResponse const&) = delete;
 		HttpResponse& operator=(HttpResponse&&) = default;
 
-		// 兼容 text json 下发格式的前缀
+		// 公用输出拼接容器( 同一连接 跨请求, 原则上只能追加 不可清空, 否则可能破坏上个请求的输出 )
+		std::string output;
+
+		
 		inline static std::string prefixText =
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/plain;charset=utf-8\r\n"
@@ -199,84 +203,82 @@ namespace xx {
 			"Connection: keep-alive\r\n"
 			"Content-Length: ";
 
-		// 公用输出拼接容器
-		std::string text;
 
 		// 创建一个会在析构时自动填充 </ tag> 的元素
 		template<typename ...Args>
 		inline HtmlScope Scope(char const* const& head, char const* const& foot = nullptr) {
-			return HtmlScope(text, head, foot);
+			return HtmlScope(output, head, foot);
 		}
 
-		// 向 text 追加 <tag>...</tag> 或 <tag.../>  内容. 参数 tag 不能带 <>
+		// 向 output 追加 <tag>...</tag> 或 <tag.../>  内容. 参数 tag 不能带 <>
 		template<typename ...Args>
 		inline void Tag(char const* const& tag, Args const& ... content) {
 			if constexpr (sizeof...(content)) {
-				xx::Append(text, "<", tag, ">", content..., "<", tag, "/>");
+				xx::Append(output, "<", tag, ">", content..., "<", tag, "/>");
 			}
 			else {
-				xx::Append(text, "<", tag, "/>");
+				xx::Append(output, "<", tag, "/>");
 			}
 		}
 
-		// 向 text 追加任意内容
+		// 向 output 追加任意内容
 		template<typename ...Args>
 		inline void Append(Args const& ... content) {
-			xx::Append(text, content...);
+			xx::Append(output, content...);
 		}
 
 		template<typename ...Args>
 		inline void TableBegin(Args const& ... titles) {
-			xx::Append(text, "<table border=\"1\">");
-			xx::Append(text, "<thead><tr>");
-			std::initializer_list<int> n{ ((xx::Append(text, "<th>", titles, "</th>")), 0)... };
+			xx::Append(output, "<table border=\"1\">");
+			xx::Append(output, "<thead><tr>");
+			std::initializer_list<int> n{ ((xx::Append(output, "<th>", titles, "</th>")), 0)... };
 			(void)(n);
-			xx::Append(text, "</tr></thead><tbody>");
+			xx::Append(output, "</tr></thead><tbody>");
 		}
 
 		template<typename ...Args>
 		inline void TableRow(Args const& ... columns) {
-			xx::Append(text, "<tr>");
-			std::initializer_list<int> n{ ((xx::Append(text, "<td>", columns, "</td>")), 0)... };
+			xx::Append(output, "<tr>");
+			std::initializer_list<int> n{ ((xx::Append(output, "<td>", columns, "</td>")), 0)... };
 			(void)(n);
-			xx::Append(text, "</tr>");
+			xx::Append(output, "</tr>");
 		}
 
 		inline void TableEnd() {
-			xx::Append(text, "</tbody></table>");
+			xx::Append(output, "</tbody></table>");
 		}
 
 		template<typename ...Args>
 		inline void P(Args const& ... contents) {
-			xx::Append(text, "<p>", contents..., "</p>");
+			xx::Append(output, "<p>", contents..., "</p>");
 		}
 
 		template<typename ...Args>
 		inline void A(char const* const& content, Args const& ... hrefs) {
-			xx::Append(text, "<a href=\"", hrefs..., "\">", content, "</a>");
+			xx::Append(output, "<a href=\"", hrefs..., "\">", content, "</a>");
 		}
 
 		template<typename ...Args>
 		inline void ABegin(Args const& ... hrefs) {
-			xx::Append(text, "<a href=\"", hrefs..., "\">");
+			xx::Append(output, "<a href=\"", hrefs..., "\">");
 		}
 
 		inline void AEnd() {
-			xx::Append(text, "</a>");
+			xx::Append(output, "</a>");
 		}
 
 		template<typename ...Args>
 		inline void FormBegin(Args const& ... actions) {
-			xx::Append(text, "<form method=\"post\" action=\"", actions..., "\">");
+			xx::Append(output, "<form method=\"post\" action=\"", actions..., "\">");
 		}
 
 		template<typename ...Args>
 		inline void FormEnd(Args const& ... submitTexts) {
-			xx::Append(text, "<input type=\"submit\" value=\"", submitTexts...,"\" /></form>");
+			xx::Append(output, "<input type=\"submit\" value=\"", submitTexts...,"\" /></form>");
 		}
 
 		inline void Input(char const* const& title, char const* const& name = nullptr, char const* const& value = nullptr, char const* const& type = nullptr) {
-			xx::Append(text, "<p>", (title ? title : name), ":<input type=\"", (type ? type : "text"), "\" name=\"", (name ? name : title), "\" value=\"", value, "\" /></p>");
+			xx::Append(output, "<p>", (title ? title : name), ":<input type=\"", (type ? type : "text"), "\" name=\"", (name ? name : title), "\" value=\"", value, "\" /></p>");
 		}
 
 
@@ -284,17 +286,16 @@ namespace xx {
 		// 下发 html( 由外部赋值 )
 		std::function<int(std::string const& prefix, char const* const& buf, std::size_t const& len)> onSend;
 
-		// 将 text 以 html 格式发出
+		// 将 output 以 html 格式发出
 		inline int Send() {
-			return onSend(prefixHtml, text.data(), text.size());
+			return onSend(prefixHtml, output.data(), output.size());
 		}
 
 		// 会多一次复制但是方便拼接的下发 html 函数
 		template<typename...Args>
 		inline int Send(std::string const& prefix, Args const& ...args) noexcept {
-			text.clear();
-			xx::Append(text, args...);
-			return onSend(prefix, text.data(), text.size());
+			xx::Append(output, args...);
+			return onSend(prefix, output.data(), output.size());
 		}
 
 		inline int SendHtml(std::string const& html) {

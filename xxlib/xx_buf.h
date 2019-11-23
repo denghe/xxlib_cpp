@@ -2,7 +2,7 @@
 #include "xx_bbuffer.h"
 #include "xx_queue.h"
 
-namespace xx::Epoll {
+namespace xx {
 	// 引用计数放在 buf[len] 的后面. 从 BBuffer 剥离时 对齐追加一个定长 int 的空间但是不改变长度
 	struct Buf {
 
@@ -126,7 +126,7 @@ namespace xx::Epoll {
 namespace xx {
 	// 标识内存可移动
 	template<>
-	struct IsTrivial<xx::Epoll::Buf, void> {
+	struct IsTrivial<Buf, void> {
 		static const bool value = true;
 	};
 }

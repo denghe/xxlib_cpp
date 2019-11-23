@@ -17,8 +17,8 @@
 
 #include "xx_bbuffer.h"
 #include "xx_queue.h"
-#include "xx_epoll_buf.h"
-#include "xx_epoll_buf_queue.h"
+#include "xx_buf.h"
+#include "xx_buf_queue.h"
 #include "xx_coros_boost.h"
 
 namespace xx::Epoll {
@@ -73,6 +73,7 @@ namespace xx::Epoll {
 		std::string ip;												// accept 之后记录 ip:port
 
 		int Send(Buf&& eb);											// 正常发送. 如果发不完将堆积在 sendQueue. 返回 非 0 表示出错
+		int Flush();												// 将 sendQueue 的内容发出. 可能发不完. 返回 非 0 表示出错
 		void Dispose(bool const& callOnDisconnect = true);			// 掐线销毁
 		bool Disposed();											// 返回是否已销毁
 
@@ -763,6 +764,11 @@ namespace xx::Epoll {
 	inline int Peer::Send(Buf&& eb) {
 		assert(this->id);
 		sendQueue.value().Push(std::move(eb));
+		return !writing ? ep->Write(sockFD) : 0;
+	}
+
+	inline int Peer::Flush() {
+		assert(this->id);
 		return !writing ? ep->Write(sockFD) : 0;
 	}
 

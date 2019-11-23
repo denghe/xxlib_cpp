@@ -52,7 +52,7 @@ namespace xx {
 				dataLen += len;
 
 				// send
-				return pr->Send(xx::Epoll::Buf(dataLen, data));
+				return pr->Send(xx::Buf(dataLen, data));
 			};
 
 			if (auto&& r = receiver->Input((char*)pr->recv.buf, pr->recv.len)) {
