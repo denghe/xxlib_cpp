@@ -39,6 +39,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_sqlite.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_threadpool_ex.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_timeouter.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_ext.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_uv_http.h" />
