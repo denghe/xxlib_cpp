@@ -1,28 +1,76 @@
 ﻿#include <xx_epoll.h>
-#include <xx_timeouter.h>
+#include <xx_timeout.h>
 
-struct Disposer : std::enable_shared_from_this<Disposer> {
-	virtual ~Disposer() {/* 最外层派生类析构要写 this->Dispose(-1); */ }
+// todo: 加一波 noexcept, const 啥的
 
-	// flag == -1: call by destructor.  0 : do not callback.  1: callback
-	// return true: dispose success. false: already disposed.
-	virtual bool Dispose(int const& flag = 1) noexcept = 0;
-};
+// 内存模型为 智能指针 从创建出来开始就放入 容器, 并非弱引用, 故不需要想办法加持, 也能提升网络事件派发效率( 省掉了 lock() )
 
 struct Epoll;
-struct FDHandler : Disposer {
+
+struct EpollItem : std::enable_shared_from_this<EpollItem> {
+	// 指向总容器
 	Epoll* ep = nullptr;
-	int fd = -1;
+
+	// 销毁标志
 	bool disposed = false;
+	bool Disposed() const noexcept {
+		return disposed;
+	}
 
-	virtual bool Dispose(int const& flag = 1) noexcept override;
+	// flag == -1: 在析构函数中调用.  0: 不产生回调  1: 产生回调
+	// 下列代码为内容示例, 方便复制小改
+	virtual void Dispose(int const& flag = 1) noexcept {
+		// 检查 & 打标记 以避免重复执行析构逻辑
+		if (disposed) return;
+		disposed = true;
 
-	// return 非 0 表示自杀
-	virtual int OnEpollEvent(uint32_t const& e) = 0;
+		// 调用派生类自己的析构部分
+		Disposing(flag);
+
+		// todo: 从容器移除以触发析构
+	};
+
+	// 子析构( 从析构函数中间接调用时无效 )
+	virtual void Disposing(int const& flag) noexcept {}
+
+	// 每层非虚派生类析构都要写 this->Dispose(-1);
+	virtual ~EpollItem() { this->Dispose(-1); }
 };
 
+
+struct FDHandler : EpollItem {
+	// linux 系统文件描述符. 同时也是 ep->fdHandlers 的下标
+	int fd = -1;
+
+	// epoll fd 事件处理. return 非 0 表示自杀
+	virtual int OnEpollEvent(uint32_t const& e) = 0;
+
+	// 关 fd, 从 epoll 移除, call Disposing, 从容器移除( 可能触发析构 )
+	virtual void Dispose(int const& flag = 1) noexcept override;
+
+	virtual ~FDHandler() { this->Dispose(-1); }
+};
+
+
+struct Timer : EpollItem, xx::TimeoutBase {
+	// ep->timers 的下标
+	int indexAtContainer = -1;
+
+	// 时间到达时触发. 如果想实现 repeat 效果, 就在函数返回前 自己 timer->SetTimeout
+	std::function<void(Timer* const& timer)> onFire;
+
+	// 负责触发 onFire
+	virtual void OnTimeout() noexcept override;
+
+	// 从 timeoutManager 移除, call Disposing, 从容器移除( 可能触发析构 )
+	virtual void Dispose(int const& flag = 1) noexcept override;
+
+	~Timer() { this->Dispose(-1); }
+};
+
+
 struct TcpListener;
-struct TcpPeer : FDHandler, xx::TimeouterBase {
+struct TcpPeer : FDHandler, xx::TimeoutBase {
 	// ip
 	std::string ip;
 
@@ -49,12 +97,16 @@ struct TcpPeer : FDHandler, xx::TimeouterBase {
 	// 数据接收事件: 从 recv 拿数据
 	virtual int OnReceive();
 
-	// 超时: Dispose
-	virtual void OnTimeout();
+	// 用于处理超时掐线
+	virtual void OnTimeout() override;
 
-	~TcpPeer() {
-		this->Dispose(-1);
-	}
+	// 断线时的处理
+	inline virtual void OnDisconnect() {}
+
+	// 触发 OnDisconnect
+	virtual void Disposing(int const& flag) noexcept override;
+
+	~TcpPeer() { this->Dispose(-1); }
 
 	int Send(xx::Buf&& eb);
 	int Flush();
@@ -64,61 +116,88 @@ protected:
 	int Read();
 };
 
-struct TcpListener : FDHandler {
-	~TcpListener() {
-		this->Dispose(-1);
-	}
 
+struct TcpListener : FDHandler {
 	// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
 	virtual std::shared_ptr<TcpPeer> OnCreatePeer();
 
 	// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
-	virtual int OnAccept(std::shared_ptr<TcpPeer> peer);
+	virtual int OnAccept(std::shared_ptr<TcpPeer>& peer);
 
 	// 调用 accept
 	virtual int OnEpollEvent(uint32_t const& e) override;
+
+	~TcpListener() { this->Dispose(-1); }
 
 protected:
 	// return fd. <0: error. 0: empty (EAGAIN / EWOULDBLOCK), > 0: fd
 	int Accept(int const& listenFD);
 };
 
-struct TcpConn : TcpPeer {
-	bool connected = false;
-	virtual int OnEpollEvent(uint32_t const& e) override;
 
+struct TcpConn : TcpPeer {
+	// 是否连接成功
+	bool connected = false;
+
+	// 成功, 超时或连接错误 都将触发该函数. 进一步判断 connected 可知状态
+	virtual void OnConnect() = 0;
+
+	// 用于处理连接超时
 	virtual void OnTimeout();
 
-	// 0: success. -1: timeout  -?: others
-	virtual void OnConnect(int const& flag) = 0;
+	// 通过 connected 来路由两套事件逻辑
+	virtual int OnEpollEvent(uint32_t const& e) override;
 
-	~TcpConn() {
-		this->Dispose(-1);
-	}
+	~TcpConn() { this->Dispose(-1); }
 };
+
 
 struct UdpPeer : FDHandler {
 	// todo: 提供 udp 基础收发功能
-	~UdpPeer() {
-		this->Dispose(-1);
-	}
+	~UdpPeer() { this->Dispose(-1); }
 };
+
 
 struct UdpListener : UdpPeer {
 	// todo: 自己处理收发模拟握手 模拟 accept( 拿已创建的 KcpPeer 来分配 )
 	// 循环使用一组 UdpPeer, 创建逻辑 kcp 连接. 多个 UdpPeer 用于加深 epoll 事件队列深度 避免瓶颈 )
 };
 
-struct Epoll {
-	int efd = -1;
-	int lastErrorNumber = 0;
-	std::array<epoll_event, 4096> events;
-	std::vector<std::shared_ptr<FDHandler>> fdHandlers;
-	xx::TimeouterManager timeouterManager;
 
+struct UdpDialer : UdpPeer {
+};
+
+
+struct KcpPeer : UdpPeer {
+};
+
+
+struct Epoll {
+	// fd 处理类 之 唯一持有容器. 别处引用尽量用 weak_ptr
+	std::vector<std::shared_ptr<FDHandler>> fdHandlers;
+
+	// timer 唯一持有容器. 别处引用尽量用 weak_ptr
+	std::vector<std::shared_ptr<Timer>> timers;
+
+	// epoll_wait 事件存储
+	std::array<epoll_event, 4096> events;
+
+	// 存储的 epoll fd
+	int efd = -1;
+
+	// 对于一些返回值非 int 的函数, 具体错误码将存放于此
+	int lastErrorNumber = 0;
+
+	// 超时管理器
+	xx::TimeoutManager timeoutManager;
+
+	// 可初始化 fd 总数
 	Epoll(int const& maxNumFD = 65536) {
+		// 创建 epoll fd
 		efd = epoll_create1(0);
 		if (-1 == efd) throw - 1;
+
+		// 初始化 fd 处理器存储空间
 		fdHandlers.resize(maxNumFD);
 	}
 
@@ -126,6 +205,16 @@ struct Epoll {
 		if (efd != -1) {
 			close(efd);
 			efd = -1;
+		}
+		for (auto&& o : fdHandlers) {
+			if (o && !o->Disposed()) {
+				o->Dispose(0);
+			}
+		}
+		for (auto&& o : timers) {
+			if (o && !o->Disposed()) {
+				o->Dispose(0);
+			}
 		}
 	}
 
@@ -171,8 +260,8 @@ struct Epoll {
 	};
 
 	// 添加监听器
-	template<typename H, typename ...Args>
-	inline std::shared_ptr<H> CreateTcpListener(int const& port, Args&&... args) {
+	template<typename H = TcpListener, typename ...Args>
+	inline std::shared_ptr<H> TcpListen(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<TcpListener, H>);
 		auto&& fd = MakeListenFD(port);
 		if (fd < 0) {
@@ -205,8 +294,8 @@ struct Epoll {
 	}
 
 	// 创建 连出去的 peer
-	template<typename H, typename ...Args>
-	std::shared_ptr<H> Dial(char const* const& ip, int const& port, int const& timeoutInterval, Args&&... args) {
+	template<typename H = TcpConn, typename ...Args>
+	std::shared_ptr<H> TcpDial(char const* const& ip, int const& port, int const& timeoutInterval, Args&&... args) {
 		static_assert(std::is_base_of_v<TcpConn, H>);
 		sockaddr_in dest;							// todo: ipv6 support
 		memset(&dest, 0, sizeof(dest));
@@ -224,7 +313,6 @@ struct Epoll {
 		}
 		xx::ScopeGuard sg([&] { close(fd); });
 
-		// todo: 这段代码和 Accept 的去重
 		int on = 1;
 		if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) {
 			lastErrorNumber = -3;
@@ -246,11 +334,12 @@ struct Epoll {
 		}
 		auto conn = xx::Make<H>(std::forward<Args>(args)...);
 		conn->ep = this;
+		conn->timeoutManager = &timeoutManager;
 		conn->fd = fd;
 		fdHandlers[fd] = conn;
 
 		// 设置拨号超时
-		if (int r = conn.SetTimeout(timeoutInterval)) {
+		if (int r = conn->SetTimeout(timeoutInterval)) {
 			lastErrorNumber = r;
 			return nullptr;
 		}
@@ -259,17 +348,29 @@ struct Epoll {
 		return conn;
 	}
 
+	// 创建 timer
+	template<typename T = Timer, typename ...Args>
+	std::shared_ptr<T> Delay(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args) {
+		static_assert(std::is_base_of_v<Timer, T>);
+		if (!cb) return nullptr;
+		auto timer = xx::Make<T>(std::forward<Args>(args)...);
+		timer->timeoutManager = &timeoutManager;
+		if (timer->SetTimeout(interval)) return nullptr;
+		timer->ep = this;
+		timer->onFire = std::move(cb);
+		timer->indexAtContainer = (int)timers.size();
+		timers.push_back(timer);
+		return timer;
+	}
+
 	// 进入一次 epoll wait. 可传入超时时间. 
 	inline int Wait(int const& timeoutMS) {
-		int n = epoll_wait(efd, events.data(), events.size(), timeoutMS);
+		int n = epoll_wait(efd, events.data(), (int)events.size(), timeoutMS);
 		if (n == -1) return errno;
 		for (int i = 0; i < n; ++i) {
-			auto fd = events[i].data.fd;
-			auto e = events[i].events;
-			xx::CoutN("fd = ", fd, ", e = ", e);
-
-			auto&& h = fdHandlers[fd];
+			auto&& h = fdHandlers[events[i].data.fd];
 			assert(h);
+			auto e = events[i].events;
 			if (e & EPOLLERR || e & EPOLLHUP) {
 				h->Dispose();
 			}
@@ -317,7 +418,7 @@ struct Epoll {
 				waitMS = 0;
 
 				// 驱动 timers
-				timeouterManager.Update();
+				timeoutManager.Update();
 
 				// 帧逻辑调用一次
 				if (int r = Update()) return r;
@@ -341,16 +442,57 @@ struct Epoll {
 };
 
 
-inline bool FDHandler::Dispose(int const& flag) noexcept {
-	if (disposed) return false;
+inline void FDHandler::Dispose(int const& flag) noexcept {
+	// 检查 & 打标记 以避免重复执行析构逻辑
+	if (disposed) return;
 	disposed = true;
-	if (fd != -1) {
-		epoll_ctl(ep->efd, EPOLL_CTL_DEL, fd, nullptr);
-		close(fd);
+
+	// 调用派生类自己的析构部分
+	Disposing(flag);
+
+	// 从 ep 移除监视 并关闭
+	assert(fd != -1);
+	epoll_ctl(ep->efd, EPOLL_CTL_DEL, fd, nullptr);
+	close(fd);
+
+	// 从容器移除以触发析构
+	if (flag != -1) {
 		ep->fdHandlers[fd].reset();
-		fd = -1;
 	}
-	return true;
+}
+
+
+inline void Timer::OnTimeout() noexcept {
+	if (onFire) {
+		onFire(this);
+	}
+	if (timeoutIndex == -1) {
+		Dispose();
+	}
+}
+
+inline void Timer::Dispose(int const& flag) noexcept {
+	// 检查 & 打标记 以避免重复执行析构逻辑
+	if (disposed) return;
+	disposed = true;
+
+	// 调用派生类自己的析构部分
+	Disposing(flag);
+
+	// 从 timeoutManager 移除
+	if (timeoutIndex != -1) {
+		SetTimeout(0);
+	}
+
+	// 清除可能存在的循环引用
+	onFire = nullptr;
+
+	// 从容器移除以触发析构
+	if (flag != -1) {
+		if (indexAtContainer != -1) {
+			XX_SWAP_REMOVE(this, indexAtContainer, ep->timers);
+		}
+	}
 }
 
 
@@ -384,6 +526,7 @@ inline int TcpListener::Accept(int const& listenFD) {
 	if (!peer) return fd;
 	peer->ep = ep;
 	peer->fd = fd;
+	peer->timeoutManager = &ep->timeoutManager;
 
 	// 继续初始化该 fd. 如果有异常则退出
 	if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
@@ -398,7 +541,7 @@ inline int TcpListener::Accept(int const& listenFD) {
 
 	// 纳入 ep 管理
 	if (-1 == ep->Ctl(fd, EPOLLIN)) return -6;
-	ep->fdHandlers[fd] = std::move(peer);
+	ep->fdHandlers[fd] = peer;
 
 	// 调用用户自定义后续绑定
 	OnAccept(peer);
@@ -408,10 +551,19 @@ inline int TcpListener::Accept(int const& listenFD) {
 	return fd;
 }
 
-inline int TcpListener::OnAccept(std::shared_ptr<TcpPeer> peer) {
+inline int TcpListener::OnAccept(std::shared_ptr<TcpPeer>& peer) {
 	return 0;
 }
 
+
+inline void TcpPeer::Disposing(int const& flag) noexcept {
+	if (timeoutIndex != -1) {
+		SetTimeout(0);
+	}
+	if (flag == 1) {
+		OnDisconnect();
+	}
+}
 
 inline int TcpPeer::Send(xx::Buf&& eb) {
 	sendQueue.value().Push(std::move(eb));
@@ -509,8 +661,9 @@ inline void TcpPeer::OnTimeout() {
 }
 
 
+
 inline void TcpConn::OnTimeout() {
-	OnConnect(false);
+	OnConnect();
 	Dispose();
 }
 
@@ -522,47 +675,41 @@ inline int TcpConn::OnEpollEvent(uint32_t const& e) {
 	int err;
 	socklen_t result_len = sizeof(err);
 	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &result_len) == -1 || err) {
-		OnConnect(false);
+		OnConnect();
 		return -1;
 	}
 	// 拨号连接成功. 打标记. 避免再次进入该 if 分支
 	SetTimeout(0);
-	OnConnect(true);
+	connected = true;
+	OnConnect();
 	return 0;
 }
 
+
+
+
+
+struct L : TcpListener {
+	inline virtual int OnAccept(std::shared_ptr<TcpPeer>& peer) override {
+		// 设置 3 秒后自动断开
+		return peer->SetTimeout(30);
+	}
+};
+
+struct C : TcpConn {
+	inline virtual void OnConnect() override {
+		xx::CoutN("connected = ", connected);
+	}
+};
 
 int main() {
+	xx::IgnoreSignal();
 	Epoll ep;
-	auto listener = ep.CreateTcpListener<TcpListener>(12345);
-	ep.Run(1);
-	return 0;
+	ep.Delay(10, [&](Timer* const& timer) {
+		xx::CoutN("111");
+		ep.TcpDial<C>("127.0.0.1", 12345, 20);
+		xx::CoutN("222");
+		});
+	auto listener = ep.TcpListen<L>(12345);
+	return ep.Run(10);
 }
-
-
-
-//
-//struct Foo : xx::TimeouterBase {
-//	virtual void OnTimeout() override {
-//		xx::Cout("x");
-//	}
-//};
-//
-//int main() {
-//	xx::TimeouterManager tm(8);
-//
-//	auto foo = xx::Make<Foo>();
-//	foo->timerManager = &tm;
-//	foo->SetTimeout(5);
-//
-//	auto foo2 = xx::Make<Foo>();
-//	foo2->timerManager = &tm;
-//	foo2->SetTimeout(5);
-//
-//	for (int i = 0; i < 32; ++i) {
-//		tm.Update();
-//		xx::Cout(".");
-//	}
-//	xx::CoutN("end");
-//	return 0;
-//}
