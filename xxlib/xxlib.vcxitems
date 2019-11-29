@@ -24,6 +24,8 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_buf.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_buf_queue.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll2.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll2.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_file.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_http.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_list.h" />
