@@ -7,6 +7,17 @@ sudo apt install gcc-8 g++-8 gdb gdbserver libboost-context-dev libuv1-dev uuid-
 设置 gcc g++ 命令指向 8.0:
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8
 
+解除 linux fd 限制: /etc/security/limits.conf 追加下面的内容, 保存重启
+root hard nofile 65535
+root soft nofile 65535
+root soft core unlimited
+root hard core unlimited
+* hard nofile 65535
+* soft nofile 65535
+* soft core unlimited
+* hard core unlimited
+
+
 
 
 如果网络异常, 可通过代理安装:
@@ -36,6 +47,10 @@ vs2019 + linux 项目可以正常工作
 LINUX compile command line:
 cd xxlib_cpp/test_linux_1
 g++ ../xxlib/ikcp.c main.cpp -O3 -std=c++17 -pthread -o main -I./ -lboost_context -I../xxlib
+
+
+
+
 
 
 

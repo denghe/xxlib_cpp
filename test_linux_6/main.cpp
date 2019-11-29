@@ -1,26 +1,22 @@
 ﻿#include "xx_epoll2.hpp"
+namespace EP = xx::Epoll;
 
-struct L : xx::Epoll::TcpListener {
-	inline virtual int OnAccept(std::shared_ptr<xx::Epoll::TcpPeer>& peer) override {
+struct L : EP::TcpListener {
+	inline virtual int OnAccept(std::shared_ptr<EP::TcpPeer>& peer) override {
+		xx::CoutN("ip: ", peer->ip, " accepted.");
+		return 0;
 		// 设置 3 秒后自动断开
-		return peer->SetTimeout(30);
-	}
-};
-
-struct C : xx::Epoll::TcpConn {
-	inline virtual void OnConnect() override {
-		xx::CoutN("connected = ", connected);
+		//return peer->SetTimeout(30);
 	}
 };
 
 int main() {
 	xx::IgnoreSignal();
-	xx::Epoll::Context ep;
-	ep.Delay(10, [&](xx::Epoll::Timer* const& timer) {
-		xx::CoutN("111");
-		ep.TcpDial<C>("127.0.0.1", 12345, 20);
-		xx::CoutN("222");
-		});
+	EP::Context ep;
 	auto listener = ep.TcpListen<L>(12345);
+	ep.Delay(10, [&](auto t) {
+		xx::Cout(".");
+		t->SetTimeout(10);
+	});
 	return ep.Run(10);
 }

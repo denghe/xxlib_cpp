@@ -20,7 +20,6 @@
 #include "xx_buf_queue.h"
 #include "xx_timeout.h"
 
-// todo: 加一波 noexcept, const 啥的
 
 // 内存模型为 预持有智能指针
 // 从创建出来开始就放入 容器, 故不需要想办法加持
@@ -44,14 +43,17 @@ namespace xx::Epoll {
 		// 指向总容器
 		Context* ep = nullptr;
 
+		// 在对象创建成功 & 填充 & 放置到位 后会被执行, 覆盖以便做一些后期初始化工作，模拟构造函数
+		inline virtual void Init() {}
+
 		// 销毁标志
 		bool disposed = false;
-		inline bool Disposed() const noexcept {
+		inline bool Disposed() const {
 			return disposed;
 		}
 
 		// flag == -1: 在析构函数中调用.  0: 不产生回调  1: 产生回调
-		inline virtual void Dispose(int const& flag) noexcept {
+		inline virtual void Dispose(int const& flag) {
 			// 下列代码为内容示例, 方便复制小改
 
 			// 检查 & 打标记 以避免重复执行析构逻辑
@@ -65,7 +67,7 @@ namespace xx::Epoll {
 		};
 
 		// 子析构
-		inline virtual void Disposing(int const& flag) noexcept {}
+		inline virtual void Disposing(int const& flag) {}
 
 		// 每层非虚派生类析构都要写 this->Dispose(-1);
 		virtual ~Item() { this->Dispose(-1); }
@@ -84,7 +86,7 @@ namespace xx::Epoll {
 		virtual int OnEpollEvent(uint32_t const& e) = 0;
 
 		// 关 fd, 从 epoll 移除, call Disposing, 从容器移除( 可能触发析构 )
-		virtual void Dispose(int const& flag) noexcept override;
+		virtual void Dispose(int const& flag) override;
 
 		virtual ~FDHandler() { this->Dispose(-1); }
 	};
@@ -102,10 +104,10 @@ namespace xx::Epoll {
 		std::function<void(Timer* const& timer)> onFire;
 
 		// 负责触发 onFire
-		virtual void OnTimeout() noexcept override;
+		virtual void OnTimeout() override;
 
 		// 从 timeoutManager 移除, call Disposing, 从容器移除( 可能触发析构 )
-		virtual void Dispose(int const& flag) noexcept override;
+		virtual void Dispose(int const& flag) override;
 
 		~Timer() { this->Dispose(-1); }
 	};
@@ -150,10 +152,11 @@ namespace xx::Epoll {
 		inline virtual void OnDisconnect() {}
 
 		// 触发 OnDisconnect
-		virtual void Disposing(int const& flag) noexcept override;
+		virtual void Disposing(int const& flag) override;
 
 		~TcpPeer() { this->Dispose(-1); }
 
+		// 构造出 Buf 对象塞队列并开始发送。相关信息需参考 Buf 构造函数
 		int Send(xx::Buf&& eb);
 		int Flush();
 
@@ -200,7 +203,7 @@ namespace xx::Epoll {
 		virtual int OnEpollEvent(uint32_t const& e) override;
 
 		// 触发 OnConnect
-		virtual void Disposing(int const& flag) noexcept override;
+		virtual void Disposing(int const& flag) override;
 
 		~TcpConn() { this->Dispose(-1); }
 	};

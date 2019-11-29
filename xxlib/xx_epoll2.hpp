@@ -6,7 +6,7 @@ namespace xx::Epoll {
 	// FDHandler
 	/***********************************************************************************************************/
 
-	inline void FDHandler::Dispose(int const& flag) noexcept {
+	inline void FDHandler::Dispose(int const& flag) {
 		// 检查 & 打标记 以避免重复执行析构逻辑
 		if (disposed) return;
 		disposed = true;
@@ -29,7 +29,7 @@ namespace xx::Epoll {
 	// Timer
 	/***********************************************************************************************************/
 
-	inline void Timer::OnTimeout() noexcept {
+	inline void Timer::OnTimeout() {
 		assert(!disposed);
 
 		if (onFire) {
@@ -41,7 +41,7 @@ namespace xx::Epoll {
 		}
 	}
 
-	inline void Timer::Dispose(int const& flag) noexcept {
+	inline void Timer::Dispose(int const& flag) {
 		// 检查 & 打标记 以避免重复执行析构逻辑
 		if (disposed) return;
 		disposed = true;
@@ -73,7 +73,7 @@ namespace xx::Epoll {
 	// TcpPeer
 	/***********************************************************************************************************/
 
-	inline void TcpPeer::Disposing(int const& flag) noexcept {
+	inline void TcpPeer::Disposing(int const& flag) {
 		if (timeoutIndex != -1) {
 			SetTimeout(0);
 		}
@@ -165,8 +165,8 @@ namespace xx::Epoll {
 	}
 
 	inline int TcpPeer::OnReceive() {
-		// 默认实现为 echo
-		auto&& r = write(fd, recv.buf, recv.len) > 0 ? 0 : -1;
+		// 默认实现为 echo. 仅供测试. 随意使用 write 可能导致待发队列中的数据被分割
+		auto&& r = write(fd, recv.buf, recv.len) == recv.len ? 0 : -1;
 		recv.Clear();
 		return r;
 	}
@@ -181,7 +181,7 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	inline std::shared_ptr<TcpPeer> TcpListener::OnCreatePeer() {
-		return xx::Make<TcpPeer>();
+		return xx::TryMake<TcpPeer>();
 	}
 
 	inline int TcpListener::OnEpollEvent(uint32_t const& e) {
@@ -243,6 +243,9 @@ namespace xx::Epoll {
 			xx::Append(peer->ip, hbuf, ":", sbuf);
 		}
 
+		// 调用用户自定义后续初始化
+		peer->Init();
+
 		// 调用用户自定义后续绑定
 		OnAccept(peer);
 
@@ -274,7 +277,7 @@ namespace xx::Epoll {
 		return 0;
 	}
 
-	inline void TcpConn::Disposing(int const& flag) noexcept {
+	inline void TcpConn::Disposing(int const& flag) {
 		// 已连接就直接执行 TcpPeer 旧逻辑
 		if (connected) {
 			this->TcpPeer::Disposing(flag);
@@ -491,6 +494,9 @@ namespace xx::Epoll {
 		o->fd = fd;
 		fdHandlers[fd] = o;
 
+		// 调用用户自定义后续初始化
+		o->Init();
+
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
 		return o;
@@ -573,6 +579,9 @@ namespace xx::Epoll {
 		o->recv.Reserve(o->readBufLen);
 		fdHandlers[fd] = o;
 
+		// 调用用户自定义后续初始化
+		o->Init();
+
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
 		return o;
@@ -605,7 +614,9 @@ namespace xx::Epoll {
 		o->indexAtContainer = (int)timers.size();
 		timers.push_back(o);
 
+		// 调用用户自定义后续初始化
+		o->Init();
+
 		return o;
 	}
-
 }
