@@ -14,6 +14,7 @@
 #include <sys/signalfd.h>
 #include <netinet/tcp.h>
 
+#include "ikcp.h"
 #include "xx_bbuffer.h"
 #include "xx_queue.h"
 #include "xx_buf.h"
@@ -156,8 +157,8 @@ namespace xx::Epoll {
 
 		~TcpPeer() { this->Dispose(-1); }
 
-		// 构造出 Buf 对象塞队列并开始发送。相关信息需参考 Buf 构造函数
-		int Send(xx::Buf&& eb);
+		// Buf 对象塞队列并开始发送。相关信息需参考 Buf 构造函数
+		int Send(xx::Buf&& data);
 		int Flush();
 
 	protected:
@@ -215,6 +216,12 @@ namespace xx::Epoll {
 
 	struct UdpPeer : FDHandler {
 		// todo: 提供 udp 基础收发功能
+
+		// 监听端口
+		int port = -1;
+
+
+
 		~UdpPeer() { this->Dispose(-1); }
 	};
 
@@ -295,7 +302,7 @@ namespace xx::Epoll {
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		int Run(double const& frameRate = 60.3);
 
-		// 创建 监听器
+		// 创建 监听器	// todo: 支持填写ip, 支持传入复用 fd
 		template<typename L = TcpListener, typename ...Args>
 		std::shared_ptr<L> TcpListen(int const& port, Args&&... args);
 

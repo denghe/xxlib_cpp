@@ -44,7 +44,7 @@ int Test(int const& threadId, int const& clientCount) {
 int main() {
 	xx::IgnoreSignal();
 
-	int numThreads = 6;
+	int numThreads = 1;
 	int numClients = 1000;
 
 	std::vector<std::thread> ts;

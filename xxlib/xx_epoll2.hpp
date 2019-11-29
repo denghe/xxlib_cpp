@@ -82,8 +82,8 @@ namespace xx::Epoll {
 		}
 	}
 
-	inline int TcpPeer::Send(xx::Buf&& eb) {
-		sendQueue.Push(std::move(eb));
+	inline int TcpPeer::Send(xx::Buf&& data) {
+		sendQueue.Push(std::move(data));
 		return !writing ? Write() : 0;
 	}
 
@@ -211,8 +211,10 @@ namespace xx::Epoll {
 		if (fd >= (int)ep->fdHandlers.size()) return fd;
 		assert(!ep->fdHandlers[fd]);
 
-		// 继续初始化该 fd. 如果有异常则退出
+		// 设置非阻塞状态
 		if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
+
+		// 设置一些 tcp 参数( 可选 )
 		int on = 1;
 		if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) return -3;
 
@@ -325,6 +327,7 @@ namespace xx::Epoll {
 		}
 	}
 
+	// todo: 换一段能指定 ip 的代码来用？
 	inline int Context::MakeListenFD(int const& port) {
 		char portStr[20];
 		snprintf(portStr, sizeof(portStr), "%d", port);
@@ -509,7 +512,7 @@ namespace xx::Epoll {
 		static_assert(std::is_base_of_v<TcpConn, C>);
 
 		// 转换地址字符串为 addr 格式
-		// todo: ipv6 support
+		// todo: ipv6 support, 域名解析?
 		sockaddr_in dest;
 		memset(&dest, 0, sizeof(dest));
 		dest.sin_family = AF_INET;
