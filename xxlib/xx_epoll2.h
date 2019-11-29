@@ -22,13 +22,15 @@
 
 // todo: 加一波 noexcept, const 啥的
 
-// 内存模型为 智能指针 从创建出来开始就放入 容器, 并非弱引用, 故不需要想办法加持, 也能提升网络事件派发效率( 省掉了 lock() )
-// Dispose 主要作用：close fd, 从 epoll 移除, 从主容器移除
+// 内存模型为 预持有智能指针
+// 从创建出来开始就放入 容器, 故不需要想办法加持
+// 省掉了 lock() 能提升网络事件派发效率, 临时创建 timer 等以延迟执行一段代码等行为也变得容易
+// 随之带来的问题是 要释放必须直接或间接的 Dispose( close fd, 从 epoll 移除, 从主容器移除以触发 析构 )
+
 // 注意：
-// 析构调用 Dispose 的情况可能是 对象创建到一半 发生异常, 并且此时无法调用 派生类 override 的部分, 故需要谨慎判断. 且因为一定不是位于主容器，故也不能执行移除相关代码
-// Disposing 主供派生类 从非析构函数源头执行 派生层面增加的析构内容
-// 注意2：
-// 从析构函数发起的调用，无法执行 shared_from_this
+// 析构过程中无法执行 shared_from_this
+// 基类析构发起的 Dispose 无法调用 派生类 override 的部分, 需谨慎
+// 上层类只析构自己的数据, 到基类析构时无法访问上层类成员与 override 的函数
 
 namespace xx::Epoll {
 
@@ -266,7 +268,7 @@ namespace xx::Epoll {
 		// maxNumFD: fd 总数
 		Context(int const& maxNumFD = 65536);
 
-		~Context();
+		virtual ~Context();
 
 		// 创建监听用 tcp fd 并返回. < 0: error
 		static int MakeListenFD(int const& port);
@@ -292,15 +294,15 @@ namespace xx::Epoll {
 
 		// 创建 监听器
 		template<typename L = TcpListener, typename ...Args>
-		inline std::shared_ptr<L> TcpListen(int const& port, Args&&... args);
+		std::shared_ptr<L> TcpListen(int const& port, Args&&... args);
 
 		// 创建 连接 peer
 		template<typename C = TcpConn, typename ...Args>
-		inline std::shared_ptr<C> TcpDial(char const* const& ip, int const& port, int const& timeoutInterval, Args&&... args);
+		std::shared_ptr<C> TcpDial(char const* const& ip, int const& port, int const& timeoutInterval, Args&&... args);
 
 		// 创建 timer
 		template<typename T = Timer, typename ...Args>
-		inline std::shared_ptr<T> Delay(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
+		std::shared_ptr<T> Delay(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
 	};
 
 }
