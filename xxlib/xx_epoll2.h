@@ -238,10 +238,6 @@ namespace xx::Epoll {
 
 	struct KcpPeer;
 	struct UdpListener : UdpPeer {
-		// todo: 自己处理收发模拟握手 模拟 accept( 拿已创建的 KcpPeer 来分配 )
-		// todo: 循环使用一组 UdpPeer, 创建逻辑 kcp 连接. 多个 UdpPeer 用于加深 epoll 事件队列深度 避免瓶颈 )
-		// todo: 实现握手逻辑
-
 		// 自增生成
 		uint32_t convId = 0;
 
@@ -256,6 +252,8 @@ namespace xx::Epoll {
 
 		// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
 		inline virtual int OnAccept(std::shared_ptr<KcpPeer>& peer) { return 0; }
+
+		// todo: Dispose 时杀掉相关 kcp peers?
 	};
 
 
