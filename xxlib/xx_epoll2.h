@@ -2,17 +2,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/epoll.h>
-#include <sys/uio.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/epoll.h>
+#include <sys/uio.h>
 #include <sys/signalfd.h>
 #include <netinet/tcp.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "ikcp.h"
 #include "xx_bbuffer.h"
@@ -138,9 +140,6 @@ namespace xx::Epoll {
 		// 读缓冲区内存扩容增量
 		std::size_t readBufLen = 65536;
 
-		// writev 函数 (buf + len) 数组 参数允许的最大数组长度
-		static const std::size_t maxNumIovecs = 1024;
-
 		virtual int OnEpollEvent(uint32_t const& e) override;
 
 		// 数据接收事件: 从 recv 拿数据
@@ -215,12 +214,17 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct UdpPeer : FDHandler {
-		// todo: 提供 udp 基础收发功能
-
-		// 监听端口
+		// 存放该 udp socket 占用的是哪个本地端口
 		int port = -1;
 
+		// 处理数据接收
+		virtual int OnEpollEvent(uint32_t const& e) override;
 
+		// 处理数据到达事件. 默认实现为 echo. 使用 sendto 发回收到的数据.
+		virtual int OnReceive(sockaddr* fromAddr, socklen_t const& fromAddrLen, char const* const& buf, std::size_t const& len);
+
+		// 直接封装 sendto 函数
+		int SendTo(sockaddr* toAddr, int const& toAddrLen, char const* const& buf, std::size_t const& len);
 
 		~UdpPeer() { this->Dispose(-1); }
 	};
@@ -233,14 +237,10 @@ namespace xx::Epoll {
 	struct UdpListener : UdpPeer {
 		// todo: 自己处理收发模拟握手 模拟 accept( 拿已创建的 KcpPeer 来分配 )
 		// 循环使用一组 UdpPeer, 创建逻辑 kcp 连接. 多个 UdpPeer 用于加深 epoll 事件队列深度 避免瓶颈 )
-	};
+		// todo: 实现握手逻辑
 
-
-	/***********************************************************************************************************/
-	// UdpDialer
-	/***********************************************************************************************************/
-
-	struct UdpDialer : UdpPeer {
+		// 判断收到的数据内容, 模拟握手， 最后产生能 KcpPeer
+		//virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
 	};
 
 
@@ -248,7 +248,7 @@ namespace xx::Epoll {
 	// KcpPeer
 	/***********************************************************************************************************/
 
-	struct KcpPeer : UdpPeer {
+	struct KcpPeer : xx::TimeoutBase {
 	};
 
 
@@ -280,8 +280,8 @@ namespace xx::Epoll {
 
 		virtual ~Context();
 
-		// 创建监听用 tcp fd 并返回. < 0: error
-		static int MakeListenFD(int const& port);
+		// 创建非阻塞 socket fd 并返回. < 0: error
+		int MakeSocketFD(int const& port, int const& sockType = SOCK_STREAM); // SOCK_DGRAM
 
 		// 添加 fd 到 epoll 监视. return !0: error
 		int Ctl(int const& fd, uint32_t const& flags, int const& op = EPOLL_CTL_ADD);
@@ -313,6 +313,10 @@ namespace xx::Epoll {
 		// 创建 timer
 		template<typename T = Timer, typename ...Args>
 		std::shared_ptr<T> Delay(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
+
+		// 创建 UdpPeer
+		template<typename U = UdpPeer, typename ...Args>
+		std::shared_ptr<U> UdpBind(int const& port, Args&&... args);
 	};
 
 }

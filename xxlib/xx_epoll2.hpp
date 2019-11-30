@@ -96,7 +96,7 @@ namespace xx::Epoll {
 		if (!sendQueue.bytes) return ep->Ctl(fd, EPOLLIN, EPOLL_CTL_MOD);
 
 		// 前置准备
-		std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
+		std::array<iovec, UIO_MAXIOV> vs;					// buf + len 数组指针
 		int vsLen = 0;										// 数组长度
 		auto bufLen = sendLenPerFrame;						// 计划发送字节数
 
@@ -166,7 +166,7 @@ namespace xx::Epoll {
 
 	inline int TcpPeer::OnReceive() {
 		// 默认实现为 echo. 仅供测试. 随意使用 write 可能导致待发队列中的数据被分割
-		auto&& r = write(fd, recv.buf, recv.len) == recv.len ? 0 : -1;
+		auto&& r = write(fd, recv.buf, recv.len) == (ssize_t)recv.len ? 0 : -1;
 		recv.Clear();
 		return r;
 	}
@@ -296,6 +296,53 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
+	// UdpPeer
+	/***********************************************************************************************************/
+
+	inline int UdpPeer::OnEpollEvent(uint32_t const& e) {
+		// read
+		if (e & EPOLLIN) {
+			char buf[65536];
+			sockaddr_in fromAddr;
+			socklen_t addrLen = sizeof(fromAddr);
+			auto len = recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr*) & fromAddr, &addrLen);
+			if (len < 0) {
+				ep->lastErrorNumber = (int)len;
+				return 0;
+			}
+
+			//auto hostp = gethostbyaddr((const char*)&fromAddr.sin_addr.s_addr, sizeof(fromAddr.sin_addr.s_addr), AF_INET);
+			//if (!hostp) {
+			//	ep->lastErrorNumber = -1;
+			//	return 0;
+			//}
+			//auto hostaddrp = inet_ntoa(fromAddr.sin_addr);
+			//if (!hostaddrp) {
+			//	ep->lastErrorNumber = -2;
+			//	return 0;
+			//}
+			//printf("server received datagram from %s (%s)\n", hostp->h_name, hostaddrp);
+
+			return OnReceive((sockaddr*)&fromAddr, addrLen, buf, len);
+		}
+		// write:
+		// udp 似乎不必关注 write 状态。无脑认为可写。写也不必判断是否成功。
+		return 0;
+	}
+
+	inline int UdpPeer::OnReceive(sockaddr* fromAddr, socklen_t const& fromAddrLen, char const* const& buf, std::size_t const& len) {
+		// echo. 忽略返回值
+		(void)SendTo(fromAddr, fromAddrLen, buf, len);
+		return 0;
+	}
+
+	inline int UdpPeer::SendTo(sockaddr* toAddr, int const& toAddrLen, char const* const& buf, std::size_t const& len) {
+		return (int)sendto(fd, buf, len, 0, toAddr, toAddrLen);
+	}
+
+
+
+	/***********************************************************************************************************/
 	// Context
 	/***********************************************************************************************************/
 
@@ -327,15 +374,14 @@ namespace xx::Epoll {
 		}
 	}
 
-	// todo: 换一段能指定 ip 的代码来用？
-	inline int Context::MakeListenFD(int const& port) {
+	inline int Context::MakeSocketFD(int const& port, int const& sockType) {
 		char portStr[20];
 		snprintf(portStr, sizeof(portStr), "%d", port);
 
 		addrinfo hints;														// todo: ipv6 support
 		memset(&hints, 0, sizeof(addrinfo));
 		hints.ai_family = AF_UNSPEC;										// ipv4 / 6
-		hints.ai_socktype = SOCK_STREAM;									// SOCK_STREAM / SOCK_DGRAM
+		hints.ai_socktype = sockType;										// SOCK_STREAM / SOCK_DGRAM
 		hints.ai_flags = AI_PASSIVE;										// all interfaces
 
 		addrinfo* ai_, * ai;
@@ -343,7 +389,7 @@ namespace xx::Epoll {
 
 		int fd;
 		for (ai = ai_; ai != nullptr; ai = ai->ai_next) {
-			fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+			fd = socket(ai->ai_family, ai->ai_socktype | SOCK_NONBLOCK, ai->ai_protocol);
 			if (fd == -1) continue;
 
 			int enable = 1;
@@ -357,7 +403,16 @@ namespace xx::Epoll {
 		}
 		freeaddrinfo(ai_);
 
-		return ai ? fd : -2;
+		if (!ai) return -2;
+
+		// 检测 fd 存储上限
+		if (fd >= (int)fdHandlers.size()) {
+			close(fd);
+			return -3;
+		}
+		assert(!fdHandlers[fd]);
+
+		return fd;
 	}
 
 	inline int Context::Ctl(int const& fd, uint32_t const& flags, int const& op) {
@@ -443,13 +498,13 @@ namespace xx::Epoll {
 		return 0;
 	}
 
-	// 创建 监听器
+	// 创建 tcp 监听器
 	template<typename L, typename ...Args>
 	inline std::shared_ptr<L> Context::TcpListen(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<TcpListener, L>);
 
 		// 创建监听用 socket fd
-		auto&& fd = MakeListenFD(port);
+		auto&& fd = MakeSocketFD(port);
 		if (fd < 0) {
 			lastErrorNumber = -1;
 			return nullptr;
@@ -457,28 +512,15 @@ namespace xx::Epoll {
 		// 确保 return 时自动 close
 		xx::ScopeGuard sg([&] { close(fd); });
 
-		// 检测 fd 存储上限
-		if (fd >= (int)fdHandlers.size()) {
-			lastErrorNumber = -2;
-			return nullptr;
-		}
-		assert(!fdHandlers[fd]);
-
-		// 设置为非阻塞
-		if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) {
-			lastErrorNumber = -3;
-			return nullptr;
-		}
-
 		// 开始监听
 		if (-1 == listen(fd, SOMAXCONN)) {
-			lastErrorNumber = -4;
+			lastErrorNumber = -3;
 			return nullptr;
 		}
 
 		// fd 纳入 epoll 管理
 		if (-1 == Ctl(fd, EPOLLIN)) {
-			lastErrorNumber = -5;
+			lastErrorNumber = -4;
 			return nullptr;
 		}
 
@@ -488,7 +530,7 @@ namespace xx::Epoll {
 		// 试创建目标类实例
 		auto o = xx::TryMake<L>(std::forward<Args>(args)...);
 		if (!o) {
-			lastErrorNumber = -6;
+			lastErrorNumber = -5;
 			return nullptr;
 		}
 
@@ -622,4 +664,51 @@ namespace xx::Epoll {
 
 		return o;
 	}
+
+
+
+	// 创建 UdpPeer
+	template<typename U, typename ...Args>
+	inline std::shared_ptr<U> Context::UdpBind(int const& port, Args&&... args) {
+		static_assert(std::is_base_of_v<UdpPeer, U>);
+
+		// 创建 udp socket fd
+		auto&& fd = MakeSocketFD(port, SOCK_DGRAM);
+		if (fd < 0) {
+			lastErrorNumber = fd;
+			return nullptr;
+		}
+		// 确保 return 时自动 close
+		xx::ScopeGuard sg([&] { close(fd); });
+
+		// fd 纳入 epoll 管理
+		if (-1 == Ctl(fd, EPOLLIN)) {
+			lastErrorNumber = -4;
+			return nullptr;
+		}
+
+		// 确保 return 时自动 close 并脱离 epoll 管理
+		sg.Set([&] { CloseDel(fd); });
+
+		// 试创建目标类实例
+		auto o = xx::TryMake<U>(std::forward<Args>(args)...);
+		if (!o) {
+			lastErrorNumber = -5;
+			return nullptr;
+		}
+
+		// 继续初始化并放入容器
+		o->ep = this;
+		o->fd = fd;
+		o->port = port;
+		fdHandlers[fd] = o;
+
+		// 调用用户自定义后续初始化
+		o->Init();
+
+		// 撤销自动关闭行为并返回结果
+		sg.Cancel();
+		return o;
+	}
+
 }
