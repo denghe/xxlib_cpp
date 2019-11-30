@@ -1,6 +1,20 @@
 ﻿#pragma once
 #include "xx_epoll2.h"
 
+namespace xx {
+	// 适配 sockaddr*
+	template<typename T>
+	struct SFuncs<T, std::enable_if_t<std::is_same_v<sockaddr*, std::decay_t<T>>>> {
+		static inline void WriteTo(std::string& s, T const& in) noexcept {
+			char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+			if (!getnameinfo(in, in->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN
+				, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV)) {
+				xx::Append(s, (char*)hbuf, ":", (char*)sbuf);
+			}
+		}
+	};
+}
+
 namespace xx::Epoll {
 	/***********************************************************************************************************/
 	// FDHandler
@@ -139,21 +153,27 @@ namespace xx::Epoll {
 	}
 
 	inline int TcpPeer::Read() {
+		// 如果接收缓存没容量就扩容( 通常发生在首次使用时 )
 		if (!recv.cap) {
 			recv.Reserve(readBufLen);
 		}
+
+		// 如果数据长度 == buf限长 就自杀( 未处理数据累计太多? )
 		if (recv.len == recv.cap) return -1;
+
+		// 通过 fd 从系统网络缓冲区读取数据. 追加填充到 recv 后面区域. 返回填充长度. <= 0 则认为失败 自杀
 		auto&& len = read(fd, recv.buf + recv.len, recv.cap - recv.len);
 		if (len <= 0) return -2;
 		recv.len += len;
-		return 0;
+
+		// 调用用户数据处理函数
+		return OnReceive();
 	}
 
 	inline int TcpPeer::OnEpollEvent(uint32_t const& e) {
 		// read
 		if (e & EPOLLIN) {
 			if (int r = Read()) return r;
-			if (int r = OnReceive()) return r;
 		}
 		// write
 		if (e & EPOLLOUT) {
@@ -249,7 +269,9 @@ namespace xx::Epoll {
 		peer->Init();
 
 		// 调用用户自定义后续绑定
-		OnAccept(peer);
+		if (OnAccept(peer)) {
+			peer->Dispose(0);
+		}
 
 		sg.Cancel();
 		return fd;
@@ -323,23 +345,212 @@ namespace xx::Epoll {
 			//}
 			//printf("server received datagram from %s (%s)\n", hostp->h_name, hostaddrp);
 
-			return OnReceive((sockaddr*)&fromAddr, addrLen, buf, len);
+			return OnReceive((sockaddr*)&fromAddr, buf, len);
 		}
 		// write:
 		// udp 似乎不必关注 write 状态。无脑认为可写。写也不必判断是否成功。
 		return 0;
 	}
 
-	inline int UdpPeer::OnReceive(sockaddr* fromAddr, socklen_t const& fromAddrLen, char const* const& buf, std::size_t const& len) {
+	inline int UdpPeer::OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) {
 		// echo. 忽略返回值
-		(void)SendTo(fromAddr, fromAddrLen, buf, len);
+		(void)SendTo(fromAddr, buf, len);
 		return 0;
 	}
 
-	inline int UdpPeer::SendTo(sockaddr* toAddr, int const& toAddrLen, char const* const& buf, std::size_t const& len) {
-		return (int)sendto(fd, buf, len, 0, toAddr, toAddrLen);
+	inline int UdpPeer::SendTo(sockaddr* toAddr, char const* const& buf, std::size_t const& len) {
+		return (int)sendto(fd, buf, len, 0, toAddr, toAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 	}
 
+
+
+	/***********************************************************************************************************/
+	// UdpListener
+	/***********************************************************************************************************/
+
+	inline std::shared_ptr<KcpPeer> UdpListener::OnCreatePeer() {
+		return xx::TryMake<KcpPeer>();
+	}
+
+	inline int UdpListener::OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) {
+		// sockaddr* 转为 ip:port
+		std::string ipAndPort;
+		xx::Append(ipAndPort, fromAddr);
+
+		// 当前握手方案为 UdpDialer 每秒 N 次不停发送 4 字节数据( serial )过来, 
+		// 收到后根据其 ip:port 做 key, 生成 convId
+		// 每次收到都向其发送 convId
+		if (len == 4) {
+			auto&& idx = ep->shakes.Find(ipAndPort);
+			if (idx == -1) {
+				idx = ep->shakes.Add(ipAndPort, std::make_pair(++convId, NowSteadyEpochMS() + handShakeTimeoutMS)).index;
+			}
+			char tmp[8];	// serial + convId
+			memcpy(tmp, buf, 4);
+			memcpy(tmp + 4, &ep->shakes.ValueAt(idx).first, 4);
+			SendTo(fromAddr, tmp, 8);
+			return 0;
+		}
+
+		// 忽略长度小于 kcp 头的数据包 ( IKCP_OVERHEAD at ikcp.c )
+		if (len < 24) return 0;
+
+		// read conv header
+		uint32_t conv;
+		memcpy(&conv, buf, sizeof(conv));
+		std::shared_ptr<KcpPeer> peer;
+
+		// 根据 conv 试定位到 peer
+		auto&& peerIter = ep->kcps.Find(conv);
+
+		// 如果不存在 就在 shakes 中按 ip:port 找
+		if (peerIter == -1) {
+			auto&& idx = ep->shakes.Find(ipAndPort);
+
+			// 未找到或 conv 对不上: 忽略
+			if (idx == -1 || ep->shakes.ValueAt(idx).first != conv) return 0;
+
+			// 从握手信息移除
+			ep->shakes.RemoveAt(idx);
+
+			// 始创建 peer
+			peer = OnCreatePeer();
+			if (!peer) return 0;
+
+			// 继续初始化
+			peer->ep = ep;
+			peer->owner = As<UdpListener>(shared_from_this());
+			peer->conv = conv;
+			peer->createMS = NowSteadyEpochMS();
+
+			// 如果初始化 kcp 失败就忽略
+			if (peer->InitKcp()) return 0;
+
+			// 更新地址信息
+			memcpy(&peer->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+
+			// 放入容器
+			ep->kcps[conv] = peer;
+
+			// 触发事件回调
+			if (OnAccept(peer)) {
+				peer->Dispose(0);
+				return 0;
+			}
+		}
+		else {
+			// 定位到目标 peer
+			peer = ep->kcps.ValueAt(peerIter);
+			assert(peer && !peer->Disposed());
+
+			// 更新地址信息
+			memcpy(&peer->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		}
+
+		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive
+		if (peer->Input((uint8_t*)buf, len)) {
+			peer->Dispose(1);
+		}
+		return 0;
+	}
+
+
+
+
+	/***********************************************************************************************************/
+	// KcpPeer
+	/***********************************************************************************************************/
+
+	inline void KcpPeer::Dispose(int const& flag) {
+		// 检查 & 打标记 以避免重复执行析构逻辑
+		if (disposed) return;
+		disposed = true;
+
+		// 调用派生类自己的析构部分
+		Disposing(flag);
+
+		// 这里放置 从容器移除的代码 以触发析构
+		ep->kcps.Remove(conv);
+	};
+
+	inline int KcpPeer::OnReceive() {
+		int r = Send(recv.buf, recv.len);
+		recv.Clear();
+		return r;
+	}
+
+	inline int KcpPeer::InitKcp() {
+		assert(!kcp);
+		// 创建并设置 kcp 的一些参数
+		kcp = ikcp_create(conv, this);
+		if (!kcp) return -1;
+		int r = ikcp_wndsize(kcp, 1024, 1024);
+		r = ikcp_nodelay(kcp, 1, 10, 2, 1);
+		kcp->rx_minrto = 10;
+		kcp->stream = 1;
+
+		// 给 kcp 绑定 output 功能函数
+		ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
+			auto self = (KcpPeer*)user;
+			if (!self->owner) return -1;
+			return self->owner->SendTo((sockaddr*)&self->addr, inBuf, len);
+			});
+		return 0;
+	}
+
+	inline int KcpPeer::UpdateKcpLogic(int64_t const& nowMS) {
+		assert(!disposed);
+		assert(kcp);
+		// 计算出当前 ms
+		// 已知问题: 受 ikcp uint32 限制, 连接最多保持 50 多天
+		auto&& currentMS = uint32_t(nowMS - createMS);
+
+		// 如果 update 时间没到 就退出
+		if (nextUpdateMS > currentMS) return 0;
+
+		// 来一发
+		ikcp_update(kcp, currentMS);
+
+		// 更新下次 update 时间
+		nextUpdateMS = ikcp_check(kcp, currentMS);
+
+		// 开始处理收到的数据
+		do {
+			// 如果接收缓存没容量就扩容( 通常发生在首次使用时 )
+			if (!recv.cap) {
+				recv.Reserve(readBufLen);
+			}
+			// 如果数据长度 == buf限长 就自杀( 未处理数据累计太多? )
+			if (recv.len == recv.cap) return -1;
+
+			// 从 kcp 提取数据. 追加填充到 recv 后面区域. 返回填充长度. <= 0 则下次再说
+			auto&& len = ikcp_recv(kcp, (char*)recv.buf + recv.len, recv.cap - recv.len);
+			if (len <= 0) break;
+
+			// 调用用户数据处理函数
+			if (int r = OnReceive()) {
+				Dispose(1);
+				return r;
+			}
+		} while (true);
+		return 0;
+	}
+
+	inline int KcpPeer::Send(uint8_t const* const& buf, ssize_t const& dataLen) {
+		return ikcp_send(kcp, (char*)buf, (int)dataLen);
+	}
+
+	inline void KcpPeer::Flush() {
+		ikcp_flush(kcp);
+	}
+
+	inline int KcpPeer::Input(uint8_t* const& recvBuf, uint32_t const& recvLen) {
+		return ikcp_input(kcp, (char*)recvBuf, recvLen);
+	}
+
+	inline void KcpPeer::OnTimeout() {
+		Dispose(1);
+	}
 
 
 	/***********************************************************************************************************/
@@ -447,6 +658,21 @@ namespace xx::Epoll {
 		return 0;
 	}
 
+	inline void Context::UpdateKcps() {
+		auto nowMS = xx::NowSteadyEpochMS();
+		for (auto&& data : kcps) {
+			if (auto r = data.value->UpdateKcpLogic(nowMS)) {
+				data.value->Dispose(1);
+			}
+		}
+
+		for (auto&& iter = shakes.begin(); iter != shakes.end(); ++iter) {
+			if (iter->value.second < nowMS) {
+				iter.Remove();
+			}
+		}
+	}
+
 	inline int Context::Run(double const& frameRate) {
 		assert(frameRate > 0);
 
@@ -482,6 +708,9 @@ namespace xx::Epoll {
 
 				// 驱动 timers
 				timeoutManager.Update();
+
+				// 驱动 kcps
+				UpdateKcps();
 
 				// 帧逻辑调用一次
 				if (int r = Update()) return r;
@@ -667,7 +896,7 @@ namespace xx::Epoll {
 
 
 
-	// 创建 UdpPeer
+	// 创建 UdpPeer. port 传 0 则自适应( 仅用于发数据 )
 	template<typename U, typename ...Args>
 	inline std::shared_ptr<U> Context::UdpBind(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<UdpPeer, U>);

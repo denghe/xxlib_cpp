@@ -21,9 +21,9 @@ struct L : EP::TcpListener {
 };
 
 struct U : EP::UdpPeer {
-	inline virtual int OnReceive(sockaddr* fromAddr, socklen_t const& fromAddrLen, char const* const& buf, std::size_t const& len) override {
+	inline virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
-		auto r = SendTo(fromAddr, fromAddrLen, buf, len);
+		auto r = SendTo(fromAddr, buf, len);
 		return 0;
 	}
 };
@@ -35,18 +35,18 @@ int main() {
 		xx::CoutN("create tcp listener failed.");
 		return -1;
 	}
-	for (int port = 10000; port < 10100; ++port) {
+	for (int port = 10000; port < 11000; ++port) {
 		if (!ep.UdpBind<U>(port)) {
-			xx::CoutN("create udp peer1 failed.");
+			xx::CoutN("create udp peer failed.");
 			return -1;
 		}
 	}
-	ep.Delay(10, [&](auto t) {
+	ep.Delay(100, [&](auto t) {
 		xx::CoutN("counter = ", counter);
 		counter = 0;
-		t->SetTimeout(10);
+		t->SetTimeout(100);
 	});
-	return ep.Run(10);
+	return ep.Run(100);
 }
 
 

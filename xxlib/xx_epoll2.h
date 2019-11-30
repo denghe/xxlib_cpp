@@ -18,10 +18,14 @@
 
 #include "ikcp.h"
 #include "xx_bbuffer.h"
+#include "xx_dict.h"
 #include "xx_queue.h"
 #include "xx_buf.h"
 #include "xx_buf_queue.h"
 #include "xx_timeout.h"
+
+
+// todo: 所有函数加一波 disposed 检测?
 
 
 // 内存模型为 预持有智能指针
@@ -51,9 +55,7 @@ namespace xx::Epoll {
 
 		// 销毁标志
 		bool disposed = false;
-		inline bool Disposed() const {
-			return disposed;
-		}
+		inline bool Disposed() const { return disposed; }
 
 		// flag == -1: 在析构函数中调用.  0: 不产生回调  1: 产生回调
 		inline virtual void Dispose(int const& flag) {
@@ -142,7 +144,7 @@ namespace xx::Epoll {
 
 		virtual int OnEpollEvent(uint32_t const& e) override;
 
-		// 数据接收事件: 从 recv 拿数据
+		// 数据接收事件: 从 recv 拿数据. 默认实现为 echo
 		virtual int OnReceive();
 
 		// 用于处理超时掐线
@@ -214,17 +216,17 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct UdpPeer : FDHandler {
-		// 存放该 udp socket 占用的是哪个本地端口
+		// 存放该 udp socket 占用的是哪个本地端口	// todo: 0 自适应还需要去提取
 		int port = -1;
 
 		// 处理数据接收
 		virtual int OnEpollEvent(uint32_t const& e) override;
 
 		// 处理数据到达事件. 默认实现为 echo. 使用 sendto 发回收到的数据.
-		virtual int OnReceive(sockaddr* fromAddr, socklen_t const& fromAddrLen, char const* const& buf, std::size_t const& len);
+		virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
 
 		// 直接封装 sendto 函数
-		int SendTo(sockaddr* toAddr, int const& toAddrLen, char const* const& buf, std::size_t const& len);
+		int SendTo(sockaddr* toAddr, char const* const& buf, std::size_t const& len);
 
 		~UdpPeer() { this->Dispose(-1); }
 	};
@@ -234,13 +236,26 @@ namespace xx::Epoll {
 	// UdpListener
 	/***********************************************************************************************************/
 
+	struct KcpPeer;
 	struct UdpListener : UdpPeer {
 		// todo: 自己处理收发模拟握手 模拟 accept( 拿已创建的 KcpPeer 来分配 )
-		// 循环使用一组 UdpPeer, 创建逻辑 kcp 连接. 多个 UdpPeer 用于加深 epoll 事件队列深度 避免瓶颈 )
+		// todo: 循环使用一组 UdpPeer, 创建逻辑 kcp 连接. 多个 UdpPeer 用于加深 epoll 事件队列深度 避免瓶颈 )
 		// todo: 实现握手逻辑
 
+		// 自增生成
+		uint32_t convId = 0;
+
+		// 握手超时时间
+		int handShakeTimeoutMS = 3000;
+
 		// 判断收到的数据内容, 模拟握手， 最后产生能 KcpPeer
-		//virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
+		virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
+
+		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
+		virtual std::shared_ptr<KcpPeer> OnCreatePeer();
+
+		// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
+		inline virtual int OnAccept(std::shared_ptr<KcpPeer>& peer) { return 0; }
 	};
 
 
@@ -248,8 +263,60 @@ namespace xx::Epoll {
 	// KcpPeer
 	/***********************************************************************************************************/
 
-	struct KcpPeer : xx::TimeoutBase {
+	struct KcpPeer : Item, xx::TimeoutBase {
+		// 用于收发数据的物理 udp peer
+		std::shared_ptr<UdpListener> owner;
+
+		// kcp 相关上下文
+		ikcpcb* kcp = nullptr;
+		uint32_t conv = 0;
+		int64_t createMS = 0;
+		uint32_t nextUpdateMS = 0;
+
+		// 被 owner 填充
+		sockaddr_in6 addr;
+		std::string ip;
+
+		// 读缓冲区内存扩容增量
+		std::size_t readBufLen = 65536;
+
+		// 读缓冲区
+		xx::List<uint8_t> recv;
+
+		// 内部函数：创建过程中确定 conv 后调用
+		int InitKcp();
+
+		// 数据接收事件: 从 recv 拿数据. 默认实现为 echo
+		virtual int OnReceive();
+
+		// 发数据( 数据可能滞留一会儿等待合并 )
+		int Send(uint8_t const* const& buf, ssize_t const& dataLen);
+
+		// 立刻发送, 停止等待
+		virtual void Flush();
+
+		// 被 ep 调用.
+		// 受帧循环驱动. 帧率越高, kcp 工作效果越好. 典型的频率为 100 fps
+		virtual int UpdateKcpLogic(int64_t const& nowMS);
+
+		// 被 owner 调用.
+		// 塞数据到 kcp
+		int Input(uint8_t* const& recvBuf, uint32_t const& recvLen);
+
+		// 超时自杀
+		virtual void OnTimeout() override;
+
+		virtual void Dispose(int const& flag) override;
+
+		~KcpPeer() { this->Dispose(-1); }
 	};
+
+
+	/***********************************************************************************************************/
+	// KcpConn
+	/***********************************************************************************************************/
+
+	// todo: 
 
 
 	/***********************************************************************************************************/
@@ -259,6 +326,12 @@ namespace xx::Epoll {
 	struct Context {
 		// fd 处理类 之 唯一持有容器. 别处引用尽量用 weak_ptr
 		std::vector<std::shared_ptr<FDHandler>> fdHandlers;
+
+		// kcp conv 值与 peer 的映射. 使用 xxDict 是为了方便遍历 kv 时 value.Dispose(1) 支持 kcp 自己从 kcps 移除
+		xx::Dict<uint32_t, std::shared_ptr<KcpPeer>> kcps;
+
+		// 带超时的握手信息字典 key: ip:port   value: conv, nowMS
+		xx::Dict<std::string, std::pair<uint32_t, int64_t>> shakes;
 
 		// timer 唯一持有容器. 别处引用尽量用 weak_ptr
 		std::vector<std::shared_ptr<Timer>> timers;
@@ -274,6 +347,9 @@ namespace xx::Epoll {
 
 		// 超时管理器
 		xx::TimeoutManager timeoutManager;
+
+		// 共享buf for kcp read 等
+		std::array<char, 65536> sharedBuf;
 
 		// maxNumFD: fd 总数
 		Context(int const& maxNumFD = 65536);
@@ -292,12 +368,15 @@ namespace xx::Epoll {
 		// 进入一次 epoll wait. 可传入超时时间. 
 		int Wait(int const& timeoutMS);
 
+		// 遍历 kcp 并 Update
+		void UpdateKcps();
 
 		/********************************************************/
 		// 下面是外部主要使用的函数
 
 		// 帧逻辑可以覆盖这个函数. 返回非 0 将令 Run 退出. 
 		inline virtual int Update() { return 0; }
+
 
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		int Run(double const& frameRate = 60.3);

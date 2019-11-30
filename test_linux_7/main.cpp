@@ -57,22 +57,22 @@ struct U : EP::UdpPeer {
 	}
 
 	inline virtual void Init() override {
-		SendTo((sockaddr*)&addr, sizeof(addr), ".", 1);
+		SendTo((sockaddr*)&addr, ".", 1);
 	}
 
-	inline virtual int OnReceive(sockaddr* fromAddr, socklen_t const& fromAddrLen, char const* const& buf, std::size_t const& len) override {
+	inline virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
-		SendTo(fromAddr, fromAddrLen, buf, len);
+		SendTo(fromAddr, buf, len);
 		return 0;
 	}
 };
 
-int TestUdp(int const& threadId, int const& numUdpClients, char const* const& tarIp, int const& tarPort) {
+int TestUdp(int const& threadId, int const& numUdpClients, char const* const& tarIp, int const& tarPort, int const& numPorts) {
 	EP::Context ep;
 
 	std::vector<std::shared_ptr<U>> us;
 	for (int i = 0; i < numUdpClients; i++) {
-		auto port = tarPort + ((threadId * numUdpClients + i) % 5);
+		auto port = tarPort + ((threadId * numUdpClients + i) % numPorts);
 		xx::CoutN("udp send tar port = ", port);
 		us.emplace_back(ep.UdpBind<U>(0, tarIp, port));
 	}
@@ -96,17 +96,24 @@ int main(int argc, char** argv) {
 	int numClients = 12;
 	char const* tarIP = "192.168.1.132";
 	int tarPort = 10000;
-	if (argc == 5) {
+	int numPorts = 5;
+	if (argc == 6) {
 		numThreads = atoi(argv[1]);
 		numClients = atoi(argv[2]);
 		tarIP = argv[3];
 		tarPort = atoi(argv[4]);
+		numPorts = atoi(argv[5]);
 	}
 
 	std::vector<std::thread> ts;
 	for (int i = 0; i < numThreads; i++) {
-		ts.emplace_back([i = i, &numClients, &tarIP, &tarPort] {
-			TestUdp(i, numClients, tarIP, tarPort);
+		ts.emplace_back([i = i, &numClients, &tarIP, &tarPort, &numPorts] {
+			if (numPorts) {
+				TestUdp(i, numClients, tarIP, tarPort, numPorts);
+			}
+			else {
+				TestTcp(i, numClients, tarIP, tarPort);
+			}
 			});
 	}
 	for (auto&& t : ts) {
