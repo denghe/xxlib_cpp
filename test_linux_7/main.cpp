@@ -1,45 +1,80 @@
 ﻿#include "xx_epoll2.hpp"
 namespace EP = xx::Epoll;
 
-struct C : EP::TcpConn {
-	using BaseType = EP::TcpConn;
-
-	int id = -1;
+struct D;
+struct P : EP::TcpPeer {
+	std::weak_ptr<D> dialer_w;
 	std::size_t counter = 0;
-
-	inline virtual void OnConnect() override {
-		//xx::CoutN("connected = ", connected);
-		if (connected) {
-			int r = Send(xx::Buf((void*)".", 1));
-			//xx::CoutN("Send r = ", r);
-		}
-	}
-	inline virtual int OnReceive() override {
-		//xx::Cout("recv len = ", recv.len);
-		++counter;
-		return this->BaseType::OnReceive();
-	}
+	virtual int OnReceive() override;
+	virtual void OnDisconnect() override;
 };
+
+struct D : EP::TcpDialer {
+	std::shared_ptr<P> peer;
+	virtual std::shared_ptr<EP::TcpPeer> OnCreatePeer() override;
+	virtual void OnConnect(std::shared_ptr<EP::TcpPeer>& peer) override;
+};
+
+inline void D::OnConnect(std::shared_ptr<EP::TcpPeer>& p_) {
+	if (EP::IsAlive(peer)) {
+		peer->Dispose(0);
+	}
+	peer = xx::As<P>(p_);
+	if (peer) {
+		peer->dialer_w = xx::As<D>(shared_from_this());
+		peer->Send(xx::Buf((void*)".", 1));
+	}
+	else {
+		int r = Dial(20);
+		xx::CoutN("dial r = ", r);
+	}
+}
+
+inline std::shared_ptr<EP::TcpPeer> D::OnCreatePeer() {
+	return xx::TryMake<P>();
+}
+
+inline int P::OnReceive() {
+	++counter;
+	return this->TcpPeer::OnReceive();
+}
+
+inline void P::OnDisconnect() {
+	if (auto d = dialer_w.lock()) {
+		int r = d->Dial(20);
+		xx::CoutN("dial r = ", r);
+	}
+}
 
 int TestTcp(int const& threadId, int const& numTcpClients, char const* const& tarIp, int const& tarPort) {
 	EP::Context ep;
+	std::vector<std::shared_ptr<D>> ds;
 
-	std::vector<std::shared_ptr<C>> cs;
 	for (int i = 0; i < numTcpClients; i++) {
-		cs.emplace_back(ep.TcpDial<C>(tarIp, tarPort, 20))->id = i;
+		auto&& d = ds.emplace_back(ep.CreateTcpDialer<D>());
+		d->AddAddress(tarIp, tarPort);
+		int r = d->Dial(20);
+		xx::CoutN("dial r = ", r);
 	}
 
 	ep.Delay(10, [&](auto t) {
 		std::size_t tcpCounter = 0;
-		for (auto&& c : cs) {
-			tcpCounter += c->counter;
-			c->counter = 0;
+		for (auto&& d : ds) {
+			auto&& p = d->peer;
+			if (xx::Epoll::IsAlive(p)) {
+				tcpCounter += p->counter;
+				p->counter = 0;
+			}
 		}
 		xx::CoutN("thread: ", threadId, ", tcpCounter: ", tcpCounter);
 		t->SetTimeout(10);
 		});
 	return ep.Run(10);
 }
+
+
+
+
 
 struct U : EP::UdpPeer {
 	using BaseType = EP::UdpPeer;
@@ -92,11 +127,12 @@ int TestUdp(int const& threadId, int const& numUdpClients, char const* const& ta
 int main(int argc, char** argv) {
 	xx::IgnoreSignal();
 
-	int numThreads = 6;
-	int numClients = 12;
+	int numThreads = 1;
+	int numClients = 1;
 	char const* tarIP = "192.168.1.132";
-	int tarPort = 10000;
-	int numPorts = 5;
+	int tarPort = 12345;
+	int numPorts = 0;	// udp > 0
+
 	if (argc == 6) {
 		numThreads = atoi(argv[1]);
 		numClients = atoi(argv[2]);
@@ -121,3 +157,55 @@ int main(int argc, char** argv) {
 	}
 	xx::CoutN("end.");
 }
+
+
+
+// 下面代码展示一种 try 空指针的方式
+
+//template<typename T>
+//struct Ptr {
+//	T* ptr = nullptr;
+//	int lineNumber = -1;
+//	T* operator->() {
+//		if (!ptr) throw lineNumber;
+//		return ptr;
+//	}
+//	void Clear(int const& lineNumber) {
+//		if (ptr) {
+//			delete ptr;
+//			ptr = nullptr;
+//			this->lineNumber = lineNumber;
+//		}
+//	}
+//	void Reset(T* const& ptr, int const& lineNumber) {
+//		Clear(lineNumber);
+//		this->ptr = ptr;
+//	}
+//};
+//
+//#define PtrReset(self, ptr) self.Reset(nullptr, __LINE__);
+//#define PtrClear(self) self.Clear(__LINE__);
+//
+//struct Foo {
+//	int n = 0;
+//	bool disposed = false;
+//};
+
+//int main(int argc, char** argv) {
+
+	//Foo* f = new Foo;
+	//f->n = 123;
+	//Ptr<Foo> p;
+	//p.ptr = f;
+	//try {
+	//	xx::CoutN(p->n);
+	//	PtrClear(p);
+	//	xx::CoutN(p->n);
+	//}
+	//catch (int const& lineNumber) {
+	//	std::cout << lineNumber << std::endl;
+	//}
+	//catch (std::exception const& e) {
+	//	std::cout << e.what() << std::endl;
+	//}
+//}

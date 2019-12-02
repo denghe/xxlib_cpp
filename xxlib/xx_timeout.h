@@ -48,8 +48,7 @@ namespace xx {
 
 	// 返回非 0 表示找不到 管理器 或 参数错误
 	inline int TimeoutBase::SetTimeout(int const& interval) {
-		// 未绑定时间轮容器
-		if (!timeoutManager) return -1;
+		assert(timeoutManager);
 
 		// 试着从 wheel 链表中移除
 		if (timeoutIndex != -1) {

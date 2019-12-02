@@ -284,36 +284,153 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	inline int TcpConn::OnEpollEvent(uint32_t const& e) {
-		// 已连接就直接执行 TcpPeer 旧逻辑
-		if (connected) {
-			return this->TcpPeer::OnEpollEvent(e);
-		}
-
-		// 读取错误 或者读到错误 都认为是连接失败. 返回非 0 触发 Dispose(1) 间接触发 OnConnect
+		// 读取错误 或者读到错误 都认为是连接失败. 返回非 0 触发 Dispose
 		int err;
 		socklen_t result_len = sizeof(err);
 		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &result_len) == -1 || err) return -1;
 
-		// 连接成功. 清理连接超时检测. 打成功标记. 触发回调
-		SetTimeout(0);
-		connected = true;
-		OnConnect();
+		// 连接成功
+		if (auto dialer = this->dialer.lock()) {
+			// 保护 fd 不 close
+			protectFD = true;
+			dialer->Finish(fd);
+		}
 		return 0;
 	}
 
-	inline void TcpConn::Disposing(int const& flag) {
-		// 已连接就直接执行 TcpPeer 旧逻辑
-		if (connected) {
-			this->TcpPeer::Disposing(flag);
-			return;
+	inline void TcpConn::Dispose(int const& flag) {
+		// 检查 & 打标记 以避免重复执行析构逻辑
+		if (disposed) return;
+		disposed = true;
+
+		// 判断是否保护 fd
+		if (!protectFD) {
+			// 从 ep 移除监视 并关闭
+			ep->CloseDel(fd);
 		}
 
-		// 回调并析构其他
-		if (flag == 1) {
-			OnConnect();
-		}
-		this->TcpPeer::Disposing(0);
+		// 从 fdHandlers 容器移除( 理论上讲执行到此处时 对象正被 conns 持有 )
+		ep->fdHandlers[fd].reset();
 	}
+
+
+
+	/***********************************************************************************************************/
+	// TcpDialer
+	/***********************************************************************************************************/
+
+	inline int TcpDialer::AddAddress(std::string const& ip, int const& port) {
+		auto&& addr = addrs.emplace_back();
+		if (int r = FillAddress(ip, port, addr)) {
+			addrs.pop_back();
+			return r;
+		}
+		return 0;
+	}
+
+	inline int TcpDialer::Dial(int const& timeoutFrames) {
+		Stop();
+		SetTimeout(timeoutFrames);
+		for (auto&& addr : addrs) {
+			// 创建 tcp 非阻塞 socket fd
+			auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+			if (fd == -1) return -1;
+
+			// 确保 return 时自动 close
+			xx::ScopeGuard sg([&] { close(fd); });
+
+			// 检测 fd 存储上限
+			if (fd >= (int)ep->fdHandlers.size()) return -2;
+			assert(!ep->fdHandlers[fd]);
+
+			// 设置一些 tcp 参数( 可选 )
+			int on = 1;
+			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) return -3;
+
+			// 开始连接
+			if (connect(fd, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN) == -1) {
+				if (errno != EINPROGRESS) return -4;
+			}
+			// else : 立刻连接上了
+
+			// 纳入 epoll 管理
+			if (int r = ep->Ctl(fd, EPOLLIN | EPOLLOUT)) return r;
+
+			// 确保 return 时自动 close 并脱离 epoll 管理
+			sg.Set([&] { ep->CloseDel(fd); });
+
+			// 试创建目标类实例
+			auto o = xx::TryMake<TcpConn>();
+			if (!o) return -6;
+
+			// 继续初始化并放入容器
+			o->ep = ep;
+			o->fd = fd;
+			o->dialer = xx::As<TcpDialer>(shared_from_this());
+			ep->fdHandlers[fd] = o;
+			conns.push_back(o);
+			sg.Cancel();
+		}
+		return 0;
+	}
+
+	inline bool TcpDialer::Busy() {
+		// 用超时检测判断是否正在拨号
+		return timeoutIndex != -1;
+	}
+
+	inline void TcpDialer::Stop() {
+		// 清理原先的残留
+		for (auto&& conn : conns) {
+			conn->Dispose(0);
+		}
+		conns.clear();
+
+		// 清除超时检测
+		SetTimeout(0);
+	}
+
+	inline void TcpDialer::OnTimeout() {
+		Stop();
+		OnConnect(emptyPeer);
+	}
+
+	inline void TcpDialer::Dispose(int const& flag) {
+		// 检查 & 打标记 以避免重复执行析构逻辑
+		if (disposed) return;
+		disposed = true;
+
+		Stop();
+
+		// 调用派生类自己的析构部分
+		Disposing(flag);
+
+		// 从容器移除
+		if (indexOfContainer != -1 && ep) {
+			XX_SWAP_REMOVE(this, indexOfContainer, ep->tcpDialers);
+		}
+	}
+
+	inline void TcpDialer::Finish(int fd) {
+		Stop();
+		auto peer = OnCreatePeer();
+		if (peer) {
+			peer->fd = fd;
+			peer->ep = ep;
+			ep->fdHandlers[fd] = peer;
+			// todo: fill peer->ip by tcp socket?
+			OnConnect(peer);
+		}
+		else {
+			ep->CloseDel(fd);
+			OnConnect(emptyPeer);
+		}
+	}
+
+	inline std::shared_ptr<TcpPeer> TcpDialer::OnCreatePeer() {
+		return xx::TryMake<TcpPeer>();
+	}
+
 
 
 
@@ -448,7 +565,7 @@ namespace xx::Epoll {
 		}
 
 		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive
-		if (peer->Input((uint8_t*)buf, len)) {
+		if (peer->Input((uint8_t*)buf, (uint32_t)len)) {
 			peer->Dispose(1);
 		}
 		return 0;
@@ -484,8 +601,8 @@ namespace xx::Epoll {
 		// 创建并设置 kcp 的一些参数
 		kcp = ikcp_create(conv, this);
 		if (!kcp) return -1;
-		int r = ikcp_wndsize(kcp, 1024, 1024);
-		r = ikcp_nodelay(kcp, 1, 10, 2, 1);
+		(void)ikcp_wndsize(kcp, 1024, 1024);
+		(void)ikcp_nodelay(kcp, 1, 10, 2, 1);
 		kcp->rx_minrto = 10;
 		kcp->stream = 1;
 
@@ -524,7 +641,7 @@ namespace xx::Epoll {
 			if (recv.len == recv.cap) return -1;
 
 			// 从 kcp 提取数据. 追加填充到 recv 后面区域. 返回填充长度. <= 0 则下次再说
-			auto&& len = ikcp_recv(kcp, (char*)recv.buf + recv.len, recv.cap - recv.len);
+			auto&& len = ikcp_recv(kcp, (char*)recv.buf + recv.len, (int)(recv.cap - recv.len));
 			if (len <= 0) break;
 
 			// 调用用户数据处理函数
@@ -662,6 +779,7 @@ namespace xx::Epoll {
 		auto nowMS = xx::NowSteadyEpochMS();
 		for (auto&& data : kcps) {
 			if (auto r = data.value->UpdateKcpLogic(nowMS)) {
+				(void)r;
 				data.value->Dispose(1);
 			}
 		}
@@ -777,90 +895,28 @@ namespace xx::Epoll {
 	}
 
 
-	// 创建 连接 peer
-	template<typename C, typename ...Args>
-	inline std::shared_ptr<C> Context::TcpDial(char const* const& ip, int const& port, int const& timeoutInterval, Args&&... args) {
-		static_assert(std::is_base_of_v<TcpConn, C>);
-
-		// 转换地址字符串为 addr 格式
-		// todo: ipv6 support, 域名解析?
-		sockaddr_in dest;
-		memset(&dest, 0, sizeof(dest));
-		dest.sin_family = AF_INET;
-		dest.sin_port = htons((uint16_t)port);
-		if (!inet_pton(AF_INET, ip, &dest.sin_addr.s_addr)) {
-			lastErrorNumber = -1;
-			return nullptr;
-		}
-
-		// 创建 tcp 非阻塞 socket fd
-		auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-		if (fd == -1) {
-			lastErrorNumber = -2;
-			return nullptr;
-		}
-		// 确保 return 时自动 close
-		xx::ScopeGuard sg([&] { close(fd); });
-
-		// 检测 fd 存储上限
-		if (fd >= (int)fdHandlers.size()) {
-			lastErrorNumber = -8;
-			return nullptr;
-		}
-		assert(!fdHandlers[fd]);
-
-		// 设置一些 tcp 参数( 可选 )
-		int on = 1;
-		if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) {
-			lastErrorNumber = -3;
-			return nullptr;
-		}
-
-		// 开始连接
-		if (connect(fd, (sockaddr*)&dest, sizeof(dest)) == -1) {
-			if (errno != EINPROGRESS) {
-				lastErrorNumber = -4;
-				return nullptr;
-			}
-		}
-		// else : 立刻连接上了
-
-		// 纳入 epoll 管理
-		if (int r = Ctl(fd, EPOLLIN | EPOLLOUT)) {
-			lastErrorNumber = -5;
-			return nullptr;
-		}
-		// 确保 return 时自动 close 并脱离 epoll 管理
-		sg.Set([&] { CloseDel(fd); });
+	// 创建 拨号器
+	template<typename TD, typename ...Args>
+	inline std::shared_ptr<TD> Context::CreateTcpDialer(Args&&... args) {
+		static_assert(std::is_base_of_v<TcpDialer, TD>);
 
 		// 试创建目标类实例
-		auto o = xx::TryMake<C>(std::forward<Args>(args)...);
+		auto o = xx::TryMake<TD>(std::forward<Args>(args)...);
 		if (!o) {
-			lastErrorNumber = -6;
-			return nullptr;
-		}
-
-		// 设置超时时长
-		o->timeoutManager = &timeoutManager;
-		if (int r = o->SetTimeout(timeoutInterval)) {
-			lastErrorNumber = -7;
+			lastErrorNumber = -1;
 			return nullptr;
 		}
 
 		// 继续初始化并放入容器
 		o->ep = this;
-		o->fd = fd;
-		o->recv.Reserve(o->readBufLen);
-		fdHandlers[fd] = o;
+		o->timeoutManager = &timeoutManager;
+		o->indexOfContainer = (int)tcpDialers.size();
+		tcpDialers.emplace_back(o);
 
 		// 调用用户自定义后续初始化
 		o->Init();
-
-		// 撤销自动关闭行为并返回结果
-		sg.Cancel();
 		return o;
 	}
-
 
 
 	// 创建 timer
@@ -940,4 +996,31 @@ namespace xx::Epoll {
 		return o;
 	}
 
+
+
+	inline int FillAddress(std::string const& ip, int const& port, sockaddr_in6& addr) {
+		memset(&addr, 0, sizeof(addr));
+
+		if (ip.find(':') == std::string::npos) {		// ipv4
+			auto a = (sockaddr_in*)&addr;
+			a->sin_family = AF_INET;
+			a->sin_port = htons((uint16_t)port);
+			if (!inet_pton(AF_INET, ip.c_str(), &a->sin_addr)) return -1;
+		}
+		else {											// ipv6
+			auto a = &addr;
+			a->sin6_family = AF_INET6;
+			a->sin6_port = htons((uint16_t)port);
+			if (!inet_pton(AF_INET6, ip.c_str(), &a->sin6_addr)) return -1;
+		}
+
+		return 0;
+	}
+
+
+	template<typename P>
+	inline bool IsAlive(std::shared_ptr<P>& p) {
+		static_assert(std::is_base_of_v<TcpPeer, P>);
+		return p && !p->Disposed();
+	}
 }

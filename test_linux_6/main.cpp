@@ -12,6 +12,10 @@ struct P : EP::TcpPeer {
 		++counter;
 		return this->TcpPeer::OnReceive();
 	}
+
+	inline virtual void OnDisconnect() override {
+		xx::CoutN("ip: ", ip, " disconnected.");
+	}
 };
 
 struct L : EP::TcpListener {
@@ -23,7 +27,7 @@ struct L : EP::TcpListener {
 struct U : EP::UdpPeer {
 	inline virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
-		auto r = SendTo(fromAddr, buf, len);
+		(void)SendTo(fromAddr, buf, len);
 		return 0;
 	}
 };

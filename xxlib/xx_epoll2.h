@@ -27,6 +27,10 @@
 
 // todo: 所有函数加一波 disposed 检测?
 
+// todo: 考虑在 fd 相关对象上使用 自定义版 weak 指针 以避开始终需要 Dispose 的问题
+// todo: 内存模型可能需要调整一波. 析构发生时 对象持有容器不一定是 ep->FdHandlers. 默认持有似乎不太健康?
+// todo: 似乎可以在 fd handlers 之间替换 fd 值? 这样对于 peer 存在多个持有方的情况似乎能降低断线重连复杂度
+
 
 // 内存模型为 预持有智能指针
 // 从创建出来开始就放入 容器, 故不需要想办法加持
@@ -194,21 +198,74 @@ namespace xx::Epoll {
 	// TcpConn
 	/***********************************************************************************************************/
 
-	struct TcpConn : TcpPeer {
-		// 是否连接成功
-		bool connected = false;
+	struct TcpDialer;
+	struct TcpConn : FDHandler {
+		// 指向拨号器, 方便调用其 OnConnect 函数
+		std::weak_ptr<TcpDialer> dialer;
 
-		// 成功, 超时或连接错误 都将触发该函数. 进一步判断 connected 可知状态
-		inline virtual void OnConnect() {}
+		// 保护标记
+		bool protectFD = false;
 
-		// 通过 connected 来路由两套事件逻辑
+		// 判断是否连接成功
 		virtual int OnEpollEvent(uint32_t const& e) override;
 
-		// 触发 OnConnect
-		virtual void Disposing(int const& flag) override;
+		// 需要的话, 针对 fd 进行保护
+		virtual void Dispose(int const& flag) override;
 
 		~TcpConn() { this->Dispose(-1); }
 	};
+
+
+	/***********************************************************************************************************/
+	// TcpDialer
+	/***********************************************************************************************************/
+
+	struct TcpDialer : Item, xx::TimeoutBase {
+		// 位于 ep->tcpDialers 的容器下标
+		int indexOfContainer = -1;
+
+		// 要连的地址数组
+		std::vector<sockaddr_in6> addrs;
+
+		// 内部连接对象. 拨号完毕后会被清空
+		std::vector<std::shared_ptr<TcpConn>> conns;
+
+		// 向 addrs 追加地址. 如果地址转换错误将返回非 0
+		int AddAddress(std::string const& ip, int const& port);
+
+		// 开始拨号。会遍历 addrs 为每个地址创建一个 TcpConn 连接
+		// 保留先连接上的 socket fd, 创建 Peer 并触发 OnConnect 事件. 
+		// 如果超时，也触发 OnConnect，参数为 nullptr
+		int Dial(int const& timeoutFrames);
+
+		// 返回是否正在拨号
+		bool Busy();
+
+		// 停止拨号
+		void Stop();
+
+		// 存个空值备用 以方便返回引用
+		std::shared_ptr<TcpPeer> emptyPeer;
+
+		// 连接成功或超时后触发
+		virtual void OnConnect(std::shared_ptr<TcpPeer>& peer) = 0;
+
+		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
+		virtual std::shared_ptr<TcpPeer> OnCreatePeer();
+
+		// 用于 TcpConn 通知自己连接成功，报上 fd 以保留
+		void Finish(int fd);
+
+		// 超时表明所有连接都没有脸上. 触发 OnConnect( nullptr )
+		virtual void OnTimeout() override;
+
+		// Stop 并从容器移除. 不产生回调
+		virtual void Dispose(int const& flag) override;
+
+		~TcpDialer() { this->Dispose(-1); }
+	};
+
+
 
 
 	/***********************************************************************************************************/
@@ -325,6 +382,9 @@ namespace xx::Epoll {
 		// fd 处理类 之 唯一持有容器. 别处引用尽量用 weak_ptr
 		std::vector<std::shared_ptr<FDHandler>> fdHandlers;
 
+		// 拨号器专项持有容器
+		std::vector<std::shared_ptr<TcpDialer>> tcpDialers;
+
 		// kcp conv 值与 peer 的映射. 使用 xxDict 是为了方便遍历 kv 时 value.Dispose(1) 支持 kcp 自己从 kcps 移除
 		xx::Dict<uint32_t, std::shared_ptr<KcpPeer>> kcps;
 
@@ -353,6 +413,7 @@ namespace xx::Epoll {
 		Context(int const& maxNumFD = 65536);
 
 		virtual ~Context();
+
 
 		// 创建非阻塞 socket fd 并返回. < 0: error
 		int MakeSocketFD(int const& port, int const& sockType = SOCK_STREAM); // SOCK_DGRAM
@@ -384,8 +445,8 @@ namespace xx::Epoll {
 		std::shared_ptr<L> TcpListen(int const& port, Args&&... args);
 
 		// 创建 连接 peer
-		template<typename C = TcpConn, typename ...Args>
-		std::shared_ptr<C> TcpDial(char const* const& ip, int const& port, int const& timeoutInterval, Args&&... args);
+		template<typename TD = TcpDialer, typename ...Args>
+		std::shared_ptr<TD> CreateTcpDialer(Args&&... args);
 
 		// 创建 timer
 		template<typename T = Timer, typename ...Args>
@@ -396,4 +457,16 @@ namespace xx::Epoll {
 		std::shared_ptr<U> UdpBind(int const& port, Args&&... args);
 	};
 
+
+
+	/***********************************************************************************************************/
+	// Util funcs
+	/***********************************************************************************************************/
+
+	// ip, port 转为 addr
+	int FillAddress(std::string const& ip, int const& port, sockaddr_in6& addr);
+
+	// 检查 peer 是否还活着: p && !p->Disposed();
+	template<typename P>
+	bool IsAlive(std::shared_ptr<P>& p);
 }
