@@ -6,10 +6,12 @@ namespace xx {
 
 	// 需要超时管理的基类
 	struct TimeoutBase {
-		TimeoutManager* timeoutManager = nullptr;
 		int timeoutIndex = -1;
 		TimeoutBase* timeoutPrev = nullptr;
 		TimeoutBase* timeoutNext = nullptr;
+
+		// 返回 管理器 指针
+		virtual TimeoutManager* GetTimeoutManager() = 0;
 
 		// 设置超时时间. 时间到即触发 OnTimeout 函数调用. 传入 0 撤销. 要求 interval < wheel size
 		int SetTimeout(int const& interval);
@@ -29,7 +31,7 @@ namespace xx {
 		}
 
 		// 每帧调用一次
-		inline void Update() {
+		inline void UpdateTimeoutWheel() {
 			cursor = (cursor + 1) & ((int)wheel.size() - 1);
 			auto p = wheel[cursor];
 			wheel[cursor] = nullptr;
@@ -48,6 +50,7 @@ namespace xx {
 
 	// 返回非 0 表示找不到 管理器 或 参数错误
 	inline int TimeoutBase::SetTimeout(int const& interval) {
+		auto timeoutManager = GetTimeoutManager();
 		assert(timeoutManager);
 
 		// 试着从 wheel 链表中移除

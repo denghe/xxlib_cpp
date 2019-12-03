@@ -4,48 +4,47 @@ namespace EP = xx::Epoll;
 std::size_t counter = 0;
 
 struct P : EP::TcpPeer {
-	inline virtual void Init() override {
-		xx::CoutN("ip: ", ip, " accepted.");
-	}
-
-	inline virtual int OnReceive() override {
+	inline virtual void OnReceive() override {
 		++counter;
-		return this->TcpPeer::OnReceive();
+		this->TcpPeer::OnReceive();
 	}
 
-	inline virtual void OnDisconnect() override {
-		xx::CoutN("ip: ", ip, " disconnected.");
+	inline virtual void OnDisconnect(int const& reason = 0) override {
+		xx::CoutN("ip: ", ip, " disconnected. reason = ", reason);
 	}
 };
 
 struct L : EP::TcpListener {
-	inline virtual std::shared_ptr<EP::TcpPeer> OnCreatePeer() override {
-		return xx::Make<P>();
+	inline virtual std::unique_ptr<EP::TcpPeer> OnCreatePeer() override {
+		return std::make_unique<P>();
+	}
+
+	inline virtual void OnAccept(EP::Item_r<EP::TcpPeer> peer) override {
+		xx::CoutN("ip: ", peer->ip, " accepted.");
 	}
 };
 
 struct U : EP::UdpPeer {
-	inline virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
+	inline virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
 		(void)SendTo(fromAddr, buf, len);
-		return 0;
 	}
 };
 
 int main() {
 	xx::IgnoreSignal();
 	EP::Context ep;
-	if (!ep.TcpListen<L>(12345)) {
+	if (!ep.CreateTcpListener<L>(12345)) {
 		xx::CoutN("create tcp listener failed.");
 		return -1;
 	}
 	for (int port = 10000; port < 11000; ++port) {
-		if (!ep.UdpBind<U>(port)) {
+		if (!ep.CreateUdpPeer<U>(port)) {
 			xx::CoutN("create udp peer failed.");
 			return -1;
 		}
 	}
-	ep.Delay(100, [&](auto t) {
+	ep.CreateTimer(100, [&](auto t) {
 		xx::CoutN("counter = ", counter);
 		counter = 0;
 		t->SetTimeout(100);

@@ -23,24 +23,29 @@
 #include "xx_buf.h"
 #include "xx_buf_queue.h"
 #include "xx_timeout.h"
+#include "xx_itempool.h"
 
 
 // todo: 所有函数加一波 disposed 检测?
-
-// todo: 考虑在 fd 相关对象上使用 自定义版 weak 指针 以避开始终需要 Dispose 的问题
-// todo: 内存模型可能需要调整一波. 析构发生时 对象持有容器不一定是 ep->FdHandlers. 默认持有似乎不太健康?
-// todo: 似乎可以在 fd handlers 之间替换 fd 值? 这样对于 peer 存在多个持有方的情况似乎能降低断线重连复杂度
-
-
-// 内存模型为 预持有智能指针
-// 从创建出来开始就放入 容器, 故不需要想办法加持
-// 省掉了 lock() 能提升网络事件派发效率, 临时创建 timer 等以延迟执行一段代码等行为也变得容易
-// 随之带来的问题是 要释放必须直接或间接的 Dispose( close fd, 从 epoll 移除, 从主容器移除以触发 析构 )
 
 // 注意：
 // 析构过程中无法执行 shared_from_this
 // 基类析构发起的 Dispose 无法调用 派生类 override 的部分, 需谨慎
 // 上层类只析构自己的数据, 到基类析构时无法访问上层类成员与 override 的函数
+
+
+/*
+	设计目标：极大简化类的使用复杂程度, 降低出问题概率
+	设计思路：与 fd 挂钩的类，特别是 peer, 需要弱引用安全使用. 正常情况下其他类型直接用即可。都用不着智能指针。
+	xx::Epoll::Context ( 简称 ep, 下同 ), 通常一个项目只需要确保该类生命周期最长即可很方便的访问一些数据
+	
+	弱指针基础结构： owner*, index, version
+	owner*: 指向主容器. 例如 ep.  index: 位于主容器的下标.   version: 版本号，用于判断 index 是否已失效
+
+	此处由于 epoll fd 结构特殊性，其使用一个全局静态的数据, 故弱指针基础结构可简化掉 owner*
+
+*/
+
 
 namespace xx::Epoll {
 
@@ -50,54 +55,64 @@ namespace xx::Epoll {
 
 	struct Context;
 
-	struct Item : std::enable_shared_from_this<Item> {
+	struct Item {
 		// 指向总容器
 		Context* ep = nullptr;
 
-		// 在对象创建成功 & 填充 & 放置到位 后会被执行, 覆盖以便做一些后期初始化工作，模拟构造函数
-		inline virtual void Init() {}
+		// item 所在容器下标
+		int indexAtContainer = -1;
 
-		// 销毁标志
-		bool disposed = false;
-		inline bool Disposed() const { return disposed; }
-
-		// flag == -1: 在析构函数中调用.  0: 不产生回调  1: 产生回调
-		inline virtual void Dispose(int const& flag) {
-			// 下列代码为内容示例, 方便复制小改
-
-			// 检查 & 打标记 以避免重复执行析构逻辑
-			if (disposed) return;
-			disposed = true;
-
-			// 调用派生类自己的析构部分
-			Disposing(flag);
-
-			// 这里放置 从容器移除的代码 以触发析构
-		};
-
-		// 子析构
-		inline virtual void Disposing(int const& flag) {}
+		// 从 容器 移除自己, 进而触发析构
+		virtual void Dispose();
 
 		// 每层非虚派生类析构都要写 this->Dispose(-1);
-		virtual ~Item() { this->Dispose(-1); }
+		virtual ~Item() {}
+	};
+
+	/***********************************************************************************************************/
+	// Item_r
+	/***********************************************************************************************************/
+
+	// 针对 Item 的 弱引用伪指针. 几个操作符每次都会检查是否失效. 失效可以被 try 到。
+	template<typename T>
+	struct Item_r {
+		ItemPool<std::unique_ptr<Item>>* items = nullptr;
+		int index = -1;
+		int64_t version = 0;
+
+		// 会从 ptr 中提取 ep & indexAtContainer. 故需要保证这些值有效
+		Item_r(T* const& ptr);
+		Item_r(std::unique_ptr<T> const& ptr);
+
+		Item_r() = default;
+		Item_r(Item_r const&) = default;
+		Item_r& operator=(Item_r const&) = default;
+
+		operator bool() const;
+		T* operator->() const;
+		T* Lock() const;
+
+		template<typename U>
+		Item_r<U> As() const;
 	};
 
 
 	/***********************************************************************************************************/
-	// FDHandler
+	// FDItem
 	/***********************************************************************************************************/
 
-	struct FDHandler : Item {
+	struct FDItem : Item {
 		// linux 系统文件描述符. 同时也是 ep->fdHandlers 的下标
-		int fd = -1;
+		//int fd = -1;	// 直接用 indexAtContainer
 
-		// epoll fd 事件处理. return 非 0 表示自杀
-		virtual int OnEpollEvent(uint32_t const& e) = 0;
+		// epoll fd 事件处理. 有问题自己直接 Dispose 自杀
+		virtual void OnEpollEvent(uint32_t const& e) = 0;
 
-		// 关 fd, 从 epoll 移除, call Disposing, 从容器移除( 可能触发析构 )
-		virtual void Dispose(int const& flag) override;
+		// 从 ep->fdHandlers 移除自己, 进而触发析构
+		virtual void Dispose() override;
 
-		virtual ~FDHandler() { this->Dispose(-1); }
+		// 关闭 fd 啥的
+		virtual ~FDItem();
 	};
 
 
@@ -106,7 +121,10 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct Timer : Item, xx::TimeoutBase {
-		// ep->timers 的下标
+		// 返回 ep
+		virtual TimeoutManager* GetTimeoutManager() override;
+
+		// 位于 ep->timers 的下标
 		int indexAtContainer = -1;
 
 		// 时间到达时触发. 如果想实现 repeat 效果, 就在函数返回前 自己 timer->SetTimeout
@@ -115,10 +133,7 @@ namespace xx::Epoll {
 		// 负责触发 onFire
 		virtual void OnTimeout() override;
 
-		// 从 timeoutManager 移除, call Disposing, 从容器移除( 可能触发析构 )
-		virtual void Dispose(int const& flag) override;
-
-		~Timer() { this->Dispose(-1); }
+		virtual ~Timer();
 	};
 
 
@@ -127,7 +142,10 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct TcpListener;
-	struct TcpPeer : FDHandler, xx::TimeoutBase {
+	struct TcpPeer : FDItem, xx::TimeoutBase {
+		// ep 本身就是 timeout 管理器
+		virtual TimeoutManager* GetTimeoutManager() override;
+
 		// ip
 		std::string ip;
 
@@ -146,21 +164,18 @@ namespace xx::Epoll {
 		// 读缓冲区内存扩容增量
 		std::size_t readBufLen = 65536;
 
-		virtual int OnEpollEvent(uint32_t const& e) override;
+		virtual void OnEpollEvent(uint32_t const& e) override;
 
 		// 数据接收事件: 从 recv 拿数据. 默认实现为 echo
-		virtual int OnReceive();
+		virtual void OnReceive();
 
 		// 用于处理超时掐线
 		virtual void OnTimeout() override;
 
-		// 断线时的处理
-		inline virtual void OnDisconnect() {}
+		// 断线事件
+		inline virtual void OnDisconnect(int const& reason) {}
 
-		// 触发 OnDisconnect
-		virtual void Disposing(int const& flag) override;
-
-		~TcpPeer() { this->Dispose(-1); }
+		~TcpPeer();
 
 		// Buf 对象塞队列并开始发送。相关信息需参考 Buf 构造函数
 		int Send(xx::Buf&& data);
@@ -168,7 +183,6 @@ namespace xx::Epoll {
 
 	protected:
 		int Write();
-		int Read();
 	};
 
 
@@ -176,18 +190,15 @@ namespace xx::Epoll {
 	// TcpListener
 	/***********************************************************************************************************/
 
-	struct TcpListener : FDHandler {
-		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual std::shared_ptr<TcpPeer> OnCreatePeer();
+	struct TcpListener : FDItem {
+		// 提供创建 peer 对象的实现
+		virtual std::unique_ptr<TcpPeer> OnCreatePeer();
 
-		// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
-		inline virtual int OnAccept(std::shared_ptr<TcpPeer>& peer) { return 0; }
+		// 提供为 peer 绑定事件的实现
+		inline virtual void OnAccept(Item_r<TcpPeer> peer) {}
 
 		// 调用 accept
-		virtual int OnEpollEvent(uint32_t const& e) override;
-
-		~TcpListener() { this->Dispose(-1); }
-
+		virtual void OnEpollEvent(uint32_t const& e) override;
 	protected:
 		// return fd. <0: error. 0: empty (EAGAIN / EWOULDBLOCK), > 0: fd
 		int Accept(int const& listenFD);
@@ -199,20 +210,12 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct TcpDialer;
-	struct TcpConn : FDHandler {
+	struct TcpConn : FDItem {
 		// 指向拨号器, 方便调用其 OnConnect 函数
-		std::weak_ptr<TcpDialer> dialer;
-
-		// 保护标记
-		bool protectFD = false;
+		Item_r<TcpDialer> dialer;
 
 		// 判断是否连接成功
-		virtual int OnEpollEvent(uint32_t const& e) override;
-
-		// 需要的话, 针对 fd 进行保护
-		virtual void Dispose(int const& flag) override;
-
-		~TcpConn() { this->Dispose(-1); }
+		virtual void OnEpollEvent(uint32_t const& e) override;
 	};
 
 
@@ -221,14 +224,17 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct TcpDialer : Item, xx::TimeoutBase {
-		// 位于 ep->tcpDialers 的容器下标
+		// ep 本身就是 timeout 管理器
+		virtual TimeoutManager* GetTimeoutManager() override;
+
+		// 位于 ep->items 的容器下标
 		int indexOfContainer = -1;
 
 		// 要连的地址数组
 		std::vector<sockaddr_in6> addrs;
 
 		// 内部连接对象. 拨号完毕后会被清空
-		std::vector<std::shared_ptr<TcpConn>> conns;
+		std::vector<Item_r<TcpConn>> conns;
 
 		// 向 addrs 追加地址. 如果地址转换错误将返回非 0
 		int AddAddress(std::string const& ip, int const& port);
@@ -245,13 +251,13 @@ namespace xx::Epoll {
 		void Stop();
 
 		// 存个空值备用 以方便返回引用
-		std::shared_ptr<TcpPeer> emptyPeer;
+		Item_r<TcpPeer> emptyPeer;
 
 		// 连接成功或超时后触发
-		virtual void OnConnect(std::shared_ptr<TcpPeer>& peer) = 0;
+		virtual void OnConnect(Item_r<TcpPeer> const& peer) = 0;
 
 		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual std::shared_ptr<TcpPeer> OnCreatePeer();
+		virtual std::unique_ptr<TcpPeer> OnCreatePeer();
 
 		// 用于 TcpConn 通知自己连接成功，报上 fd 以保留
 		void Finish(int fd);
@@ -259,10 +265,7 @@ namespace xx::Epoll {
 		// 超时表明所有连接都没有脸上. 触发 OnConnect( nullptr )
 		virtual void OnTimeout() override;
 
-		// Stop 并从容器移除. 不产生回调
-		virtual void Dispose(int const& flag) override;
-
-		~TcpDialer() { this->Dispose(-1); }
+		~TcpDialer();
 	};
 
 
@@ -272,20 +275,18 @@ namespace xx::Epoll {
 	// UdpPeer
 	/***********************************************************************************************************/
 
-	struct UdpPeer : FDHandler {
+	struct UdpPeer : FDItem {
 		// 存放该 udp socket 占用的是哪个本地端口	// todo: 0 自适应还需要去提取
 		int port = -1;
 
 		// 处理数据接收
-		virtual int OnEpollEvent(uint32_t const& e) override;
+		virtual void OnEpollEvent(uint32_t const& e) override;
 
 		// 处理数据到达事件. 默认实现为 echo. 使用 sendto 发回收到的数据.
-		virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
+		virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
 
 		// 直接封装 sendto 函数
 		int SendTo(sockaddr* toAddr, char const* const& buf, std::size_t const& len);
-
-		~UdpPeer() { this->Dispose(-1); }
 	};
 
 
@@ -302,15 +303,16 @@ namespace xx::Epoll {
 		int handShakeTimeoutMS = 3000;
 
 		// 判断收到的数据内容, 模拟握手， 最后产生能 KcpPeer
-		virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
+		virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
 
 		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual std::shared_ptr<KcpPeer> OnCreatePeer();
+		virtual std::unique_ptr<KcpPeer> OnCreatePeer();
 
 		// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
-		inline virtual int OnAccept(std::shared_ptr<KcpPeer>& peer) { return 0; }
+		inline virtual void OnAccept(Item_r<KcpPeer> const& peer) {}
 
-		// todo: Dispose 时杀掉相关 kcp peers?
+		// 杀掉相关 kcp peers?
+		//void OnDisconnect(int const& reason);
 	};
 
 
@@ -319,8 +321,11 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct KcpPeer : Item, xx::TimeoutBase {
+		// ep 本身就是 timeout 管理器
+		virtual TimeoutManager* GetTimeoutManager() override;
+
 		// 用于收发数据的物理 udp peer
-		std::shared_ptr<UdpListener> owner;
+		Item_r<UdpListener> owner;
 
 		// kcp 相关上下文
 		ikcpcb* kcp = nullptr;
@@ -342,7 +347,7 @@ namespace xx::Epoll {
 		int InitKcp();
 
 		// 数据接收事件: 从 recv 拿数据. 默认实现为 echo
-		virtual int OnReceive();
+		virtual void OnReceive();
 
 		// 发数据( 数据可能滞留一会儿等待合并 )
 		int Send(uint8_t const* const& buf, ssize_t const& dataLen);
@@ -352,18 +357,18 @@ namespace xx::Epoll {
 
 		// 被 ep 调用.
 		// 受帧循环驱动. 帧率越高, kcp 工作效果越好. 典型的频率为 100 fps
-		virtual int UpdateKcpLogic(int64_t const& nowMS);
+		virtual void UpdateKcpLogic(int64_t const& nowMS);
 
 		// 被 owner 调用.
 		// 塞数据到 kcp
 		int Input(uint8_t* const& recvBuf, uint32_t const& recvLen);
 
+		inline virtual void OnDisconnect(int const& reason) {};
+
 		// 超时自杀
 		virtual void OnTimeout() override;
 
-		virtual void Dispose(int const& flag) override;
-
-		~KcpPeer() { this->Dispose(-1); }
+		~KcpPeer();
 	};
 
 
@@ -378,21 +383,22 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	struct Context {
-		// fd 处理类 之 唯一持有容器. 别处引用尽量用 weak_ptr
-		std::vector<std::shared_ptr<FDHandler>> fdHandlers;
+	struct Context : TimeoutManager {
+		// fd 处理类 之 唯一持有容器. 外界用 Item_r 来存引用
+		inline static std::array<std::pair<std::unique_ptr<FDItem>, int64_t>, 40000> fdHandlers;
 
-		// 拨号器专项持有容器
-		std::vector<std::shared_ptr<TcpDialer>> tcpDialers;
+		// 提供自增版本号 for FDItem
+		int64_t autoIncVersion = 0;
 
-		// kcp conv 值与 peer 的映射. 使用 xxDict 是为了方便遍历 kv 时 value.Dispose(1) 支持 kcp 自己从 kcps 移除
-		xx::Dict<uint32_t, std::shared_ptr<KcpPeer>> kcps;
+		// 非 fd 的 item 类唯一容器。外界用 Item_r 来存引用. 自带自增版本号管理
+		ItemPool<std::unique_ptr<Item>> items;
+
+		// kcp conv 值与 peer 的映射。KcpPeer 析构时从该字典移除 key
+		xx::Dict<uint32_t, KcpPeer*> kcps;
 
 		// 带超时的握手信息字典 key: ip:port   value: conv, nowMS
 		xx::Dict<std::string, std::pair<uint32_t, int64_t>> shakes;
 
-		// timer 唯一持有容器. 别处引用尽量用 weak_ptr
-		std::vector<std::shared_ptr<Timer>> timers;
 
 		// epoll_wait 事件存储
 		std::array<epoll_event, 4096> events;
@@ -403,14 +409,12 @@ namespace xx::Epoll {
 		// 对于一些返回值非 int 的函数, 具体错误码将存放于此
 		int lastErrorNumber = 0;
 
-		// 超时管理器
-		xx::TimeoutManager timeoutManager;
-
 		// 共享buf for kcp read 等
 		std::array<char, 65536> sharedBuf;
 
 		// maxNumFD: fd 总数
-		Context(int const& maxNumFD = 65536);
+		// wheelLen: 定时器轮子尺寸( 按帧 )
+		Context(int const& maxNumFD = 20000, std::size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
 
@@ -441,20 +445,20 @@ namespace xx::Epoll {
 		int Run(double const& frameRate = 60.3);
 
 		// 创建 监听器	// todo: 支持填写ip, 支持传入复用 fd
-		template<typename L = TcpListener, typename ...Args>
-		std::shared_ptr<L> TcpListen(int const& port, Args&&... args);
+		template<typename T = TcpListener, typename ...Args>
+		Item_r<T> CreateTcpListener(int const& port, Args&&... args);
 
 		// 创建 连接 peer
-		template<typename TD = TcpDialer, typename ...Args>
-		std::shared_ptr<TD> CreateTcpDialer(Args&&... args);
+		template<typename T = TcpDialer, typename ...Args>
+		Item_r<T> CreateTcpDialer(Args&&... args);
 
 		// 创建 timer
 		template<typename T = Timer, typename ...Args>
-		std::shared_ptr<T> Delay(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
+		Item_r<T> CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
 
 		// 创建 UdpPeer
-		template<typename U = UdpPeer, typename ...Args>
-		std::shared_ptr<U> UdpBind(int const& port, Args&&... args);
+		template<typename T = UdpPeer, typename ...Args>
+		Item_r<T> CreateUdpPeer(int const& port, Args&&... args);
 	};
 
 
@@ -465,8 +469,4 @@ namespace xx::Epoll {
 
 	// ip, port 转为 addr
 	int FillAddress(std::string const& ip, int const& port, sockaddr_in6& addr);
-
-	// 检查 peer 是否还活着: p && !p->Disposed();
-	template<typename P>
-	bool IsAlive(std::shared_ptr<P>& p);
 }

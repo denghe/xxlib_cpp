@@ -3,25 +3,25 @@ namespace EP = xx::Epoll;
 
 struct D;
 struct P : EP::TcpPeer {
-	std::weak_ptr<D> dialer_w;
+	EP::Item_r<D> dialer;
 	std::size_t counter = 0;
-	virtual int OnReceive() override;
-	virtual void OnDisconnect() override;
+	virtual void OnReceive() override;
+	virtual void OnDisconnect(int const& reason) override;
 };
 
 struct D : EP::TcpDialer {
-	std::shared_ptr<P> peer;
-	virtual std::shared_ptr<EP::TcpPeer> OnCreatePeer() override;
-	virtual void OnConnect(std::shared_ptr<EP::TcpPeer>& peer) override;
+	EP::Item_r<P> peer;
+	virtual std::unique_ptr<EP::TcpPeer> OnCreatePeer() override;
+	virtual void OnConnect(EP::Item_r<EP::TcpPeer> const& peer) override;
 };
 
-inline void D::OnConnect(std::shared_ptr<EP::TcpPeer>& p_) {
-	if (EP::IsAlive(peer)) {
-		peer->Dispose(0);
-	}
-	peer = xx::As<P>(p_);
+inline void D::OnConnect(EP::Item_r<EP::TcpPeer> const& p_) {
 	if (peer) {
-		peer->dialer_w = xx::As<D>(shared_from_this());
+		peer->Dispose();
+	}
+	peer = p_.As<P>();
+	if (peer) {
+		peer->dialer = this;
 		peer->Send(xx::Buf((void*)".", 1));
 	}
 	else {
@@ -30,25 +30,27 @@ inline void D::OnConnect(std::shared_ptr<EP::TcpPeer>& p_) {
 	}
 }
 
-inline std::shared_ptr<EP::TcpPeer> D::OnCreatePeer() {
-	return xx::TryMake<P>();
+inline std::unique_ptr<EP::TcpPeer> D::OnCreatePeer() {
+	return xx::TryMakeU<P>();
 }
 
-inline int P::OnReceive() {
+inline void P::OnReceive() {
 	++counter;
-	return this->TcpPeer::OnReceive();
+	this->TcpPeer::OnReceive();
 }
 
-inline void P::OnDisconnect() {
-	if (auto d = dialer_w.lock()) {
-		int r = d->Dial(20);
+inline void P::OnDisconnect(int const& reason) {
+	// todo: 藏 try 于幕后
+	try {
+		int r = dialer->Dial(20);
 		xx::CoutN("dial r = ", r);
 	}
+	catch (...) {}
 }
 
 int TestTcp(int const& threadId, int const& numTcpClients, char const* const& tarIp, int const& tarPort) {
 	EP::Context ep;
-	std::vector<std::shared_ptr<D>> ds;
+	std::vector<EP::Item_r<D>> ds;
 
 	for (int i = 0; i < numTcpClients; i++) {
 		auto&& d = ds.emplace_back(ep.CreateTcpDialer<D>());
@@ -57,11 +59,10 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 		xx::CoutN("dial r = ", r);
 	}
 
-	ep.Delay(10, [&](auto t) {
+	ep.CreateTimer(10, [&](auto t) {
 		std::size_t tcpCounter = 0;
 		for (auto&& d : ds) {
-			auto&& p = d->peer;
-			if (xx::Epoll::IsAlive(p)) {
+			if (auto p = d->peer.Lock()) {
 				tcpCounter += p->counter;
 				p->counter = 0;
 			}
@@ -78,41 +79,40 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 
 struct U : EP::UdpPeer {
 	using BaseType = EP::UdpPeer;
-
 	std::size_t counter = 0;
 
-	sockaddr_in addr;
-	U(char const* const& tarIP, int const& tarPort) {
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons((uint16_t)tarPort);
-		if (!inet_pton(AF_INET, tarIP, &addr.sin_addr.s_addr)) {
-			throw - 1;
-		}
-	}
-
-	inline virtual void Init() override {
-		SendTo((sockaddr*)&addr, ".", 1);
-	}
-
-	inline virtual int OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
+	inline virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
 		SendTo(fromAddr, buf, len);
-		return 0;
 	}
 };
 
 int TestUdp(int const& threadId, int const& numUdpClients, char const* const& tarIp, int const& tarPort, int const& numPorts) {
 	EP::Context ep;
 
-	std::vector<std::shared_ptr<U>> us;
+	sockaddr_in addr;
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons((uint16_t)tarPort);
+	if (!inet_pton(AF_INET, tarIp, &addr.sin_addr.s_addr)) {
+		throw - 1;
+	}
+
+	std::vector<EP::Item_r<U>> us;
 	for (int i = 0; i < numUdpClients; i++) {
 		auto port = tarPort + ((threadId * numUdpClients + i) % numPorts);
 		xx::CoutN("udp send tar port = ", port);
-		us.emplace_back(ep.UdpBind<U>(0, tarIp, port));
+		auto u = ep.CreateUdpPeer<U>(0);
+		if (!u) {
+			xx::CoutN("thread: ", threadId, ", CreateUdpPeer failed.");
+		}
+		else {
+			us.emplace_back(u);
+			u->SendTo((sockaddr*)&addr, ".", 1);
+		}
 	}
 
-	ep.Delay(10, [&](auto t) {
+	ep.CreateTimer(10, [&](auto t) {
 		std::size_t udpCounter = 0;
 		for (auto&& u : us) {
 			udpCounter += u->counter;

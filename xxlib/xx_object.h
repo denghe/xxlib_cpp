@@ -101,7 +101,7 @@ std::size_t _countof_helper(T const (&arr)[N])
 	auto i = tar->indexMember;							\
 	auto lastIndex = (int)container.size() - 1;			\
 	if ((int)i < lastIndex) {							\
-		container[i] = container[lastIndex];			\
+		std::swap(container[i], container[lastIndex]);	\
 		container[lastIndex]->indexMember = i;			\
 	}													\
 	container.resize(lastIndex);						\
@@ -800,6 +800,22 @@ namespace xx {
 
 
 
+
+
+	template<typename T, typename ...Args>
+	std::unique_ptr<T> MakeU(Args&& ...args) {
+		return std::make_unique<T>(std::forward<Args>(args)...);
+	}
+
+	template<typename T, typename ...Args>
+	std::unique_ptr<T> TryMakeU(Args&& ...args) noexcept {
+		try {
+			return std::make_unique<T>(std::forward<Args>(args)...);
+		}
+		catch (...) {
+			return std::unique_ptr<T>();
+		}
+	}
 
 	/************************************************************************************/
 	// 各种 type check
