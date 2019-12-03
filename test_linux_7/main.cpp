@@ -40,12 +40,11 @@ inline void P::OnReceive() {
 }
 
 inline void P::OnDisconnect(int const& reason) {
-	// todo: 藏 try 于幕后
-	try {
-		int r = dialer->Dial(20);
+	xx::CoutN("disconnected.");
+	if (auto d = dialer.Lock()) {
+		int r = d->Dial(20);
 		xx::CoutN("dial r = ", r);
 	}
-	catch (...) {}
 }
 
 int TestTcp(int const& threadId, int const& numTcpClients, char const* const& tarIp, int const& tarPort) {
@@ -53,7 +52,8 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 	std::vector<EP::Item_r<D>> ds;
 
 	for (int i = 0; i < numTcpClients; i++) {
-		auto&& d = ds.emplace_back(ep.CreateTcpDialer<D>());
+		auto d = ep.CreateTcpDialer<D>();
+		ds.emplace_back(d);
 		d->AddAddress(tarIp, tarPort);
 		int r = d->Dial(20);
 		xx::CoutN("dial r = ", r);

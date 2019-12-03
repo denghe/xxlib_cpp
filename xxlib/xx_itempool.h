@@ -68,6 +68,7 @@ namespace xx {
 		template<typename ...Args>
 		Size_t Add(Args&&...args) {
 			auto idx = Alloc();
+			assert(!buf[idx].version);
 			new (&buf[idx].value) Value(std::forward<Args>(args)...);
 			buf[idx].version = ++version;
 			buf[idx].next = -1;
@@ -88,6 +89,7 @@ namespace xx {
 		// 通过下标移除
 		inline void RemoveAt(Size_t const& idx) noexcept {
 			assert(idx < len);
+			assert(buf[idx].version);
 			buf[idx].version = 0;
 			buf[idx].next = freeHeader;			     // 指向 自由节点链表头
 			if constexpr (!std::is_pod_v<Value>) {

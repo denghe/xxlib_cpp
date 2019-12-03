@@ -23,7 +23,7 @@ namespace xx::Epoll {
 
 	inline void Item::Dispose() {
 		if (ep && indexAtContainer != -1) {
-			ep->items.RemoveAt(indexAtContainer);
+			ep->items.RemoveAt(indexAtContainer);	// 开始析构
 		}
 	}
 
@@ -36,11 +36,15 @@ namespace xx::Epoll {
 		assert(ptr);
 		assert(ptr->ep);
 		assert(ptr->indexAtContainer != -1);
-		if constexpr (!std::is_base_of_v<FDItem, T>) {
-			items = &ptr->ep->items;
+		if constexpr (std::is_base_of_v<FDItem, T>) {
+			index = ptr->indexAtContainer;
+			version = Context::fdHandlers[index].second;
 		}
-		index = ptr->indexAtContainer;
-		version = ptr->ep->items.VersionAt(index);
+		else {
+			items = &ptr->ep->items;
+			index = ptr->indexAtContainer;
+			version = items->VersionAt(index);
+		}
 	}
 
 	template<typename T>
@@ -49,10 +53,10 @@ namespace xx::Epoll {
 	template<typename T>
 	inline Item_r<T>::operator bool() const {
 		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return !version && Context::fdHandlers[index].second == version;
+			return version && Context::fdHandlers[index].second == version;
 		}
 		else {
-			return !version && items->VersionAt(index) == version;
+			return version && items->VersionAt(index) == version;
 		}
 	}
 
@@ -99,7 +103,8 @@ namespace xx::Epoll {
 
 	inline void FDItem::Dispose() {
 		if (ep && indexAtContainer != -1) {
-			ep->fdHandlers[indexAtContainer].first.reset();
+			ep->fdHandlers[indexAtContainer].second = 0;
+			ep->fdHandlers[indexAtContainer].first.reset();	// 自杀. 之后不能再访问 this
 		}
 	}
 
@@ -232,9 +237,11 @@ namespace xx::Epoll {
 			recv.len += len;
 
 			// 用弱引用检测 OnReceive 中是否发生自杀行为
-			Item_r<TcpPeer> alive(this);
-			OnReceive();
-			if (!alive) return;	// 已自杀
+			{
+				Item_r<TcpPeer> alive(this);
+				OnReceive();
+				if (!alive) return;	// 已自杀
+			}
 		}
 		// write
 		if (e & EPOLLOUT) {
@@ -253,6 +260,9 @@ namespace xx::Epoll {
 		// 默认实现为 echo. 仅供测试. 随意使用 write 可能导致待发队列中的数据被分割
 		if (write(indexAtContainer, recv.buf, recv.len) != (ssize_t)recv.len) {
 			Dispose();
+		}
+		else {
+			recv.Clear();
 		}
 	}
 
@@ -347,8 +357,8 @@ namespace xx::Epoll {
 
 	inline void TcpConn::OnEpollEvent(uint32_t const& e) {
 		// 如果 dialer 无法定位到 或 error 事件则自杀
-		auto dialer = this->dialer.Lock();
-		if (!dialer || e & EPOLLERR || e & EPOLLHUP) {
+		auto d = this->dialer.Lock();
+		if (!d || e & EPOLLERR || e & EPOLLHUP) {
 			Dispose();
 			return;
 		}
@@ -366,7 +376,11 @@ namespace xx::Epoll {
 		// 连接成功
 		auto fd = this->indexAtContainer;		// 备份
 		this->indexAtContainer = -1;			// 设为 -1 以免 close
-		dialer->Finish(fd);
+		if (ep) {
+			ep->fdHandlers[fd].second = 0;
+			ep->fdHandlers[fd].first.reset();	// 导致自杀
+		}
+		d->Finish(fd);							// 自杀后执行的语句并未访问 this, 安全
 	}
 
 
@@ -692,9 +706,11 @@ namespace xx::Epoll {
 			if (len <= 0) break;
 
 			// 调用用户数据处理函数
-			Item_r<KcpPeer> alive(this);
-			OnReceive();
-			if (!alive) return;
+			{
+				Item_r<KcpPeer> alive(this);
+				OnReceive();
+				if (!alive) return;
+			}
 		} while (true);
 	}
 
@@ -720,9 +736,8 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	inline Context::Context(int const& maxNumFD, std::size_t const& wheelLen)
+	inline Context::Context(std::size_t const& wheelLen)
 		: TimeoutManager(wheelLen) {
-		assert(maxNumFD >= 1024);
 
 		// 创建 epoll fd
 		efd = epoll_create1(0);
@@ -805,7 +820,8 @@ namespace xx::Epoll {
 		int n = epoll_wait(efd, events.data(), (int)events.size(), timeoutMS);
 		if (n == -1) return errno;
 		for (int i = 0; i < n; ++i) {
-			auto&& h = fdHandlers[events[i].data.fd].first;
+			auto fd = events[i].data.fd;
+			auto&& h = fdHandlers[fd].first;
 			assert(h);
 			auto e = events[i].events;
 			h->OnEpollEvent(e);
@@ -889,7 +905,7 @@ namespace xx::Epoll {
 		auto&& fd = MakeSocketFD(port);
 		if (fd < 0) {
 			lastErrorNumber = -1;
-			return nullptr;
+			return Item_r<L>();
 		}
 		// 确保 return 时自动 close
 		xx::ScopeGuard sg([&] { close(fd); });
@@ -897,13 +913,13 @@ namespace xx::Epoll {
 		// 开始监听
 		if (-1 == listen(fd, SOMAXCONN)) {
 			lastErrorNumber = -3;
-			return nullptr;
+			return Item_r<L>();
 		}
 
 		// fd 纳入 epoll 管理
 		if (-1 == Ctl(fd, EPOLLIN)) {
 			lastErrorNumber = -4;
-			return nullptr;
+			return Item_r<L>();
 		}
 
 		// 确保 return 时自动 close 并脱离 epoll 管理
@@ -913,7 +929,7 @@ namespace xx::Epoll {
 		auto o = xx::TryMakeU<L>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -5;
-			return nullptr;
+			return Item_r<L>();
 		}
 		auto op = o.get();
 
@@ -938,13 +954,14 @@ namespace xx::Epoll {
 		auto o = xx::TryMakeU<TD>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -1;
-			return nullptr;
+			return Item_r<TD>();
 		}
 		auto op = o.get();
 
 		// 继续初始化并放入容器
 		o->ep = this;
-		o->indexOfContainer = items.Add(std::move(o));	// 移动后将不可用，故用 op
+		// 移动后将不可用，故用 op
+		op->indexAtContainer = items.Add(std::move(o));
 
 		// 调用用户自定义后续初始化
 		return op;
@@ -957,10 +974,10 @@ namespace xx::Epoll {
 		static_assert(std::is_base_of_v<Timer, T>);
 
 		// 试创建目标类实例
-		auto o = std::unique_ptr<T>(std::forward<Args>(args)...);
+		auto o = xx::TryMakeU<T>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -1;
-			return nullptr;
+			return Item_r<T>();
 		}
 		auto op = o.get();
 
@@ -968,12 +985,14 @@ namespace xx::Epoll {
 		o->ep = this;
 		if (o->SetTimeout(interval)) {
 			lastErrorNumber = -2;
-			return nullptr;
+			return Item_r<T>();
 		}
 
 		// 继续初始化并放入容器
 		o->onFire = std::move(cb);
-		op->indexAtContainer = items.Add(std::move(o));	// 移动后将不可用，故用 op
+
+		// 移动后将不可用，故用 op
+		op->indexAtContainer = items.Add(std::move(o));	
 		return Item_r<T>(op);
 	}
 
@@ -988,7 +1007,7 @@ namespace xx::Epoll {
 		auto&& fd = MakeSocketFD(port, SOCK_DGRAM);
 		if (fd < 0) {
 			lastErrorNumber = fd;
-			return nullptr;
+			return Item_r<U>();
 		}
 		// 确保 return 时自动 close
 		xx::ScopeGuard sg([&] { close(fd); });
@@ -996,7 +1015,7 @@ namespace xx::Epoll {
 		// fd 纳入 epoll 管理
 		if (-1 == Ctl(fd, EPOLLIN)) {
 			lastErrorNumber = -4;
-			return nullptr;
+			return Item_r<U>();
 		}
 
 		// 确保 return 时自动 close 并脱离 epoll 管理
@@ -1006,7 +1025,7 @@ namespace xx::Epoll {
 		auto o = xx::TryMakeU<U>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -5;
-			return nullptr;
+			return Item_r<U>();
 		}
 		auto op = o.get();
 

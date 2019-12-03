@@ -412,9 +412,8 @@ namespace xx::Epoll {
 		// 共享buf for kcp read 等
 		std::array<char, 65536> sharedBuf;
 
-		// maxNumFD: fd 总数
 		// wheelLen: 定时器轮子尺寸( 按帧 )
-		Context(int const& maxNumFD = 20000, std::size_t const& wheelLen = 1 << 12);
+		Context(std::size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
 
