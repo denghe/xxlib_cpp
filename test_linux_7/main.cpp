@@ -3,19 +3,19 @@ namespace EP = xx::Epoll;
 
 struct D;
 struct P : EP::TcpPeer {
-	EP::Item_r<D> dialer;
+	EP::Ref<D> dialer;
 	std::size_t counter = 0;
 	virtual void OnReceive() override;
 	virtual void OnDisconnect(int const& reason) override;
 };
 
 struct D : EP::TcpDialer {
-	EP::Item_r<P> peer;
-	virtual std::unique_ptr<EP::TcpPeer> OnCreatePeer() override;
-	virtual void OnConnect(EP::Item_r<EP::TcpPeer> const& peer) override;
+	EP::Ref<P> peer;
+	virtual EP::TcpPeer_u OnCreatePeer() override;
+	virtual void OnConnect(EP::TcpPeer_r const& peer) override;
 };
 
-inline void D::OnConnect(EP::Item_r<EP::TcpPeer> const& p_) {
+inline void D::OnConnect(EP::TcpPeer_r const& p_) {
 	if (peer) {
 		peer->Dispose();
 	}
@@ -30,7 +30,7 @@ inline void D::OnConnect(EP::Item_r<EP::TcpPeer> const& p_) {
 	}
 }
 
-inline std::unique_ptr<EP::TcpPeer> D::OnCreatePeer() {
+inline EP::TcpPeer_u D::OnCreatePeer() {
 	return xx::TryMakeU<P>();
 }
 
@@ -49,7 +49,7 @@ inline void P::OnDisconnect(int const& reason) {
 
 int TestTcp(int const& threadId, int const& numTcpClients, char const* const& tarIp, int const& tarPort) {
 	EP::Context ep;
-	std::vector<EP::Item_r<D>> ds;
+	std::vector<EP::Ref<D>> ds;
 
 	for (int i = 0; i < numTcpClients; i++) {
 		auto d = ep.CreateTcpDialer<D>();
@@ -98,7 +98,7 @@ int TestUdp(int const& threadId, int const& numUdpClients, char const* const& ta
 		throw - 1;
 	}
 
-	std::vector<EP::Item_r<U>> us;
+	std::vector<EP::Ref<U>> us;
 	for (int i = 0; i < numUdpClients; i++) {
 		auto port = tarPort + ((threadId * numUdpClients + i) % numPorts);
 		xx::CoutN("udp send tar port = ", port);

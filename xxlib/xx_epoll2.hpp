@@ -27,75 +27,6 @@ namespace xx::Epoll {
 		}
 	}
 
-	/***********************************************************************************************************/
-	// Item_r
-	/***********************************************************************************************************/
-
-	template<typename T>
-	inline Item_r<T>::Item_r(T* const& ptr) {
-		assert(ptr);
-		assert(ptr->ep);
-		assert(ptr->indexAtContainer != -1);
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			index = ptr->indexAtContainer;
-			version = Context::fdHandlers[index].second;
-		}
-		else {
-			items = &ptr->ep->items;
-			index = ptr->indexAtContainer;
-			version = items->VersionAt(index);
-		}
-	}
-
-	template<typename T>
-	inline Item_r<T>::Item_r(std::unique_ptr<T> const& ptr) : Item_r(ptr.get()) {}
-
-	template<typename T>
-	inline Item_r<T>::operator bool() const {
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return version && Context::fdHandlers[index].second == version;
-		}
-		else {
-			return version && items->VersionAt(index) == version;
-		}
-	}
-
-	template<typename T>
-	inline T* Item_r<T>::operator->() const {
-		if (!operator bool()) throw - 1;		// 空指针
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return (T*)Context::fdHandlers[index].first.get();
-		}
-		else {
-			return (T*)items->ValueAt(index).get();
-		}
-	}
-
-	template<typename T>
-	inline T* Item_r<T>::Lock() const {
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return operator bool() ? (T*)Context::fdHandlers[index].first.get() : nullptr;
-		}
-		else {
-			return operator bool() ? (T*)items->ValueAt(index).get() : nullptr;
-		}
-	}
-
-
-	template<typename T>
-	template<typename U>
-	inline Item_r<U> Item_r<T>::As() const {
-		auto p = Lock();
-		if (!dynamic_cast<U*>(p)) return Item_r<U>();
-		Item_r<U> rtv;
-		if constexpr (!std::is_base_of_v<FDItem, T>) {
-			rtv.items = items;
-		}
-		rtv.index = index;
-		rtv.version = version;
-		return rtv;
-	}
-
 
 	/***********************************************************************************************************/
 	// FDItem
@@ -117,6 +48,75 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
+	// Ref
+	/***********************************************************************************************************/
+
+	template<typename T>
+	inline Ref<T>::Ref(T* const& ptr) {
+		assert(ptr);
+		assert(ptr->ep);
+		assert(ptr->indexAtContainer != -1);
+		if constexpr (std::is_base_of_v<FDItem, T>) {
+			index = ptr->indexAtContainer;
+			version = Context::fdHandlers[index].second;
+		}
+		else {
+			items = &ptr->ep->items;
+			index = ptr->indexAtContainer;
+			version = items->VersionAt(index);
+		}
+	}
+
+	template<typename T>
+	inline Ref<T>::Ref(std::unique_ptr<T> const& ptr) : Ref(ptr.get()) {}
+
+	template<typename T>
+	inline Ref<T>::operator bool() const {
+		if constexpr (std::is_base_of_v<FDItem, T>) {
+			return version && Context::fdHandlers[index].second == version;
+		}
+		else {
+			return version && items->VersionAt(index) == version;
+		}
+	}
+
+	template<typename T>
+	inline T* Ref<T>::operator->() const {
+		if (!operator bool()) throw - 1;		// 空指针
+		if constexpr (std::is_base_of_v<FDItem, T>) {
+			return (T*)Context::fdHandlers[index].first.get();
+		}
+		else {
+			return (T*)items->ValueAt(index).get();
+		}
+	}
+
+	template<typename T>
+	inline T* Ref<T>::Lock() const {
+		if constexpr (std::is_base_of_v<FDItem, T>) {
+			return operator bool() ? (T*)Context::fdHandlers[index].first.get() : nullptr;
+		}
+		else {
+			return operator bool() ? (T*)items->ValueAt(index).get() : nullptr;
+		}
+	}
+
+	template<typename T>
+	template<typename U>
+	inline Ref<U> Ref<T>::As() const {
+		auto p = Lock();
+		if (!dynamic_cast<U*>(p)) return Ref<U>();
+		Ref<U> rtv;
+		if constexpr (!std::is_base_of_v<FDItem, T>) {
+			rtv.items = items;
+		}
+		rtv.index = index;
+		rtv.version = version;
+		return rtv;
+	}
+
+
+	/***********************************************************************************************************/
 	// Timer
 	/***********************************************************************************************************/
 
@@ -134,20 +134,12 @@ namespace xx::Epoll {
 		}
 	}
 
-	inline Timer::~Timer() {
-		SetTimeout(0);
-	}
-
 	/***********************************************************************************************************/
 	// TcpPeer
 	/***********************************************************************************************************/
 
 	inline TimeoutManager* TcpPeer::GetTimeoutManager() {
 		return ep;
-	}
-
-	inline TcpPeer::~TcpPeer() {
-		SetTimeout(0);
 	}
 
 	inline int TcpPeer::Send(xx::Buf&& data) {
@@ -238,7 +230,7 @@ namespace xx::Epoll {
 
 			// 用弱引用检测 OnReceive 中是否发生自杀行为
 			{
-				Item_r<TcpPeer> alive(this);
+				Ref<TcpPeer> alive(this);
 				OnReceive();
 				if (!alive) return;	// 已自杀
 			}
@@ -343,7 +335,7 @@ namespace xx::Epoll {
 		}
 
 		// 调用用户自定义后续绑定
-		OnAccept(Item_r<TcpPeer>(peer_p));
+		OnAccept(Ref<TcpPeer>(peer_p));
 
 		sg.Cancel();
 		return fd;
@@ -639,7 +631,6 @@ namespace xx::Epoll {
 	}
 
 	inline KcpPeer::~KcpPeer() {
-		SetTimeout(0);
 		if (kcp) {
 			ikcp_release(kcp);
 			kcp = nullptr;
@@ -707,7 +698,7 @@ namespace xx::Epoll {
 
 			// 调用用户数据处理函数
 			{
-				Item_r<KcpPeer> alive(this);
+				Ref<KcpPeer> alive(this);
 				OnReceive();
 				if (!alive) return;
 			}
@@ -898,14 +889,14 @@ namespace xx::Epoll {
 
 	// 创建 tcp 监听器
 	template<typename L, typename ...Args>
-	inline Item_r<L> Context::CreateTcpListener(int const& port, Args&&... args) {
+	inline Ref<L> Context::CreateTcpListener(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<TcpListener, L>);
 
 		// 创建监听用 socket fd
 		auto&& fd = MakeSocketFD(port);
 		if (fd < 0) {
 			lastErrorNumber = -1;
-			return Item_r<L>();
+			return Ref<L>();
 		}
 		// 确保 return 时自动 close
 		xx::ScopeGuard sg([&] { close(fd); });
@@ -913,13 +904,13 @@ namespace xx::Epoll {
 		// 开始监听
 		if (-1 == listen(fd, SOMAXCONN)) {
 			lastErrorNumber = -3;
-			return Item_r<L>();
+			return Ref<L>();
 		}
 
 		// fd 纳入 epoll 管理
 		if (-1 == Ctl(fd, EPOLLIN)) {
 			lastErrorNumber = -4;
-			return Item_r<L>();
+			return Ref<L>();
 		}
 
 		// 确保 return 时自动 close 并脱离 epoll 管理
@@ -929,7 +920,7 @@ namespace xx::Epoll {
 		auto o = xx::TryMakeU<L>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -5;
-			return Item_r<L>();
+			return Ref<L>();
 		}
 		auto op = o.get();
 
@@ -947,14 +938,14 @@ namespace xx::Epoll {
 
 	// 创建 拨号器
 	template<typename TD, typename ...Args>
-	inline Item_r<TD> Context::CreateTcpDialer(Args&&... args) {
+	inline Ref<TD> Context::CreateTcpDialer(Args&&... args) {
 		static_assert(std::is_base_of_v<TcpDialer, TD>);
 
 		// 试创建目标类实例
 		auto o = xx::TryMakeU<TD>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -1;
-			return Item_r<TD>();
+			return Ref<TD>();
 		}
 		auto op = o.get();
 
@@ -970,14 +961,14 @@ namespace xx::Epoll {
 
 	// 创建 timer
 	template<typename T, typename ...Args>
-	inline Item_r<T> Context::CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args) {
+	inline Ref<T> Context::CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args) {
 		static_assert(std::is_base_of_v<Timer, T>);
 
 		// 试创建目标类实例
 		auto o = xx::TryMakeU<T>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -1;
-			return Item_r<T>();
+			return Ref<T>();
 		}
 		auto op = o.get();
 
@@ -985,7 +976,7 @@ namespace xx::Epoll {
 		o->ep = this;
 		if (o->SetTimeout(interval)) {
 			lastErrorNumber = -2;
-			return Item_r<T>();
+			return Ref<T>();
 		}
 
 		// 继续初始化并放入容器
@@ -993,21 +984,21 @@ namespace xx::Epoll {
 
 		// 移动后将不可用，故用 op
 		op->indexAtContainer = items.Add(std::move(o));	
-		return Item_r<T>(op);
+		return Ref<T>(op);
 	}
 
 
 
 	// 创建 UdpPeer. port 传 0 则自适应( 仅用于发数据 )
 	template<typename U, typename ...Args>
-	inline Item_r<U> Context::CreateUdpPeer(int const& port, Args&&... args) {
+	inline Ref<U> Context::CreateUdpPeer(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<UdpPeer, U>);
 
 		// 创建 udp socket fd
 		auto&& fd = MakeSocketFD(port, SOCK_DGRAM);
 		if (fd < 0) {
 			lastErrorNumber = fd;
-			return Item_r<U>();
+			return Ref<U>();
 		}
 		// 确保 return 时自动 close
 		xx::ScopeGuard sg([&] { close(fd); });
@@ -1015,7 +1006,7 @@ namespace xx::Epoll {
 		// fd 纳入 epoll 管理
 		if (-1 == Ctl(fd, EPOLLIN)) {
 			lastErrorNumber = -4;
-			return Item_r<U>();
+			return Ref<U>();
 		}
 
 		// 确保 return 时自动 close 并脱离 epoll 管理
@@ -1025,7 +1016,7 @@ namespace xx::Epoll {
 		auto o = xx::TryMakeU<U>(std::forward<Args>(args)...);
 		if (!o) {
 			lastErrorNumber = -5;
-			return Item_r<U>();
+			return Ref<U>();
 		}
 		auto op = o.get();
 

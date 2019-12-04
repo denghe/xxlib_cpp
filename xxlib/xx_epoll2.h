@@ -26,7 +26,7 @@
 #include "xx_itempool.h"
 
 
-// todo: 所有函数加一波 disposed 检测?
+// todo: 所有调用 虚函数 的地方是否有 alive 检测?
 
 // 注意：
 // 析构过程中无法执行 shared_from_this
@@ -54,7 +54,6 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct Context;
-
 	struct Item {
 		// 指向总容器
 		Context* ep = nullptr;
@@ -68,34 +67,7 @@ namespace xx::Epoll {
 		// 每层非虚派生类析构都要写 this->Dispose(-1);
 		virtual ~Item() {}
 	};
-
-	/***********************************************************************************************************/
-	// Item_r
-	/***********************************************************************************************************/
-
-	// 针对 Item 的 弱引用伪指针. 几个操作符每次都会检查是否失效. 失效可以被 try 到。
-	template<typename T>
-	struct Item_r {
-		ItemPool<std::unique_ptr<Item>>* items = nullptr;
-		int index = -1;
-		int64_t version = 0;
-
-		// 会从 ptr 中提取 ep & indexAtContainer. 故需要保证这些值有效
-		Item_r(T* const& ptr);
-		Item_r(std::unique_ptr<T> const& ptr);
-
-		Item_r() = default;
-		Item_r(Item_r const&) = default;
-		Item_r& operator=(Item_r const&) = default;
-
-		operator bool() const;
-		T* operator->() const;
-		T* Lock() const;
-
-		template<typename U>
-		Item_r<U> As() const;
-	};
-
+	using Item_u = std::unique_ptr<Item>;
 
 	/***********************************************************************************************************/
 	// FDItem
@@ -114,7 +86,34 @@ namespace xx::Epoll {
 		// 关闭 fd 啥的
 		virtual ~FDItem();
 	};
+	using FDItem_u = std::unique_ptr<FDItem>;
 
+	/***********************************************************************************************************/
+	// Ref
+	/***********************************************************************************************************/
+
+	// 针对 Item 的 弱引用伪指针. 几个操作符每次都会检查是否失效. 失效可以被 try 到。
+	template<typename T>
+	struct Ref {
+		ItemPool<Item_u>* items = nullptr;
+		int index = -1;
+		int64_t version = 0;
+
+		// 会从 ptr 中提取 ep & indexAtContainer. 故需要保证这些值有效
+		Ref(T* const& ptr);
+		Ref(std::unique_ptr<T> const& ptr);
+
+		Ref() = default;
+		Ref(Ref const&) = default;
+		Ref& operator=(Ref const&) = default;
+
+		operator bool() const;
+		T* operator->() const;
+		T* Lock() const;
+
+		template<typename U>
+		Ref<U> As() const;
+	};
 
 	/***********************************************************************************************************/
 	// Timer
@@ -132,8 +131,6 @@ namespace xx::Epoll {
 
 		// 负责触发 onFire
 		virtual void OnTimeout() override;
-
-		virtual ~Timer();
 	};
 
 
@@ -175,8 +172,6 @@ namespace xx::Epoll {
 		// 断线事件
 		inline virtual void OnDisconnect(int const& reason) {}
 
-		~TcpPeer();
-
 		// Buf 对象塞队列并开始发送。相关信息需参考 Buf 构造函数
 		int Send(xx::Buf&& data);
 		int Flush();
@@ -185,6 +180,9 @@ namespace xx::Epoll {
 		int Write();
 	};
 
+	using TcpPeer_r = Ref<TcpPeer>;
+	using TcpPeer_u = std::unique_ptr<TcpPeer>;
+
 
 	/***********************************************************************************************************/
 	// TcpListener
@@ -192,10 +190,10 @@ namespace xx::Epoll {
 
 	struct TcpListener : FDItem {
 		// 提供创建 peer 对象的实现
-		virtual std::unique_ptr<TcpPeer> OnCreatePeer();
+		virtual TcpPeer_u OnCreatePeer();
 
 		// 提供为 peer 绑定事件的实现
-		inline virtual void OnAccept(Item_r<TcpPeer> peer) {}
+		inline virtual void OnAccept(TcpPeer_r peer) {}
 
 		// 调用 accept
 		virtual void OnEpollEvent(uint32_t const& e) override;
@@ -210,14 +208,15 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct TcpDialer;
+	using TcpDialer_r = Ref<TcpDialer>;
 	struct TcpConn : FDItem {
 		// 指向拨号器, 方便调用其 OnConnect 函数
-		Item_r<TcpDialer> dialer;
+		TcpDialer_r dialer;
 
 		// 判断是否连接成功
 		virtual void OnEpollEvent(uint32_t const& e) override;
 	};
-
+	using TcpConn_r = Ref<TcpConn>;
 
 	/***********************************************************************************************************/
 	// TcpDialer
@@ -234,7 +233,7 @@ namespace xx::Epoll {
 		std::vector<sockaddr_in6> addrs;
 
 		// 内部连接对象. 拨号完毕后会被清空
-		std::vector<Item_r<TcpConn>> conns;
+		std::vector<TcpConn_r> conns;
 
 		// 向 addrs 追加地址. 如果地址转换错误将返回非 0
 		int AddAddress(std::string const& ip, int const& port);
@@ -251,13 +250,13 @@ namespace xx::Epoll {
 		void Stop();
 
 		// 存个空值备用 以方便返回引用
-		Item_r<TcpPeer> emptyPeer;
+		TcpPeer_r emptyPeer;
 
 		// 连接成功或超时后触发
-		virtual void OnConnect(Item_r<TcpPeer> const& peer) = 0;
+		virtual void OnConnect(TcpPeer_r const& peer) = 0;
 
 		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual std::unique_ptr<TcpPeer> OnCreatePeer();
+		virtual TcpPeer_u OnCreatePeer();
 
 		// 用于 TcpConn 通知自己连接成功，报上 fd 以保留
 		void Finish(int fd);
@@ -295,6 +294,8 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct KcpPeer;
+	using KcpPeer_r = Ref<KcpPeer>;
+	using KcpPeer_u = std::unique_ptr<KcpPeer>;
 	struct UdpListener : UdpPeer {
 		// 自增生成
 		uint32_t convId = 0;
@@ -306,15 +307,15 @@ namespace xx::Epoll {
 		virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
 
 		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual std::unique_ptr<KcpPeer> OnCreatePeer();
+		virtual KcpPeer_u OnCreatePeer();
 
 		// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
-		inline virtual void OnAccept(Item_r<KcpPeer> const& peer) {}
+		inline virtual void OnAccept(KcpPeer_r const& peer) {}
 
 		// 杀掉相关 kcp peers?
 		//void OnDisconnect(int const& reason);
 	};
-
+	using UdpListener_r = Ref<UdpListener>;
 
 	/***********************************************************************************************************/
 	// KcpPeer
@@ -325,7 +326,7 @@ namespace xx::Epoll {
 		virtual TimeoutManager* GetTimeoutManager() override;
 
 		// 用于收发数据的物理 udp peer
-		Item_r<UdpListener> owner;
+		UdpListener_r owner;
 
 		// kcp 相关上下文
 		ikcpcb* kcp = nullptr;
@@ -373,10 +374,10 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
-	// KcpConn
+	// KcpDialer
 	/***********************************************************************************************************/
 
-	// todo: 
+	// todo
 
 
 	/***********************************************************************************************************/
@@ -384,14 +385,14 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct Context : TimeoutManager {
-		// fd 处理类 之 唯一持有容器. 外界用 Item_r 来存引用
-		inline static std::array<std::pair<std::unique_ptr<FDItem>, int64_t>, 40000> fdHandlers;
+		// fd 处理类 之 唯一持有容器. 外界用 Ref 来存引用
+		inline static std::array<std::pair<FDItem_u, int64_t>, 40000> fdHandlers;
 
 		// 提供自增版本号 for FDItem
 		int64_t autoIncVersion = 0;
 
-		// 非 fd 的 item 类唯一容器。外界用 Item_r 来存引用. 自带自增版本号管理
-		ItemPool<std::unique_ptr<Item>> items;
+		// 非 fd 的 item 类唯一容器。外界用 Ref 来存引用. 自带自增版本号管理
+		ItemPool<Item_u> items;
 
 		// kcp conv 值与 peer 的映射。KcpPeer 析构时从该字典移除 key
 		xx::Dict<uint32_t, KcpPeer*> kcps;
@@ -445,19 +446,19 @@ namespace xx::Epoll {
 
 		// 创建 监听器	// todo: 支持填写ip, 支持传入复用 fd
 		template<typename T = TcpListener, typename ...Args>
-		Item_r<T> CreateTcpListener(int const& port, Args&&... args);
+		Ref<T> CreateTcpListener(int const& port, Args&&... args);
 
 		// 创建 连接 peer
 		template<typename T = TcpDialer, typename ...Args>
-		Item_r<T> CreateTcpDialer(Args&&... args);
+		Ref<T> CreateTcpDialer(Args&&... args);
 
 		// 创建 timer
 		template<typename T = Timer, typename ...Args>
-		Item_r<T> CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
+		Ref<T> CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
 
 		// 创建 UdpPeer
 		template<typename T = UdpPeer, typename ...Args>
-		Item_r<T> CreateUdpPeer(int const& port, Args&&... args);
+		Ref<T> CreateUdpPeer(int const& port, Args&&... args);
 	};
 
 

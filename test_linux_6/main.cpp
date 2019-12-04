@@ -15,11 +15,11 @@ struct P : EP::TcpPeer {
 };
 
 struct L : EP::TcpListener {
-	inline virtual std::unique_ptr<EP::TcpPeer> OnCreatePeer() override {
+	inline virtual EP::TcpPeer_u OnCreatePeer() override {
 		return xx::TryMakeU<P>();
 	}
 
-	inline virtual void OnAccept(EP::Item_r<EP::TcpPeer> peer) override {
+	inline virtual void OnAccept(EP::TcpPeer_r peer) override {
 		xx::CoutN("ip: ", peer->ip, " accepted.");
 	}
 };
@@ -38,7 +38,7 @@ int main() {
 		xx::CoutN("create tcp listener failed.");
 		return -1;
 	}
-	for (int port = 10000; port < 11000; ++port) {
+	for (int port = 10000; port < 10050; ++port) {
 		if (!ep.CreateUdpPeer<U>(port)) {
 			xx::CoutN("create udp peer failed. port = ", port);
 			return -2;

@@ -6,6 +6,7 @@ namespace xx {
 
 	// 需要超时管理的基类
 	struct TimeoutBase {
+		~TimeoutBase();
 		int timeoutIndex = -1;
 		TimeoutBase* timeoutPrev = nullptr;
 		TimeoutBase* timeoutNext = nullptr;
@@ -93,5 +94,11 @@ namespace xx {
 		}
 
 		return 0;
+	}
+
+	inline TimeoutBase::~TimeoutBase() {
+		if (timeoutIndex != -1) {
+			SetTimeout(0);
+		}
 	}
 }
