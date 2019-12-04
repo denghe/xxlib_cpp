@@ -274,9 +274,6 @@ namespace xx::Epoll {
 		// 自增生成
 		uint32_t convId = 0;
 
-		// 握手超时时间
-		int handShakeTimeoutMS = 3000;
-
 		// 连接创建之初后会触发
 		virtual KcpPeer_u OnCreatePeer();
 
@@ -400,7 +397,7 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct Context : TimeoutManager {
-		// fd 到 处理类 的 下标映射
+		// fd 到 处理类* 的 映射
 		inline static std::array<Item*, 40000> fdMappings;
 
 		// 所有类实例唯一容器。外界用 Ref 来存引用. 自带自增版本号管理

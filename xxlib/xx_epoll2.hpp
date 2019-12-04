@@ -436,7 +436,7 @@ namespace xx::Epoll {
 		if (recv.len == 4) {
 			auto&& idx = ep->shakes.Find(ip_port);
 			if (idx == -1) {
-				idx = ep->shakes.Add(ip_port, std::make_pair(++convId, NowSteadyEpochMS() + handShakeTimeoutMS)).index;
+				idx = ep->shakes.Add(ip_port, std::make_pair(++convId, ep->nowMS + 3000)).index;
 			}
 			char tmp[8];	// serial + convId
 			memcpy(tmp, recv.buf, 4);
@@ -476,7 +476,7 @@ namespace xx::Epoll {
 			peer->ep = ep;
 			peer->owner = this;
 			peer->conv = conv;
-			peer->createMS = NowSteadyEpochMS();
+			peer->createMS = ep->nowMS;
 
 			// 如果初始化 kcp 失败就忽略
 			if (peer->InitKcp()) return;
