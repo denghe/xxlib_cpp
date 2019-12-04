@@ -27,7 +27,8 @@ struct L : EP::TcpListener {
 struct U : EP::UdpPeer {
 	inline virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
-		(void)SendTo(fromAddr, buf, len);
+		this->UdpPeer::OnReceive(fromAddr, buf, len);
+		//(void)SendTo(fromAddr, buf, len);
 	}
 };
 
@@ -38,21 +39,21 @@ int main() {
 		xx::CoutN("create tcp listener failed.");
 		return -1;
 	}
-	for (int port = 10000; port < 10050; ++port) {
+	for (int port = 10000; port < 10015; ++port) {
 		if (!ep.CreateUdpPeer<U>(port)) {
 			xx::CoutN("create udp peer failed. port = ", port);
 			return -2;
 		}
 	}
-	if (!ep.CreateTimer(10, [&](auto t) {
+	if (!ep.CreateTimer(100, [&](auto t) {
 		xx::CoutN("counter = ", counter);
 		counter = 0;
-		t->SetTimeout(10);
+		t->SetTimeout(100);
 		})) {
 		xx::CoutN("create timer failed.");
 		return -3;
 	}
-	return ep.Run(10);
+	return ep.Run(100);
 }
 
 

@@ -9,7 +9,7 @@ struct P : EP::TcpPeer {
 	virtual void OnDisconnect(int const& reason) override;
 };
 
-struct D : EP::TcpDialer {
+struct D : EP::Dialer {
 	EP::Ref<P> peer;
 	virtual EP::TcpPeer_u OnCreatePeer() override;
 	virtual void OnConnect(EP::TcpPeer_r const& peer) override;
@@ -52,7 +52,7 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 	std::vector<EP::Ref<D>> ds;
 
 	for (int i = 0; i < numTcpClients; i++) {
-		auto d = ep.CreateTcpDialer<D>();
+		auto d = ep.CreateDialer<D>();
 		ds.emplace_back(d);
 		d->AddAddress(tarIp, tarPort);
 		int r = d->Dial(20);
@@ -80,7 +80,7 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 struct U : EP::UdpPeer {
 	using BaseType = EP::UdpPeer;
 	std::size_t counter = 0;
-
+	bool received = false;
 	inline virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
 		++counter;
 		SendTo(fromAddr, buf, len);
@@ -108,20 +108,26 @@ int TestUdp(int const& threadId, int const& numUdpClients, char const* const& ta
 		}
 		else {
 			us.emplace_back(u);
-			u->SendTo((sockaddr*)&addr, ".", 1);
 		}
 	}
 
-	ep.CreateTimer(10, [&](auto t) {
+	ep.CreateTimer(100, [&](auto t) {
 		std::size_t udpCounter = 0;
 		for (auto&& u : us) {
-			udpCounter += u->counter;
-			u->counter = 0;
+			if (auto o = u.Lock()) {
+				if (!o->counter) {
+					o->SendTo((sockaddr*)&addr, ".", 1);
+				}
+				else {
+					udpCounter += o->counter;
+					o->counter = 0;
+				}
+			}
 		}
 		xx::CoutN("thread: ", threadId, ", udpCounter: ", udpCounter);
-		t->SetTimeout(10);
+		t->SetTimeout(100);
 		});
-	return ep.Run(10);
+	return ep.Run(100);
 }
 
 int main(int argc, char** argv) {

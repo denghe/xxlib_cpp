@@ -22,30 +22,23 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	inline void Item::Dispose() {
-		if (ep && indexAtContainer != -1) {
-			ep->items.RemoveAt(indexAtContainer);	// 开始析构
+		if (indexAtContainer != -1) {
+			assert(ep);
+			ep->items.RemoveAt(indexAtContainer);	// 触发析构
 		}
 	}
-
 
 	/***********************************************************************************************************/
 	// FDItem
 	/***********************************************************************************************************/
 
-	inline void FDItem::Dispose() {
-		if (ep && indexAtContainer != -1) {
-			ep->fdHandlers[indexAtContainer].second = 0;
-			ep->fdHandlers[indexAtContainer].first.reset();	// 自杀. 之后不能再访问 this
-		}
-	}
-
 	inline FDItem::~FDItem() {
-		if (ep && indexAtContainer != -1) {
-			ep->CloseDel(indexAtContainer);
-			indexAtContainer = -1;
+		if (fd != -1) {
+			assert(ep);
+			ep->CloseDel(fd);
+			fd = -1;
 		}
 	}
-
 
 	/***********************************************************************************************************/
 	// Ref
@@ -56,15 +49,9 @@ namespace xx::Epoll {
 		assert(ptr);
 		assert(ptr->ep);
 		assert(ptr->indexAtContainer != -1);
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			index = ptr->indexAtContainer;
-			version = Context::fdHandlers[index].second;
-		}
-		else {
-			items = &ptr->ep->items;
-			index = ptr->indexAtContainer;
-			version = items->VersionAt(index);
-		}
+		items = &ptr->ep->items;
+		index = ptr->indexAtContainer;
+		version = items->VersionAt(index);
 	}
 
 	template<typename T>
@@ -72,33 +59,18 @@ namespace xx::Epoll {
 
 	template<typename T>
 	inline Ref<T>::operator bool() const {
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return version && Context::fdHandlers[index].second == version;
-		}
-		else {
-			return version && items->VersionAt(index) == version;
-		}
+		return version && items->VersionAt(index) == version;
 	}
 
 	template<typename T>
 	inline T* Ref<T>::operator->() const {
 		if (!operator bool()) throw - 1;		// 空指针
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return (T*)Context::fdHandlers[index].first.get();
-		}
-		else {
-			return (T*)items->ValueAt(index).get();
-		}
+		return (T*)items->ValueAt(index).get();
 	}
 
 	template<typename T>
 	inline T* Ref<T>::Lock() const {
-		if constexpr (std::is_base_of_v<FDItem, T>) {
-			return operator bool() ? (T*)Context::fdHandlers[index].first.get() : nullptr;
-		}
-		else {
-			return operator bool() ? (T*)items->ValueAt(index).get() : nullptr;
-		}
+		return operator bool() ? (T*)items->ValueAt(index).get() : nullptr;
 	}
 
 	template<typename T>
@@ -107,9 +79,7 @@ namespace xx::Epoll {
 		auto p = Lock();
 		if (!dynamic_cast<U*>(p)) return Ref<U>();
 		Ref<U> rtv;
-		if constexpr (!std::is_base_of_v<FDItem, T>) {
-			rtv.items = items;
-		}
+		rtv.items = items;
 		rtv.index = index;
 		rtv.version = version;
 		return rtv;
@@ -126,7 +96,9 @@ namespace xx::Epoll {
 
 	inline void Timer::OnTimeout() {
 		if (onFire) {
+			Ref<Timer> alive(this);
 			onFire(this);
+			if (!alive) return;
 		}
 		// 非 repeat 模式( 未再次 SetTimeout )直接自杀
 		if (timeoutIndex == -1) {
@@ -153,7 +125,7 @@ namespace xx::Epoll {
 
 	inline int TcpPeer::Write() {
 		// 如果没有待发送数据，停止监控 EPOLLOUT 并退出
-		if (!sendQueue.bytes) return ep->Ctl(indexAtContainer, EPOLLIN, EPOLL_CTL_MOD);
+		if (!sendQueue.bytes) return ep->Ctl(fd, EPOLLIN, EPOLL_CTL_MOD);
 
 		// 前置准备
 		std::array<iovec, UIO_MAXIOV> vs;					// buf + len 数组指针
@@ -164,7 +136,7 @@ namespace xx::Epoll {
 		auto&& offset = sendQueue.Fill(vs, vsLen, bufLen);
 
 		// 返回值为 实际发出的字节数
-		auto&& sentLen = writev(indexAtContainer, vs.data(), vsLen);
+		auto&& sentLen = writev(fd, vs.data(), vsLen);
 
 		// 已断开
 		if (sentLen == 0) return -2;
@@ -195,14 +167,17 @@ namespace xx::Epoll {
 		writing = true;
 
 		// 开启对可写状态的监控, 直到队列变空再关闭监控
-		return ep->Ctl(indexAtContainer, EPOLLIN | EPOLLOUT, EPOLL_CTL_MOD);
+		return ep->Ctl(fd, EPOLLIN | EPOLLOUT, EPOLL_CTL_MOD);
 	}
 
 	inline void TcpPeer::OnEpollEvent(uint32_t const& e) {
 		// error
 		if (e & EPOLLERR || e & EPOLLHUP) {
+			Ref<TcpPeer> alive(this);
 			OnDisconnect(-1);
-			Dispose();
+			if (alive) {
+				Dispose();
+			}
 			return;
 		}
 		// read
@@ -214,25 +189,31 @@ namespace xx::Epoll {
 
 			// 如果数据长度 == buf限长 就自杀( 未处理数据累计太多? )
 			if (recv.len == recv.cap) {
+				Ref<TcpPeer> alive(this);
 				OnDisconnect(-2);
-				Dispose();
+				if (alive) {
+					Dispose();
+				}
 				return;
 			}
 
 			// 通过 fd 从系统网络缓冲区读取数据. 追加填充到 recv 后面区域. 返回填充长度. <= 0 则认为失败 自杀
-			auto&& len = read(indexAtContainer, recv.buf + recv.len, recv.cap - recv.len);
+			auto&& len = read(fd, recv.buf + recv.len, recv.cap - recv.len);
 			if (len <= 0) {
+				Ref<TcpPeer> alive(this);
 				OnDisconnect(-3);
-				Dispose();
+				if (alive) {
+					Dispose();
+				}
 				return;
 			}
 			recv.len += len;
 
-			// 用弱引用检测 OnReceive 中是否发生自杀行为
+			// 调用用户数据处理函数
 			{
 				Ref<TcpPeer> alive(this);
 				OnReceive();
-				if (!alive) return;	// 已自杀
+				if (!alive) return;
 			}
 		}
 		// write
@@ -241,8 +222,11 @@ namespace xx::Epoll {
 			writing = false;
 			if (int r = Write()) {
 				ep->lastErrorNumber = r;
+				Ref<TcpPeer> alive(this);
 				OnDisconnect(-4);
-				Dispose();
+				if (alive) {
+					Dispose();
+				}
 				return;
 			}
 		}
@@ -250,7 +234,7 @@ namespace xx::Epoll {
 
 	inline void TcpPeer::OnReceive() {
 		// 默认实现为 echo. 仅供测试. 随意使用 write 可能导致待发队列中的数据被分割
-		if (write(indexAtContainer, recv.buf, recv.len) != (ssize_t)recv.len) {
+		if (write(fd, recv.buf, recv.len) != (ssize_t)recv.len) {
 			Dispose();
 		}
 		else {
@@ -267,7 +251,7 @@ namespace xx::Epoll {
 	// TcpListener
 	/***********************************************************************************************************/
 
-	inline std::unique_ptr<TcpPeer> TcpListener::OnCreatePeer() {
+	inline TcpPeer_u TcpListener::OnCreatePeer() {
 		return xx::TryMakeU<TcpPeer>();
 	}
 
@@ -278,7 +262,7 @@ namespace xx::Epoll {
 			return;
 		}
 		// accept 到 没有 或 出错 为止
-		while (Accept(indexAtContainer) > 0) {};
+		while (Accept(fd) > 0) {};
 	}
 
 	inline int TcpListener::Accept(int const& listenFD) {
@@ -298,8 +282,8 @@ namespace xx::Epoll {
 		xx::ScopeGuard sg([&] { close(fd); });
 
 		// 如果 fd 超出最大存储限制就退出。返回 fd 是为了外部能继续执行 accept
-		if (fd >= (int)ep->fdHandlers.size()) return fd;
-		assert(!ep->fdHandlers[fd].first);
+		if (fd >= (int)ep->fdMappings.size()) return fd;
+		assert(ep->fdMappings[fd] != -1);
 
 		// 设置非阻塞状态
 		if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
@@ -315,27 +299,23 @@ namespace xx::Epoll {
 		sg.Set([&] { ep->CloseDel(fd); });
 
 
-		// 创建类容器
-		auto peer = OnCreatePeer();
+		// 创建类容器. 允许创建失败( 比如内存不足，或者刻意控制数量 ). 失败不触发 OnAccept
+		auto peer_ = OnCreatePeer();
+		if (!peer_) return fd;
 
-		// 允许创建失败( 比如内存不足，或者刻意控制数量 ). 失败不触发 OnAccept
-		if (!peer) return fd;
-		auto peer_p = peer.get();
-
-		// 预填充并放入容器
-		peer->ep = ep;
-		peer->indexAtContainer = fd;
-		ep->fdHandlers[fd].first = std::move(peer);		// 移动之后下面要继续访问用 peer_p
-		ep->fdHandlers[fd].second = ++ep->autoIncVersion;
+		// 放入容器并拿到指针用, 继续填充
+		auto peer = ep->AddItem(std::move(peer_));
+		peer->fd = fd;
+		ep->fdMappings[fd] = peer;
 
 		// 填充 ip
 		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 		if (!getnameinfo(&addr, len, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV)) {
-			xx::Append(peer_p->ip, hbuf, ":", sbuf);
+			xx::Append(peer->ip, hbuf, ":", sbuf);
 		}
 
 		// 调用用户自定义后续绑定
-		OnAccept(Ref<TcpPeer>(peer_p));
+		OnAccept(peer);
 
 		sg.Cancel();
 		return fd;
@@ -357,7 +337,7 @@ namespace xx::Epoll {
 		// 读取错误 或者读到错误 都认为是连接失败. 返回非 0 触发 Dispose
 		int err;
 		socklen_t result_len = sizeof(err);
-		if (getsockopt(indexAtContainer, SOL_SOCKET, SO_ERROR, &err, &result_len) == -1 || err) {
+		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &result_len) == -1 || err) {
 			// error
 			if (e & EPOLLERR || e & EPOLLHUP) {
 				Dispose();
@@ -365,132 +345,28 @@ namespace xx::Epoll {
 			}
 		}
 
-		// 连接成功
-		auto fd = this->indexAtContainer;		// 备份
-		this->indexAtContainer = -1;			// 设为 -1 以免 close
-		if (ep) {
-			ep->fdHandlers[fd].second = 0;
-			ep->fdHandlers[fd].first.reset();	// 导致自杀
-		}
-		d->Finish(fd);							// 自杀后执行的语句并未访问 this, 安全
-	}
+		// 连接成功. 自杀前备份变量到栈
+		auto fd = this->fd;
+		auto ep = this->ep;
+		// 设为 -1 以绕开析构函数中的 close
+		this->fd = -1;
+		Dispose();	// 自杀
 
+		// 这之后不能再用 this
 
-	/***********************************************************************************************************/
-	// TcpDialer
-	/***********************************************************************************************************/
-
-	inline TimeoutManager* TcpDialer::GetTimeoutManager() {
-		return ep;
-	}
-
-	inline int TcpDialer::AddAddress(std::string const& ip, int const& port) {
-		auto&& addr = addrs.emplace_back();
-		if (int r = FillAddress(ip, port, addr)) {
-			addrs.pop_back();
-			return r;
-		}
-		return 0;
-	}
-
-	inline int TcpDialer::Dial(int const& timeoutFrames) {
-		Stop();
-		SetTimeout(timeoutFrames);
-		for (auto&& addr : addrs) {
-			// 创建 tcp 非阻塞 socket fd
-			auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-			if (fd == -1) return -1;
-
-			// 确保 return 时自动 close
-			xx::ScopeGuard sg([&] { close(fd); });
-
-			// 检测 fd 存储上限
-			if (fd >= (int)ep->fdHandlers.size()) return -2;
-			assert(!ep->fdHandlers[fd].first);
-
-			// 设置一些 tcp 参数( 可选 )
-			int on = 1;
-			if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) return -3;
-
-			// 开始连接
-			if (connect(fd, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN) == -1) {
-				if (errno != EINPROGRESS) return -4;
-			}
-			// else : 立刻连接上了
-
-			// 纳入 epoll 管理
-			if (int r = ep->Ctl(fd, EPOLLIN | EPOLLOUT)) return r;
-
-			// 确保 return 时自动 close 并脱离 epoll 管理
-			sg.Set([&] { ep->CloseDel(fd); });
-
-			// 试创建目标类实例
-			auto o = std::make_unique<TcpConn>();
-			auto op = o.get();
-
-			// 继续初始化并放入容器
-			o->ep = ep;
-			o->indexAtContainer = fd;
-			o->dialer = this;
-			ep->fdHandlers[fd].first = std::move(o);		// 移动之后下面要访问要用 op
-			ep->fdHandlers[fd].second = ++ep->autoIncVersion;
-
-			conns.push_back(op);
-			sg.Cancel();
-		}
-		return 0;
-	}
-
-	inline bool TcpDialer::Busy() {
-		// 用超时检测判断是否正在拨号
-		return timeoutIndex != -1;
-	}
-
-	inline void TcpDialer::Stop() {
-		// 清理原先的残留
-		for (auto&& conn : conns) {
-			if (auto&& c = conn.Lock()) {
-				c->Dispose();
-			}
-		}
-		conns.clear();
-
-		// 清除超时检测
-		SetTimeout(0);
-	}
-
-	inline void TcpDialer::OnTimeout() {
-		Stop();
-		OnConnect(emptyPeer);
-	}
-
-	inline TcpDialer::~TcpDialer() {
-		Stop();
-	}
-
-	inline void TcpDialer::Finish(int fd) {
-		Stop();
-		auto peer = OnCreatePeer();
+		d->Stop();
+		auto peer = d->OnCreatePeer();
 		if (peer) {
-			auto peer_p = peer.get();
-			peer->ep = ep;
-			peer->indexAtContainer = fd;
-			ep->fdHandlers[fd].first = std::move(peer);
-			ep->fdHandlers[fd].second = ++ep->autoIncVersion;
-
+			auto p = ep->AddItem(std::move(peer));
+			p->fd = fd;
 			// todo: fill peer->ip by tcp socket?
-			OnConnect(peer_p);
+			d->OnConnect(p);
 		}
 		else {
 			ep->CloseDel(fd);
-			OnConnect(emptyPeer);
+			d->OnConnect(d->emptyPeer);
 		}
 	}
-
-	inline std::unique_ptr<TcpPeer> TcpDialer::OnCreatePeer() {
-		return std::make_unique<TcpPeer>();
-	}
-
 
 
 
@@ -509,7 +385,7 @@ namespace xx::Epoll {
 			char buf[65536];
 			sockaddr_in fromAddr;
 			socklen_t addrLen = sizeof(fromAddr);
-			auto len = recvfrom(indexAtContainer, buf, sizeof(buf), 0, (struct sockaddr*) & fromAddr, &addrLen);
+			auto len = recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr*) & fromAddr, &addrLen);
 			if (len < 0) {
 				ep->lastErrorNumber = (int)len;
 				Dispose();
@@ -527,7 +403,7 @@ namespace xx::Epoll {
 	}
 
 	inline int UdpPeer::SendTo(sockaddr* toAddr, char const* const& buf, std::size_t const& len) {
-		return (int)sendto(indexAtContainer, buf, len, 0, toAddr, toAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		return (int)sendto(fd, buf, len, 0, toAddr, toAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 	}
 
 
@@ -536,7 +412,7 @@ namespace xx::Epoll {
 	// UdpListener
 	/***********************************************************************************************************/
 
-	inline std::unique_ptr<KcpPeer> UdpListener::OnCreatePeer() {
+	inline KcpPeer_u UdpListener::OnCreatePeer() {
 		return xx::TryMakeU<KcpPeer>();
 	}
 
@@ -584,7 +460,6 @@ namespace xx::Epoll {
 			// 始创建 peer
 			auto peer = OnCreatePeer();
 			if (!peer) return;
-			p = peer.get();
 
 			// 继续初始化
 			peer->ep = ep;
@@ -599,11 +474,13 @@ namespace xx::Epoll {
 			memcpy(&peer->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 
 			// 放入容器
-			p->indexAtContainer = ep->items.Add(std::move(peer));	// 移动. 这之后只能用 p
+			auto p = ep->AddItem(std::move(peer));
 			ep->kcps.Add(conv, p);
 
 			// 触发事件回调
+			Ref<KcpPeer> alive(p);
 			OnAccept(p);
+			if (!alive) return;
 		}
 		else {
 			// 定位到目标 peer
@@ -615,7 +492,7 @@ namespace xx::Epoll {
 
 		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive
 		if (p->Input((uint8_t*)buf, (uint32_t)len)) {
-			p->Dispose();	// 之后没代码了, 故安全
+			p->Dispose();
 		}
 	}
 
@@ -631,6 +508,12 @@ namespace xx::Epoll {
 	}
 
 	inline KcpPeer::~KcpPeer() {
+		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 有可能不是( UdpListener 公用, 不能回收 ).
+		if (auto o = owner.Lock()) {
+			if (dynamic_cast<KcpConn*>(o)) {
+				o->Dispose();
+			}
+		}
 		if (kcp) {
 			ikcp_release(kcp);
 			kcp = nullptr;
@@ -664,11 +547,11 @@ namespace xx::Epoll {
 		return 0;
 	}
 
-	inline void KcpPeer::UpdateKcpLogic(int64_t const& nowMS) {
+	inline void KcpPeer::UpdateKcpLogic() {
 		assert(kcp);
 		// 计算出当前 ms
 		// 已知问题: 受 ikcp uint32 限制, 连接最多保持 50 多天
-		auto&& currentMS = uint32_t(nowMS - createMS);
+		auto&& currentMS = uint32_t(ep->nowMS - createMS);
 
 		// 如果 update 时间没到 就退出
 		if (nextUpdateMS > currentMS) return;
@@ -687,8 +570,11 @@ namespace xx::Epoll {
 			}
 			// 如果数据长度 == buf限长 就自杀( 未处理数据累计太多? )
 			if (recv.len == recv.cap) {
+				Ref<KcpPeer> alive(this);
 				OnDisconnect(-1);
-				Dispose();
+				if (alive) {
+					Dispose();
+				}
 				return;
 			}
 
@@ -718,8 +604,236 @@ namespace xx::Epoll {
 	}
 
 	inline void KcpPeer::OnTimeout() {
+		Ref<KcpPeer> alive(this);
 		OnDisconnect(-2);
-		Dispose();
+		if (alive) {
+			Dispose();
+		}
+	}
+
+
+
+	/***********************************************************************************************************/
+	// KcpConn
+	/***********************************************************************************************************/
+
+	inline void KcpConn::OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) {
+		assert(ep);
+		// todo: compare tarAddr & fromAddr ??
+
+		// 4 bytes serial + 4 bytes conv
+		if (len == 8) {
+			// 序列号对不上：忽略
+			if (memcmp(buf, &serial, 4)) return;
+
+			// 连接成功: 将自己从 dialer->conns 移除，创建 KcpPeer，将自己填入 owner, 最后 OnConnect 回调
+
+			// 提取 server 分配的 conv 值 到栈
+			uint32_t conv = 0;
+			memcpy(&conv, buf + 4, 4);
+
+			// 提取 dialer 到栈( dialer 应该比 conn 活得久 )
+			auto d = dialer.Lock();
+			assert(d);
+
+			// 从 d->connsKcp 找出自己并移除
+			{
+				auto&& iter = std::find_if(d->connsKcp.begin(), d->connsKcp.end(), [&](auto c) {
+					return c.index == indexAtContainer;
+					});
+				assert(iter != d->connsKcp.end());
+				d->connsKcp.erase(iter);
+			}
+
+			// 停止所有拨号行为并清空
+			d->Stop();
+
+			// 始创建 peer
+			auto peer = d->OnCreatePeerKcp();
+			if (!peer) return;
+
+			// 继续初始化
+			peer->ep = ep;
+			peer->owner = this;
+			peer->conv = conv;
+			peer->createMS = ep->nowMS;
+
+			// 如果初始化 kcp 失败就忽略
+			if (peer->InitKcp()) return;
+
+			// 更新地址信息
+			memcpy(&peer->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+
+			// 放入容器
+			auto p = ep->AddItem(std::move(peer));
+			ep->kcps.Add(conv, p);
+
+			// 通过 kcp 发个包触发 accept
+			(void)p->Send((uint8_t*)"\x1\0\0\0\0", 5);
+			p->Flush();
+
+			// 触发事件回调
+			d->OnConnectKcp(p);
+		}
+	}
+
+	inline void KcpConn::OnTimeout() {
+		SendTo((sockaddr*)&tarAddr, (char*)&serial, 4);
+		SetTimeout(ep->ToFrames(0.2));	// 按 0.2 秒间隔 repeat ( 可能受 cpu 占用影响而剧烈波动 )
+	}
+
+	inline TimeoutManager* KcpConn::GetTimeoutManager() {
+		return ep;
+	}
+
+
+	/***********************************************************************************************************/
+	// Dialer
+	/***********************************************************************************************************/
+
+	inline TimeoutManager* Dialer::GetTimeoutManager() {
+		return ep;
+	}
+
+	inline int Dialer::AddAddress(std::string const& ip, int const& port) {
+		auto&& addr = addrs.emplace_back();
+		if (int r = FillAddress(ip, port, addr)) {
+			addrs.pop_back();
+			return r;
+		}
+		return 0;
+	}
+
+	inline int Dialer::Dial(int const& timeoutFrames, Protocol const& protocol) {
+		Stop();
+		SetTimeout(timeoutFrames);
+		for (auto&& addr : addrs) {
+			int r = 0;
+			if (protocol == Protocol::Tcp || protocol == Protocol::Both) {
+				r = NewTcpConn(addr);
+			}
+			if (r) {
+				Stop();
+				return r;
+			}
+			if (protocol == Protocol::Kcp || protocol == Protocol::Both) {
+				r = NewKcpConn(addr);
+			}
+			if (r) {
+				Stop();
+				return r;
+			}
+		}
+		return 0;
+	}
+
+	inline int Dialer::NewTcpConn(sockaddr_in6 const& addr) {
+		// 创建 tcp 非阻塞 socket fd
+		auto&& fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+		if (fd == -1) return -1;
+
+		// 确保 return 时自动 close
+		xx::ScopeGuard sg([&] { close(fd); });
+
+		// 检测 fd 存储上限
+		if (fd >= (int)ep->fdMappings.size()) return -2;
+		assert(!ep->fdMappings[fd]);
+
+		// 设置一些 tcp 参数( 可选 )
+		int on = 1;
+		if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) return -3;
+
+		// 开始连接
+		if (connect(fd, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN) == -1) {
+			if (errno != EINPROGRESS) return -4;
+		}
+		// else : 立刻连接上了
+
+		// 纳入 epoll 管理
+		if (int r = ep->Ctl(fd, EPOLLIN | EPOLLOUT)) return r;
+
+		// 确保 return 时自动 close 并脱离 epoll 管理
+		sg.Set([&] { ep->CloseDel(fd); });
+
+		// 试创建目标类实例
+		auto o_ = xx::TryMakeU<TcpConn>();
+		if (!o_) return -5;
+
+		// 继续初始化并放入容器
+		auto o = ep->AddItem(std::move(o_), fd);
+		o->dialer = this;
+		conns.push_back(o);
+
+		sg.Cancel();
+		return 0;
+	}
+
+	inline int Dialer::NewKcpConn(sockaddr_in6 const& addr) {
+		// 创建 udp socket fd
+		auto&& fd = ep->MakeSocketFD(0, SOCK_DGRAM);
+		if (fd < 0) return fd;
+		// 确保 return 时自动 close
+		xx::ScopeGuard sg([&] { close(fd); });
+
+		// fd 纳入 epoll 管理
+		if (-1 == ep->Ctl(fd, EPOLLIN)) return -4;
+
+		// 确保 return 时自动 close 并脱离 epoll 管理
+		sg.Set([&] { ep->CloseDel(fd); });
+
+		// 试创建目标类实例
+		auto o_ = std::make_unique<KcpConn>();
+
+		// 继续初始化并放入容器
+		auto o = ep->AddItem(std::move(o_), fd);
+		o->dialer = this;
+		o->tarAddr = addr;
+		connsKcp.push_back(o);
+
+		sg.Cancel();
+		return 0;
+	}
+
+
+	inline bool Dialer::Busy() {
+		// 用超时检测判断是否正在拨号
+		return timeoutIndex != -1;
+	}
+
+	inline void Dialer::Stop() {
+		// 清理原先的残留
+		for (auto&& conn : conns) {
+			if (auto&& c = conn.Lock()) {
+				c->Dispose();
+			}
+		}
+		conns.clear();
+		for (auto&& conn : connsKcp) {
+			if (auto&& c = conn.Lock()) {
+				c->Dispose();
+			}
+		}
+		connsKcp.clear();
+
+		// 清除超时检测
+		SetTimeout(0);
+	}
+
+	inline void Dialer::OnTimeout() {
+		Stop();
+		OnConnect(emptyPeer);
+	}
+
+	inline Dialer::~Dialer() {
+		Stop();
+	}
+
+	inline TcpPeer_u Dialer::OnCreatePeer() {
+		return std::make_unique<TcpPeer>();
+	}
+
+	inline KcpPeer_u Dialer::OnCreatePeerKcp() {
+		return std::make_unique<KcpPeer>();
 	}
 
 
@@ -729,20 +843,15 @@ namespace xx::Epoll {
 
 	inline Context::Context(std::size_t const& wheelLen)
 		: TimeoutManager(wheelLen) {
-
 		// 创建 epoll fd
 		efd = epoll_create1(0);
 		if (-1 == efd) throw - 1;
+
+		// 初始化处理类映射表
+		fdMappings.fill(nullptr);
 	}
 
 	inline Context::~Context() {
-		// 所有 fd 掐线
-		for (auto&& o : fdHandlers) {
-			if (o.first) {
-				o.first->Dispose();
-			}
-		}
-
 		// 所有 items 析构
 		items.Clear();
 
@@ -785,11 +894,11 @@ namespace xx::Epoll {
 		if (!ai) return -2;
 
 		// 检测 fd 存储上限
-		if (fd >= (int)fdHandlers.size()) {
+		if (fd >= (int)fdMappings.size()) {
 			close(fd);
 			return -3;
 		}
-		assert(!fdHandlers[fd].first);
+		assert(!fdMappings[fd]);
 
 		return fd;
 	}
@@ -812,7 +921,7 @@ namespace xx::Epoll {
 		if (n == -1) return errno;
 		for (int i = 0; i < n; ++i) {
 			auto fd = events[i].data.fd;
-			auto&& h = fdHandlers[fd].first;
+			auto h = fdMappings[fd];
 			assert(h);
 			auto e = events[i].events;
 			h->OnEpollEvent(e);
@@ -821,9 +930,8 @@ namespace xx::Epoll {
 	}
 
 	inline void Context::UpdateKcps() {
-		auto nowMS = xx::NowSteadyEpochMS();
 		for (auto&& data : kcps) {
-			data.value->UpdateKcpLogic(nowMS);
+			data.value->UpdateKcpLogic();
 		}
 
 		for (auto&& iter = shakes.begin(); iter != shakes.end(); ++iter) {
@@ -835,6 +943,7 @@ namespace xx::Epoll {
 
 	inline int Context::Run(double const& frameRate) {
 		assert(frameRate > 0);
+		this->frameRate = frameRate;
 
 		// 稳定帧回调用的时间池
 		double ticksPool = 0;
@@ -865,6 +974,9 @@ namespace xx::Epoll {
 
 				// 本次 Wait 不等待.
 				waitMS = 0;
+
+				// 更新一下逻辑可能用到的时间戳
+				nowMS = xx::NowSteadyEpochMS();
 
 				// 驱动 timers
 				UpdateTimeoutWheel();
@@ -917,74 +1029,60 @@ namespace xx::Epoll {
 		sg.Set([&] { CloseDel(fd); });
 
 		// 试创建目标类实例
-		auto o = xx::TryMakeU<L>(std::forward<Args>(args)...);
-		if (!o) {
+		auto o_ = xx::TryMakeU<L>(std::forward<Args>(args)...);
+		if (!o_) {
 			lastErrorNumber = -5;
 			return Ref<L>();
 		}
-		auto op = o.get();
-
-		// 继续初始化并放入容器
-		o->ep = this;
-		o->indexAtContainer = fd;
-		fdHandlers[fd].first = std::move(o);	// 移动后将不可用，故用 op
-		fdHandlers[fd].second = ++autoIncVersion;
 
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
-		return op;
+
+		// 放入容器并返回
+		return AddItem(std::move(o_), fd);
 	}
 
 
 	// 创建 拨号器
 	template<typename TD, typename ...Args>
-	inline Ref<TD> Context::CreateTcpDialer(Args&&... args) {
-		static_assert(std::is_base_of_v<TcpDialer, TD>);
+	inline Ref<TD> Context::CreateDialer(Args&&... args) {
+		static_assert(std::is_base_of_v<Dialer, TD>);
 
 		// 试创建目标类实例
-		auto o = xx::TryMakeU<TD>(std::forward<Args>(args)...);
-		if (!o) {
+		auto o_ = xx::TryMakeU<TD>(std::forward<Args>(args)...);
+		if (!o_) {
 			lastErrorNumber = -1;
 			return Ref<TD>();
 		}
-		auto op = o.get();
-
-		// 继续初始化并放入容器
-		o->ep = this;
-		// 移动后将不可用，故用 op
-		op->indexAtContainer = items.Add(std::move(o));
-
-		// 调用用户自定义后续初始化
-		return op;
+		return AddItem(std::move(o_));
 	}
 
 
 	// 创建 timer
 	template<typename T, typename ...Args>
-	inline Ref<T> Context::CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args) {
+	inline Ref<T> Context::CreateTimer(int const& interval, std::function<void(Timer_r const& timer)>&& cb, Args&&...args) {
 		static_assert(std::is_base_of_v<Timer, T>);
 
 		// 试创建目标类实例
-		auto o = xx::TryMakeU<T>(std::forward<Args>(args)...);
-		if (!o) {
+		auto o_ = xx::TryMakeU<T>(std::forward<Args>(args)...);
+		if (!o_) {
 			lastErrorNumber = -1;
 			return Ref<T>();
 		}
-		auto op = o.get();
+
+		// 放入容器
+		auto o = AddItem(std::move(o_));
 
 		// 设置超时时长
-		o->ep = this;
 		if (o->SetTimeout(interval)) {
-			lastErrorNumber = -2;
+			o->Dispose();
 			return Ref<T>();
 		}
 
-		// 继续初始化并放入容器
+		// 设置回调
 		o->onFire = std::move(cb);
 
-		// 移动后将不可用，故用 op
-		op->indexAtContainer = items.Add(std::move(o));	
-		return Ref<T>(op);
+		return o;
 	}
 
 
@@ -1013,23 +1111,19 @@ namespace xx::Epoll {
 		sg.Set([&] { CloseDel(fd); });
 
 		// 试创建目标类实例
-		auto o = xx::TryMakeU<U>(std::forward<Args>(args)...);
-		if (!o) {
+		auto o_ = xx::TryMakeU<U>(std::forward<Args>(args)...);
+		if (!o_) {
 			lastErrorNumber = -5;
 			return Ref<U>();
 		}
-		auto op = o.get();
 
 		// 继续初始化并放入容器
-		o->ep = this;
+		auto o = AddItem(std::move(o_), fd);
 		o->port = port;
-		o->indexAtContainer = fd;
-		fdHandlers[fd].first = std::move(o);	// 移动后将不可用，故用 op
-		fdHandlers[fd].second = ++autoIncVersion;
 
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
-		return op;
+		return o;
 	}
 
 
@@ -1053,4 +1147,21 @@ namespace xx::Epoll {
 		return 0;
 	}
 
+
+	template<typename T>
+	inline T* Context::AddItem(std::unique_ptr<T>&& item, int const& fd) {
+		static_assert(std::is_base_of_v<Item, T>);
+		assert(item);
+		auto p = item.get();
+		p->indexAtContainer = items.Add(std::move(item));
+		p->ep = this;
+		if (fd != -1) {
+			assert(!fdMappings[fd]);
+			if constexpr (std::is_base_of_v<FDItem, T>) {
+				p->fd = fd;
+				fdMappings[fd] = p;
+			}
+		}
+		return p;
+	}
 }

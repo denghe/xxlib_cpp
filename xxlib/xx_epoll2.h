@@ -26,25 +26,16 @@
 #include "xx_itempool.h"
 
 
-// todo: 所有调用 虚函数 的地方是否有 alive 检测?
+
+
 
 // 注意：
+
+// 所有调用 虚函数 的地方是否有 alive 检测? 需检测上层函数是否已 call Dispose
+
 // 析构过程中无法执行 shared_from_this
 // 基类析构发起的 Dispose 无法调用 派生类 override 的部分, 需谨慎
 // 上层类只析构自己的数据, 到基类析构时无法访问上层类成员与 override 的函数
-
-
-/*
-	设计目标：极大简化类的使用复杂程度, 降低出问题概率
-	设计思路：与 fd 挂钩的类，特别是 peer, 需要弱引用安全使用. 正常情况下其他类型直接用即可。都用不着智能指针。
-	xx::Epoll::Context ( 简称 ep, 下同 ), 通常一个项目只需要确保该类生命周期最长即可很方便的访问一些数据
-	
-	弱指针基础结构： owner*, index, version
-	owner*: 指向主容器. 例如 ep.  index: 位于主容器的下标.   version: 版本号，用于判断 index 是否已失效
-
-	此处由于 epoll fd 结构特殊性，其使用一个全局静态的数据, 故弱指针基础结构可简化掉 owner*
-
-*/
 
 
 namespace xx::Epoll {
@@ -61,10 +52,9 @@ namespace xx::Epoll {
 		// item 所在容器下标
 		int indexAtContainer = -1;
 
-		// 从 容器 移除自己, 进而触发析构
-		virtual void Dispose();
+		// 从 ep->items 移除自己, 进而触发析构
+		void Dispose();
 
-		// 每层非虚派生类析构都要写 this->Dispose(-1);
 		virtual ~Item() {}
 	};
 	using Item_u = std::unique_ptr<Item>;
@@ -74,14 +64,11 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct FDItem : Item {
-		// linux 系统文件描述符. 同时也是 ep->fdHandlers 的下标
-		//int fd = -1;	// 直接用 indexAtContainer
+		// linux 系统文件描述符
+		int fd = -1;
 
 		// epoll fd 事件处理. 有问题自己直接 Dispose 自杀
 		virtual void OnEpollEvent(uint32_t const& e) = 0;
-
-		// 从 ep->fdHandlers 移除自己, 进而触发析构
-		virtual void Dispose() override;
 
 		// 关闭 fd 啥的
 		virtual ~FDItem();
@@ -115,10 +102,15 @@ namespace xx::Epoll {
 		Ref<U> As() const;
 	};
 
+	using Item_r = Ref<Item>;
+	using FDItem_r = Ref<FDItem>;
+
 	/***********************************************************************************************************/
 	// Timer
 	/***********************************************************************************************************/
 
+	struct Timer;
+	using Timer_r = Ref<Timer>;
 	struct Timer : Item, xx::TimeoutBase {
 		// 返回 ep
 		virtual TimeoutManager* GetTimeoutManager() override;
@@ -127,7 +119,7 @@ namespace xx::Epoll {
 		int indexAtContainer = -1;
 
 		// 时间到达时触发. 如果想实现 repeat 效果, 就在函数返回前 自己 timer->SetTimeout
-		std::function<void(Timer* const& timer)> onFire;
+		std::function<void(Timer_r const& timer)> onFire;
 
 		// 负责触发 onFire
 		virtual void OnTimeout() override;
@@ -207,65 +199,16 @@ namespace xx::Epoll {
 	// TcpConn
 	/***********************************************************************************************************/
 
-	struct TcpDialer;
-	using TcpDialer_r = Ref<TcpDialer>;
+	struct Dialer;
+	using Dialer_r = Ref<Dialer>;
 	struct TcpConn : FDItem {
 		// 指向拨号器, 方便调用其 OnConnect 函数
-		TcpDialer_r dialer;
+		Dialer_r dialer;
 
 		// 判断是否连接成功
 		virtual void OnEpollEvent(uint32_t const& e) override;
 	};
 	using TcpConn_r = Ref<TcpConn>;
-
-	/***********************************************************************************************************/
-	// TcpDialer
-	/***********************************************************************************************************/
-
-	struct TcpDialer : Item, xx::TimeoutBase {
-		// ep 本身就是 timeout 管理器
-		virtual TimeoutManager* GetTimeoutManager() override;
-
-		// 位于 ep->items 的容器下标
-		int indexOfContainer = -1;
-
-		// 要连的地址数组
-		std::vector<sockaddr_in6> addrs;
-
-		// 内部连接对象. 拨号完毕后会被清空
-		std::vector<TcpConn_r> conns;
-
-		// 向 addrs 追加地址. 如果地址转换错误将返回非 0
-		int AddAddress(std::string const& ip, int const& port);
-
-		// 开始拨号。会遍历 addrs 为每个地址创建一个 TcpConn 连接
-		// 保留先连接上的 socket fd, 创建 Peer 并触发 OnConnect 事件. 
-		// 如果超时，也触发 OnConnect，参数为 nullptr
-		int Dial(int const& timeoutFrames);
-
-		// 返回是否正在拨号
-		bool Busy();
-
-		// 停止拨号
-		void Stop();
-
-		// 存个空值备用 以方便返回引用
-		TcpPeer_r emptyPeer;
-
-		// 连接成功或超时后触发
-		virtual void OnConnect(TcpPeer_r const& peer) = 0;
-
-		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual TcpPeer_u OnCreatePeer();
-
-		// 用于 TcpConn 通知自己连接成功，报上 fd 以保留
-		void Finish(int fd);
-
-		// 超时表明所有连接都没有脸上. 触发 OnConnect( nullptr )
-		virtual void OnTimeout() override;
-
-		~TcpDialer();
-	};
 
 
 
@@ -287,6 +230,7 @@ namespace xx::Epoll {
 		// 直接封装 sendto 函数
 		int SendTo(sockaddr* toAddr, char const* const& buf, std::size_t const& len);
 	};
+	using UdpPeer_r = Ref<UdpPeer>;
 
 
 	/***********************************************************************************************************/
@@ -309,7 +253,7 @@ namespace xx::Epoll {
 		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
 		virtual KcpPeer_u OnCreatePeer();
 
-		// 覆盖并提供为 peer 绑定事件的实现. 返回非 0 表示终止 accept
+		// 覆盖并提供为 peer 绑定事件的实现.
 		inline virtual void OnAccept(KcpPeer_r const& peer) {}
 
 		// 杀掉相关 kcp peers?
@@ -326,7 +270,7 @@ namespace xx::Epoll {
 		virtual TimeoutManager* GetTimeoutManager() override;
 
 		// 用于收发数据的物理 udp peer
-		UdpListener_r owner;
+		UdpPeer_r owner;
 
 		// kcp 相关上下文
 		ikcpcb* kcp = nullptr;
@@ -358,7 +302,7 @@ namespace xx::Epoll {
 
 		// 被 ep 调用.
 		// 受帧循环驱动. 帧率越高, kcp 工作效果越好. 典型的频率为 100 fps
-		virtual void UpdateKcpLogic(int64_t const& nowMS);
+		virtual void UpdateKcpLogic();
 
 		// 被 owner 调用.
 		// 塞数据到 kcp
@@ -374,10 +318,83 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
-	// KcpDialer
+	// KcpConn
 	/***********************************************************************************************************/
 
-	// todo
+	struct KcpConn : UdpPeer, xx::TimeoutBase {
+		// 指向拨号器, 方便调用其 OnConnect 函数
+		Dialer_r dialer;
+		sockaddr_in6 tarAddr;	// fill by dialer
+		uint32_t serial = 0;	// fill by dialer: = ++ep->autoIncKcpSerial
+
+		// 如果连接成功( 收到返回的握手包 )就 call dialer Finish
+		virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len);
+
+		// 如果时间到了就 自动续命 并且发送 握手用数据
+		virtual void OnTimeout() override;
+
+		// ep 本身就是 timeout 管理器
+		virtual TimeoutManager* GetTimeoutManager() override;
+	};
+	using KcpConn_r = Ref<KcpConn>;
+
+
+	/***********************************************************************************************************/
+	// Dialer
+	/***********************************************************************************************************/
+
+	enum class Protocol {
+		Tcp,
+		Kcp,
+		Both
+	};
+
+	struct Dialer : Item, xx::TimeoutBase {
+		// 要连的地址数组
+		std::vector<sockaddr_in6> addrs;
+
+		// 内部连接对象. 拨号完毕后会被清空
+		std::vector<TcpConn_r> conns;
+		std::vector<KcpConn_r> connsKcp;
+
+		// 向 addrs 追加地址. 如果地址转换错误将返回非 0
+		int AddAddress(std::string const& ip, int const& port);
+
+		// 开始拨号。会遍历 addrs 为每个地址创建一个 ?cpConn 连接
+		// 保留先连接上的 socket fd, 创建 Peer 并触发 OnConnect 事件. 
+		// 如果超时，也触发 OnConnect，参数为 nullptr
+		int Dial(int const& timeoutFrames, Protocol const& protocol = Protocol::Both);
+
+		// 返回是否正在拨号
+		bool Busy();
+
+		// 停止拨号
+		void Stop();
+
+		// 存个空值备用 以方便返回引用
+		TcpPeer_r emptyPeer;
+		KcpPeer_r emptyPeerKcp;
+
+		// 连接成功或超时后触发
+		virtual void OnConnect(TcpPeer_r const& peer) = 0;
+		virtual void OnConnectKcp(KcpPeer_r const& peer) = 0;
+
+		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
+		virtual TcpPeer_u OnCreatePeer();
+		virtual KcpPeer_u OnCreatePeerKcp();
+
+		// 超时表明所有连接都没有脸上. 触发 OnConnect( nullptr )
+		virtual void OnTimeout() override;
+
+		~Dialer();
+
+		// ep 本身就是 timeout 管理器
+		virtual TimeoutManager* GetTimeoutManager() override;
+
+	protected:
+		int NewTcpConn(sockaddr_in6 const& addr);
+		int NewKcpConn(sockaddr_in6 const& addr);
+	};
 
 
 	/***********************************************************************************************************/
@@ -385,13 +402,10 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct Context : TimeoutManager {
-		// fd 处理类 之 唯一持有容器. 外界用 Ref 来存引用
-		inline static std::array<std::pair<FDItem_u, int64_t>, 40000> fdHandlers;
+		// fd 到 处理类 的 下标映射
+		inline static std::array<FDItem*, 40000> fdMappings;
 
-		// 提供自增版本号 for FDItem
-		int64_t autoIncVersion = 0;
-
-		// 非 fd 的 item 类唯一容器。外界用 Ref 来存引用. 自带自增版本号管理
+		// 所有类实例唯一容器。外界用 Ref 来存引用. 自带自增版本号管理
 		ItemPool<Item_u> items;
 
 		// kcp conv 值与 peer 的映射。KcpPeer 析构时从该字典移除 key
@@ -400,6 +414,8 @@ namespace xx::Epoll {
 		// 带超时的握手信息字典 key: ip:port   value: conv, nowMS
 		xx::Dict<std::string, std::pair<uint32_t, int64_t>> shakes;
 
+		// 提供自增版本号 for kcp conn
+		uint32_t autoIncKcpSerial = 0;
 
 		// epoll_wait 事件存储
 		std::array<epoll_event, 4096> events;
@@ -412,6 +428,14 @@ namespace xx::Epoll {
 
 		// 共享buf for kcp read 等
 		std::array<char, 65536> sharedBuf;
+
+		// 公共只读: 每帧开始时更新一下
+		int64_t nowMS = 0;
+
+		// Run 时填充, 以便于局部获取并转换时间单位
+		double frameRate = 1;
+
+
 
 		// wheelLen: 定时器轮子尺寸( 按帧 )
 		Context(std::size_t const& wheelLen = 1 << 12);
@@ -434,8 +458,15 @@ namespace xx::Epoll {
 		// 遍历 kcp 并 Update
 		void UpdateKcps();
 
+		template<typename T>
+		T* AddItem(std::unique_ptr<T>&& item, int const& fd = -1);
+
 		/********************************************************/
 		// 下面是外部主要使用的函数
+
+		// 将秒转为帧数
+		inline int ToFrames(double const& secs) { return (int)(frameRate * secs); }
+
 
 		// 帧逻辑可以覆盖这个函数. 返回非 0 将令 Run 退出. 
 		inline virtual int Update() { return 0; }
@@ -449,12 +480,12 @@ namespace xx::Epoll {
 		Ref<T> CreateTcpListener(int const& port, Args&&... args);
 
 		// 创建 连接 peer
-		template<typename T = TcpDialer, typename ...Args>
-		Ref<T> CreateTcpDialer(Args&&... args);
+		template<typename T = Dialer, typename ...Args>
+		Ref<T> CreateDialer(Args&&... args);
 
 		// 创建 timer
 		template<typename T = Timer, typename ...Args>
-		Ref<T> CreateTimer(int const& interval, std::function<void(Timer* const& timer)>&& cb, Args&&...args);
+		Ref<T> CreateTimer(int const& interval, std::function<void(Timer_r const& timer)>&& cb, Args&&...args);
 
 		// 创建 UdpPeer
 		template<typename T = UdpPeer, typename ...Args>
