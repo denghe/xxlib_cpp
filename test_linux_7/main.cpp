@@ -11,11 +11,11 @@ struct P : EP::TcpPeer {
 
 struct D : EP::Dialer {
 	EP::Ref<P> peer;
-	virtual EP::TcpPeer_u OnCreatePeer() override;
-	virtual void OnConnect(EP::TcpPeer_r const& peer) override;
+	virtual EP::Peer_u OnCreatePeer(bool const& isKcp) override;
+	virtual void OnConnect(EP::Peer_r const& peer) override;
 };
 
-inline void D::OnConnect(EP::TcpPeer_r const& p_) {
+inline void D::OnConnect(EP::Peer_r const& p_) {
 	if (peer) {
 		peer->Dispose();
 	}
@@ -30,8 +30,14 @@ inline void D::OnConnect(EP::TcpPeer_r const& p_) {
 	}
 }
 
-inline EP::TcpPeer_u D::OnCreatePeer() {
-	return xx::TryMakeU<P>();
+inline EP::Peer_u D::OnCreatePeer(bool const& isKcp) {
+	if (isKcp) {
+		// todo
+		return nullptr;
+	}
+	else {
+		return xx::TryMakeU<P>();
+	}
 }
 
 inline void P::OnReceive() {
@@ -81,20 +87,21 @@ struct U : EP::UdpPeer {
 	using BaseType = EP::UdpPeer;
 	std::size_t counter = 0;
 	bool received = false;
-	inline virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
+	inline virtual void OnReceive() override {
 		++counter;
-		SendTo(fromAddr, buf, len);
+		this->UdpPeer::OnReceive();
 	}
 };
 
 int TestUdp(int const& threadId, int const& numUdpClients, char const* const& tarIp, int const& tarPort, int const& numPorts) {
 	EP::Context ep;
 
-	sockaddr_in addr;
+	sockaddr_in6 addr;
 	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons((uint16_t)tarPort);
-	if (!inet_pton(AF_INET, tarIp, &addr.sin_addr.s_addr)) {
+	auto a4 = (sockaddr_in*)&addr;
+	a4->sin_family = AF_INET;
+	a4->sin_port = htons((uint16_t)tarPort);
+	if (!inet_pton(AF_INET, tarIp, &a4->sin_addr.s_addr)) {
 		throw - 1;
 	}
 
@@ -116,7 +123,8 @@ int TestUdp(int const& threadId, int const& numUdpClients, char const* const& ta
 		for (auto&& u : us) {
 			if (auto o = u.Lock()) {
 				if (!o->counter) {
-					o->SendTo((sockaddr*)&addr, ".", 1);
+					o->addr = addr;
+					o->Send(".", 1);
 				}
 				else {
 					udpCounter += o->counter;

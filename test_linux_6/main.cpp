@@ -10,7 +10,7 @@ struct P : EP::TcpPeer {
 	}
 
 	inline virtual void OnDisconnect(int const& reason = 0) override {
-		xx::CoutN("ip: ", ip, " disconnected. reason = ", reason);
+		xx::CoutN("ip: ", addr, " disconnected. reason = ", reason);
 	}
 };
 
@@ -20,15 +20,14 @@ struct L : EP::TcpListener {
 	}
 
 	inline virtual void OnAccept(EP::TcpPeer_r peer) override {
-		xx::CoutN("ip: ", peer->ip, " accepted.");
+		xx::CoutN("ip: ", peer->addr, " accepted.");
 	}
 };
 
 struct U : EP::UdpPeer {
-	inline virtual void OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) override {
+	inline virtual void OnReceive() override {
 		++counter;
-		this->UdpPeer::OnReceive(fromAddr, buf, len);
-		//(void)SendTo(fromAddr, buf, len);
+		this->UdpPeer::OnReceive();
 	}
 };
 

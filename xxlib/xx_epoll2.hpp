@@ -1,20 +1,6 @@
 ﻿#pragma once
 #include "xx_epoll2.h"
 
-namespace xx {
-	// 适配 sockaddr*
-	template<typename T>
-	struct SFuncs<T, std::enable_if_t<std::is_same_v<sockaddr*, std::decay_t<T>>>> {
-		static inline void WriteTo(std::string& s, T const& in) noexcept {
-			char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-			if (!getnameinfo(in, in->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN
-				, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV)) {
-				xx::Append(s, (char*)hbuf, ":", (char*)sbuf);
-			}
-		}
-	};
-}
-
 namespace xx::Epoll {
 
 	/***********************************************************************************************************/
@@ -28,14 +14,11 @@ namespace xx::Epoll {
 		}
 	}
 
-	/***********************************************************************************************************/
-	// FDItem
-	/***********************************************************************************************************/
-
-	inline FDItem::~FDItem() {
+	inline Item::~Item() {
 		if (fd != -1) {
 			assert(ep);
 			ep->CloseDel(fd);
+			ep->fdMappings[fd] = nullptr;
 			fd = -1;
 		}
 	}
@@ -46,6 +29,7 @@ namespace xx::Epoll {
 
 	template<typename T>
 	inline Ref<T>::Ref(T* const& ptr) {
+		static_assert(std::is_base_of_v<Item, T>);
 		assert(ptr);
 		assert(ptr->ep);
 		assert(ptr->indexAtContainer != -1);
@@ -87,16 +71,21 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
-	// Timer
+	// ItemTimeout
 	/***********************************************************************************************************/
 
-	inline TimeoutManager* Timer::GetTimeoutManager() {
+	inline TimeoutManager* ItemTimeout::GetTimeoutManager() {
 		return ep;
 	}
 
+
+	/***********************************************************************************************************/
+	// Timer
+	/***********************************************************************************************************/
+
 	inline void Timer::OnTimeout() {
 		if (onFire) {
-			Ref<Timer> alive(this);
+			Ref<Timer> alive(this);	// 防止在 onFire 中 Dispose timer
 			onFire(this);
 			if (!alive) return;
 		}
@@ -106,69 +95,35 @@ namespace xx::Epoll {
 		}
 	}
 
+
+	/***********************************************************************************************************/
+	// Peer
+	/***********************************************************************************************************/
+
+	inline void Peer::OnDisconnect(int const& reason) {}
+
+	inline void Peer::OnReceive() {
+		if (Send(recv.buf, recv.len)) {
+			OnDisconnect(-3);
+			Dispose();
+		}
+		else {
+			recv.Clear();
+		}
+	}
+
+	inline void Peer::OnTimeout() {
+		Ref<Peer> alive(this);
+		OnDisconnect(-4);
+		if (alive) {
+			Dispose();
+		}
+	}
+
+
 	/***********************************************************************************************************/
 	// TcpPeer
 	/***********************************************************************************************************/
-
-	inline TimeoutManager* TcpPeer::GetTimeoutManager() {
-		return ep;
-	}
-
-	inline int TcpPeer::Send(xx::Buf&& data) {
-		sendQueue.Push(std::move(data));
-		return !writing ? Write() : 0;
-	}
-
-	inline int TcpPeer::Flush() {
-		return !writing ? Write() : 0;
-	}
-
-	inline int TcpPeer::Write() {
-		// 如果没有待发送数据，停止监控 EPOLLOUT 并退出
-		if (!sendQueue.bytes) return ep->Ctl(fd, EPOLLIN, EPOLL_CTL_MOD);
-
-		// 前置准备
-		std::array<iovec, UIO_MAXIOV> vs;					// buf + len 数组指针
-		int vsLen = 0;										// 数组长度
-		auto bufLen = sendLenPerFrame;						// 计划发送字节数
-
-		// 填充 vs, vsLen, bufLen 并返回预期 offset. 每次只发送 bufLen 长度
-		auto&& offset = sendQueue.Fill(vs, vsLen, bufLen);
-
-		// 返回值为 实际发出的字节数
-		auto&& sentLen = writev(fd, vs.data(), vsLen);
-
-		// 已断开
-		if (sentLen == 0) return -2;
-
-		// 繁忙 或 出错
-		else if (sentLen == -1) {
-			if (errno == EAGAIN) goto LabEnd;
-			else return -3;
-		}
-
-		// 完整发送
-		else if ((std::size_t)sentLen == bufLen) {
-			// 快速弹出已发送数据
-			sendQueue.Pop(vsLen, offset, bufLen);
-
-			// 这次就写这么多了. 直接返回. 下次继续 Write
-			return 0;
-		}
-
-		// 发送了一部分
-		else {
-			// 弹出已发送数据
-			sendQueue.Pop(sentLen);
-		}
-
-	LabEnd:
-		// 标记为不可写
-		writing = true;
-
-		// 开启对可写状态的监控, 直到队列变空再关闭监控
-		return ep->Ctl(fd, EPOLLIN | EPOLLOUT, EPOLL_CTL_MOD);
-	}
 
 	inline void TcpPeer::OnEpollEvent(uint32_t const& e) {
 		// error
@@ -232,19 +187,67 @@ namespace xx::Epoll {
 		}
 	}
 
-	inline void TcpPeer::OnReceive() {
-		// 默认实现为 echo. 仅供测试. 随意使用 write 可能导致待发队列中的数据被分割
-		if (write(fd, recv.buf, recv.len) != (ssize_t)recv.len) {
-			Dispose();
-		}
-		else {
-			recv.Clear();
-		}
+	inline int TcpPeer::Send(char const* const& buf, std::size_t const& len) {
+		sendQueue.Push(xx::Buf(buf, len));
+		return !writing ? Write() : 0;
 	}
 
-	inline void TcpPeer::OnTimeout() {
-		Dispose();
+	inline int TcpPeer::Send(xx::Buf&& data) {
+		sendQueue.Push(std::move(data));
+		return !writing ? Write() : 0;
 	}
+
+	inline int TcpPeer::Flush() {
+		return !writing ? Write() : 0;
+	}
+
+	inline int TcpPeer::Write() {
+		// 如果没有待发送数据，停止监控 EPOLLOUT 并退出
+		if (!sendQueue.bytes) return ep->Ctl(fd, EPOLLIN, EPOLL_CTL_MOD);
+
+		// 前置准备
+		std::array<iovec, UIO_MAXIOV> vs;					// buf + len 数组指针
+		int vsLen = 0;										// 数组长度
+		auto bufLen = sendLenPerFrame;						// 计划发送字节数
+
+		// 填充 vs, vsLen, bufLen 并返回预期 offset. 每次只发送 bufLen 长度
+		auto&& offset = sendQueue.Fill(vs, vsLen, bufLen);
+
+		// 返回值为 实际发出的字节数
+		auto&& sentLen = writev(fd, vs.data(), vsLen);
+
+		// 已断开
+		if (sentLen == 0) return -2;
+
+		// 繁忙 或 出错
+		else if (sentLen == -1) {
+			if (errno == EAGAIN) goto LabEnd;
+			else return -3;
+		}
+
+		// 完整发送
+		else if ((std::size_t)sentLen == bufLen) {
+			// 快速弹出已发送数据
+			sendQueue.Pop(vsLen, offset, bufLen);
+
+			// 这次就写这么多了. 直接返回. 下次继续 Write
+			return 0;
+		}
+
+		// 发送了一部分
+		else {
+			// 弹出已发送数据
+			sendQueue.Pop(sentLen);
+		}
+
+	LabEnd:
+		// 标记为不可写
+		writing = true;
+
+		// 开启对可写状态的监控, 直到队列变空再关闭监控
+		return ep->Ctl(fd, EPOLLIN | EPOLLOUT, EPOLL_CTL_MOD);
+	}
+
 
 
 	/***********************************************************************************************************/
@@ -283,7 +286,7 @@ namespace xx::Epoll {
 
 		// 如果 fd 超出最大存储限制就退出。返回 fd 是为了外部能继续执行 accept
 		if (fd >= (int)ep->fdMappings.size()) return fd;
-		assert(ep->fdMappings[fd] != -1);
+		assert(!ep->fdMappings[fd]);
 
 		// 设置非阻塞状态
 		if (-1 == fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK)) return -2;
@@ -300,22 +303,17 @@ namespace xx::Epoll {
 
 
 		// 创建类容器. 允许创建失败( 比如内存不足，或者刻意控制数量 ). 失败不触发 OnAccept
-		auto peer_ = OnCreatePeer();
-		if (!peer_) return fd;
+		auto u = OnCreatePeer();
+		if (!u) return fd;
 
 		// 放入容器并拿到指针用, 继续填充
-		auto peer = ep->AddItem(std::move(peer_));
-		peer->fd = fd;
-		ep->fdMappings[fd] = peer;
+		auto p = ep->AddItem(std::move(u), fd);
 
 		// 填充 ip
-		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-		if (!getnameinfo(&addr, len, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV)) {
-			xx::Append(peer->ip, hbuf, ":", sbuf);
-		}
+		memcpy(&p->addr, &addr, len);
 
 		// 调用用户自定义后续绑定
-		OnAccept(peer);
+		OnAccept(p);
 
 		sg.Cancel();
 		return fd;
@@ -353,9 +351,8 @@ namespace xx::Epoll {
 		Dispose();	// 自杀
 
 		// 这之后不能再用 this
-
 		d->Stop();
-		auto peer = d->OnCreatePeer();
+		auto peer = d->OnCreatePeer(false);
 		if (peer) {
 			auto p = ep->AddItem(std::move(peer));
 			p->fd = fd;
@@ -382,28 +379,37 @@ namespace xx::Epoll {
 		}
 		// read
 		if (e & EPOLLIN) {
-			char buf[65536];
-			sockaddr_in fromAddr;
-			socklen_t addrLen = sizeof(fromAddr);
-			auto len = recvfrom(fd, buf, sizeof(buf), 0, (struct sockaddr*) & fromAddr, &addrLen);
+			// 如果接收缓存没容量就扩容( 通常发生在首次使用时 )
+			if (!recv.cap) {
+				recv.Reserve(readBufLen);
+			}
+			// todo: 是否需要检测 ipv4/6 进而填充适当的长度?
+			socklen_t addrLen = sizeof(addr);
+			auto len = recvfrom(fd, recv.buf, recv.cap, 0, (struct sockaddr*)&addr, &addrLen);
 			if (len < 0) {
 				ep->lastErrorNumber = (int)len;
 				Dispose();
 				return;
 			}
-			OnReceive((sockaddr*)&fromAddr, buf, len);
+			// todo: len == 0 有没有可能?
+			recv.len = len;
+			OnReceive();
 		}
-		// write:
-		// udp 似乎不必关注 write 状态。无脑认为可写。写也不必判断是否成功。
+		// write:  todo
 	}
 
-	inline void UdpPeer::OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) {
-		// echo. 忽略返回值
-		(void)SendTo(fromAddr, buf, len);
+	inline int UdpPeer::Send(xx::Buf&& data) {
+		// todo: 压队列并 Write? 一次最多发送 64k? 切片塞队列? 监视可写事件? 下次事件来继续发?
+		return (int)sendto(fd, data.buf, data.len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 	}
 
-	inline int UdpPeer::SendTo(sockaddr* toAddr, char const* const& buf, std::size_t const& len) {
-		return (int)sendto(fd, buf, len, 0, toAddr, toAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+	inline int UdpPeer::Send(char const* const& buf, std::size_t const& len) {
+		return (int)sendto(fd, buf, len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+	}
+
+	inline int UdpPeer::Flush() {
+		// todo: 继续发队列里的?
+		return 0;
 	}
 
 
@@ -416,32 +422,37 @@ namespace xx::Epoll {
 		return xx::TryMakeU<KcpPeer>();
 	}
 
-	inline void UdpListener::OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) {
+	inline void UdpListener::OnReceive() {
+		// 确保退出时清掉 已收数据
+		xx::ScopeGuard sgRecvClear([this] { recv.Clear(); });
+
 		// sockaddr* 转为 ip:port
-		std::string ipAndPort;
-		xx::Append(ipAndPort, fromAddr);
+		std::string ip_port;
+		xx::Append(ip_port, addr);
 
 		// 当前握手方案为 UdpDialer 每秒 N 次不停发送 4 字节数据( serial )过来, 
 		// 收到后根据其 ip:port 做 key, 生成 convId
 		// 每次收到都向其发送 convId
-		if (len == 4) {
-			auto&& idx = ep->shakes.Find(ipAndPort);
+		if (recv.len == 4) {
+			auto&& idx = ep->shakes.Find(ip_port);
 			if (idx == -1) {
-				idx = ep->shakes.Add(ipAndPort, std::make_pair(++convId, NowSteadyEpochMS() + handShakeTimeoutMS)).index;
+				idx = ep->shakes.Add(ip_port, std::make_pair(++convId, NowSteadyEpochMS() + handShakeTimeoutMS)).index;
 			}
 			char tmp[8];	// serial + convId
-			memcpy(tmp, buf, 4);
+			memcpy(tmp, recv.buf, 4);
 			memcpy(tmp + 4, &ep->shakes.ValueAt(idx).first, 4);
-			SendTo(fromAddr, tmp, 8);
+			Send(tmp, 8);
 			return;
 		}
 
 		// 忽略长度小于 kcp 头的数据包 ( IKCP_OVERHEAD at ikcp.c )
-		if (len < 24) return;
+		if (recv.len < 24) return;
 
 		// read conv header
 		uint32_t conv;
-		memcpy(&conv, buf, sizeof(conv));
+		memcpy(&conv, recv.buf, sizeof(conv));
+
+		// 准备创建或找回 KcpPeer
 		KcpPeer* p = nullptr;
 
 		// 根据 conv 试定位到 peer
@@ -449,7 +460,7 @@ namespace xx::Epoll {
 
 		// 如果不存在 就在 shakes 中按 ip:port 找
 		if (peerIter == -1) {
-			auto&& idx = ep->shakes.Find(ipAndPort);
+			auto&& idx = ep->shakes.Find(ip_port);
 
 			// 未找到或 conv 对不上: 忽略
 			if (idx == -1 || ep->shakes.ValueAt(idx).first != conv) return;
@@ -471,10 +482,10 @@ namespace xx::Epoll {
 			if (peer->InitKcp()) return;
 
 			// 更新地址信息
-			memcpy(&peer->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			memcpy(&peer->addr, &addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 
 			// 放入容器
-			auto p = ep->AddItem(std::move(peer));
+			p = ep->AddItem(std::move(peer));
 			ep->kcps.Add(conv, p);
 
 			// 触发事件回调
@@ -487,46 +498,21 @@ namespace xx::Epoll {
 			p = ep->kcps.ValueAt(peerIter);
 
 			// 更新地址信息
-			memcpy(&p->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			memcpy(&p->addr, &addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 		}
 
 		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive
-		if (p->Input((uint8_t*)buf, (uint32_t)len)) {
+		if (p->Input((uint8_t*)recv.buf, (uint32_t)recv.len)) {
 			p->Dispose();
 		}
+		recv.Clear();
 	}
-
 
 
 
 	/***********************************************************************************************************/
 	// KcpPeer
 	/***********************************************************************************************************/
-
-	inline TimeoutManager* KcpPeer::GetTimeoutManager() {
-		return ep;
-	}
-
-	inline KcpPeer::~KcpPeer() {
-		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 有可能不是( UdpListener 公用, 不能回收 ).
-		if (auto o = owner.Lock()) {
-			if (dynamic_cast<KcpConn*>(o)) {
-				o->Dispose();
-			}
-		}
-		if (kcp) {
-			ikcp_release(kcp);
-			kcp = nullptr;
-		}
-		if (conv) {
-			ep->kcps.Remove(conv);
-		}
-	};
-
-	inline void KcpPeer::OnReceive() {
-		(void)Send(recv.buf, recv.len);
-		recv.Clear();
-	}
 
 	inline int KcpPeer::InitKcp() {
 		assert(!kcp);
@@ -541,9 +527,12 @@ namespace xx::Epoll {
 		// 给 kcp 绑定 output 功能函数
 		ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
 			auto self = (KcpPeer*)user;
-			if (!self->owner) return -1;
-			return self->owner->SendTo((sockaddr*)&self->addr, inBuf, len);
-			});
+			if (auto o = self->owner.Lock()) {
+				o->addr = self->addr;
+				return o->Send(inBuf, len);
+			}
+			return -1;
+		});
 		return 0;
 	}
 
@@ -591,24 +580,38 @@ namespace xx::Epoll {
 		} while (true);
 	}
 
-	inline int KcpPeer::Send(uint8_t const* const& buf, ssize_t const& dataLen) {
-		return ikcp_send(kcp, (char*)buf, (int)dataLen);
-	}
-
-	inline void KcpPeer::Flush() {
-		ikcp_flush(kcp);
-	}
-
 	inline int KcpPeer::Input(uint8_t* const& recvBuf, uint32_t const& recvLen) {
 		return ikcp_input(kcp, (char*)recvBuf, recvLen);
 	}
 
-	inline void KcpPeer::OnTimeout() {
-		Ref<KcpPeer> alive(this);
-		OnDisconnect(-2);
-		if (alive) {
-			Dispose();
+	inline KcpPeer::~KcpPeer() {
+		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 有可能不是( UdpListener 公用, 不能回收 ).
+		if (auto o = owner.Lock()) {
+			if (dynamic_cast<KcpConn*>(o)) {
+				o->Dispose();
+			}
 		}
+		if (kcp) {
+			ikcp_release(kcp);
+			kcp = nullptr;
+		}
+		if (conv) {
+			ep->kcps.Remove(conv);
+			conv = 0;
+		}
+	};
+
+	inline int KcpPeer::Send(xx::Buf&& data) {
+		return ikcp_send(kcp, (char*)data.buf, (int)data.len);
+	}
+
+	inline int KcpPeer::Send(char const* const& buf, std::size_t const& len) {
+		return ikcp_send(kcp, (char*)buf, (int)len);
+	}
+
+	inline int KcpPeer::Flush() {
+		ikcp_flush(kcp);
+		return 0;
 	}
 
 
@@ -617,83 +620,77 @@ namespace xx::Epoll {
 	// KcpConn
 	/***********************************************************************************************************/
 
-	inline void KcpConn::OnReceive(sockaddr* fromAddr, char const* const& buf, std::size_t const& len) {
-		assert(ep);
-		// todo: compare tarAddr & fromAddr ??
-
+	inline void KcpConn::OnReceive() {
 		// 4 bytes serial + 4 bytes conv
-		if (len == 8) {
+		if (recv.len == 8) {
 			// 序列号对不上：忽略
-			if (memcmp(buf, &serial, 4)) return;
+			if (memcmp(recv.buf, &serial, 4)) {
+				recv.Clear();
+				return;
+			}
 
 			// 连接成功: 将自己从 dialer->conns 移除，创建 KcpPeer，将自己填入 owner, 最后 OnConnect 回调
 
 			// 提取 server 分配的 conv 值 到栈
 			uint32_t conv = 0;
-			memcpy(&conv, buf + 4, 4);
+			memcpy(&conv, recv.buf + 4, 4);
+			recv.Clear();
 
 			// 提取 dialer 到栈( dialer 应该比 conn 活得久 )
 			auto d = dialer.Lock();
 			assert(d);
 
-			// 从 d->connsKcp 找出自己并移除
+			// 从 d->conns 找出自己并移除
 			{
-				auto&& iter = std::find_if(d->connsKcp.begin(), d->connsKcp.end(), [&](auto c) {
+				auto&& iter = std::find_if(d->conns.begin(), d->conns.end(), [&](auto c) {
 					return c.index == indexAtContainer;
 					});
-				assert(iter != d->connsKcp.end());
-				d->connsKcp.erase(iter);
+				assert(iter != d->conns.end());
+				d->conns.erase(iter);
 			}
 
 			// 停止所有拨号行为并清空
 			d->Stop();
 
 			// 始创建 peer
-			auto peer = d->OnCreatePeerKcp();
-			if (!peer) return;
+			auto u = d->OnCreatePeer(true);
+			if (!u) return;
+			auto p = dynamic_cast<KcpPeer*>(u.get());
+			if (!p) return;
 
-			// 继续初始化
-			peer->ep = ep;
-			peer->owner = this;
-			peer->conv = conv;
-			peer->createMS = ep->nowMS;
+			// 继续初始化 kcp
+			p->conv = conv;
+			p->createMS = ep->nowMS;
+			if (p->InitKcp()) return;
 
-			// 如果初始化 kcp 失败就忽略
-			if (peer->InitKcp()) return;
-
-			// 更新地址信息
-			memcpy(&peer->addr, fromAddr, fromAddr->sa_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			// 继续填充
+			p->owner = this;
+			memcpy(&p->addr, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			// todo: 填充 ip?
 
 			// 放入容器
-			auto p = ep->AddItem(std::move(peer));
+			ep->AddItem(std::move(u));
 			ep->kcps.Add(conv, p);
 
 			// 通过 kcp 发个包触发 accept
-			(void)p->Send((uint8_t*)"\x1\0\0\0\0", 5);
+			(void)p->Send("\x1\0\0\0\0", 5);
 			p->Flush();
 
 			// 触发事件回调
-			d->OnConnectKcp(p);
+			d->OnConnect(p);
 		}
 	}
 
 	inline void KcpConn::OnTimeout() {
-		SendTo((sockaddr*)&tarAddr, (char*)&serial, 4);
+		(void)Send((char*)&serial, 4);
 		SetTimeout(ep->ToFrames(0.2));	// 按 0.2 秒间隔 repeat ( 可能受 cpu 占用影响而剧烈波动 )
 	}
 
-	inline TimeoutManager* KcpConn::GetTimeoutManager() {
-		return ep;
-	}
 
 
 	/***********************************************************************************************************/
 	// Dialer
 	/***********************************************************************************************************/
-
-	inline TimeoutManager* Dialer::GetTimeoutManager() {
-		return ep;
-	}
 
 	inline int Dialer::AddAddress(std::string const& ip, int const& port) {
 		auto&& addr = addrs.emplace_back();
@@ -725,6 +722,42 @@ namespace xx::Epoll {
 			}
 		}
 		return 0;
+	}
+
+	inline bool Dialer::Busy() {
+		// 用超时检测判断是否正在拨号
+		return timeoutIndex != -1;
+	}
+
+	inline void Dialer::Stop() {
+		// 清理原先的残留
+		for (auto&& conn : conns) {
+			if (auto&& c = conn.Lock()) {
+				c->Dispose();
+			}
+		}
+		conns.clear();
+
+		// 清除超时检测
+		SetTimeout(0);
+	}
+
+	inline void Dialer::OnTimeout() {
+		Stop();
+		OnConnect(emptyPeer);
+	}
+
+	inline Dialer::~Dialer() {
+		Stop();
+	}
+
+	inline Peer_u Dialer::OnCreatePeer(bool const& isKcp) {
+		if (isKcp) {
+			return xx::TryMakeU<TcpPeer>();
+		}
+		else {
+			return xx::TryMakeU<KcpPeer>();
+		}
 	}
 
 	inline int Dialer::NewTcpConn(sockaddr_in6 const& addr) {
@@ -787,54 +820,13 @@ namespace xx::Epoll {
 		// 继续初始化并放入容器
 		auto o = ep->AddItem(std::move(o_), fd);
 		o->dialer = this;
-		o->tarAddr = addr;
-		connsKcp.push_back(o);
+		o->addr = addr;
+		conns.push_back(o);
 
 		sg.Cancel();
 		return 0;
 	}
 
-
-	inline bool Dialer::Busy() {
-		// 用超时检测判断是否正在拨号
-		return timeoutIndex != -1;
-	}
-
-	inline void Dialer::Stop() {
-		// 清理原先的残留
-		for (auto&& conn : conns) {
-			if (auto&& c = conn.Lock()) {
-				c->Dispose();
-			}
-		}
-		conns.clear();
-		for (auto&& conn : connsKcp) {
-			if (auto&& c = conn.Lock()) {
-				c->Dispose();
-			}
-		}
-		connsKcp.clear();
-
-		// 清除超时检测
-		SetTimeout(0);
-	}
-
-	inline void Dialer::OnTimeout() {
-		Stop();
-		OnConnect(emptyPeer);
-	}
-
-	inline Dialer::~Dialer() {
-		Stop();
-	}
-
-	inline TcpPeer_u Dialer::OnCreatePeer() {
-		return std::make_unique<TcpPeer>();
-	}
-
-	inline KcpPeer_u Dialer::OnCreatePeerKcp() {
-		return std::make_unique<KcpPeer>();
-	}
 
 
 	/***********************************************************************************************************/
@@ -1119,7 +1111,6 @@ namespace xx::Epoll {
 
 		// 继续初始化并放入容器
 		auto o = AddItem(std::move(o_), fd);
-		o->port = port;
 
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
@@ -1157,10 +1148,8 @@ namespace xx::Epoll {
 		p->ep = this;
 		if (fd != -1) {
 			assert(!fdMappings[fd]);
-			if constexpr (std::is_base_of_v<FDItem, T>) {
-				p->fd = fd;
-				fdMappings[fd] = p;
-			}
+			p->fd = fd;
+			fdMappings[fd] = p;
 		}
 		return p;
 	}

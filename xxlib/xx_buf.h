@@ -46,7 +46,7 @@ namespace xx {
 		}
 
 		// 复制内存
-		Buf(void* const& buf, std::size_t const& len) {
+		Buf(void const* const& buf, std::size_t const& len) {
 			Init(malloc(len + 8), len);
 			memcpy(this->buf, buf, len);
 		}

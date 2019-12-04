@@ -370,7 +370,7 @@ namespace xx {
 				s.append(in ? "true" : "false");
 			}
 			else if constexpr (std::is_same_v<char, T>) {
-				s.append(in);
+				s.append(std::to_string((int)in));
 			}
 			else {
 				s.append(std::to_string(in));
