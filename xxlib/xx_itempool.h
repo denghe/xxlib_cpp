@@ -1,10 +1,5 @@
 #pragma once
-#include <cstring>
-#include <memory>
-#include <type_traits>
-#include <cassert>
-#include <cstdint>
-#include <functional>
+#include "xx_object.h"
 namespace xx {
 	template<typename Value, typename Size_t = int, typename Version_t = int64_t>
 	struct ItemPool {
@@ -38,7 +33,6 @@ namespace xx {
 			: cap(cap) {
 			assert(cap);
 			buf = (Data*)malloc(cap * sizeof(Data));
-			memset((void*)buf, 0, cap * sizeof(Data));
 		}
 
 		~ItemPool() {
@@ -68,35 +62,44 @@ namespace xx {
 		template<typename ...Args>
 		Size_t Add(Args&&...args) {
 			auto idx = Alloc();
-			assert(!buf[idx].version);
 			new (&buf[idx].value) Value(std::forward<Args>(args)...);
 			buf[idx].version = ++version;
 			buf[idx].next = -1;
 			return idx;
 		}
-		template<typename ...Args>
-		Size_t TryAdd(Args&&...args) {
-			auto idx = Alloc();
-			try {
-				new (&buf[idx].value) Value(std::forward<Args>(args)...);
-			}
-			catch (...) {
-				return -1;
-			}
-			return idx;
-		}
+
+		//template<typename ...Args>
+		//Size_t TryAdd(Args&&...args) {
+		//	auto idx = Alloc();
+		//	try {
+		//		new (&buf[idx].value) Value(std::forward<Args>(args)...);
+		//	}
+		//	catch (...) {
+		//		buf[idx].version = 0;
+		//		buf[idx].next = freeHeader;			     // 指向 自由节点链表头
+		//		freeHeader = idx;
+		//		++freeCount;
+		//		return -1;
+		//	}
+		//	buf[idx].version = ++version;
+		//	buf[idx].next = -1;
+		//	return idx;
+		//}
 
 		// 通过下标移除
 		inline void RemoveAt(Size_t const& idx) noexcept {
 			assert(idx < len);
+			assert(buf[idx].next == -1);
 			assert(buf[idx].version);
 			buf[idx].version = 0;
-			buf[idx].next = freeHeader;			     // 指向 自由节点链表头
+			buf[idx].next = freeHeader;					// 指向 自由节点链表头
 			if constexpr (!std::is_pod_v<Value>) {
 				buf[idx].value.~Value();
 			}
 			freeHeader = idx;
-			freeCount++;
+			assert(freeHeader >= 0);
+			assert(buf[freeHeader].version == 0);
+			++freeCount;
 		}
 
 		// 定位到存储区( 方便写 assert? )
@@ -119,21 +122,36 @@ namespace xx {
 
 	protected:
 		Size_t Alloc() {
-			int idx;
+			Size_t idx;
 			// 如果 自由节点链表 不空, 取一个来当容器
 			if (freeCount) {
+				assert(freeHeader >= 0);
+				assert(buf[freeHeader].version == 0);
 				idx = freeHeader;
-				freeHeader = (int)buf[idx].next;
-				freeCount--;
+				freeHeader = buf[idx].next;
+				--freeCount;
 			}
 			else {
 				// 所有空节点都用光了, 扩容
 				if (len == cap) {
-					buf = (Data*)realloc((void*)buf, sizeof(Data) * cap * 2);
+					if constexpr (IsTrivial_v<Value>) {
+						buf = (Data*)realloc((void*)buf, sizeof(Data) * cap * 2);
+					}
+					else {
+						auto newBuf = (Data*)malloc(sizeof(Data) * cap * 2);
+						for (int i = 0; i < len; ++i) {
+							new (&newBuf[i].value) Value((Value&&)buf[i].value);
+							if constexpr (!std::is_pod_v<Value>) {
+								buf[i].value.Value::~Value();
+							}
+						}
+						free(buf);
+						buf = newBuf;
+					}
 				}
 				// 指向 Resize 后面的空间起点
 				idx = len;
-				len++;
+				++len;
 			}
 			return idx;
 		}

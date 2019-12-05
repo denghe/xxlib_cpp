@@ -597,7 +597,7 @@ inline void Gateway::InitWebListener() {
 		char const str[] = R"--(
 <html><body>
 <p><a href="/watch_service_cfg">查看 cfg</a></p>
-<p><a href="/watch_connected_services">查看 内部服务连接状态</a></p>
+<p><a href="/watch_connect_info">查看 连接状态</a></p>
 <p><a href="/reload_service_cfg">重新加载配置文件</a></p>
 </body></html>
 )--";
@@ -628,10 +628,14 @@ inline void Gateway::InitWebListener() {
 		return r.Send();
 	};
 
-	handlers["watch_connected_services"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
+	handlers["watch_connect_info"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
 		{
 			auto&& html = r.Scope("html");
 			auto&& body = r.Scope("body");
+
+			r.A("刷新", "/watch_connected_services");
+
+			r.P("clientPeers.size() = ", clientPeers.size());
 
 			r.TableBegin("serviceId", "ip:port", "busy", "peer alive");
 			for (auto&& kv : serviceDialerPeers) {
@@ -640,8 +644,8 @@ inline void Gateway::InitWebListener() {
 				r.TableRow(
 					dialer->serviceId
 					, (dialer->ip + ":" + std::to_string(dialer->port))
-					, dialer->Busy()
-					, (peer && !peer->Disposed()));
+					, (dialer->Busy() ? "<font color='red'>true</font>" : "false")
+					, ((peer && !peer->Disposed()) ? "<font color='green'>true</font>" : "false"));
 			}
 			r.TableEnd();
 
@@ -700,6 +704,7 @@ inline void Gateway::InitWebListener() {
 
 
 int main() {
+	xx::IgnoreSignal();
 	Gateway g;
 	g.uv.Run();
 	return 0;

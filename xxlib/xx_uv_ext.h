@@ -336,9 +336,14 @@ namespace xx {
 	inline UvFromToGatewayBasePeer::UvFromToGatewayBasePeer(xx::Uv& uv) : UvCommandPeer(uv) {
 		xx::MakeTo(timer, uv, 10, 10, [this] {
 			auto&& nowMS = xx::NowSteadyEpochMS();
-			for (auto&& kv : simulatePeers) {
-				if (kv.second && !kv.second->Disposed()) {
-					(void)kv.second->Update(nowMS);
+			auto&& iter = simulatePeers.begin();
+			for (;iter != simulatePeers.end();) {
+				if (iter->second && !iter->second->Disposed()) {
+					(void)iter->second->Update(nowMS);
+					iter++;
+				}
+				else {
+					simulatePeers.erase(iter++);
 				}
 			}
 		});

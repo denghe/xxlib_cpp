@@ -9,7 +9,9 @@ namespace xx::Epoll {
 
 	inline void Item::Dispose() {
 		if (indexAtContainer != -1) {
-			assert(ep);
+			// 因为 gcc 傻逼，此处由于要自杀，故先复制参数到栈，避免出异常
+			auto ep = this->ep;
+			auto indexAtContainer = this->indexAtContainer;
 			ep->items.RemoveAt(indexAtContainer);	// 触发析构
 		}
 	}
@@ -348,14 +350,15 @@ namespace xx::Epoll {
 		auto ep = this->ep;
 		// 设为 -1 以绕开析构函数中的 close
 		this->fd = -1;
+		// 清除映射关系
+		ep->fdMappings[fd] = nullptr;
 		Dispose();	// 自杀
 
-		// 这之后不能再用 this
+		// 这之后只能用 "栈"变量
 		d->Stop();
 		auto peer = d->OnCreatePeer(false);
 		if (peer) {
-			auto p = ep->AddItem(std::move(peer));
-			p->fd = fd;
+			auto p = ep->AddItem(std::move(peer), fd);
 			// todo: fill peer->ip by tcp socket?
 			d->OnConnect(p);
 		}
@@ -904,8 +907,8 @@ namespace xx::Epoll {
 
 	inline int Context::CloseDel(int const& fd) {
 		assert(fd != -1);
-		close(fd);
-		return epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
+		epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
+		return close(fd);
 	}
 
 	inline int Context::Wait(int const& timeoutMS) {
@@ -914,7 +917,11 @@ namespace xx::Epoll {
 		for (int i = 0; i < n; ++i) {
 			auto fd = events[i].data.fd;
 			auto h = fdMappings[fd];
-			assert(h);
+			if (!h) {
+				xx::CoutN("epoll wait !h. fd = ", fd);
+				assert(h);
+			}
+			assert(h->fd == fd);
 			auto e = events[i].events;
 			h->OnEpollEvent(e);
 		}
@@ -1151,6 +1158,7 @@ namespace xx::Epoll {
 			p->fd = fd;
 			fdMappings[fd] = p;
 		}
+		xx::CoutN("AddItem fd = ", fd);
 		return p;
 	}
 }

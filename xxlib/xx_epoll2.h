@@ -33,9 +33,12 @@
 
 // 所有调用 虚函数 的地方是否有 alive 检测? 需检测上层函数是否已 call Dispose
 
-// 析构过程中无法执行 shared_from_this
+// 因为 gcc 傻逼，会导致类自杀的类成员函数，一定要复制需要的成员参数到"栈"变量，再调用函数，避免出异常. 且需要逐级扩散排查.
+// 考虑在注释位置增加 文字描述 类似  // 重要：可能导致类实例自杀  并逐级扩散以方便检查以及形成调用 & 检测是否已自杀的规范
+
 // 基类析构发起的 Dispose 无法调用 派生类 override 的部分, 需谨慎
 // 上层类只析构自己的数据, 到基类析构时无法访问上层类成员与 override 的函数
+// 析构过程中无法执行 shared_from_this
 
 
 
@@ -397,11 +400,11 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct Context : TimeoutManager {
-		// fd 到 处理类* 的 映射
-		inline static std::array<Item*, 40000> fdMappings;
-
 		// 所有类实例唯一容器。外界用 Ref 来存引用. 自带自增版本号管理
 		ItemPool<Item_u> items;
+
+		// fd 到 处理类* 的 映射
+		std::array<Item*, 40000> fdMappings;
 
 		// kcp conv 值与 peer 的映射。KcpPeer 析构时从该字典移除 key
 		xx::Dict<uint32_t, KcpPeer*> kcps;
@@ -420,9 +423,6 @@ namespace xx::Epoll {
 
 		// 对于一些返回值非 int 的函数, 具体错误码将存放于此
 		int lastErrorNumber = 0;
-
-		// 共享buf for kcp read 等
-		std::array<char, 65536> sharedBuf;
 
 		// 公共只读: 每帧开始时更新一下
 		int64_t nowMS = 0;

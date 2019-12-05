@@ -33,6 +33,8 @@ namespace xx
 	};
 
 	namespace MySql {
+		// 发现 mysql_init 非线程安全 故全局 lock 一下
+		inline std::mutex mutex_connOpen;
 
 		struct Info {
 			unsigned int numFields = 0;
@@ -208,7 +210,10 @@ namespace xx
 
 			inline int TryOpen(char const* const& host, int const& port, char const* const& username, char const* const& password, char const* const& db) noexcept {
 				Close();
-				ctx = mysql_init(nullptr);
+				{
+					std::lock_guard<std::mutex> lg(mutex_connOpen);
+					ctx = mysql_init(nullptr);
+				}
 				if (!ctx) {
 					lastError = "mysql_init failed.";
 					lastErrorNumber = -1;
@@ -281,6 +286,17 @@ namespace xx
 
 			inline void Execute(std::string const& sql) {
 				Execute((char*)sql.data(), (unsigned long)sql.size());
+			}
+
+
+			// 抛弃查询结果( 解决一次性执行多条 分号间隔语句 啥的并不关心结果, 下次再执行出现 2014 错误 的问题 )
+			// 单条 sql 并不需要每次抛弃结果就可以反复执行
+			inline int DropResult() {
+				int r = 0;
+				do {
+					r = TryFetch(nullptr, nullptr);
+				} while (r == 1);
+				return r;
 			}
 
 
