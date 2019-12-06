@@ -623,7 +623,7 @@ namespace xx::Epoll {
 			// 前置准备
 			std::array<iovec, maxNumIovecs> vs;					// buf + len 数组指针
 			int vsLen = 0;										// 数组长度
-			auto bufLen = (std::size_t)sendLenPerFrame;			// 计划发送字节数
+			auto bufLen = (size_t)sendLenPerFrame;			// 计划发送字节数
 
 			// 填充 vs, vsLen, bufLen 并返回预期 offset. 每次只发送 bufLen 长度
 			auto&& offset = q.Fill(vs, vsLen, bufLen);
@@ -641,7 +641,7 @@ namespace xx::Epoll {
 			}
 
 			// 完整发送
-			else if ((std::size_t)sentLen == bufLen) {
+			else if ((size_t)sentLen == bufLen) {
 				// 快速弹出已发送数据
 				q.Pop(vsLen, offset, bufLen);
 

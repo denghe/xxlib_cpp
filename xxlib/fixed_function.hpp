@@ -8,17 +8,17 @@
 namespace kapala
 {
     
-    template <typename Signature, std::size_t StorageSize = 64>
+    template <typename Signature, size_t StorageSize = 64>
     class fixed_function;
     
-    template <typename R, typename... Args, std::size_t StorageSize>
+    template <typename R, typename... Args, size_t StorageSize>
     class fixed_function<R(Args...), StorageSize>
     {
     public:
         using func_ptr_type = R(*)(Args...);
         using method_type = R(*)(void*, func_ptr_type, Args...);
         using alloc_type = void(*)(void*, void*);
-        using storage_type = typename std::aligned_storage<StorageSize, sizeof(std::size_t)>::type;
+        using storage_type = typename std::aligned_storage<StorageSize, sizeof(size_t)>::type;
     private:
         union data_type
         {
@@ -170,7 +170,7 @@ namespace kapala
 			return method_ptr_((void*)&data_.storage_, data_.function_ptr_, args...);
 		}
         
-        constexpr static std::size_t standard_layout_size()
+        constexpr static size_t standard_layout_size()
         {
             return sizeof(fixed_function);
         }

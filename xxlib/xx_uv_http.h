@@ -73,7 +73,7 @@ namespace xx {
 				throw r;
 			}
 
-			response.onSend = [this](std::string const& prefix, char const* const& buf, std::size_t const& len)->int {
+			response.onSend = [this](std::string const& prefix, char const* const& buf, size_t const& len)->int {
 				// calc buf max len
 				auto cap = sizeof(uv_write_t_ex) + /* partial http header */prefix.size() + /* len */20 + /*\r\n\r\n*/4 + /* body */len;
 

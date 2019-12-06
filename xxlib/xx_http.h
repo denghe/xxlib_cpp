@@ -74,7 +74,7 @@ namespace xx {
 
 		// 从 queries 下标定位 并转换数据类型填充 value
 		template<typename T>
-		inline bool TryParse(std::vector<std::pair<char*, char*>> const& kvs, std::size_t const& index, T& value) {
+		inline bool TryParse(std::vector<std::pair<char*, char*>> const& kvs, size_t const& index, T& value) {
 			if (index >= kvs.size()) return false;
 			return xx::TryParse(kvs[index].second, value);
 		}
@@ -284,7 +284,7 @@ namespace xx {
 
 
 		// 下发 html( 由外部赋值 )
-		std::function<int(std::string const& prefix, char const* const& buf, std::size_t const& len)> onSend;
+		std::function<int(std::string const& prefix, char const* const& buf, size_t const& len)> onSend;
 
 		// 将 output 以 html 格式发出
 		inline int Send() {
@@ -338,7 +338,7 @@ namespace xx {
 		std::deque<HttpContext> ctxs;
 
 		// 获取已接收完整的 http 数据个数
-		std::size_t GetFinishedCtxsCount() {
+		size_t GetFinishedCtxsCount() {
 			return ctxs.size() - (parser.data == this ? 0 : 1);
 		}
 
@@ -352,15 +352,15 @@ namespace xx {
 				parser->data = &p->ctxs.emplace_back(p);	// data 指向具体数据块 开始填充
 				return 0;
 			};
-			parser_settings.on_url = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
+			parser_settings.on_url = [](http_parser* parser, const char* buf, size_t length) noexcept {
 				((HttpContext*)parser->data)->url.append(buf, length);
 				return 0;
 			};
-			parser_settings.on_status = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
+			parser_settings.on_status = [](http_parser* parser, const char* buf, size_t length) noexcept {
 				((HttpContext*)parser->data)->status.append(buf, length);
 				return 0;
 			};
-			parser_settings.on_header_field = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
+			parser_settings.on_header_field = [](http_parser* parser, const char* buf, size_t length) noexcept {
 				auto c = (HttpContext*)parser->data;
 				if (c->lastValue) {
 					c->lastValue = nullptr;
@@ -368,7 +368,7 @@ namespace xx {
 				c->lastKey.append(buf, length);
 				return 0;
 			};
-			parser_settings.on_header_value = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
+			parser_settings.on_header_value = [](http_parser* parser, const char* buf, size_t length) noexcept {
 				auto c = (HttpContext*)parser->data;
 				if (!c->lastValue) {
 					auto&& r = c->headers[c->lastKey];
@@ -384,7 +384,7 @@ namespace xx {
 				c->keepAlive = http_should_keep_alive(parser);
 				return 0;
 			};
-			parser_settings.on_body = [](http_parser* parser, const char* buf, std::size_t length) noexcept {
+			parser_settings.on_body = [](http_parser* parser, const char* buf, size_t length) noexcept {
 				((HttpContext*)parser->data)->body.append(buf, length);
 				return 0;
 			};
@@ -402,7 +402,7 @@ namespace xx {
 		}
 
 		// 输入数据, 解析完成的 http 数据将压入 ctxs. 用 GetFinishedCtxsCount() 来拿正确长度. 
-		inline int Input(char const* const& buf, std::size_t const& len) {
+		inline int Input(char const* const& buf, size_t const& len) {
 			auto&& parsedLen = http_parser_execute(&parser, &parser_settings, buf, len);
 			if (parsedLen < len) {
 				return parser.http_errno;	// http_errno_description((http_errno)parser.http_errno)

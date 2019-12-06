@@ -166,10 +166,10 @@ namespace xx::Epoll {
 		xx::BufQueue sendQueue;
 
 		// 每 fd 每一次可写, 写入的长度限制( 希望能实现当大量数据下发时各个 socket 公平的占用带宽 )
-		std::size_t sendLenPerFrame = 65536;
+		size_t sendLenPerFrame = 65536;
 
 		// 读缓冲区内存扩容增量
-		std::size_t readBufLen = 65536;
+		size_t readBufLen = 65536;
 
 
 		// 数据接收事件: 从 recv 拿数据. 默认实现为 echo
@@ -179,7 +179,7 @@ namespace xx::Epoll {
 		virtual void OnDisconnect(int const& reason);
 
 		// buf + len 塞队列并开始发送
-		virtual int Send(char const* const& buf, std::size_t const& len) = 0;
+		virtual int Send(char const* const& buf, size_t const& len) = 0;
 
 		// Buf 对象塞队列并开始发送。传递 BBuffer 或者优化群发比较便利. 相关信息需参考 Buf 构造函数
 		virtual int Send(xx::Buf&& data) = 0;
@@ -204,7 +204,7 @@ namespace xx::Epoll {
 	struct TcpPeer : Peer {
 		virtual void OnEpollEvent(uint32_t const& e) override;
 		virtual int Send(xx::Buf&& data) override;
-		virtual int Send(char const* const& buf, std::size_t const& len) override;
+		virtual int Send(char const* const& buf, size_t const& len) override;
 		virtual int Flush() override;
 	protected:
 		int Write();
@@ -259,7 +259,7 @@ namespace xx::Epoll {
 	struct UdpPeer : Peer {
 		virtual void OnEpollEvent(uint32_t const& e) override;
 		virtual int Send(xx::Buf&& data) override;
-		virtual int Send(char const* const& buf, std::size_t const& len) override;	// 直接发送, 不压队列
+		virtual int Send(char const* const& buf, size_t const& len) override;	// 直接发送, 不压队列
 		virtual int Flush() override;
 	};
 	using UdpPeer_r = Ref<UdpPeer>;
@@ -320,7 +320,7 @@ namespace xx::Epoll {
 		~KcpPeer();
 
 		virtual int Send(xx::Buf&& data) override;
-		virtual int Send(char const* const& buf, std::size_t const& len) override;
+		virtual int Send(char const* const& buf, size_t const& len) override;
 		virtual int Flush() override;
 	};
 
@@ -433,7 +433,7 @@ namespace xx::Epoll {
 
 
 		// wheelLen: 定时器轮子尺寸( 按帧 )
-		Context(std::size_t const& wheelLen = 1 << 12);
+		Context(size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
 

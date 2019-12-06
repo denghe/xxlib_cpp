@@ -189,7 +189,7 @@ namespace xx::Epoll {
 		}
 	}
 
-	inline int TcpPeer::Send(char const* const& buf, std::size_t const& len) {
+	inline int TcpPeer::Send(char const* const& buf, size_t const& len) {
 		sendQueue.Push(xx::Buf(buf, len));
 		return !writing ? Write() : 0;
 	}
@@ -228,7 +228,7 @@ namespace xx::Epoll {
 		}
 
 		// 完整发送
-		else if ((std::size_t)sentLen == bufLen) {
+		else if ((size_t)sentLen == bufLen) {
 			// 快速弹出已发送数据
 			sendQueue.Pop(vsLen, offset, bufLen);
 
@@ -406,7 +406,7 @@ namespace xx::Epoll {
 		return (int)sendto(fd, data.buf, data.len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 	}
 
-	inline int UdpPeer::Send(char const* const& buf, std::size_t const& len) {
+	inline int UdpPeer::Send(char const* const& buf, size_t const& len) {
 		return (int)sendto(fd, buf, len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 	}
 
@@ -608,7 +608,7 @@ namespace xx::Epoll {
 		return ikcp_send(kcp, (char*)data.buf, (int)data.len);
 	}
 
-	inline int KcpPeer::Send(char const* const& buf, std::size_t const& len) {
+	inline int KcpPeer::Send(char const* const& buf, size_t const& len) {
 		return ikcp_send(kcp, (char*)buf, (int)len);
 	}
 
@@ -836,7 +836,7 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	inline Context::Context(std::size_t const& wheelLen)
+	inline Context::Context(size_t const& wheelLen)
 		: TimeoutManager(wheelLen) {
 		// 创建 epoll fd
 		efd = epoll_create1(0);
@@ -1158,7 +1158,6 @@ namespace xx::Epoll {
 			p->fd = fd;
 			fdMappings[fd] = p;
 		}
-		xx::CoutN("AddItem fd = ", fd);
 		return p;
 	}
 }

@@ -1,7 +1,7 @@
 ﻿#include "xx_epoll2.hpp"
 namespace EP = xx::Epoll;
 
-std::size_t counter = 0;
+size_t counter = 0;
 
 struct P : EP::TcpPeer {
 	inline virtual void OnReceive() override {
@@ -34,14 +34,21 @@ struct U : EP::UdpPeer {
 int main() {
 	xx::IgnoreSignal();
 	EP::Context ep;
-	if (!ep.CreateTcpListener<L>(12345)) {
+	int basePort = 12345;
+	if (!ep.CreateTcpListener<L>(basePort)) {
 		xx::CoutN("create tcp listener failed.");
 		return -1;
 	}
-	for (int port = 10000; port < 10015; ++port) {
+	else {
+		xx::CoutN("create tcp listener success. port = ", basePort);
+	}
+	for (int port = basePort; port < basePort + 10; ++port) {
 		if (!ep.CreateUdpPeer<U>(port)) {
 			xx::CoutN("create udp peer failed. port = ", port);
 			return -2;
+		}
+		else {
+			xx::CoutN("create udp peer success. port = ", port);
 		}
 	}
 	if (!ep.CreateTimer(100, [&](auto t) {

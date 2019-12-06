@@ -10,7 +10,7 @@ namespace xx {
 		uint8_t* buf;
 
 		// 内存块内有效数据长度
-		std::size_t len;
+		size_t len;
 
 		// 指向内存块中引用计数变量
 		int* refs;
@@ -46,13 +46,13 @@ namespace xx {
 		}
 
 		// 复制内存
-		Buf(void const* const& buf, std::size_t const& len) {
+		Buf(void const* const& buf, size_t const& len) {
 			Init(malloc(len + 8), len);
 			memcpy(this->buf, buf, len);
 		}
 
 		// unsafe: 直接使用传入的内存( len 后面还需要 refs 的存储空间 )
-		Buf(std::size_t const& len, void* const& buf) {
+		Buf(size_t const& len, void* const& buf) {
 			Init(buf, len);
 		}
 
@@ -110,13 +110,13 @@ namespace xx {
 		}
 
 		// buf 需要有额外的存 refs 的内存空间
-		inline void Init(void* const& buf, std::size_t const& len) {
+		inline void Init(void* const& buf, size_t const& len) {
 			// 直读内存信息
 			this->buf = (uint8_t*)buf;
 			this->len = len;
 
 			// 计算出 refs 的 4 字节对齐位置
-			refs = (int*)(((((std::size_t)buf + len - 1) / 4) + 1) * 4);
+			refs = (int*)(((((size_t)buf + len - 1) / 4) + 1) * 4);
 
 			// 初始引用计数为 1
 			*refs = 1;

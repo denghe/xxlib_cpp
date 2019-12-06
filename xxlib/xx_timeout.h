@@ -27,7 +27,7 @@ namespace xx {
 		int cursor = 0;
 
 		// 传入 2^n 的轮子长度
-		TimeoutManager(std::size_t const& maxLen = 1 << 12) {
+		TimeoutManager(size_t const& maxLen = 1 << 12) {
 			wheel.resize(maxLen);
 		}
 

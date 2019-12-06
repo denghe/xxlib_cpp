@@ -18,10 +18,10 @@ namespace xx {
 		ResumerManager& resumeManager;
 
 		// 指向自己位于 父容器的下标
-		std::size_t resumesIndex = -1;
+		size_t resumesIndex = -1;
 
 		// 指向自己位于 frame 条件父容器的下标
-		std::size_t resumeFrameIndex = -1;
+		size_t resumeFrameIndex = -1;
 
 		// 指向自己位于 timeout 条件父容器的下标
 		int timeoutIndex = -1;				// 位于 timeoutWheel 的下标. 如果该 peer 为 head 则该值非 -1 则可借助该值定位到 wheel 中的位置

@@ -4,7 +4,7 @@ namespace EP = xx::Epoll;
 struct D;
 struct P : EP::TcpPeer {
 	EP::Ref<D> dialer;
-	std::size_t counter = 0;
+	size_t counter = 0;
 	virtual void OnReceive() override;
 	virtual void OnDisconnect(int const& reason) override;
 };
@@ -66,7 +66,7 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 	}
 
 	ep.CreateTimer(10, [&](auto t) {
-		std::size_t tcpCounter = 0;
+		size_t tcpCounter = 0;
 		for (auto&& d : ds) {
 			if (auto p = d->peer.Lock()) {
 				tcpCounter += p->counter;
@@ -85,7 +85,7 @@ int TestTcp(int const& threadId, int const& numTcpClients, char const* const& ta
 
 struct U : EP::UdpPeer {
 	using BaseType = EP::UdpPeer;
-	std::size_t counter = 0;
+	size_t counter = 0;
 	bool received = false;
 	inline virtual void OnReceive() override {
 		++counter;
@@ -119,7 +119,7 @@ int TestUdp(int const& threadId, int const& numUdpClients, char const* const& ta
 	}
 
 	ep.CreateTimer(100, [&](auto t) {
-		std::size_t udpCounter = 0;
+		size_t udpCounter = 0;
 		for (auto&& u : us) {
 			if (auto o = u.Lock()) {
 				if (!o->counter) {

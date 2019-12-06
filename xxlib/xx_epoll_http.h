@@ -24,7 +24,7 @@ namespace xx {
 			auto&& receiver = (HttpReceiver*)pr->userData;
 
 			// 重设 response 输出函数，关联到当前 pr
-			response.onSend = [pr](std::string const& prefix, char const* const& buf, std::size_t const& len)->int {
+			response.onSend = [pr](std::string const& prefix, char const* const& buf, size_t const& len)->int {
 				if (!pr) return -1;
 
 				// calc buf max len
@@ -32,7 +32,7 @@ namespace xx {
 
 				// alloc memory
 				auto data = (char*)::malloc(cap);
-				std::size_t dataLen = 0;
+				size_t dataLen = 0;
 
 				// append partial http header
 				::memcpy(data + dataLen, prefix.data(), prefix.size());

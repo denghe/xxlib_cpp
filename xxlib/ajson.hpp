@@ -43,7 +43,7 @@ namespace ajson
     struct string_ref
     {
       char const *  str = nullptr;
-      std::size_t        len = 0;
+      size_t        len = 0;
       bool operator == (string_ref const& rhs) const
       {
         if (len == rhs.len)
@@ -58,7 +58,7 @@ namespace ajson
 
     inline void add_field(char const * pre, char const * cur, field_list& fields)
     {
-      std::size_t len = cur - pre;
+      size_t len = cur - pre;
       if (len > 0)
       {
         fields.emplace_back();
@@ -85,7 +85,7 @@ namespace ajson
     {
       if (c > ' ' || c <= 0)
         return false;
-      return char_table()[(std::size_t)c] == 17;
+      return char_table()[(size_t)c] == 17;
     }
 
     inline char const * skip_ws(char const * str)
@@ -206,10 +206,10 @@ namespace ajson
   {
     token   cur_tok_;
     const char  * ptr_ = nullptr;
-    std::size_t  len_ = 0;
-    std::size_t  cur_col_ = 0;
-    std::size_t  cur_line_ = 0;
-    std::size_t  cur_offset_ = 0;
+    size_t  len_ = 0;
+    size_t  cur_col_ = 0;
+    size_t  cur_line_ = 0;
+    size_t  cur_offset_ = 0;
     bool    end_mark_ = false;
     double decimal = 0.1;
     int    exp = 0;
@@ -524,7 +524,7 @@ namespace ajson
       } while (1);
     }
   public:
-    reader(const char * ptr = nullptr, std::size_t len = -1)
+    reader(const char * ptr = nullptr, size_t len = -1)
       :ptr_(ptr), len_(len)
     {
       if (ptr == nullptr)
@@ -542,10 +542,10 @@ namespace ajson
       next();
     }
 
-    static inline char* itoa_native(std::size_t val , char * buffer , std::size_t len)
+    static inline char* itoa_native(size_t val , char * buffer , size_t len)
     {
       buffer[len] = 0;
-      std::size_t pos = len - 1;
+      size_t pos = len - 1;
       if (val == 0)
       {
         buffer[pos--] = '0';
@@ -697,7 +697,7 @@ namespace ajson
     char * m_write_ptr;
     char * m_tail_ptr;
     int							m_status;
-    std::size_t			m_length;
+    size_t			m_length;
 
     enum{ INIT_BUFF_SIZE = 1024 };
     ajson_string_stream() :m_length(INIT_BUFF_SIZE), m_status(good)
@@ -713,7 +713,7 @@ namespace ajson
       this->alloc.deallocate(m_header_ptr, this->m_length);
     }
 
-    inline std::size_t read(char * buffer, std::size_t len)
+    inline size_t read(char * buffer, size_t len)
     {
       if (this->m_read_ptr + len > this->m_tail_ptr)
       {
@@ -725,11 +725,11 @@ namespace ajson
       return len;
     }
 
-    inline std::size_t growpup(std::size_t want_size)
+    inline size_t growpup(size_t want_size)
     {
-      std::size_t new_size = ((want_size + INIT_BUFF_SIZE - 1) / INIT_BUFF_SIZE)*INIT_BUFF_SIZE;
-      std::size_t write_pos = this->m_write_ptr - this->m_header_ptr;
-      std::size_t read_pos = this->m_read_ptr - this->m_header_ptr;
+      size_t new_size = ((want_size + INIT_BUFF_SIZE - 1) / INIT_BUFF_SIZE)*INIT_BUFF_SIZE;
+      size_t write_pos = this->m_write_ptr - this->m_header_ptr;
+      size_t read_pos = this->m_read_ptr - this->m_header_ptr;
       char * temp = this->m_header_ptr;
       this->m_header_ptr = this->alloc.allocate(new_size);
       std::memcpy(this->m_header_ptr, temp, this->m_length);
@@ -741,9 +741,9 @@ namespace ajson
       return new_size;
     }
 
-    inline std::size_t write(const char * buffer, std::size_t len)
+    inline size_t write(const char * buffer, size_t len)
     {
-      std::size_t writed_len = this->m_write_ptr + len - this->m_header_ptr;
+      size_t writed_len = this->m_write_ptr + len - this->m_header_ptr;
       if (writed_len > this->m_length)
       {
         this->growpup(writed_len);
@@ -755,7 +755,7 @@ namespace ajson
 
     inline void put(char c)
     {
-      std::size_t writed_len = this->m_write_ptr + 1 - this->m_header_ptr;
+      size_t writed_len = this->m_write_ptr + 1 - this->m_header_ptr;
       if (writed_len > this->m_length)
       {
         this->growpup(writed_len);
@@ -835,12 +835,12 @@ namespace ajson
       return s;
     }
 
-    inline ::std::size_t read_length() const
+    inline ::size_t read_length() const
     {
       return this->m_read_ptr - this->m_header_ptr;
     }
 
-    inline ::std::size_t write_length() const
+    inline ::size_t write_length() const
     {
       return this->m_write_ptr - this->m_header_ptr;
     }
@@ -874,15 +874,15 @@ namespace ajson
       }
     }
 
-    inline std::size_t read(char * buffer, std::size_t len)
+    inline size_t read(char * buffer, size_t len)
     {
-      std::size_t rlen = std::fread(buffer, len, 1, this->m_f);
+      size_t rlen = std::fread(buffer, len, 1, this->m_f);
       return rlen;
     }
 
-    inline std::size_t write(const char * buffer, std::size_t len)
+    inline size_t write(const char * buffer, size_t len)
     {
-      std::size_t wlen = std::fwrite(buffer, len, 1, this->m_f);
+      size_t wlen = std::fwrite(buffer, len, 1, this->m_f);
       return wlen;
     }
 
@@ -893,7 +893,7 @@ namespace ajson
 
     inline bool bad(){ return m_status != good; }
 
-    inline int seekp(std::size_t offset, int seek_dir)
+    inline int seekp(size_t offset, int seek_dir)
     {
       return std::fseek(this->m_f, (int)offset, seek_dir);
     }
@@ -918,7 +918,7 @@ namespace ajson
         s_.put('0');
     }
 
-    inline void write_liter(char const * str, std::size_t len)
+    inline void write_liter(char const * str, size_t len)
     {
       s_.write(str, len);
     }
@@ -955,7 +955,7 @@ namespace ajson
       return state;
     }
 
-    inline void write_str(char const * str, std::size_t len)
+    inline void write_str(char const * str, size_t len)
     {
       static char const * hex_table = "0123456789ABCDEF";
 
@@ -1195,8 +1195,8 @@ namespace ajson
       int64_t temp = (int64_t)val;
       char buffer[64];
       buffer[63] = 0;
-      std::size_t len = 64;
-      std::size_t pos = 62;
+      size_t len = 64;
+      size_t pos = 62;
       bool Sig = false;
       if (temp < 0)
       {
@@ -1287,8 +1287,8 @@ namespace ajson
       uint64_t temp = (uint64_t)val;
       char buffer[64];
       buffer[63] = 0;
-      std::size_t len = 64;
-      std::size_t pos = 62;
+      size_t len = 64;
+      size_t pos = 62;
       if (temp == 0)
       {
         buffer[pos--] = '0';
@@ -1385,7 +1385,7 @@ namespace ajson
 #else
       gcvt(val, 62, buffer);
 #endif // MSVC
-      std::size_t len = std::strlen(buffer);
+      size_t len = std::strlen(buffer);
       if (buffer[len - 1] == '.')
       {
         buffer[len - 1] = '\0';
@@ -1407,7 +1407,7 @@ namespace ajson
   {
     if (v>=0 && v <= 'f')
     {
-      v = detail::char_table()[(std::size_t)v];
+      v = detail::char_table()[(size_t)v];
     }
     else
     {
@@ -1416,7 +1416,7 @@ namespace ajson
     return v;
   }
 
-  inline uint64_t read_utf(const char * data, std::size_t)
+  inline uint64_t read_utf(const char * data, size_t)
   {
     char v = char_to_hex(*data++);
     if (v >= 16)
@@ -1473,7 +1473,7 @@ namespace ajson
   }
 
   template<typename string_ty>
-  bool escape_string(string_ty& str , const char * data , std::size_t len)
+  bool escape_string(string_ty& str , const char * data , size_t len)
   {
     str.clear();
     str.reserve(len);
@@ -1589,7 +1589,7 @@ namespace ajson
     }
   };
 
-  inline void char_array_read(reader& rd, char * val , std::size_t N)
+  inline void char_array_read(reader& rd, char * val , size_t N)
   {
     auto& tok = rd.peek();
     if (tok.type == token::t_string)
@@ -1599,7 +1599,7 @@ namespace ajson
       {
         rd.error("not a valid string.");
       }
-      std::size_t len = str.length();
+      size_t len = str.length();
       if (len > N)
         len = N;
       std::memcpy(val, str.data(), len);
@@ -1614,12 +1614,12 @@ namespace ajson
   }
 
   template<typename write_ty>
-  inline void char_array_write(write_ty& wt, const char * val, std::size_t N)
+  inline void char_array_write(write_ty& wt, const char * val, size_t N)
   {
     wt.write_str(val, N);
   }
 
-  template<std::size_t N>
+  template<size_t N>
   struct json_impl <char[N]>
   {
     static inline void read(reader& rd, char * val)
@@ -1634,7 +1634,7 @@ namespace ajson
     }
   };
 
-  template<std::size_t N>
+  template<size_t N>
   struct json_impl <const char[N] >
   {
     static inline void read(reader& rd, char * val)
@@ -1658,7 +1658,7 @@ namespace ajson
     }
     rd.next();
     auto tok = &rd.peek();
-    std::size_t count = 0;
+    size_t count = 0;
     while (tok->str.str[0] != ']')
     {
       if (count < N)
@@ -1704,7 +1704,7 @@ namespace ajson
     wt.put(']');
   }
 
-  template<typename T, std::size_t N>
+  template<typename T, size_t N>
   struct json_impl <T[N]>
   {
     static inline void read(reader& rd, T * val)
@@ -1718,7 +1718,7 @@ namespace ajson
     }
   };
 
-  template<typename T, std::size_t N>
+  template<typename T, size_t N>
   struct json_impl < const T[N]>
   {
     static inline void read(reader& rd, T * val)
@@ -1962,16 +1962,16 @@ namespace ajson
 
   template<typename head, typename... args>
   inline int read_members(reader& rd, detail::string_ref const * member_ptr,
-    detail::string_ref const& member, std::size_t pos, head& h, args& ... args_);
+    detail::string_ref const& member, size_t pos, head& h, args& ... args_);
 
   inline int read_members(reader&, detail::string_ref const*,
-    detail::string_ref const&, std::size_t);
+    detail::string_ref const&, size_t);
 
   template<typename head, typename... args>
   struct read_members_impl
   {
     static inline int read(reader& rd, detail::string_ref const * member_ptr,
-      detail::string_ref const& member, std::size_t pos, head& val, args& ... args_)
+      detail::string_ref const& member, size_t pos, head& val, args& ... args_)
     {
       if (member_ptr[pos] == member)
       {
@@ -1986,20 +1986,20 @@ namespace ajson
 
   template<typename head, typename... args>
   inline int read_members(reader& rd, detail::string_ref const * member_ptr,
-    detail::string_ref const& member, std::size_t pos, head& h, args& ... args_)
+    detail::string_ref const& member, size_t pos, head& h, args& ... args_)
   {
     return read_members_impl<head, args...>::read(rd, member_ptr,
       member, pos, h, args_...);
   }
 
   inline int read_members(reader&, detail::string_ref const*,
-    detail::string_ref const&, std::size_t)
+    detail::string_ref const&, size_t)
   {
     return 0;
   }
 
   template<typename ty>
-  inline void load_from_buff(ty& val, const char * buff, std::size_t len = -1)
+  inline void load_from_buff(ty& val, const char * buff, size_t len = -1)
   {
     typedef typename std::remove_cv<ty>::type rty;
     reader rd(buff, len);
@@ -2027,7 +2027,7 @@ namespace ajson
     }
     file_guard fg(f);
     std::fseek(f, 0, SEEK_END);
-    std::size_t sz = std::ftell(f);
+    size_t sz = std::ftell(f);
     std::fseek(f, 0, SEEK_SET);
 
     struct buffer_guard
@@ -2060,16 +2060,16 @@ namespace ajson
 
   template<typename write_ty, typename head, typename... args>
   inline void write_members(write_ty& wt, detail::string_ref const * member_ptr,
-    std::size_t pos, head& h, args& ... args_);
+    size_t pos, head& h, args& ... args_);
 
   template<typename write_ty>
-  inline void write_members(write_ty&, detail::string_ref *, std::size_t);
+  inline void write_members(write_ty&, detail::string_ref *, size_t);
 
   template<typename write_ty, typename head, typename... args>
   struct write_members_impl
   {
     static inline void write(write_ty& wt, detail::string_ref const * member_ptr,
-      std::size_t pos, head const& val, args const& ... args_)
+      size_t pos, head const& val, args const& ... args_)
     {
       wt.write_str(member_ptr[pos].str, member_ptr[pos].len);
       wt.put(':');
@@ -2084,14 +2084,14 @@ namespace ajson
 
   template<typename write_ty, typename head, typename... args>
   inline void write_members(write_ty& wt, detail::string_ref const* member_ptr,
-    std::size_t pos, head const& h, args& ... args_)
+    size_t pos, head const& h, args& ... args_)
   {
     return write_members_impl<write_ty, head, args...>::write(wt, member_ptr,
       pos, h, args_...);
   }
 
   template<typename write_ty>
-  inline void write_members(write_ty&, detail::string_ref const*, std::size_t)
+  inline void write_members(write_ty&, detail::string_ref const*, size_t)
   {
     return;
   }
