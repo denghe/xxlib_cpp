@@ -470,8 +470,36 @@ namespace xx::Epoll {
 	// KcpListener
 	/***********************************************************************************************************/
 
+	inline void KcpListener::Init() {
+		SetTimeout(1);
+	}
+
 	inline KcpPeer_u KcpListener::OnCreatePeer() {
 		return xx::TryMakeU<KcpPeer>();
+	}
+
+	inline void KcpListener::OnTimeout() {
+		// 更新所有 kcps
+		for (auto&& data : kcps) {
+			data.value->UpdateKcpLogic();
+		}
+
+		// 清理超时握手信息
+		for (auto&& iter = shakes.begin(); iter != shakes.end(); ++iter) {
+			if (iter->value.second < ep->nowMS) {
+				iter.Remove();
+			}
+		}
+
+		// 下帧继续触发
+		SetTimeout(1);
+	}
+
+	// 清除 kcps
+	inline KcpListener::~KcpListener() {
+		for (auto&& data : kcps) {
+			data.value->Dispose();
+		}
 	}
 
 	inline void KcpListener::OnReceive() {
@@ -486,13 +514,13 @@ namespace xx::Epoll {
 		// 收到后根据其 ip:port 做 key, 生成 convId
 		// 每次收到都向其发送 convId
 		if (recv.len == 4) {
-			auto&& idx = ep->shakes.Find(ip_port);
+			auto&& idx = shakes.Find(ip_port);
 			if (idx == -1) {
-				idx = ep->shakes.Add(ip_port, std::make_pair(++convId, ep->nowMS + 3000)).index;
+				idx = shakes.Add(ip_port, std::make_pair(++convId, ep->nowMS + 3000)).index;
 			}
 			char tmp[8];	// serial + convId
 			memcpy(tmp, recv.buf, 4);
-			memcpy(tmp + 4, &ep->shakes.ValueAt(idx).first, 4);
+			memcpy(tmp + 4, &shakes.ValueAt(idx).first, 4);
 			Send(tmp, 8);
 			return;
 		}
@@ -508,17 +536,17 @@ namespace xx::Epoll {
 		KcpPeer* p = nullptr;
 
 		// 根据 conv 试定位到 peer
-		auto&& peerIter = ep->kcps.Find(conv);
+		auto&& peerIter = kcps.Find(conv);
 
 		// 如果不存在 就在 shakes 中按 ip:port 找
 		if (peerIter == -1) {
-			auto&& idx = ep->shakes.Find(ip_port);
+			auto&& idx = shakes.Find(ip_port);
 
 			// 未找到或 conv 对不上: 忽略
-			if (idx == -1 || ep->shakes.ValueAt(idx).first != conv) return;
+			if (idx == -1 || shakes.ValueAt(idx).first != conv) return;
 
 			// 从握手信息移除
-			ep->shakes.RemoveAt(idx);
+			shakes.RemoveAt(idx);
 
 			// 始创建 peer
 			auto peer = OnCreatePeer();
@@ -538,7 +566,7 @@ namespace xx::Epoll {
 
 			// 放入容器
 			p = ep->AddItem(std::move(peer));
-			ep->kcps.Add(conv, p);
+			kcps.Add(conv, p);
 
 			// 触发事件回调
 			Ref<KcpPeer> alive(p);
@@ -547,7 +575,7 @@ namespace xx::Epoll {
 		}
 		else {
 			// 定位到目标 peer
-			p = ep->kcps.ValueAt(peerIter);
+			p = kcps.ValueAt(peerIter);
 
 			// 更新地址信息
 			memcpy(&p->addr, &addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
@@ -640,19 +668,25 @@ namespace xx::Epoll {
 	}
 
 	inline KcpPeer::~KcpPeer() {
-		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 有可能不是( KcpListener 公用, 不能回收 ).
-		if (auto o = owner.Lock()) {
-			if (dynamic_cast<KcpConn*>(o)) {
-				o->Dispose();
-			}
-		}
+		// 回收 kcp 相关
 		if (kcp) {
 			ikcp_release(kcp);
 			kcp = nullptr;
 		}
-		if (conv) {
-			ep->kcps.Remove(conv);
-			conv = 0;
+		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 同时从 ep->kcps 移除
+		// 如果是 KcpListener, 则从 listener->kcps 根据 conv Remove( this )
+		if (auto o = owner.Lock()) {
+			if (dynamic_cast<KcpConn*>(o)) {
+				o->Dispose();
+				assert(indexAtKcps != -1);
+				XX_SWAP_REMOVE(this, indexAtKcps, ep->kcps);
+			}
+			else {
+				auto listener = dynamic_cast<KcpListener*>(o);
+				assert(listener);
+				assert(conv);
+				listener->kcps.Remove(conv);
+			}
 		}
 	};
 
@@ -675,6 +709,19 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 	// KcpConn
 	/***********************************************************************************************************/
+
+	inline void KcpConn::OnTimeout() {
+		(void)Send((char*)&serial, 4);
+		SetTimeout(ep->ToFrames(0.2));	// 按 0.2 秒间隔 repeat ( 可能受 cpu 占用影响而剧烈波动 )
+	}
+
+	inline void KcpConn::Init() {
+		// 递增版本号
+		serial = ++ep->autoIncKcpSerial;
+
+		// 发包并激活 timer
+		OnTimeout();
+	}
 
 	inline void KcpConn::OnReceive() {
 		// 4 bytes serial + 4 bytes conv
@@ -728,7 +775,8 @@ namespace xx::Epoll {
 
 			// 放入容器
 			ep->AddItem(std::move(u));
-			ep->kcps.Add(conv, p);
+			p->indexAtKcps = (int)ep->kcps.size();
+			ep->kcps.push_back(p);
 
 			// 通过 kcp 发个包触发 accept
 			(void)p->Send("\x1\0\0\0\0", 5);
@@ -737,11 +785,6 @@ namespace xx::Epoll {
 			// 触发事件回调
 			d->OnConnect(p);
 		}
-	}
-
-	inline void KcpConn::OnTimeout() {
-		(void)Send((char*)&serial, 4);
-		SetTimeout(ep->ToFrames(0.2));	// 按 0.2 秒间隔 repeat ( 可能受 cpu 占用影响而剧烈波动 )
 	}
 
 
@@ -856,6 +899,7 @@ namespace xx::Epoll {
 		conns.push_back(o);
 
 		sg.Cancel();
+		o->Init();
 		return 0;
 	}
 
@@ -863,6 +907,7 @@ namespace xx::Epoll {
 		// 创建 udp socket fd
 		auto&& fd = ep->MakeSocketFD(0, SOCK_DGRAM);
 		if (fd < 0) return fd;
+
 		// 确保 return 时自动 close
 		xx::ScopeGuard sg([&] { close(fd); });
 
@@ -882,10 +927,8 @@ namespace xx::Epoll {
 		o->addr = addr;
 		conns.push_back(o);
 
-		// 发包并激活 timer
-		o->OnTimeout();
-
 		sg.Cancel();
+		o->Init();
 		return 0;
 	}
 
@@ -1006,13 +1049,10 @@ namespace xx::Epoll {
 	}
 
 	inline void Context::UpdateKcps() {
-		for (auto&& data : kcps) {
-			data.value->UpdateKcpLogic();
-		}
-
-		for (auto&& iter = shakes.begin(); iter != shakes.end(); ++iter) {
-			if (iter->value.second < nowMS) {
-				iter.Remove();
+		if (kcps.size()) {
+			// 倒扫方便自杀交焕删除
+			for (int i = (int)kcps.size() - 1; i>=0;--i ) {
+				kcps[i]->UpdateKcpLogic();
 			}
 		}
 	}
@@ -1054,7 +1094,7 @@ namespace xx::Epoll {
 				// 更新一下逻辑可能用到的时间戳
 				nowMS = xx::NowSteadyEpochMS();
 
-				// 驱动 timers
+				// 驱动 timerswfffffff
 				UpdateTimeoutWheel();
 
 				// 驱动 kcps
@@ -1114,8 +1154,10 @@ namespace xx::Epoll {
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
 
-		// 放入容器并返回
-		return AddItem(std::move(o_), fd);
+		// 放入容器, 初始化并返回
+		auto o = AddItem(std::move(o_), fd);
+		o->Init();
+		return o;
 	}
 
 
@@ -1130,7 +1172,11 @@ namespace xx::Epoll {
 			lastErrorNumber = -1;
 			return Ref<TD>();
 		}
-		return AddItem(std::move(o_));
+
+		// 放入容器, 初始化并返回
+		auto o = AddItem(std::move(o_));
+		o->Init();
+		return o;
 	}
 
 
@@ -1158,6 +1204,8 @@ namespace xx::Epoll {
 		// 设置回调
 		o->onFire = std::move(cb);
 
+		// 初始化
+		o->Init();
 		return o;
 	}
 
@@ -1198,6 +1246,9 @@ namespace xx::Epoll {
 
 		// 撤销自动关闭行为并返回结果
 		sg.Cancel();
+
+		// 初始化
+		o->Init();
 		return o;
 	}
 

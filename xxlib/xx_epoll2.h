@@ -75,8 +75,11 @@ namespace xx::Epoll {
 		// linux 系统文件描述符. 用不上就保持默认值
 		int fd = -1;
 
+		// 留个拿到依赖填充完整后的初始化口子( 比如启动 timer, 发首包啥的 )
+		inline virtual void Init() {};
+
 		// epoll 事件处理. 用不上不必实现
-		virtual void OnEpollEvent(uint32_t const& e) {}
+		inline virtual void OnEpollEvent(uint32_t const& e) {}
 
 		// item 所在容器下标
 		int indexAtContainer = -1;
@@ -281,13 +284,26 @@ namespace xx::Epoll {
 		// 自增生成
 		uint32_t convId = 0;
 
+		// kcp conv 值与 peer 的映射。KcpPeer 析构时从该字典移除 key
+		xx::Dict<uint32_t, KcpPeer*> kcps;
+
+		// 带超时的握手信息字典 key: ip:port   value: conv, nowMS
+		xx::Dict<std::string, std::pair<uint32_t, int64_t>> shakes;
+
+		// 启动每帧回调 SetTimeout(1)
+		virtual void Init() override;
+
 		// 连接创建之初后会触发
 		virtual KcpPeer_u OnCreatePeer();
 
 		// 连接创建成功后会触发
 		inline virtual void OnAccept(KcpPeer_r const& peer) {}
 
-		// todo: 析构时杀掉相关 kcp peers? 
+		// 每帧 call kcps UpdateKcpLogic, 清理超时握手数据
+		virtual void OnTimeout() override;
+
+		// 清除 kcps
+		virtual ~KcpListener();
 	protected:
 		// 判断收到的数据内容, 模拟握手， 最后产生能 KcpPeer
 		virtual void OnReceive() override;
@@ -303,6 +319,9 @@ namespace xx::Epoll {
 	struct KcpPeer : Peer {
 		// 用于收发数据的物理 udp peer
 		UdpPeer_r owner;
+
+		// for 快速交焕删除
+		int indexAtKcps = -1;
 
 		// kcp 相关上下文
 		ikcpcb* kcp = nullptr;
@@ -335,13 +354,18 @@ namespace xx::Epoll {
 	struct KcpConn : UdpPeer {
 		// 指向拨号器, 方便调用其 OnConnect 函数
 		Dialer_r dialer;
-		uint32_t serial = 0;	// fill by dialer: = ++ep->autoIncKcpSerial
 
-		// 如果连接成功( 收到返回的握手包 )就 call dialer Finish
-		virtual void OnReceive() override;
+		// 握手数据. 理解为版本号. 每次递增避免晚回应包制造干扰. init: = ++ep->autoIncKcpSerial
+		uint32_t serial = 0;
+
+		// 一开始就发包并启动 timer
+		virtual void Init() override;
 
 		// 如果时间到了就 自动续命 并且发送 握手用数据
 		virtual void OnTimeout() override;
+
+		// 如果连接成功( 收到返回的握手包 )就 call dialer Finish
+		virtual void OnReceive() override;
 	};
 	using KcpConn_r = Ref<KcpConn>;
 
@@ -409,11 +433,8 @@ namespace xx::Epoll {
 		// fd 到 处理类* 的 映射
 		std::array<Item*, 40000> fdMappings;
 
-		// kcp conv 值与 peer 的映射。KcpPeer 析构时从该字典移除 key
-		xx::Dict<uint32_t, KcpPeer*> kcps;
-
-		// 带超时的握手信息字典 key: ip:port   value: conv, nowMS
-		xx::Dict<std::string, std::pair<uint32_t, int64_t>> shakes;
+		// 通过 Dialer 产生的, owner 指向 KcpConn 的 client kcp peers
+		std::vector<KcpPeer*> kcps;
 
 		// 提供自增版本号 for kcp conn
 		uint32_t autoIncKcpSerial = 0;
@@ -492,7 +513,7 @@ namespace xx::Epoll {
 		template<typename T = Timer, typename ...Args>
 		Ref<T> CreateTimer(int const& interval, std::function<void(Timer_r const& timer)>&& cb, Args&&...args);
 
-		// 创建 UdpPeer, KcpListener
+		// 创建 UdpPeer 或 KcpListener
 		template<typename T = UdpPeer, typename ...Args>
 		Ref<T> CreateUdpPeer(int const& port, Args&&... args);
 	};

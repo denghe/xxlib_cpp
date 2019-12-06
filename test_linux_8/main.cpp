@@ -66,7 +66,7 @@ int main() {
 	auto listener = ep.CreateUdpPeer<KL>(port);	
 	assert(listener);
 	auto dialer = ep.CreateDialer<D>();
-	dialer->AddAddress("192.168.1.132", port);
+	dialer->AddAddress("127.0.0.1", port);
 	dialer->Dial(2000, EP::Protocol::Kcp);
 	return ep.Run(100);
 }
