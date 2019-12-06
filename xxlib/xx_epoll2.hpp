@@ -76,10 +76,55 @@ namespace xx::Epoll {
 	// ItemTimeout
 	/***********************************************************************************************************/
 
-	inline TimeoutManager* ItemTimeout::GetTimeoutManager() {
-		return ep;
+	// 返回非 0 表示找不到 管理器 或 参数错误
+	inline int ItemTimeout::SetTimeout(int const& interval) {
+		// 试着从 wheel 链表中移除
+		if (timeoutIndex != -1) {
+			if (timeoutNext != nullptr) {
+				timeoutNext->timeoutPrev = timeoutPrev;
+			}
+			if (timeoutPrev != nullptr) {
+				timeoutPrev->timeoutNext = timeoutNext;
+			}
+			else {
+				ep->wheel[timeoutIndex] = timeoutNext;
+			}
+		}
+
+		// 检查是否传入间隔时间
+		if (interval) {
+			// 如果设置了新的超时时间, 则放入相应的链表
+			// 安全检查
+			if (interval < 0 || interval >(int)ep->wheel.size()) return -2;
+
+			// 环形定位到 wheel 元素目标链表下标
+			timeoutIndex = (interval + ep->cursor) & ((int)ep->wheel.size() - 1);
+
+			// 成为链表头
+			timeoutPrev = nullptr;
+			timeoutNext = ep->wheel[timeoutIndex];
+			ep->wheel[timeoutIndex] = this;
+
+			// 和之前的链表头连起来( 如果有的话 )
+			if (timeoutNext) {
+				timeoutNext->timeoutPrev = this;
+			}
+		}
+		else {
+			// 重置到初始状态
+			timeoutIndex = -1;
+			timeoutPrev = nullptr;
+			timeoutNext = nullptr;
+		}
+
+		return 0;
 	}
 
+	inline ItemTimeout::~ItemTimeout() {
+		if (timeoutIndex != -1) {
+			SetTimeout(0);
+		}
+	}
 
 	/***********************************************************************************************************/
 	// Timer
@@ -388,13 +433,14 @@ namespace xx::Epoll {
 			}
 			// todo: 是否需要检测 ipv4/6 进而填充适当的长度?
 			socklen_t addrLen = sizeof(addr);
-			auto len = recvfrom(fd, recv.buf, recv.cap, 0, (struct sockaddr*)&addr, &addrLen);
+			auto len = recvfrom(fd, recv.buf, recv.cap, 0, (struct sockaddr*) & addr, &addrLen);
 			if (len < 0) {
 				ep->lastErrorNumber = (int)len;
 				Dispose();
 				return;
 			}
 			// todo: len == 0 有没有可能?
+			xx::CoutN("udp recvfrom len = ", len, ", addr = ", addr);
 			recv.len = len;
 			OnReceive();
 		}
@@ -403,11 +449,14 @@ namespace xx::Epoll {
 
 	inline int UdpPeer::Send(xx::Buf&& data) {
 		// todo: 压队列并 Write? 一次最多发送 64k? 切片塞队列? 监视可写事件? 下次事件来继续发?
-		return (int)sendto(fd, data.buf, data.len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		auto r = sendto(fd, data.buf, data.len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		return r > 0 ? 0 : (int)r;
 	}
 
 	inline int UdpPeer::Send(char const* const& buf, size_t const& len) {
-		return (int)sendto(fd, buf, len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		xx::CoutN("udp send to len = ", len, ", addr = ", addr);
+		auto r = sendto(fd, buf, len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		return r > 0 ? 0 : (int)r;
 	}
 
 	inline int UdpPeer::Flush() {
@@ -418,14 +467,14 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
-	// UdpListener
+	// KcpListener
 	/***********************************************************************************************************/
 
-	inline KcpPeer_u UdpListener::OnCreatePeer() {
+	inline KcpPeer_u KcpListener::OnCreatePeer() {
 		return xx::TryMakeU<KcpPeer>();
 	}
 
-	inline void UdpListener::OnReceive() {
+	inline void KcpListener::OnReceive() {
 		// 确保退出时清掉 已收数据
 		xx::ScopeGuard sgRecvClear([this] { recv.Clear(); });
 
@@ -505,9 +554,8 @@ namespace xx::Epoll {
 		}
 
 		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive
-		if (p->Input((uint8_t*)recv.buf, (uint32_t)recv.len)) {
-			p->Dispose();
-		}
+		p->Input((uint8_t*)recv.buf, (uint32_t)recv.len);
+
 		recv.Clear();
 	}
 
@@ -525,7 +573,7 @@ namespace xx::Epoll {
 		(void)ikcp_wndsize(kcp, 1024, 1024);
 		(void)ikcp_nodelay(kcp, 1, 10, 2, 1);
 		kcp->rx_minrto = 10;
-		kcp->stream = 1;
+		//kcp->stream = 1;
 
 		// 给 kcp 绑定 output 功能函数
 		ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
@@ -535,7 +583,7 @@ namespace xx::Epoll {
 				return o->Send(inBuf, len);
 			}
 			return -1;
-		});
+			});
 		return 0;
 	}
 
@@ -553,6 +601,13 @@ namespace xx::Epoll {
 
 		// 更新下次 update 时间
 		nextUpdateMS = ikcp_check(kcp, currentMS);
+	}
+
+	inline void KcpPeer::Input(uint8_t* const& recvBuf, uint32_t const& recvLen) {
+		if (ikcp_input(kcp, (char*)recvBuf, recvLen)) {
+			Dispose();
+			return;
+		}
 
 		// 开始处理收到的数据
 		do {
@@ -573,6 +628,7 @@ namespace xx::Epoll {
 			// 从 kcp 提取数据. 追加填充到 recv 后面区域. 返回填充长度. <= 0 则下次再说
 			auto&& len = ikcp_recv(kcp, (char*)recv.buf + recv.len, (int)(recv.cap - recv.len));
 			if (len <= 0) break;
+			recv.len += len;
 
 			// 调用用户数据处理函数
 			{
@@ -583,12 +639,8 @@ namespace xx::Epoll {
 		} while (true);
 	}
 
-	inline int KcpPeer::Input(uint8_t* const& recvBuf, uint32_t const& recvLen) {
-		return ikcp_input(kcp, (char*)recvBuf, recvLen);
-	}
-
 	inline KcpPeer::~KcpPeer() {
-		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 有可能不是( UdpListener 公用, 不能回收 ).
+		// 看看 owner 是不是 conn 连接对象。如果是 则 kcp peer 死亡时必须回收它. 有可能不是( KcpListener 公用, 不能回收 ).
 		if (auto o = owner.Lock()) {
 			if (dynamic_cast<KcpConn*>(o)) {
 				o->Dispose();
@@ -609,6 +661,7 @@ namespace xx::Epoll {
 	}
 
 	inline int KcpPeer::Send(char const* const& buf, size_t const& len) {
+		xx::CoutN("kcp send len = ", len, ", addr = ", addr);
 		return ikcp_send(kcp, (char*)buf, (int)len);
 	}
 
@@ -644,18 +697,20 @@ namespace xx::Epoll {
 			assert(d);
 
 			// 从 d->conns 找出自己并移除
-			{
-				auto&& iter = std::find_if(d->conns.begin(), d->conns.end(), [&](auto c) {
-					return c.index == indexAtContainer;
-					});
-				assert(iter != d->conns.end());
-				d->conns.erase(iter);
+			for (int i = 0, n = (int)d->conns.size(); i < n; ++i) {
+				if (d->conns[i].index == indexAtContainer) {
+					if (i > n - 1) {
+						std::swap(d->conns[i], d->conns[n - 1]);
+					}
+					d->conns.resize(n - 1);
+					break;
+				}
 			}
 
 			// 停止所有拨号行为并清空
 			d->Stop();
 
-			// 始创建 peer
+			// 开始创建 peer
 			auto u = d->OnCreatePeer(true);
 			if (!u) return;
 			auto p = dynamic_cast<KcpPeer*>(u.get());
@@ -818,13 +873,17 @@ namespace xx::Epoll {
 		sg.Set([&] { ep->CloseDel(fd); });
 
 		// 试创建目标类实例
-		auto o_ = std::make_unique<KcpConn>();
+		auto o_ = xx::TryMakeU<KcpConn>();
+		if (!o_) return -5;
 
 		// 继续初始化并放入容器
 		auto o = ep->AddItem(std::move(o_), fd);
 		o->dialer = this;
 		o->addr = addr;
 		conns.push_back(o);
+
+		// 发包并激活 timer
+		o->OnTimeout();
 
 		sg.Cancel();
 		return 0;
@@ -836,14 +895,16 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	inline Context::Context(size_t const& wheelLen)
-		: TimeoutManager(wheelLen) {
+	inline Context::Context(size_t const& wheelLen) {
 		// 创建 epoll fd
 		efd = epoll_create1(0);
 		if (-1 == efd) throw - 1;
 
 		// 初始化处理类映射表
 		fdMappings.fill(nullptr);
+
+		// 初始化时间伦
+		wheel.resize(wheelLen);
 	}
 
 	inline Context::~Context() {
@@ -926,6 +987,22 @@ namespace xx::Epoll {
 			h->OnEpollEvent(e);
 		}
 		return 0;
+	}
+
+	inline void Context::UpdateTimeoutWheel() {
+		cursor = (cursor + 1) & ((int)wheel.size() - 1);
+		auto p = wheel[cursor];
+		wheel[cursor] = nullptr;
+		while (p) {
+			auto np = p->timeoutNext;
+
+			p->timeoutIndex = -1;
+			p->timeoutPrev = nullptr;
+			p->timeoutNext = nullptr;
+
+			p->OnTimeout();
+			p = np;
+		};
 	}
 
 	inline void Context::UpdateKcps() {

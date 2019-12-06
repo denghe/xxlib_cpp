@@ -22,7 +22,6 @@
 #include "xx_queue.h"
 #include "xx_buf.h"
 #include "xx_buf_queue.h"
-#include "xx_timeout.h"
 #include "xx_itempool.h"
 
 
@@ -127,9 +126,14 @@ namespace xx::Epoll {
 	// ItemTimeout
 	/***********************************************************************************************************/
 
-	// 需要自带超时功能的 item 可继承, 省一个覆盖函数
-	struct ItemTimeout : Item, xx::TimeoutBase {
-		virtual TimeoutManager* GetTimeoutManager() override;
+	// 需要自带超时功能的 item 可继承
+	struct ItemTimeout : Item {
+		int timeoutIndex = -1;
+		ItemTimeout* timeoutPrev = nullptr;
+		ItemTimeout* timeoutNext = nullptr;
+		int SetTimeout(int const& interval);
+		virtual void OnTimeout() = 0;
+		~ItemTimeout();
 	};
 
 
@@ -267,13 +271,13 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
-	// UdpListener
+	// KcpListener
 	/***********************************************************************************************************/
 
 	struct KcpPeer;
 	using KcpPeer_r = Ref<KcpPeer>;
 	using KcpPeer_u = std::unique_ptr<KcpPeer>;
-	struct UdpListener : UdpPeer {
+	struct KcpListener : UdpPeer {
 		// 自增生成
 		uint32_t convId = 0;
 
@@ -283,13 +287,12 @@ namespace xx::Epoll {
 		// 连接创建成功后会触发
 		inline virtual void OnAccept(KcpPeer_r const& peer) {}
 
-		// 杀掉相关 kcp peers?
-		//virtual void OnDispose() override;
+		// todo: 析构时杀掉相关 kcp peers? 
 	protected:
 		// 判断收到的数据内容, 模拟握手， 最后产生能 KcpPeer
 		virtual void OnReceive() override;
 	};
-	using UdpListener_r = Ref<UdpListener>;
+	using KcpListener_r = Ref<KcpListener>;
 
 
 
@@ -314,7 +317,7 @@ namespace xx::Epoll {
 		virtual void UpdateKcpLogic();
 
 		// 被 owner 调用. 塞数据到 kcp
-		int Input(uint8_t* const& recvBuf, uint32_t const& recvLen);
+		void Input(uint8_t* const& recvBuf, uint32_t const& recvLen);
 
 		// 回收 kcp 对象, 从 ep->kcps 移除
 		~KcpPeer();
@@ -399,7 +402,7 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	struct Context : TimeoutManager {
+	struct Context {
 		// 所有类实例唯一容器。外界用 Ref 来存引用. 自带自增版本号管理
 		ItemPool<Item_u> items;
 
@@ -430,9 +433,12 @@ namespace xx::Epoll {
 		// Run 时填充, 以便于局部获取并转换时间单位
 		double frameRate = 1;
 
+		// 只存指针引用, 不管理内存
+		std::vector<ItemTimeout*> wheel;
+		int cursor = 0;
 
 
-		// wheelLen: 定时器轮子尺寸( 按帧 )
+		// 传入 2^n 的轮子长度
 		Context(size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
@@ -449,6 +455,10 @@ namespace xx::Epoll {
 
 		// 进入一次 epoll wait. 可传入超时时间. 
 		int Wait(int const& timeoutMS);
+
+
+		// 每帧调用一次 以驱动 timer
+		inline void UpdateTimeoutWheel();
 
 		// 遍历 kcp 并 Update
 		void UpdateKcps();
@@ -470,7 +480,7 @@ namespace xx::Epoll {
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		int Run(double const& frameRate = 60.3);
 
-		// 创建 监听器	// todo: 支持填写ip, 支持传入复用 fd
+		// 创建 TCP 监听器	// todo: 支持填写ip, 支持传入复用 fd
 		template<typename T = TcpListener, typename ...Args>
 		Ref<T> CreateTcpListener(int const& port, Args&&... args);
 
@@ -482,7 +492,7 @@ namespace xx::Epoll {
 		template<typename T = Timer, typename ...Args>
 		Ref<T> CreateTimer(int const& interval, std::function<void(Timer_r const& timer)>&& cb, Args&&...args);
 
-		// 创建 UdpPeer
+		// 创建 UdpPeer, KcpListener
 		template<typename T = UdpPeer, typename ...Args>
 		Ref<T> CreateUdpPeer(int const& port, Args&&... args);
 	};

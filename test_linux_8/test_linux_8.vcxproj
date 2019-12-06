@@ -52,6 +52,13 @@
     <Link>
       <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <RemotePostBuildEvent>
+      <Command>[ -e $(RemoteDeployDir)/bin ] || ln -dsf $(RemoteDeployDir)/$(TargetName)/bin $(RemoteDeployDir)/bin</Command>
+    </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -62,6 +69,13 @@
     <Link>
       <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <RemotePostBuildEvent>
+      <Command>[ -e $(RemoteDeployDir)/bin ] || ln -dsf $(RemoteDeployDir)/$(TargetName)/bin $(RemoteDeployDir)/bin</Command>
+    </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

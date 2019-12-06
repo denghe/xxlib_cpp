@@ -10,7 +10,7 @@ struct P : EP::TcpPeer {
 	}
 
 	inline virtual void OnDisconnect(int const& reason = 0) override {
-		xx::CoutN("ip: ", addr, " disconnected. reason = ", reason);
+		xx::CoutN("tcp ip: ", addr, " disconnected. reason = ", reason);
 	}
 };
 
@@ -20,18 +20,54 @@ struct L : EP::TcpListener {
 	}
 
 	inline virtual void OnAccept(EP::TcpPeer_r peer) override {
-		xx::CoutN("ip: ", peer->addr, " accepted.");
+		xx::CoutN("tcp ip: ", peer->addr, " accepted.");
 	}
 };
 
-struct U : EP::UdpPeer {
+struct KP : EP::KcpPeer {
+	size_t counter = 0;
 	inline virtual void OnReceive() override {
-		++counter;
-		this->UdpPeer::OnReceive();
+		xx::CoutN(recv.len);
+		// 忽略握手包
+		if (*recv.buf == 1 && recv.len == 5) {
+			recv.Clear();
+			xx::CoutN("recv hand shake package.");
+		}
+		else {
+			++counter;
+			if (Send(recv.buf, recv.len)) {
+				OnDisconnect(-3);
+				Dispose();
+			}
+			else {
+				recv.Clear();
+				Flush();
+			}
+		}
+	}
+
+	inline virtual void OnDisconnect(int const& reason = 0) override {
+		xx::CoutN("kcp ip: ", addr, " disconnected. reason = ", reason);
 	}
 };
 
-int main() {
+struct KL : EP::KcpListener {
+	inline virtual EP::KcpPeer_u OnCreatePeer() override {
+		return xx::TryMakeU<KP>();
+	}
+	inline virtual void OnAccept(EP::KcpPeer_r const& peer) override {
+		xx::CoutN("kcp ip: ", peer->addr, " accepted.");
+	}
+};
+
+//struct U : EP::UdpPeer {
+//	inline virtual void OnReceive() override {
+//		++counter;
+//		this->UdpPeer::OnReceive();
+//	}
+//};
+
+int main() { 
 	xx::IgnoreSignal();
 	EP::Context ep;
 	int basePort = 12345;
@@ -43,7 +79,7 @@ int main() {
 		xx::CoutN("create tcp listener success. port = ", basePort);
 	}
 	for (int port = basePort; port < basePort + 10; ++port) {
-		if (!ep.CreateUdpPeer<U>(port)) {
+		if (!ep.CreateUdpPeer<KL>(port)) {
 			xx::CoutN("create udp peer failed. port = ", port);
 			return -2;
 		}
@@ -52,8 +88,10 @@ int main() {
 		}
 	}
 	if (!ep.CreateTimer(100, [&](auto t) {
-		xx::CoutN("counter = ", counter);
-		counter = 0;
+		if (counter) {
+			xx::CoutN("counter = ", counter);
+			counter = 0;
+		}
 		t->SetTimeout(100);
 		})) {
 		xx::CoutN("create timer failed.");

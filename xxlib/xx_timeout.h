@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+// 如果面临多重继承，则适合复制代码内容直接整合
 namespace xx {
 	struct TimeoutManager;
 

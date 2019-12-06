@@ -845,7 +845,6 @@ namespace xx {
 			if (int r = ikcp_wndsize(kcp, 1024, 1024)) return r;
 			if (int r = ikcp_nodelay(kcp, 1, 10, 2, 1)) return r;
 			kcp->rx_minrto = 10;
-			kcp->stream = 1;
 			ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
 				auto self = ((UvKcpPeerBase*)user);
 				return self->udp->Send((uint8_t*)inBuf, len, (sockaddr*)& self->addr);
