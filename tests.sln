@@ -62,6 +62,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_linux_7", "test_linux_
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_linux_8", "test_linux_8\test_linux_8.vcxproj", "{21C7B7EE-D95A-4098-8A3F-48BF9F8F67E5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_linux_9", "test_linux_9\test_linux_9.vcxproj", "{E0C094DD-A684-4590-8E8A-66CDD07905FE}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		xxlib\xxlib.vcxitems*{026b03ab-2a30-450d-a3ea-6365bd45fb72}*SharedItemsImports = 4
@@ -72,6 +74,7 @@ Global
 		xxlib\xxlib.vcxitems*{57a17fef-75c8-4cb3-aa2f-dd10d61f7c2c}*SharedItemsImports = 4
 		xxlib\xxlib.vcxitems*{5d81c669-e3ec-4268-bc08-89b29ca61841}*SharedItemsImports = 4
 		xxlib\xxlib.vcxitems*{61fea9af-b44d-46c6-a412-8a62861c9556}*SharedItemsImports = 4
+		xxlib\xxlib.vcxitems*{e0c094dd-a684-4590-8e8a-66cdd07905fe}*SharedItemsImports = 4
 		xxlib\xxlib.vcxitems*{ea079c3f-7eea-4b6a-a34c-45e414f1d66a}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -197,6 +200,12 @@ Global
 		{21C7B7EE-D95A-4098-8A3F-48BF9F8F67E5}.Release|x64.ActiveCfg = Release|x64
 		{21C7B7EE-D95A-4098-8A3F-48BF9F8F67E5}.Release|x64.Build.0 = Release|x64
 		{21C7B7EE-D95A-4098-8A3F-48BF9F8F67E5}.Release|x64.Deploy.0 = Release|x64
+		{E0C094DD-A684-4590-8E8A-66CDD07905FE}.Debug|x64.ActiveCfg = Debug|x64
+		{E0C094DD-A684-4590-8E8A-66CDD07905FE}.Debug|x64.Build.0 = Debug|x64
+		{E0C094DD-A684-4590-8E8A-66CDD07905FE}.Debug|x64.Deploy.0 = Debug|x64
+		{E0C094DD-A684-4590-8E8A-66CDD07905FE}.Release|x64.ActiveCfg = Release|x64
+		{E0C094DD-A684-4590-8E8A-66CDD07905FE}.Release|x64.Build.0 = Release|x64
+		{E0C094DD-A684-4590-8E8A-66CDD07905FE}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

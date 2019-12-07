@@ -359,10 +359,16 @@ namespace xx::Epoll {
 		// 填充 ip
 		memcpy(&p->addr, &addr, len);
 
-		// 调用用户自定义后续绑定
-		OnAccept(p);
-
+		// 撤销自动关闭
 		sg.Cancel();
+
+		// 初始化
+		Ref<TcpPeer> alive(p);
+		p->Init();
+		if (!alive) return fd;
+
+		// 触发事件
+		OnAccept(p);
 		return fd;
 	}
 
@@ -440,7 +446,6 @@ namespace xx::Epoll {
 				return;
 			}
 			// todo: len == 0 有没有可能?
-			xx::CoutN("udp recvfrom len = ", len, ", addr = ", addr);
 			recv.len = len;
 			OnReceive();
 		}
@@ -454,7 +459,6 @@ namespace xx::Epoll {
 	}
 
 	inline int UdpPeer::Send(char const* const& buf, size_t const& len) {
-		xx::CoutN("udp send to len = ", len, ", addr = ", addr);
 		auto r = sendto(fd, buf, len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 		return r > 0 ? 0 : (int)r;
 	}
@@ -568,8 +572,12 @@ namespace xx::Epoll {
 			p = ep->AddItem(std::move(peer));
 			kcps.Add(conv, p);
 
-			// 触发事件回调
+			// 初始化
 			Ref<KcpPeer> alive(p);
+			p->Init();
+			if (!alive) return;
+
+			// 触发事件回调
 			OnAccept(p);
 			if (!alive) return;
 		}
@@ -581,8 +589,8 @@ namespace xx::Epoll {
 			memcpy(&p->addr, &addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 		}
 
-		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive
-		p->Input((uint8_t*)recv.buf, (uint32_t)recv.len);
+		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive 进而 Dispose
+		p->Input(recv.buf, (uint32_t)recv.len);
 
 		recv.Clear();
 	}
@@ -601,7 +609,7 @@ namespace xx::Epoll {
 		(void)ikcp_wndsize(kcp, 1024, 1024);
 		(void)ikcp_nodelay(kcp, 1, 10, 2, 1);
 		kcp->rx_minrto = 10;
-		//kcp->stream = 1;
+		kcp->stream = 1;
 
 		// 给 kcp 绑定 output 功能函数
 		ikcp_setoutput(kcp, [](const char* inBuf, int len, ikcpcb* kcp, void* user)->int {
@@ -631,8 +639,8 @@ namespace xx::Epoll {
 		nextUpdateMS = ikcp_check(kcp, currentMS);
 	}
 
-	inline void KcpPeer::Input(uint8_t* const& recvBuf, uint32_t const& recvLen) {
-		if (ikcp_input(kcp, (char*)recvBuf, recvLen)) {
+	inline void KcpPeer::Input(char* const& buf, size_t const& len) {
+		if (ikcp_input(kcp, buf, len)) {
 			Dispose();
 			return;
 		}
@@ -654,7 +662,7 @@ namespace xx::Epoll {
 			}
 
 			// 从 kcp 提取数据. 追加填充到 recv 后面区域. 返回填充长度. <= 0 则下次再说
-			auto&& len = ikcp_recv(kcp, (char*)recv.buf + recv.len, (int)(recv.cap - recv.len));
+			auto&& len = ikcp_recv(kcp, recv.buf + recv.len, (int)(recv.cap - recv.len));
 			if (len <= 0) break;
 			recv.len += len;
 
@@ -695,7 +703,6 @@ namespace xx::Epoll {
 	}
 
 	inline int KcpPeer::Send(char const* const& buf, size_t const& len) {
-		xx::CoutN("kcp send len = ", len, ", addr = ", addr);
 		return ikcp_send(kcp, (char*)buf, (int)len);
 	}
 
@@ -724,8 +731,8 @@ namespace xx::Epoll {
 	}
 
 	inline void KcpConn::OnReceive() {
-		// 4 bytes serial + 4 bytes conv
-		if (recv.len == 8) {
+		// 拨号状态
+		if (!peer && recv.len == 8) {		// 4 bytes serial + 4 bytes conv
 			// 序列号对不上：忽略
 			if (memcmp(recv.buf, &serial, 4)) {
 				recv.Clear();
@@ -769,21 +776,49 @@ namespace xx::Epoll {
 			if (p->InitKcp()) return;
 
 			// 继续填充
-			p->owner = this;
 			memcpy(&p->addr, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
-			// todo: 填充 ip?
+
+			// 和 kcppeer 双向绑定
+			this->peer = p;
+			p->owner = this;
 
 			// 放入容器
 			ep->AddItem(std::move(u));
 			p->indexAtKcps = (int)ep->kcps.size();
 			ep->kcps.push_back(p);
 
-			// 通过 kcp 发个包触发 accept
-			(void)p->Send("\x1\0\0\0\0", 5);
-			p->Flush();
+			// 初始化
+			Ref<KcpConn> alive(this);
+			p->Init();
+			if (!alive) return;
+
+			//// 通过 kcp 发个包触发 accept
+			//(void)p->Send("\x1\0\0\0\0", 5);
+			//p->Flush();
 
 			// 触发事件回调
 			d->OnConnect(p);
+			return;
+		}
+
+		// >24: kcp data. 如果拨号未完成则不应该收到
+		if (recv.len < 24 || !peer) return;
+
+		// 提取 conv. 如果对不上则 忽略
+		uint32_t conv;
+		memcpy(&conv, recv.buf, sizeof(conv));
+		if (peer->conv != conv) return;
+
+		// 更新地址
+		memcpy(&peer->addr, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+
+		// 向 kcppeer 提供数据. 可能导致 this Dispose
+		{
+			Ref<KcpConn> alive(this);
+			peer->Input(recv.buf, recv.len);
+			if (alive) {
+				recv.Clear();
+			}
 		}
 	}
 
@@ -1072,6 +1107,9 @@ namespace xx::Epoll {
 
 		// 取当前时间
 		auto lastTicks = xx::NowEpoch10m();
+
+		// 更新一下逻辑可能用到的时间戳
+		nowMS = xx::NowSteadyEpochMS();
 
 		// 开始循环
 		while (true) {

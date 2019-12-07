@@ -51,8 +51,6 @@ struct D : EP::Dialer {
 		if (peer) {
 			xx::CoutN("client connected. addr = ", peer->addr);
 			//peer->Send(".", 1);
-			xx::MakeTo(bb);
-			bb->Write(1, 2, 3, 4, 5, 6, 7, 8, 9, 0);
 			bbWrite.Clear();
 			bbWrite.WriteRoot(bb);
 			peer->Send(bbWrite);
@@ -71,13 +69,11 @@ int main(int argc, char** argv) {
 	}
 
 	EP::Context ep;
-	//auto listener = ep.CreateUdpPeer<KL>(port);
-	//assert(listener);
-	for (int i = 0; i < 100; ++i) {
-		auto dialer = ep.CreateDialer<D>();
-		dialer->AddAddress("192.168.1.236", port);
-		dialer->Dial(2000, EP::Protocol::Kcp);
-	}
+	auto listener = ep.CreateUdpPeer<KL>(port);
+	assert(listener);
+	//auto dialer = ep.CreateDialer<D>();
+	//dialer->AddAddress("127.0.0.1", port);
+	//dialer->Dial(2000, EP::Protocol::Kcp);
 	ep.CreateTimer(100, [](auto t) {
 		xx::CoutN("counter = ", counter);
 		counter = 0;

@@ -336,7 +336,7 @@ namespace xx::Epoll {
 		virtual void UpdateKcpLogic();
 
 		// 被 owner 调用. 塞数据到 kcp
-		void Input(uint8_t* const& recvBuf, uint32_t const& recvLen);
+		void Input(char* const& recvBuf, size_t const& recvLen);
 
 		// 回收 kcp 对象, 从 ep->kcps 移除
 		~KcpPeer();
@@ -351,9 +351,13 @@ namespace xx::Epoll {
 	// KcpConn
 	/***********************************************************************************************************/
 
+	// 拨号成功后变身为挂在 KcpPeer 上当物理peer
 	struct KcpConn : UdpPeer {
 		// 指向拨号器, 方便调用其 OnConnect 函数
 		Dialer_r dialer;
+
+		// 指向 kcp peer, 方便调用其 Input
+		KcpPeer* peer = nullptr;
 
 		// 握手数据. 理解为版本号. 每次递增避免晚回应包制造干扰. init: = ++ep->autoIncKcpSerial
 		uint32_t serial = 0;
