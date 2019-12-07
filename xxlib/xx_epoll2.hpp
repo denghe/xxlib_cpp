@@ -1153,7 +1153,6 @@ namespace xx::Epoll {
 		return 0;
 	}
 
-	// 创建 tcp 监听器
 	template<typename L, typename ...Args>
 	inline Ref<L> Context::CreateTcpListener(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<TcpListener, L>);
@@ -1199,7 +1198,6 @@ namespace xx::Epoll {
 	}
 
 
-	// 创建 拨号器
 	template<typename TD, typename ...Args>
 	inline Ref<TD> Context::CreateDialer(Args&&... args) {
 		static_assert(std::is_base_of_v<Dialer, TD>);
@@ -1218,7 +1216,6 @@ namespace xx::Epoll {
 	}
 
 
-	// 创建 timer
 	template<typename T, typename ...Args>
 	inline Ref<T> Context::CreateTimer(int const& interval, std::function<void(Timer_r const& timer)>&& cb, Args&&...args) {
 		static_assert(std::is_base_of_v<Timer, T>);
@@ -1249,7 +1246,6 @@ namespace xx::Epoll {
 
 
 
-	// 创建 UdpPeer. port 传 0 则自适应( 仅用于发数据 )
 	template<typename U, typename ...Args>
 	inline Ref<U> Context::CreateUdpPeer(int const& port, Args&&... args) {
 		static_assert(std::is_base_of_v<UdpPeer, U>);
@@ -1289,6 +1285,32 @@ namespace xx::Epoll {
 		o->Init();
 		return o;
 	}
+
+
+
+	template<typename L, typename ...Args>
+	inline Ref<L> Context::CreateSharedTcpListener(int const& fd, Args&&... args) {
+		static_assert(std::is_base_of_v<TcpListener, L>);
+
+		// fd 纳入 epoll 管理
+		if (-1 == Ctl(fd, EPOLLIN)) {
+			lastErrorNumber = -4;
+			return Ref<L>();
+		}
+
+		// 试创建目标类实例
+		auto o_ = xx::TryMakeU<L>(std::forward<Args>(args)...);
+		if (!o_) {
+			lastErrorNumber = -5;
+			return Ref<L>();
+		}
+
+		// 放入容器, 初始化并返回
+		auto o = AddItem(std::move(o_), fd);
+		o->Init();
+		return o;
+	}
+
 
 
 

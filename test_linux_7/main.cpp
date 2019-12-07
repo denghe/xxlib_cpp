@@ -8,59 +8,30 @@ struct P : EP::TcpPeer {
 	virtual void OnReceive() override;
 	virtual void OnDisconnect(int const& reason) override;
 };
-struct K : EP::KcpPeer {
-	EP::Ref<D> dialer;
-	size_t counter = 0;
-	virtual void OnReceive() override;
-	virtual void OnDisconnect(int const& reason) override;
-};
 
 struct D : EP::Dialer {
 	EP::Ref<P> peer;
-	EP::Protocol protocol = EP::Protocol::Both;
-	int Dial();
 	virtual EP::Peer_u OnCreatePeer(bool const& isKcp) override;
 	virtual void OnConnect(EP::Peer_r const& peer) override;
-protected:
-	using D::Dialer::Dial;
 };
 
 
+inline EP::Peer_u D::OnCreatePeer(bool const& isKcp) {
+	return xx::TryMakeU<P>();
+}
 
 inline void D::OnConnect(EP::Peer_r const& p_) {
 	if (auto p = p_.Lock()) {
-		auto&& init = [&](auto peer) {
-			peer->dialer = this;
-			peer->Send(xx::Buf((void*)"..........", 10));
-		};
-		if(auto peer = dynamic_cast<P*>(p)) {
-			init(peer);
-		}
-		else if (auto peer = dynamic_cast<K*>(p)) {
-			init(peer);
-		}
-		else {
-			throw - 1;
-		}
+		auto peer = dynamic_cast<P*>(p);
+		this->peer = peer;
+		peer->dialer = this;
+		peer->Send(xx::Buf((void*)"..........", 10));
 	}
 	else {
-		int r = Dial();
+		int r = Dial(20);
 		xx::CoutN("dial r = ", r);
 	}
 }
-inline int D::Dial() {
-	return this->Dialer::Dial(20, protocol);
-}
-inline EP::Peer_u D::OnCreatePeer(bool const& isKcp) {
-	if (isKcp) {
-		return xx::TryMakeU<K>();
-	}
-	else {
-		return xx::TryMakeU<P>();
-	}
-}
-
-
 
 inline void P::OnReceive() {
 	++counter;
@@ -70,28 +41,12 @@ inline void P::OnReceive() {
 inline void P::OnDisconnect(int const& reason) {
 	xx::CoutN("disconnected.");
 	if (auto d = dialer.Lock()) {
-		int r = d->Dial();
+		int r = d->Dial(20);
 		xx::CoutN("dial r = ", r);
 	}
 }
 
-inline void K::OnReceive() {
-	xx::CoutN("K recv len = ", recv.len);
-	++counter;
-	this->KcpPeer::OnReceive();
-}
-
-inline void K::OnDisconnect(int const& reason) {
-	xx::CoutN("disconnected.");
-	if (auto d = dialer.Lock()) {
-		int r = d->Dial();
-		xx::CoutN("dial r = ", r);
-	}
-}
-
-
-
-int Test1(int const& threadId, int const& numTcpClients, char const* const& tarIp, int const& tarPort, int const& tcpKcp) {
+int Test1(int const& threadId, int const& numTcpClients, char const* const& tarIp, int const& tarPort) {
 	EP::Context ep;
 	std::vector<EP::Ref<D>> ds;
 
@@ -99,8 +54,7 @@ int Test1(int const& threadId, int const& numTcpClients, char const* const& tarI
 		auto d = ep.CreateDialer<D>();
 		ds.emplace_back(d);
 		d->AddAddress(tarIp, tarPort);
-		d->protocol = (EP::Protocol)tcpKcp;
-		int r = d->Dial();
+		int r = d->Dial(20);
 		xx::CoutN("dial r = ", r);
 	}
 
@@ -117,6 +71,39 @@ int Test1(int const& threadId, int const& numTcpClients, char const* const& tarI
 		});
 	return ep.Run(10);
 }
+
+
+int main(int argc, char** argv) {
+	xx::IgnoreSignal();
+
+	int numThreads = 1;
+	int numClients = 1;
+	char const* tarIP = "192.168.1.235";
+	int tarPort = 2345;
+
+	if (argc == 5) {
+		numThreads = atoi(argv[1]);
+		numClients = atoi(argv[2]);
+		tarIP = argv[3];
+		tarPort = atoi(argv[4]);
+	}
+
+	std::vector<std::thread> ts;
+	for (int i = 0; i < numThreads; i++) {
+		ts.emplace_back([i = i, &numClients, &tarIP, &tarPort] {
+			Test1(i, numClients, tarIP, tarPort);
+			});
+	}
+	for (auto&& t : ts) {
+		t.join();
+	}
+	xx::CoutN("end.");
+}
+
+
+
+
+
 
 
 
@@ -176,39 +163,6 @@ int Test1(int const& threadId, int const& numTcpClients, char const* const& tarI
 //		});
 //	return ep.Run(100);
 //}
-
-int main(int argc, char** argv) {
-	xx::IgnoreSignal();
-
-	int numThreads = 1;
-	int numClients = 1;
-	char const* tarIP = "192.168.1.236";
-	int tarPort = 12345;
-	//int numPorts = 1;	// udp > 0
-	int tcpKcp = 1;	// 0:tcp  1:kcp  2:both
-
-	if (argc == 6) {
-		numThreads = atoi(argv[1]);
-		numClients = atoi(argv[2]);
-		tarIP = argv[3];
-		tarPort = atoi(argv[4]);
-		//numPorts = atoi(argv[5]);
-		tcpKcp = atoi(argv[5]);
-	}
-
-	std::vector<std::thread> ts;
-	for (int i = 0; i < numThreads; i++) {
-		ts.emplace_back([i = i, &numClients, &tarIP, &tarPort, &tcpKcp] {
-			//TestUdp(i, numClients, tarIP, tarPort, numPorts);
-			Test1(i, numClients, tarIP, tarPort, tcpKcp);
-			});
-	}
-	for (auto&& t : ts) {
-		t.join();
-	}
-	xx::CoutN("end.");
-}
-
 
 
 // 下面代码展示一种 try 空指针的方式

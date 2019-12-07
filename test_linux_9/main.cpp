@@ -51,6 +51,8 @@ struct D : EP::Dialer {
 		if (peer) {
 			xx::CoutN("client connected. addr = ", peer->addr);
 			//peer->Send(".", 1);
+			xx::MakeTo(bb);
+			bb->Write(1, 2, 3, 4, 5, 6, 7, 8, 9, 0);
 			bbWrite.Clear();
 			bbWrite.WriteRoot(bb);
 			peer->Send(bbWrite);

@@ -520,6 +520,11 @@ namespace xx::Epoll {
 		// 创建 UdpPeer 或 KcpListener
 		template<typename T = UdpPeer, typename ...Args>
 		Ref<T> CreateUdpPeer(int const& port, Args&&... args);
+
+
+		// 创建 TCP 监听器, 传入复用 fd
+		template<typename T = TcpListener, typename ...Args>
+		Ref<T> CreateSharedTcpListener(int const& fd, Args&&... args);
 	};
 
 

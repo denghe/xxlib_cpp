@@ -4,8 +4,9 @@ namespace EP = xx::Epoll;
 size_t counter = 0;
 
 struct P : EP::TcpPeer {
+	size_t* counter = nullptr;
 	inline virtual void OnReceive() override {
-		++counter;
+		++* counter;
 		this->TcpPeer::OnReceive();
 	}
 
@@ -15,8 +16,20 @@ struct P : EP::TcpPeer {
 };
 
 struct L : EP::TcpListener {
+	size_t counter = 0;
+	int threadId = 0;
+	inline virtual void Init() override {
+		ep->CreateTimer(100, [&](auto t) {
+			xx::CoutN("threadId: ", threadId, ", counter = ", counter);
+			counter = 0;
+			t->SetTimeout(100);
+			});
+	}
+
 	inline virtual EP::TcpPeer_u OnCreatePeer() override {
-		return xx::TryMakeU<P>();
+		auto p = xx::TryMakeU<P>();
+		p->counter = &counter;
+		return p;
 	}
 
 	inline virtual void OnAccept(EP::TcpPeer_r peer) override {
@@ -24,79 +37,28 @@ struct L : EP::TcpListener {
 	}
 };
 
-struct KP : EP::KcpPeer {
-	size_t counter = 0;
-	inline virtual void OnReceive() override {
-		xx::CoutN(recv.len);
-		// 忽略握手包
-		if (*recv.buf == 1 && recv.len == 5) {
-			recv.Clear();
-			xx::CoutN("recv hand shake package.");
-		}
-		else {
-			++counter;
-			if (Send(recv.buf, recv.len)) {
-				OnDisconnect(-3);
-				Dispose();
-			}
-			else {
-				recv.Clear();
-				Flush();
-			}
-		}
-	}
-
-	inline virtual void OnDisconnect(int const& reason = 0) override {
-		xx::CoutN("kcp ip: ", addr, " disconnected. reason = ", reason);
-	}
-};
-
-struct KL : EP::KcpListener {
-	inline virtual EP::KcpPeer_u OnCreatePeer() override {
-		return xx::TryMakeU<KP>();
-	}
-	inline virtual void OnAccept(EP::KcpPeer_r const& peer) override {
-		xx::CoutN("kcp ip: ", peer->addr, " accepted.");
-	}
-};
-
-//struct U : EP::UdpPeer {
-//	inline virtual void OnReceive() override {
-//		++counter;
-//		this->UdpPeer::OnReceive();
-//	}
-//};
-
-int main() { 
+int main() {
 	xx::IgnoreSignal();
-	EP::Context ep;
 	int basePort = 12345;
-	if (!ep.CreateTcpListener<L>(basePort)) {
-		xx::CoutN("create tcp listener failed.");
-		return -1;
+
+	EP::Context ep;
+	auto listener = ep.CreateTcpListener<L>(basePort);
+	if (!listener) throw - 1;
+	listener->threadId = 1;
+
+	std::vector<std::thread> threads;
+	for (int i = 2; i <= 10; ++i) {
+		threads.emplace_back([fd = listener->fd, i] {
+
+			EP::Context ep;
+			auto listener = ep.CreateSharedTcpListener<L>(fd);
+			if (!listener) throw - 1;
+			listener->threadId = i;
+			ep.Run(100);
+
+		}).detach();
 	}
-	else {
-		xx::CoutN("create tcp listener success. port = ", basePort);
-	}
-	for (int port = basePort; port < basePort + 10; ++port) {
-		if (!ep.CreateUdpPeer<KL>(port)) {
-			xx::CoutN("create udp peer failed. port = ", port);
-			return -2;
-		}
-		else {
-			xx::CoutN("create udp peer success. port = ", port);
-		}
-	}
-	if (!ep.CreateTimer(100, [&](auto t) {
-		if (counter) {
-			xx::CoutN("counter = ", counter);
-			counter = 0;
-		}
-		t->SetTimeout(100);
-		})) {
-		xx::CoutN("create timer failed.");
-		return -3;
-	}
+
 	return ep.Run(100);
 }
 
