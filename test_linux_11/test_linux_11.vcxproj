@@ -11,14 +11,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{E0C094DD-A684-4590-8E8A-66CDD07905FE}</ProjectGuid>
+    <ProjectGuid>{BF4E6448-4667-43B6-A5A6-D24D628CD813}</ProjectGuid>
     <Keyword>Linux</Keyword>
-    <RootNamespace>test_linux_9</RootNamespace>
+    <RootNamespace>test_linux_11</RootNamespace>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <ApplicationType>Linux</ApplicationType>
     <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
     <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
-    <LinuxProjectType>{25F2F937-FD83-4842-B8A0-F9C0E4F82F8D}</LinuxProjectType>
+    <LinuxProjectType>{65A571FB-9036-487C-B32B-4A177181BDBB}</LinuxProjectType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

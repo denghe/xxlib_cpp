@@ -19,8 +19,8 @@ namespace xx::Epoll {
 	inline Item::~Item() {
 		if (fd != -1) {
 			assert(ep);
-			ep->CloseDel(fd);
 			ep->fdMappings[fd] = nullptr;
+			ep->CloseDel(fd);
 			fd = -1;
 		}
 	}
@@ -978,11 +978,13 @@ namespace xx::Epoll {
 		efd = epoll_create1(0);
 		if (-1 == efd) throw - 1;
 
-		// 初始化处理类映射表
-		fdMappings.fill(nullptr);
-
 		// 初始化时间伦
 		wheel.resize(wheelLen);
+	}
+
+	inline Context::FDMappingsInitHelper::FDMappingsInitHelper() {
+		// 初始化处理类映射表
+		Context::fdMappings.fill(nullptr);
 	}
 
 	inline Context::~Context() {

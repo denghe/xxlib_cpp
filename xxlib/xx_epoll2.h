@@ -111,8 +111,8 @@ namespace xx::Epoll {
 		Ref() = default;
 		Ref(Ref const&) = default;
 		Ref& operator=(Ref const&) = default;
-		Ref(Ref &&) = default;
-		Ref& operator=(Ref &&) = default;
+		Ref(Ref&&) = default;
+		Ref& operator=(Ref&&) = default;
 
 		operator bool() const;
 		T* operator->() const;
@@ -435,7 +435,11 @@ namespace xx::Epoll {
 		ItemPool<Item_u> items;
 
 		// fd 到 处理类* 的 映射
-		std::array<Item*, 40000> fdMappings;
+		inline static std::array<Item*, 40000> fdMappings;
+
+		// fdMappings 的静态初始化辅助类
+		struct FDMappingsInitHelper { FDMappingsInitHelper(); };
+		inline static FDMappingsInitHelper fdMappingsInitHelper;
 
 		// 通过 Dialer 产生的, owner 指向 KcpConn 的 client kcp peers
 		std::vector<KcpPeer*> kcps;
