@@ -1,0 +1,25 @@
+{
+  "gatewayId": 1,
+
+  "listenIP": "0.0.0.0",
+  "listenPort": 10000,
+  "listenTcpKcpOpt": 2,
+
+  "clientTimeoutMS": 30000,
+
+  "webListenIP": "0.0.0.0",
+  "webListenPort": 11000,
+
+  "services": [
+    {
+      "serviceId": 0,
+      "ip": "127.0.0.1",
+      "port": 10001
+    },
+    {
+      "serviceId": 1,
+      "ip": "127.0.0.1",
+      "port": 10002
+    }
+  ]
+}

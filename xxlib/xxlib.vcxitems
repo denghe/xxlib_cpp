@@ -18,6 +18,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)fixed_function.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)http_parser.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ikcp.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)xx_epoll2_http.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_itempool.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_bbuffer.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)xx_coros_boost.h" />

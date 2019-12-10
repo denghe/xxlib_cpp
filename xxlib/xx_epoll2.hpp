@@ -32,12 +32,7 @@ namespace xx::Epoll {
 	template<typename T>
 	inline Ref<T>::Ref(T* const& ptr) {
 		static_assert(std::is_base_of_v<Item, T>);
-		assert(ptr);
-		assert(ptr->ep);
-		assert(ptr->indexAtContainer != -1);
-		items = &ptr->ep->items;
-		index = ptr->indexAtContainer;
-		version = items->VersionAt(index);
+		Reset(ptr);
 	}
 
 	template<typename T>
@@ -61,14 +56,27 @@ namespace xx::Epoll {
 
 	template<typename T>
 	template<typename U>
+	inline void Ref<T>::Reset(U* const& ptr) {
+		static_assert(std::is_base_of_v<T, U>);
+		if (!ptr) {
+			items = nullptr;
+			index = -1;
+			version = 0;
+		}
+		else {
+			assert(ptr->ep);
+			assert(ptr->indexAtContainer != -1);
+			items = &ptr->ep->items;
+			index = ptr->indexAtContainer;
+			version = items->VersionAt(index);
+		}
+	}
+
+	template<typename T>
+	template<typename U>
 	inline Ref<U> Ref<T>::As() const {
-		auto p = Lock();
-		if (!dynamic_cast<U*>(p)) return Ref<U>();
-		Ref<U> rtv;
-		rtv.items = items;
-		rtv.index = index;
-		rtv.version = version;
-		return rtv;
+		if (!dynamic_cast<U*>(Lock())) return Ref<U>();
+		return *(Ref<U>*)this;
 	}
 
 
@@ -317,11 +325,11 @@ namespace xx::Epoll {
 
 	inline int TcpListener::Accept(int const& listenFD) {
 		// 开始创建 fd
-		sockaddr addr;						// todo: ipv6 support. 根据 listener fd 的协议栈来路由
+		sockaddr_in6 addr;
 		socklen_t len = sizeof(addr);
 
 		// 接收并得到目标 fd
-		int fd = accept(listenFD, &addr, &len);
+		int fd = accept(listenFD, (sockaddr*)&addr, &len);
 		if (-1 == fd) {
 			ep->lastErrorNumber = errno;
 			if (ep->lastErrorNumber == EAGAIN || ep->lastErrorNumber == EWOULDBLOCK) return 0;
@@ -410,7 +418,9 @@ namespace xx::Epoll {
 		auto peer = d->OnCreatePeer(false);
 		if (peer) {
 			auto p = ep->AddItem(std::move(peer), fd);
-			// todo: fill peer->ip by tcp socket?
+			// fill address
+			result_len = sizeof(peer->addr);
+			getpeername(fd, (sockaddr*)&peer->addr, &result_len);
 			d->OnConnect(p);
 		}
 		else {
@@ -437,7 +447,6 @@ namespace xx::Epoll {
 			if (!recv.cap) {
 				recv.Reserve(readBufLen);
 			}
-			// todo: 是否需要检测 ipv4/6 进而填充适当的长度?
 			socklen_t addrLen = sizeof(addr);
 			auto len = recvfrom(fd, recv.buf, recv.cap, 0, (struct sockaddr*) & addr, &addrLen);
 			if (len < 0) {
@@ -445,26 +454,24 @@ namespace xx::Epoll {
 				Dispose();
 				return;
 			}
-			// todo: len == 0 有没有可能?
+			if (!len) return;
 			recv.len = len;
 			OnReceive();
 		}
-		// write:  todo
+		// write: 当前 udp 不启用发送队列
 	}
 
 	inline int UdpPeer::Send(xx::Buf&& data) {
-		// todo: 压队列并 Write? 一次最多发送 64k? 切片塞队列? 监视可写事件? 下次事件来继续发?
-		auto r = sendto(fd, data.buf, data.len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		auto r = sendto(fd, data.buf, data.len, 0, (sockaddr*)&addr, sizeof(addr));
 		return r > 0 ? 0 : (int)r;
 	}
 
 	inline int UdpPeer::Send(char const* const& buf, size_t const& len) {
-		auto r = sendto(fd, buf, len, 0, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		auto r = sendto(fd, buf, len, 0, (sockaddr*)&addr, sizeof(addr));
 		return r > 0 ? 0 : (int)r;
 	}
 
 	inline int UdpPeer::Flush() {
-		// todo: 继续发队列里的?
 		return 0;
 	}
 
@@ -566,7 +573,7 @@ namespace xx::Epoll {
 			if (peer->InitKcp()) return;
 
 			// 更新地址信息
-			memcpy(&peer->addr, &addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			memcpy(&peer->addr, &addr, sizeof(addr));
 
 			// 放入容器
 			p = ep->AddItem(std::move(peer));
@@ -586,7 +593,7 @@ namespace xx::Epoll {
 			p = kcps.ValueAt(peerIter);
 
 			// 更新地址信息
-			memcpy(&p->addr, &addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			memcpy(&p->addr, &addr, sizeof(addr));
 		}
 
 		// 将数据灌入 kcp. 进而可能触发 peer->OnReceive 进而 Dispose
@@ -776,7 +783,7 @@ namespace xx::Epoll {
 			if (p->InitKcp()) return;
 
 			// 继续填充
-			memcpy(&p->addr, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+			memcpy(&p->addr, &addr, sizeof(addr));
 
 			// 和 kcppeer 双向绑定
 			this->peer = p;
@@ -810,7 +817,7 @@ namespace xx::Epoll {
 		if (peer->conv != conv) return;
 
 		// 更新地址
-		memcpy(&peer->addr, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
+		memcpy(&peer->addr, &addr, sizeof(addr));
 
 		// 向 kcppeer 提供数据. 可能导致 this Dispose
 		{
@@ -913,7 +920,7 @@ namespace xx::Epoll {
 		if (-1 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on))) return -3;
 
 		// 开始连接
-		if (connect(fd, (sockaddr*)&addr, addr.sin6_family == AF_INET6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN) == -1) {
+		if (connect(fd, (sockaddr*)&addr, sizeof(addr)) == -1) {
 			if (errno != EINPROGRESS) return -4;
 		}
 		// else : 立刻连接上了
@@ -988,6 +995,9 @@ namespace xx::Epoll {
 	}
 
 	inline Context::~Context() {
+		// 直接清掉内存. 非正常析构.
+		recvBB.Reset();
+
 		// 所有 items 析构
 		items.Clear();
 
@@ -1002,7 +1012,7 @@ namespace xx::Epoll {
 		char portStr[20];
 		snprintf(portStr, sizeof(portStr), "%d", port);
 
-		addrinfo hints;														// todo: ipv6 support
+		addrinfo hints;
 		memset(&hints, 0, sizeof(addrinfo));
 		hints.ai_family = AF_UNSPEC;										// ipv4 / 6
 		hints.ai_socktype = sockType;										// SOCK_STREAM / SOCK_DGRAM
@@ -1013,6 +1023,7 @@ namespace xx::Epoll {
 
 		int fd;
 		for (ai = ai_; ai != nullptr; ai = ai->ai_next) {
+			xx::CoutN("ai->ai_addr = ", ai->ai_addr);
 			fd = socket(ai->ai_family, ai->ai_socktype | SOCK_NONBLOCK, ai->ai_protocol);
 			if (fd == -1) continue;
 

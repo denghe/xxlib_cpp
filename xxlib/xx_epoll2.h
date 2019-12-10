@@ -117,6 +117,8 @@ namespace xx::Epoll {
 		operator bool() const;
 		T* operator->() const;
 		T* Lock() const;
+		template<typename U = T>
+		void Reset(U* const& ptr = nullptr);
 
 		template<typename U>
 		Ref<U> As() const;
@@ -166,15 +168,6 @@ namespace xx::Epoll {
 		// 收数据用堆积容器
 		xx::List<char> recv;
 
-		// 是否正在发送( 是：不管 sendQueue 空不空，都不能 write, 只能塞 sendQueue )
-		bool writing = false;
-
-		// 待发送队列
-		xx::BufQueue sendQueue;
-
-		// 每 fd 每一次可写, 写入的长度限制( 希望能实现当大量数据下发时各个 socket 公平的占用带宽 )
-		size_t sendLenPerFrame = 65536;
-
 		// 读缓冲区内存扩容增量
 		size_t readBufLen = 65536;
 
@@ -209,6 +202,16 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct TcpPeer : Peer {
+
+		// 是否正在发送( 是：不管 sendQueue 空不空，都不能 write, 只能塞 sendQueue )
+		bool writing = false;
+
+		// 待发送队列
+		xx::BufQueue sendQueue;
+
+		// 每 fd 每一次可写, 写入的长度限制( 希望能实现当大量数据下发时各个 socket 公平的占用带宽 )
+		size_t sendLenPerFrame = 65536;
+
 		virtual void OnEpollEvent(uint32_t const& e) override;
 		virtual int Send(xx::Buf&& data) override;
 		virtual int Send(char const* const& buf, size_t const& len) override;
@@ -227,11 +230,12 @@ namespace xx::Epoll {
 	/***********************************************************************************************************/
 
 	struct TcpListener : Item {
+		typedef TcpPeer PeerType;
 		// 提供创建 peer 对象的实现
 		virtual TcpPeer_u OnCreatePeer();
 
 		// 提供为 peer 绑定事件的实现
-		inline virtual void OnAccept(TcpPeer_r peer) {}
+		inline virtual void OnAccept(TcpPeer_r const& peer) {}
 
 		// 调用 accept
 		virtual void OnEpollEvent(uint32_t const& e) override;
@@ -281,6 +285,8 @@ namespace xx::Epoll {
 	using KcpPeer_r = Ref<KcpPeer>;
 	using KcpPeer_u = std::unique_ptr<KcpPeer>;
 	struct KcpListener : UdpPeer {
+		typedef KcpPeer PeerType;
+
 		// 自增生成
 		uint32_t convId = 0;
 
@@ -467,6 +473,29 @@ namespace xx::Epoll {
 		int cursor = 0;
 
 
+
+
+
+		// for SendRequest( .... , 0 )
+		int64_t defaultRequestTimeoutMS = 15000;
+
+		// for recv safe check
+		uint32_t maxPackageLength = 1024 * 256;
+
+		// 公用反序列化 bb. 直接用 Reset 来替换内存使用. 
+		BBuffer recvBB;
+
+		// 公用序列化 bb
+		BBuffer sendBB;
+
+		// 公用序列化 bb( 智能指针版 )
+		BBuffer_s sharedBB = xx::Make<BBuffer>();
+
+
+
+
+
+
 		// 传入 2^n 的轮子长度
 		Context(size_t const& wheelLen = 1 << 12);
 
@@ -509,7 +538,7 @@ namespace xx::Epoll {
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		int Run(double const& frameRate = 60.3);
 
-		// 创建 TCP 监听器	// todo: 支持填写ip, 支持传入复用 fd
+		// 创建 TCP 监听器
 		template<typename T = TcpListener, typename ...Args>
 		Ref<T> CreateTcpListener(int const& port, Args&&... args);
 
