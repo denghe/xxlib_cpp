@@ -110,19 +110,34 @@ namespace xx::Epoll {
 
 		Ref() = default;
 		Ref(Ref const&) = default;
-		Ref& operator=(Ref const&) = default;
 		Ref(Ref&&) = default;
+		Ref& operator=(Ref const&) = default;
 		Ref& operator=(Ref&&) = default;
+
+		template<typename U>
+		Ref& operator=(std::enable_if_t<std::is_base_of_v<T, U>, Ref<U>> const& o);
+		template<typename U>
+		Ref& operator=(std::enable_if_t<std::is_base_of_v<T, U>, Ref<U>>&& o);
+
+		template<typename U>
+		Ref<U> As() const;
 
 		operator bool() const;
 		T* operator->() const;
 		T* Lock() const;
 		template<typename U = T>
 		void Reset(U* const& ptr = nullptr);
-
-		template<typename U>
-		Ref<U> As() const;
 	};
+
+	template<typename A, typename B>
+	inline bool operator==(Ref<A> const& a, Ref<B> const& b) {
+		return a.Lock() == b.Lock();
+	}
+
+	template<typename A, typename B>
+	inline bool operator!=(Ref<A> const& a, Ref<B> const& b) {
+		return a.Lock() != b.Lock();
+	}
 
 	using Item_r = Ref<Item>;
 
@@ -441,11 +456,7 @@ namespace xx::Epoll {
 		ItemPool<Item_u> items;
 
 		// fd 到 处理类* 的 映射
-		inline static std::array<Item*, 40000> fdMappings;
-
-		// fdMappings 的静态初始化辅助类
-		struct FDMappingsInitHelper { FDMappingsInitHelper(); };
-		inline static FDMappingsInitHelper fdMappingsInitHelper;
+		std::array<Item*, 40000> fdMappings;
 
 		// 通过 Dialer 产生的, owner 指向 KcpConn 的 client kcp peers
 		std::vector<KcpPeer*> kcps;

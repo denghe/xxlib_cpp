@@ -171,21 +171,21 @@ int main() {
 
 
 	auto&& s = std::make_unique<MyHttpServer>();
-	int r = s->Listen(54321);
+	int r = s->Listen(12312);
 	assert(!r);
 
-	auto fd = s->listenFDs[0];
-	std::vector<std::thread> threads;
-	for (int i = 0; i < 5; ++i) {
-		threads.emplace_back([fd, i] {
-			auto&& s = std::make_unique<MyHttpServer>();
-			int r = s->ListenFD(fd);
-			assert(!r);
-			s->threadId = i + 1;
-			xx::CoutN("thread:", i + 1);
-			s->Run(1);
-			}).detach();
-	}
+	//auto fd = s->listenFDs[0];
+	//std::vector<std::thread> threads;
+	//for (int i = 0; i < 5; ++i) {
+	//	threads.emplace_back([fd, i] {
+	//		auto&& s = std::make_unique<MyHttpServer>();
+	//		int r = s->ListenFD(fd);
+	//		assert(!r);
+	//		s->threadId = i + 1;
+	//		xx::CoutN("thread:", i + 1);
+	//		s->Run(1);
+	//		}).detach();
+	//}
 
 	s->Run(1);
 	return 0;

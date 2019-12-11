@@ -1,56 +1,37 @@
-﻿#include <stdio.h> 
-#include <stdlib.h> 
-#include <unistd.h> 
-#include <string.h> 
-#include <sys/types.h> 
-#include <sys/socket.h> 
-#include <arpa/inet.h> 
-#include <netinet/in.h> 
-#include "xx_object.h"
+﻿#include "xx_epoll2_http.h"
+namespace EP = xx::Epoll;
 
-#define PORT     8080 
-#define MAXLINE  65536 
+void Bind(EP::Ref<EP::HttpListener> const& listener) {
+    listener->handlers[""] = [](xx::HttpContext& q, xx::HttpResponse& r) {
+        char const str[] = R"--(
+<html><body>
+<p>hi</p>
+</body></html>
+)--";
+        r.onSend(r.prefixHtml, str, sizeof(str));
+    };
+}
 
-// Driver code 
 int main() {
-    int sockfd;
-    char buffer[MAXLINE];
-    struct sockaddr_in servaddr, cliaddr;
+    EP::Context ep;
+    auto&& listener = ep.CreateTcpListener<EP::HttpListener>(12312);
+    if (!listener) return -1;
+    Bind(listener);
+    std::shared_ptr<int> s;
 
-    // Creating socket file descriptor 
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket creation failed");
-        exit(EXIT_FAILURE);
-    }
+	std::vector<std::thread> threads;
+	for (int i = 2; i <= 6; ++i) {
+		threads.emplace_back([fd = listener->fd]{
 
-    memset(&servaddr, 0, sizeof(servaddr));
-    memset(&cliaddr, 0, sizeof(cliaddr));
+			EP::Context ep;
+			auto listener = ep.CreateSharedTcpListener<EP::HttpListener>(fd);
+			if (!listener) throw - 1;
+            Bind(listener);
+			ep.Run(1);
 
-    // Filling server information 
-    servaddr.sin_family = AF_INET; // IPv4 
-    servaddr.sin_addr.s_addr = INADDR_ANY;
-    servaddr.sin_port = htons(PORT);
+			}).detach();
+	}
 
-    // Bind the socket with the server address 
-    if (bind(sockfd, (const struct sockaddr*) & servaddr,
-        sizeof(servaddr)) < 0)
-    {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
-
-    socklen_t caLen = sizeof(sockaddr_in6);
-    size_t count = 0;
-    auto ms = xx::NowSteadyEpochMS();
-    while (true) {
-        auto n = recvfrom(sockfd, (char*)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr*) & cliaddr, &caLen);
-        //sendto(sockfd, buffer, n, MSG_CONFIRM, (const struct sockaddr*) & cliaddr, caLen);
-        if (++count % 100000 == 0) {
-            auto newMS = xx::NowSteadyEpochMS();
-            xx::CoutN(newMS - ms);
-            ms = newMS;
-        }
-    }
-
+    ep.Run(1);
     return 0;
 }

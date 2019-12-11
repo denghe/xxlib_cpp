@@ -38,6 +38,28 @@ namespace xx::Epoll {
 	template<typename T>
 	inline Ref<T>::Ref(std::unique_ptr<T> const& ptr) : Ref(ptr.get()) {}
 
+
+	template<typename T>
+	template<typename U>
+	Ref<T>& Ref<T>::operator=(std::enable_if_t<std::is_base_of_v<T, U>, Ref<U>> const& o) {
+		return operator=(*(Ref<T>*)&o);
+	}
+
+	template<typename T>
+	template<typename U>
+	Ref<T>& Ref<T>::operator=(std::enable_if_t<std::is_base_of_v<T, U>, Ref<U>>&& o) {
+		return operator=(std::move(*(Ref<T>*) & o));
+	}
+
+
+	template<typename T>
+	template<typename U>
+	inline Ref<U> Ref<T>::As() const {
+		if (!dynamic_cast<U*>(Lock())) return Ref<U>();
+		return *(Ref<U>*)this;
+	}
+
+
 	template<typename T>
 	inline Ref<T>::operator bool() const {
 		return version && items->VersionAt(index) == version;
@@ -70,13 +92,6 @@ namespace xx::Epoll {
 			index = ptr->indexAtContainer;
 			version = items->VersionAt(index);
 		}
-	}
-
-	template<typename T>
-	template<typename U>
-	inline Ref<U> Ref<T>::As() const {
-		if (!dynamic_cast<U*>(Lock())) return Ref<U>();
-		return *(Ref<U>*)this;
 	}
 
 
@@ -987,11 +1002,9 @@ namespace xx::Epoll {
 
 		// 初始化时间伦
 		wheel.resize(wheelLen);
-	}
 
-	inline Context::FDMappingsInitHelper::FDMappingsInitHelper() {
 		// 初始化处理类映射表
-		Context::fdMappings.fill(nullptr);
+		fdMappings.fill(nullptr);
 	}
 
 	inline Context::~Context() {
@@ -1023,7 +1036,6 @@ namespace xx::Epoll {
 
 		int fd;
 		for (ai = ai_; ai != nullptr; ai = ai->ai_next) {
-			xx::CoutN("ai->ai_addr = ", ai->ai_addr);
 			fd = socket(ai->ai_family, ai->ai_socktype | SOCK_NONBLOCK, ai->ai_protocol);
 			if (fd == -1) continue;
 
