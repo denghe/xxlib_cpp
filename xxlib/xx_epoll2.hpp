@@ -42,7 +42,7 @@ namespace xx::Epoll {
 	template<typename T>
 	template<typename U>
 	Ref<T>& Ref<T>::operator=(std::enable_if_t<std::is_base_of_v<T, U>, Ref<U>> const& o) {
-		return operator=(*(Ref<T>*)&o);
+		return operator=(*(Ref<T>*) & o);
 	}
 
 	template<typename T>
@@ -92,6 +92,73 @@ namespace xx::Epoll {
 			index = ptr->indexAtContainer;
 			version = items->VersionAt(index);
 		}
+	}
+
+
+	/***********************************************************************************************************/
+	// CommandHandler
+	/***********************************************************************************************************/
+
+	inline void CommandHandler::OnEpollEvent(uint32_t const& e) {
+		// error
+		if (e & EPOLLERR || e & EPOLLHUP) {
+			Dispose();
+			return;
+		}
+		// read
+		if (e & EPOLLIN) {
+			auto&& buf = ep->buf;
+			auto&& len = read(fd, buf.data(), buf.size());
+			if (len <= 0) {
+				Dispose();
+				return;
+			}
+
+			// 去掉最后的回车
+			len -= 1;
+
+			// 读取 buf 内容, call ep->cmdHandlers[ args[0] ]( args )
+			auto&& args = ep->args;
+			args.clear();
+			std::string s;
+			bool jumpSpace = true;
+			for (ssize_t i = 0; i < len; ++i) {
+				auto c = buf[i];
+				if (jumpSpace) {
+					if (c != '	' && c != ' ') {
+						s += c;
+						jumpSpace = false;
+					}
+					continue;
+				}
+				else if (c == '	' || c == ' ') {
+					args.emplace_back(std::move(s));
+					jumpSpace = true;
+					continue;
+				}
+				else {
+					s += c;
+				}
+			}
+			if (s.size()) {
+				args.emplace_back(std::move(s));
+			}
+
+			if (args.size()) {
+				auto&& iter = ep->cmdHandlers.find(args[0]);
+				if (iter != ep->cmdHandlers.end()) {
+					if (iter->second) {
+						iter->second(args);
+					}
+				}
+			}
+		}
+	}
+
+	inline CommandHandler::~CommandHandler() {
+		// 特殊 fd, 不 Close
+		ep->fdMappings[fd] = nullptr;
+		fd = -1;
 	}
 
 
@@ -430,7 +497,7 @@ namespace xx::Epoll {
 
 		// 这之后只能用 "栈"变量
 		d->Stop();
-		auto peer = d->OnCreatePeer(false);
+		auto peer = d->OnCreatePeer(Protocol::Tcp);
 		if (peer) {
 			auto p = ep->AddItem(std::move(peer), fd);
 			// fill address
@@ -787,7 +854,7 @@ namespace xx::Epoll {
 			d->Stop();
 
 			// 开始创建 peer
-			auto u = d->OnCreatePeer(true);
+			auto u = d->OnCreatePeer(Protocol::Kcp);
 			if (!u) return;
 			auto p = dynamic_cast<KcpPeer*>(u.get());
 			if (!p) return;
@@ -850,29 +917,30 @@ namespace xx::Epoll {
 	// Dialer
 	/***********************************************************************************************************/
 
-	inline int Dialer::AddAddress(std::string const& ip, int const& port) {
-		auto&& addr = addrs.emplace_back();
-		if (int r = FillAddress(ip, port, addr)) {
+	inline int Dialer::AddAddress(std::string const& ip, int const& port, Protocol const& protocol) {
+		auto&& a = addrs.emplace_back();
+		if (int r = FillAddress(ip, port, a.first)) {
 			addrs.pop_back();
 			return r;
 		}
+		a.second = protocol;
 		return 0;
 	}
 
-	inline int Dialer::Dial(int const& timeoutFrames, Protocol const& protocol) {
+	inline int Dialer::Dial(int const& timeoutFrames) {
 		Stop();
 		SetTimeout(timeoutFrames);
-		for (auto&& addr : addrs) {
+		for (auto&& a : addrs) {
 			int r = 0;
-			if (protocol == Protocol::Tcp || protocol == Protocol::Both) {
-				r = NewTcpConn(addr);
+			if (a.second == Protocol::Tcp || a.second == Protocol::Both) {
+				r = NewTcpConn(a.first);
 			}
 			if (r) {
 				Stop();
 				return r;
 			}
-			if (protocol == Protocol::Kcp || protocol == Protocol::Both) {
-				r = NewKcpConn(addr);
+			if (a.second == Protocol::Kcp || a.second == Protocol::Both) {
+				r = NewKcpConn(a.first);
 			}
 			if (r) {
 				Stop();
@@ -909,8 +977,8 @@ namespace xx::Epoll {
 		Stop();
 	}
 
-	inline Peer_u Dialer::OnCreatePeer(bool const& isKcp) {
-		if (isKcp) {
+	inline Peer_u Dialer::OnCreatePeer(Protocol const& protocol) {
+		if (protocol == Protocol::Tcp) {
 			return xx::TryMakeU<TcpPeer>();
 		}
 		else {
@@ -1064,6 +1132,7 @@ namespace xx::Epoll {
 
 	inline int Context::Ctl(int const& fd, uint32_t const& flags, int const& op) {
 		epoll_event event;
+		bzero(&event, sizeof(event));
 		event.data.fd = fd;
 		event.events = flags;
 		return epoll_ctl(efd, op, fd, &event);
@@ -1111,7 +1180,7 @@ namespace xx::Epoll {
 	inline void Context::UpdateKcps() {
 		if (kcps.size()) {
 			// 倒扫方便自杀交焕删除
-			for (int i = (int)kcps.size() - 1; i>=0;--i ) {
+			for (int i = (int)kcps.size() - 1; i >= 0; --i) {
 				kcps[i]->UpdateKcpLogic();
 			}
 		}
@@ -1137,7 +1206,7 @@ namespace xx::Epoll {
 		nowMS = xx::NowSteadyEpochMS();
 
 		// 开始循环
-		while (true) {
+		while (running) {
 
 			// 计算上个循环到现在经历的时长, 并累加到 pool
 			auto currTicks = xx::NowEpoch10m();
@@ -1177,6 +1246,26 @@ namespace xx::Epoll {
 
 		return 0;
 	}
+
+
+	int Context::CreateCommandHandler() {
+		// 已创建过
+		if (fdMappings[STDIN_FILENO]) return -1;
+
+		// fd 纳入 epoll 管理
+		if (-1 == Ctl(STDIN_FILENO, EPOLLIN)) {
+			return -2;
+		}
+
+		// 创建 stdin fd 的处理类
+		auto ch = xx::TryMakeU<CommandHandler>();
+		if (ch) {
+			AddItem(std::move(ch), STDIN_FILENO);
+			return 0;
+		}
+		return -3;
+	}
+
 
 	template<typename L, typename ...Args>
 	inline Ref<L> Context::CreateTcpListener(int const& port, Args&&... args) {

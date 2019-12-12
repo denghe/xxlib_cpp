@@ -143,6 +143,17 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
+	// CommandHandler
+	/***********************************************************************************************************/
+
+	// 处理键盘输入指令的专用类. 直接映射到 STDIN_FILENO ( fd == 0 )
+	struct CommandHandler : Item {
+		virtual void OnEpollEvent(uint32_t const& e) override;
+		virtual ~CommandHandler();
+	};
+
+
+	/***********************************************************************************************************/
 	// ItemTimeout
 	/***********************************************************************************************************/
 
@@ -406,19 +417,16 @@ namespace xx::Epoll {
 	};
 
 	struct Dialer : ItemTimeout {
-		// 要连的地址数组
-		std::vector<sockaddr_in6> addrs;
-
-		// 内部连接对象. 拨号完毕后会被清空
-		std::vector<Item_r> conns;
+		// 要连的地址数组. 带协议标记
+		std::vector<std::pair<sockaddr_in6, Protocol>> addrs;
 
 		// 向 addrs 追加地址. 如果地址转换错误将返回非 0
-		int AddAddress(std::string const& ip, int const& port);
+		int AddAddress(std::string const& ip, int const& port, Protocol const& protocol = Protocol::Both);
 
 		// 开始拨号。会遍历 addrs 为每个地址创建一个 ?cpConn 连接
 		// 保留先连接上的 socket fd, 创建 Peer 并触发 OnConnect 事件. 
 		// 如果超时，也触发 OnConnect，参数为 nullptr
-		int Dial(int const& timeoutFrames, Protocol const& protocol = Protocol::Both);
+		int Dial(int const& timeoutFrames);
 
 		// 返回是否正在拨号
 		bool Busy();
@@ -426,22 +434,25 @@ namespace xx::Epoll {
 		// 停止拨号 并清理 conns. 保留 addrs.
 		void Stop();
 
-		// 存个空值备用 以方便返回引用
-		Peer_r emptyPeer;
-
 		// 连接成功或超时后触发
 		virtual void OnConnect(Peer_r const& peer) = 0;
 
 		// 覆盖并提供创建 peer 对象的实现. 返回 nullptr 表示创建失败
-		virtual Peer_u OnCreatePeer(bool const& isKcp);
-
-		// 超时表明所有连接都没有连上. 触发 OnConnect( nullptr )
-		virtual void OnTimeout() override;
+		virtual Peer_u OnCreatePeer(Protocol const& protocol);
 
 		// Stop()
 		~Dialer();
 
+		// 存个空值备用 以方便返回引用
+		Peer_r emptyPeer;
+
+		// 内部连接对象. 拨号完毕后会被清空
+		std::vector<Item_r> conns;
+
+		// 超时表明所有连接都没有连上. 触发 OnConnect( nullptr )
+		virtual void OnTimeout() override;
 	protected:
+		// 按具体协议创建 Conn 对象
 		int NewTcpConn(sockaddr_in6 const& addr);
 		int NewKcpConn(sockaddr_in6 const& addr);
 	};
@@ -458,17 +469,34 @@ namespace xx::Epoll {
 		// fd 到 处理类* 的 映射
 		std::array<Item*, 40000> fdMappings;
 
+
+
 		// 通过 Dialer 产生的, owner 指向 KcpConn 的 client kcp peers
 		std::vector<KcpPeer*> kcps;
 
 		// 提供自增版本号 for kcp conn
 		uint32_t autoIncKcpSerial = 0;
 
+
+
 		// epoll_wait 事件存储
 		std::array<epoll_event, 4096> events;
 
 		// 存储的 epoll fd
 		int efd = -1;
+
+
+
+		// 时间轮. 只存指针引用, 不管理内存
+		std::vector<ItemTimeout*> wheel;
+
+		// 指向时间轮的游标
+		int cursor = 0;
+
+
+		/********************************************************/
+		// 下面这几个用户可以读
+
 
 		// 对于一些返回值非 int 的函数, 具体错误码将存放于此
 		int lastErrorNumber = 0;
@@ -479,13 +507,12 @@ namespace xx::Epoll {
 		// Run 时填充, 以便于局部获取并转换时间单位
 		double frameRate = 1;
 
-		// 只存指针引用, 不管理内存
-		std::vector<ItemTimeout*> wheel;
-		int cursor = 0;
 
+		/********************************************************/
+		// 下面这几个用户可以读写
 
-
-
+		// 执行标志位。如果要退出，修改它
+		bool running = true;
 
 		// for SendRequest( .... , 0 )
 		int64_t defaultRequestTimeoutMS = 15000;
@@ -502,12 +529,21 @@ namespace xx::Epoll {
 		// 公用序列化 bb( 智能指针版 )
 		BBuffer_s sharedBB = xx::Make<BBuffer>();
 
+		// 公用 buf( 已用于 STDIN 输入接收 )
+		std::array<char, 65536> buf;
+
+		// 公用 args( 已用于 cmdHandlers 传参 )
+		std::vector<std::string> args;
+
+		// 映射通过 stdin 进来的指令的处理函数. 去空格 去 tab 后第一个单词作为 key. 剩余部分作为 args
+		std::unordered_map<std::string, std::function<void(std::vector<std::string> const& args)>> cmdHandlers;
+
+		//
+		/********************************************************/
 
 
 
-
-
-		// 传入 2^n 的轮子长度
+		// 指定时间轮长度( 要求为 2^n )
 		Context(size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
@@ -548,6 +584,9 @@ namespace xx::Epoll {
 
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		int Run(double const& frameRate = 60.3);
+
+		// 创建指令处理器( 注意：因为是针对 STDIN fd == 0, 只能创建一份 )
+		int CreateCommandHandler();
 
 		// 创建 TCP 监听器
 		template<typename T = TcpListener, typename ...Args>
