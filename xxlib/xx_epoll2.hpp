@@ -135,6 +135,9 @@ namespace xx::Epoll {
 					iter->second(args);
 				}
 			}
+			else {
+				xx::Cout("\nunknown command: ", args[0]);
+			}
 		}
 
 		row.clear();
@@ -148,7 +151,7 @@ namespace xx::Epoll {
 			printf(" \033[%dD", len + 1);
 		}
 		else {
-			write(STDOUT_FILENO, " \033[1D", 5);
+			write(STDOUT_FILENO, " \b", 2);
 		}
 		fflush(stdout);
 	}
@@ -164,8 +167,23 @@ namespace xx::Epoll {
 	inline void CommandHandler::Left() {
 		if (cursor) {
 			--cursor;
-			write(STDOUT_FILENO, "\033[1D", 4);
+			fputc('\b', stdout);
 			fflush(stdout);
+		}
+	}
+
+	inline void CommandHandler::Backspace() {
+		// 已知问题: 如果输入自动换行, 则删除回不到上一行
+		if (cursor) {
+			row.erase(--cursor, 1);
+			if (cursor == row.size()) {
+				fputc(127, stdout);
+				fflush(stdout);
+			}
+			else {
+				fputc('\b', stdout);
+				PrintCursorToEnd();
+			}
 		}
 	}
 
@@ -218,6 +236,14 @@ namespace xx::Epoll {
 		// todo
 	}
 
+	inline void CommandHandler::Up() {
+		// todo
+	}
+
+	inline void CommandHandler::Down() {
+		// todo
+	}
+
 	inline void CommandHandler::OnEpollEvent(uint32_t const& e) {
 		// error
 		if (e & EPOLLERR || e & EPOLLHUP) {
@@ -234,20 +260,15 @@ namespace xx::Epoll {
 			}
 
 			// 输入控制
-			// todo: INSERT 支持?
-			// 通常每个按键都会产生一次 read 事件. 长度 1 ~ 3. 粘贴复制一大段也就产生一次 read 事件.
+			// 通常每个按键都会产生一次 read 事件. 长度 1 ~ 4. 粘贴复制一大段也就产生一次 read 事件.
 			// vs 编辑器中的控制台并不支持这种模式，只支持回车发送一整行
-			// 光标控制符: 接收前缀 27 91, 上下右左 对应 ABCD. 发送前缀 27 91 个数 后接 ABCD
-			// 遇到回车就认为一行输入结束. 上下翻显示历史记录
+			// 遇到回车就认为一行输入结束. 上下 / page up down 操作历史记录
 
 			for (ssize_t i = 0; i < len; ++i) {
 				auto c = buf[i];
 				switch (c) {
-				case 8: {// BACKSPACE
-					if (cursor) {
-						row.erase(--cursor, 1);
-						PrintCursorToEnd();
-					}
+				case 9: {// TAB
+					// todo
 					break;
 				}
 				case 10: {// ENTER
@@ -257,57 +278,47 @@ namespace xx::Epoll {
 					break;
 				}
 				case 27: {// ESCAPE
-					if (i + 2 < len && buf[i + 1] == 91) {
+					if (i + 3 < len && buf[i + 1] == 91 && buf[i + 3] == 126) {
 						auto c = buf[i + 2];
 						switch (c) {
 						case 49: {// HOME
-							if (i + 3 < len) { 
-								if (buf[i + 3] == 126) {
-									Home();
-								}
-								i += 3;
-								continue;
-							}
+							Home();
+							break;
+						}
+						case 50: {// INSERT
+							// todo
 							break;
 						}
 						case 51: {// DEL
-							if (i + 3 < len) { 
-								if (buf[i + 3] == 126) {
-									Del();
-								}
-								i += 3;
-								continue;
-							}
+							Del();
 							break;
 						}
 						case 52: {// END
-							if (i + 3 < len) {
-								if (buf[i + 3] == 126) {
-									End();
-								}
-								i += 3;
-								continue;
-							}
+							End();
 							break;
 						}
 						case 53: {// PAGE UP
-							if (i + 3 < len) {
-								if (buf[i + 3] == 126) {
-									// todo
-								}
-								i += 3;
-								continue;
-							}
+							// todo
 							break;
 						}
 						case 54: {// PAGE DOWN
-							if (i + 3 < len) {
-								if (buf[i + 3] == 126) {
-									// todo
-								}
-								i += 3;
-								continue;
-							}
+							// todo
+							break;
+						}
+						default:
+							xx::CoutN("\n unknown cmd: ", (int)c, " len = ", len);
+						}
+						i += 3;
+					}
+					else if (i + 2 < len && buf[i + 1] == 91) {
+						auto c = buf[i + 2];
+						switch (c) {
+						case 65: {// ^
+							// todo
+							break;
+						}
+						case 66: {// v
+							// todo
 							break;
 						}
 						case 67: {// ->
@@ -318,18 +329,23 @@ namespace xx::Epoll {
 							Left();
 							break;
 						}
+						case 70: {// END
+							End();
+							break;
+						}
+						case 72: {// HOME
+							Home();
+							break;
+						}
 						default:
-							xx::CoutN("\n unknown cmd: 27 ", (int)c, " len = ", len);
-							if (len > 3) {
-								xx::CoutN(buf[3]);
-							}
+							xx::CoutN("\n unknown cmd: ", (int)c, " len = ", len);
 						}
 						i += 2;
 					}
 					break;
 				}
-				case 127: {// ???
-					xx::CoutN(127);
+				case 127: {// BACKSPACE
+					Backspace();
 					break;
 				}
 				default: {
@@ -1438,7 +1454,7 @@ namespace xx::Epoll {
 	}
 
 
-	int Context::CreateCommandHandler() {
+	int Context::CreateCommandHandler(bool const& advanceMode) {
 		// 已创建过
 		if (fdMappings[STDIN_FILENO]) return -1;
 
@@ -1451,6 +1467,16 @@ namespace xx::Epoll {
 		auto ch = xx::TryMakeU<CommandHandler>();
 		if (ch) {
 			AddItem(std::move(ch), STDIN_FILENO);
+
+			if (advanceMode) {
+				struct termios info;
+				tcgetattr(0, &info);
+				info.c_lflag &= ~(ICANON | ECHO);
+				info.c_cc[VMIN] = 1;
+				info.c_cc[VTIME] = 0;
+				tcsetattr(0, TCSANOW, &info);
+			}
+
 			return 0;
 		}
 		return -3;

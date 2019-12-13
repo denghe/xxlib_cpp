@@ -1,5 +1,4 @@
 ﻿#include "xx_epoll2_http.h"
-#include <termios.h>
 namespace EP = xx::Epoll;
 
 void Bind(EP::Context& ep, EP::Ref<EP::HttpListener> const& listener) {
@@ -18,19 +17,11 @@ void Bind(EP::Context& ep, EP::Ref<EP::HttpListener> const& listener) {
 
 int main() {
     xx::IgnoreSignal();
-
-    struct termios info;
-    tcgetattr(0, &info);
-    info.c_lflag &= ~(ICANON | ECHO);
-    info.c_cc[VMIN] = 1;
-    info.c_cc[VTIME] = 0;
-    tcsetattr(0, TCSANOW, &info);
-
     EP::Context ep;
     auto&& listener = ep.CreateTcpListener<EP::HttpListener>(12312);
     if (!listener) return -1;
     Bind(ep, listener);
-    ep.CreateCommandHandler();
+    ep.CreateCommandHandler(true);
     ep.cmdHandlers["exit"] = [&](auto args) { ep.running = false; };
     ep.cmdHandlers["quit"] = ep.cmdHandlers["exit"];
 
@@ -41,7 +32,7 @@ int main() {
 	//		EP::Context ep;
 	//		auto listener = ep.CreateSharedTcpListener<EP::HttpListener>(fd);
 	//		if (!listener) throw - 1;
- //           Bind(ep, listener);
+    //      Bind(ep, listener);
 	//		ep.Run(1);
 
 	//		}).detach();

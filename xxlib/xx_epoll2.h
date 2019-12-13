@@ -15,6 +15,7 @@
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <termios.h>
 
 #include "ikcp.h"
 #include "xx_bbuffer.h"
@@ -163,11 +164,16 @@ namespace xx::Epoll {
 		// 各种直接移动光标
 		void Right();
 		void Left();
+		void Backspace();
 		void Home();
 		void End();
 		void Del();
 		void PageUp();
 		void PageDown();
+		void Up();
+		void Down();
+
+		// 正常字符插入或追加
 		void Insert(char const& c);
 		void Append(char const& c);
 	};
@@ -606,7 +612,7 @@ namespace xx::Epoll {
 		int Run(double const& frameRate = 60.3);
 
 		// 创建指令处理器( 注意：因为是针对 STDIN fd == 0, 只能创建一份 )
-		int CreateCommandHandler();
+		int CreateCommandHandler(bool const& advanceMode = false);
 
 		// 创建 TCP 监听器
 		template<typename T = TcpListener, typename ...Args>
