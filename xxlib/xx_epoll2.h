@@ -148,8 +148,28 @@ namespace xx::Epoll {
 
 	// 处理键盘输入指令的专用类. 直接映射到 STDIN_FILENO ( fd == 0 )
 	struct CommandHandler : Item {
+		std::string row;
+		size_t cursor = 0;
 		virtual void OnEpollEvent(uint32_t const& e) override;
 		virtual ~CommandHandler();
+
+	protected:
+		// 解析 row 内容并调用 cmd 绑定 handler
+		void Exec();
+
+		// 同步显示光标右侧内容. print 右侧字串+' ' 并退格 sizeof(右侧字串)+1
+		void PrintCursorToEnd();
+
+		// 各种直接移动光标
+		void Right();
+		void Left();
+		void Home();
+		void End();
+		void Del();
+		void PageUp();
+		void PageDown();
+		void Insert(char const& c);
+		void Append(char const& c);
 	};
 
 

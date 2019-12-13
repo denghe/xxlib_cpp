@@ -99,6 +99,125 @@ namespace xx::Epoll {
 	// CommandHandler
 	/***********************************************************************************************************/
 
+	inline void CommandHandler::Exec() {
+		// 读取 row 内容, call ep->cmdHandlers[ args[0] ]( args )
+		auto&& args = ep->args;
+		args.clear();
+		std::string s;
+		auto len = row.size();
+		bool jumpSpace = true;
+		for (size_t i = 0; i < len; ++i) {
+			auto c = row[i];
+			if (jumpSpace) {
+				if (c != '	' && c != ' '/* && c != 10*/) {
+					s += c;
+					jumpSpace = false;
+				}
+				continue;
+			}
+			else if (c == '	' || c == ' '/* || c == 10*/) {
+				args.emplace_back(std::move(s));
+				jumpSpace = true;
+				continue;
+			}
+			else {
+				s += c;
+			}
+		}
+		if (s.size()) {
+			args.emplace_back(std::move(s));
+		}
+
+		if (args.size()) {
+			auto&& iter = ep->cmdHandlers.find(args[0]);
+			if (iter != ep->cmdHandlers.end()) {
+				if (iter->second) {
+					iter->second(args);
+				}
+			}
+		}
+
+		row.clear();
+		cursor = 0;
+		fputc(10, stdout);
+	}
+
+	inline void CommandHandler::PrintCursorToEnd() {
+		if (auto len = row.size() - cursor) {
+			write(STDOUT_FILENO, row.data() + cursor, len);
+			printf(" \033[%dD", len + 1);
+		}
+		else {
+			write(STDOUT_FILENO, " \033[1D", 5);
+		}
+		fflush(stdout);
+	}
+
+	inline void CommandHandler::Right() {
+		if (cursor < row.size()) {
+			++cursor;
+			write(STDOUT_FILENO, "\033[1C", 4);
+			fflush(stdout);
+		}
+	}
+
+	inline void CommandHandler::Left() {
+		if (cursor) {
+			--cursor;
+			write(STDOUT_FILENO, "\033[1D", 4);
+			fflush(stdout);
+		}
+	}
+
+	inline void CommandHandler::Home() {
+		if (cursor) {
+			printf("\033[%dD", cursor);
+			fflush(stdout);
+			cursor = 0;
+		}
+	}
+
+	inline void CommandHandler::End() {
+		if (auto n = row.size() - cursor) {
+			printf("\033[%dC", n);
+			fflush(stdout);
+			cursor = row.size();
+		}
+	}
+
+	inline void CommandHandler::Insert(char const& c) {
+		assert(cursor < row.size());
+		row.insert(cursor, 1, c);
+		auto len = row.size() - cursor;
+		write(STDOUT_FILENO, row.data() + cursor, len);
+		printf("\033[%dD", len - 1);
+		fflush(stdout);
+		++cursor;
+	}
+
+	inline void CommandHandler::Append(char const& c) {
+		assert(cursor == row.size());
+		row += c;
+		++cursor;
+		fputc(c, stdout);
+		fflush(stdout);
+	}
+
+	inline void CommandHandler::Del() {
+		if (cursor < row.size()) {
+			row.erase(cursor, 1);
+			PrintCursorToEnd();
+		}
+	}
+
+	inline void CommandHandler::PageUp() {
+		// todo
+	}
+
+	inline void CommandHandler::PageDown() {
+		// todo
+	}
+
 	inline void CommandHandler::OnEpollEvent(uint32_t const& e) {
 		// error
 		if (e & EPOLLERR || e & EPOLLHUP) {
@@ -114,42 +233,113 @@ namespace xx::Epoll {
 				return;
 			}
 
-			// 去掉最后的回车
-			len -= 1;
+			// 输入控制
+			// todo: INSERT 支持?
+			// 通常每个按键都会产生一次 read 事件. 长度 1 ~ 3. 粘贴复制一大段也就产生一次 read 事件.
+			// vs 编辑器中的控制台并不支持这种模式，只支持回车发送一整行
+			// 光标控制符: 接收前缀 27 91, 上下右左 对应 ABCD. 发送前缀 27 91 个数 后接 ABCD
+			// 遇到回车就认为一行输入结束. 上下翻显示历史记录
 
-			// 读取 buf 内容, call ep->cmdHandlers[ args[0] ]( args )
-			auto&& args = ep->args;
-			args.clear();
-			std::string s;
-			bool jumpSpace = true;
 			for (ssize_t i = 0; i < len; ++i) {
 				auto c = buf[i];
-				if (jumpSpace) {
-					if (c != '	' && c != ' ') {
-						s += c;
-						jumpSpace = false;
+				switch (c) {
+				case 8: {// BACKSPACE
+					if (cursor) {
+						row.erase(--cursor, 1);
+						PrintCursorToEnd();
 					}
-					continue;
+					break;
 				}
-				else if (c == '	' || c == ' ') {
-					args.emplace_back(std::move(s));
-					jumpSpace = true;
-					continue;
+				case 10: {// ENTER
+					Ref<CommandHandler> alive;
+					Exec();
+					if (!alive) return;
+					break;
 				}
-				else {
-					s += c;
-				}
-			}
-			if (s.size()) {
-				args.emplace_back(std::move(s));
-			}
-
-			if (args.size()) {
-				auto&& iter = ep->cmdHandlers.find(args[0]);
-				if (iter != ep->cmdHandlers.end()) {
-					if (iter->second) {
-						iter->second(args);
+				case 27: {// ESCAPE
+					if (i + 2 < len && buf[i + 1] == 91) {
+						auto c = buf[i + 2];
+						switch (c) {
+						case 49: {// HOME
+							if (i + 3 < len) { 
+								if (buf[i + 3] == 126) {
+									Home();
+								}
+								i += 3;
+								continue;
+							}
+							break;
+						}
+						case 51: {// DEL
+							if (i + 3 < len) { 
+								if (buf[i + 3] == 126) {
+									Del();
+								}
+								i += 3;
+								continue;
+							}
+							break;
+						}
+						case 52: {// END
+							if (i + 3 < len) {
+								if (buf[i + 3] == 126) {
+									End();
+								}
+								i += 3;
+								continue;
+							}
+							break;
+						}
+						case 53: {// PAGE UP
+							if (i + 3 < len) {
+								if (buf[i + 3] == 126) {
+									// todo
+								}
+								i += 3;
+								continue;
+							}
+							break;
+						}
+						case 54: {// PAGE DOWN
+							if (i + 3 < len) {
+								if (buf[i + 3] == 126) {
+									// todo
+								}
+								i += 3;
+								continue;
+							}
+							break;
+						}
+						case 67: {// ->
+							Right();
+							break;
+						}
+						case 68: {// <-
+							Left();
+							break;
+						}
+						default:
+							xx::CoutN("\n unknown cmd: 27 ", (int)c, " len = ", len);
+							if (len > 3) {
+								xx::CoutN(buf[3]);
+							}
+						}
+						i += 2;
 					}
+					break;
+				}
+				case 127: {// ???
+					xx::CoutN(127);
+					break;
+				}
+				default: {
+					if (cursor == row.size()) {
+						Append(c);
+					}
+					else {
+						Insert(c);
+					}
+				}
 				}
 			}
 		}
