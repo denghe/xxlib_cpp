@@ -174,6 +174,10 @@ namespace xx::Epoll {
 
 	inline void CommandHandler::Backspace() {
 		// 已知问题: 如果输入自动换行, 则删除回不到上一行
+		// http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x361.html
+		// https://en.wikipedia.org/wiki/Curses_%28programming_library%29
+		// https://en.wikipedia.org/wiki/ANSI_escape_code
+		// 有人提到 ncurses terminfo 之类库. 思路应该是想办法获取到 term 宽度 从而能控制光标在恰当时机上移一行.
 		if (cursor) {
 			row.erase(--cursor, 1);
 			if (cursor == row.size()) {
@@ -189,7 +193,7 @@ namespace xx::Epoll {
 
 	inline void CommandHandler::Home() {
 		if (cursor) {
-			printf("\033[%dD", cursor);
+			fputc('\r', stdout);
 			fflush(stdout);
 			cursor = 0;
 		}
