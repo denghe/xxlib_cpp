@@ -15,6 +15,10 @@ void Bind(EP::Context& ep, EP::Ref<EP::HttpListener> const& listener) {
     };
 }
 
+struct Ctx : EP::Context {
+
+};
+
 int main() {
     xx::IgnoreSignal();
     EP::Context ep;

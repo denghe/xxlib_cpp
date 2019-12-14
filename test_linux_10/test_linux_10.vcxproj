@@ -50,7 +50,7 @@
     <Link />
     <Link />
     <Link>
-      <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>pthread;boost_context;dl;uv;readline;%(LibraryDependencies)</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -67,7 +67,7 @@
     <Link />
     <Link />
     <Link>
-      <LibraryDependencies>pthread;boost_context;dl;uv;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>pthread;boost_context;dl;uv;readline;%(LibraryDependencies)</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

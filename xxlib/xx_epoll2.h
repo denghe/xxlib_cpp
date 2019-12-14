@@ -16,6 +16,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <termios.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "ikcp.h"
 #include "xx_bbuffer.h"
@@ -149,33 +151,14 @@ namespace xx::Epoll {
 
 	// 处理键盘输入指令的专用类. 直接映射到 STDIN_FILENO ( fd == 0 )
 	struct CommandHandler : Item {
-		std::string row;
-		size_t cursor = 0;
+		inline static CommandHandler* instance = nullptr;
+		static void ReadLineCallback(char* line);
 		virtual void OnEpollEvent(uint32_t const& e) override;
 		virtual ~CommandHandler();
 
 	protected:
 		// 解析 row 内容并调用 cmd 绑定 handler
-		void Exec();
-
-		// 同步显示光标右侧内容. print 右侧字串+' ' 并退格 sizeof(右侧字串)+1
-		void PrintCursorToEnd();
-
-		// 各种直接移动光标
-		void Right();
-		void Left();
-		void Backspace();
-		void Home();
-		void End();
-		void Del();
-		void PageUp();
-		void PageDown();
-		void Up();
-		void Down();
-
-		// 正常字符插入或追加
-		void Insert(char const& c);
-		void Append(char const& c);
+		void Exec(char const* const& row, size_t const& len);
 	};
 
 

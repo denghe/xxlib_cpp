@@ -99,12 +99,11 @@ namespace xx::Epoll {
 	// CommandHandler
 	/***********************************************************************************************************/
 
-	inline void CommandHandler::Exec() {
+	inline void CommandHandler::Exec(char const* const& row, size_t const& len) {
 		// 读取 row 内容, call ep->cmdHandlers[ args[0] ]( args )
 		auto&& args = ep->args;
 		args.clear();
 		std::string s;
-		auto len = row.size();
 		bool jumpSpace = true;
 		for (size_t i = 0; i < len; ++i) {
 			auto c = row[i];
@@ -136,116 +135,18 @@ namespace xx::Epoll {
 				}
 			}
 			else {
-				xx::Cout("\nunknown command: ", args[0]);
-			}
-		}
-
-		row.clear();
-		cursor = 0;
-		fputc(10, stdout);
-	}
-
-	inline void CommandHandler::PrintCursorToEnd() {
-		if (auto len = row.size() - cursor) {
-			write(STDOUT_FILENO, row.data() + cursor, len);
-			printf(" \033[%dD", len + 1);
-		}
-		else {
-			write(STDOUT_FILENO, " \b", 2);
-		}
-		fflush(stdout);
-	}
-
-	inline void CommandHandler::Right() {
-		if (cursor < row.size()) {
-			++cursor;
-			write(STDOUT_FILENO, "\033[1C", 4);
-			fflush(stdout);
-		}
-	}
-
-	inline void CommandHandler::Left() {
-		if (cursor) {
-			--cursor;
-			fputc('\b', stdout);
-			fflush(stdout);
-		}
-	}
-
-	inline void CommandHandler::Backspace() {
-		// 已知问题: 如果输入自动换行, 则删除回不到上一行
-		// http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/x361.html
-		// https://en.wikipedia.org/wiki/Curses_%28programming_library%29
-		// https://en.wikipedia.org/wiki/ANSI_escape_code
-		// 有人提到 ncurses terminfo 之类库. 思路应该是想办法获取到 term 宽度 从而能控制光标在恰当时机上移一行.
-		if (cursor) {
-			row.erase(--cursor, 1);
-			if (cursor == row.size()) {
-				fputc(127, stdout);
-				fflush(stdout);
-			}
-			else {
-				fputc('\b', stdout);
-				PrintCursorToEnd();
+				xx::CoutN("unknown command: ", args[0]);
 			}
 		}
 	}
 
-	inline void CommandHandler::Home() {
-		if (cursor) {
-			fputc('\r', stdout);
-			fflush(stdout);
-			cursor = 0;
+	inline void CommandHandler::ReadLineCallback(char* line) {
+		auto len = strlen(line);
+		if (len) {
+			add_history(line);
 		}
-	}
-
-	inline void CommandHandler::End() {
-		if (auto n = row.size() - cursor) {
-			printf("\033[%dC", n);
-			fflush(stdout);
-			cursor = row.size();
-		}
-	}
-
-	inline void CommandHandler::Insert(char const& c) {
-		assert(cursor < row.size());
-		row.insert(cursor, 1, c);
-		auto len = row.size() - cursor;
-		write(STDOUT_FILENO, row.data() + cursor, len);
-		printf("\033[%dD", len - 1);
-		fflush(stdout);
-		++cursor;
-	}
-
-	inline void CommandHandler::Append(char const& c) {
-		assert(cursor == row.size());
-		row += c;
-		++cursor;
-		fputc(c, stdout);
-		fflush(stdout);
-	}
-
-	inline void CommandHandler::Del() {
-		if (cursor < row.size()) {
-			row.erase(cursor, 1);
-			PrintCursorToEnd();
-		}
-	}
-
-	inline void CommandHandler::PageUp() {
-		// todo
-	}
-
-	inline void CommandHandler::PageDown() {
-		// todo
-	}
-
-	inline void CommandHandler::Up() {
-		// todo
-	}
-
-	inline void CommandHandler::Down() {
-		// todo
+		instance->Exec(line, len);
+		free(line);
 	}
 
 	inline void CommandHandler::OnEpollEvent(uint32_t const& e) {
@@ -254,118 +155,14 @@ namespace xx::Epoll {
 			Dispose();
 			return;
 		}
-		// read
-		if (e & EPOLLIN) {
-			auto&& buf = ep->buf;
-			auto&& len = read(fd, buf.data(), buf.size());
-			if (len <= 0) {
-				Dispose();
-				return;
-			}
 
-			// 输入控制
-			// 通常每个按键都会产生一次 read 事件. 长度 1 ~ 4. 粘贴复制一大段也就产生一次 read 事件.
-			// vs 编辑器中的控制台并不支持这种模式，只支持回车发送一整行
-			// 遇到回车就认为一行输入结束. 上下 / page up down 操作历史记录
-
-			for (ssize_t i = 0; i < len; ++i) {
-				auto c = buf[i];
-				switch (c) {
-				case 9: {// TAB
-					// todo
-					break;
-				}
-				case 10: {// ENTER
-					Ref<CommandHandler> alive;
-					Exec();
-					if (!alive) return;
-					break;
-				}
-				case 27: {// ESCAPE
-					if (i + 3 < len && buf[i + 1] == 91 && buf[i + 3] == 126) {
-						auto c = buf[i + 2];
-						switch (c) {
-						case 49: {// HOME
-							Home();
-							break;
-						}
-						case 50: {// INSERT
-							// todo
-							break;
-						}
-						case 51: {// DEL
-							Del();
-							break;
-						}
-						case 52: {// END
-							End();
-							break;
-						}
-						case 53: {// PAGE UP
-							// todo
-							break;
-						}
-						case 54: {// PAGE DOWN
-							// todo
-							break;
-						}
-						default:
-							xx::CoutN("\n unknown cmd: ", (int)c, " len = ", len);
-						}
-						i += 3;
-					}
-					else if (i + 2 < len && buf[i + 1] == 91) {
-						auto c = buf[i + 2];
-						switch (c) {
-						case 65: {// ^
-							// todo
-							break;
-						}
-						case 66: {// v
-							// todo
-							break;
-						}
-						case 67: {// ->
-							Right();
-							break;
-						}
-						case 68: {// <-
-							Left();
-							break;
-						}
-						case 70: {// END
-							End();
-							break;
-						}
-						case 72: {// HOME
-							Home();
-							break;
-						}
-						default:
-							xx::CoutN("\n unknown cmd: ", (int)c, " len = ", len);
-						}
-						i += 2;
-					}
-					break;
-				}
-				case 127: {// BACKSPACE
-					Backspace();
-					break;
-				}
-				default: {
-					if (cursor == row.size()) {
-						Append(c);
-					}
-					else {
-						Insert(c);
-					}
-				}
-				}
-			}
-		}
+		// 已知问题: resize 事件通知不到位, 导致显示效果不是很完美
+		rl_callback_read_char();
 	}
 
 	inline CommandHandler::~CommandHandler() {
+		rl_callback_handler_remove();
+
 		// 特殊 fd, 不 Close
 		ep->fdMappings[fd] = nullptr;
 		fd = -1;
@@ -1364,7 +1161,7 @@ namespace xx::Epoll {
 				xx::CoutN("epoll wait !h. fd = ", fd);
 				assert(h);
 			}
-			assert(h->fd == fd);
+			assert(!h->fd || h->fd == fd);
 			auto e = events[i].events;
 			h->OnEpollEvent(e);
 		}
@@ -1463,27 +1260,22 @@ namespace xx::Epoll {
 		if (fdMappings[STDIN_FILENO]) return -1;
 
 		// fd 纳入 epoll 管理
-		if (-1 == Ctl(STDIN_FILENO, EPOLLIN)) {
-			return -2;
-		}
+		if (-1 == Ctl(STDIN_FILENO, EPOLLIN)) return -2;
 
 		// 创建 stdin fd 的处理类
 		auto ch = xx::TryMakeU<CommandHandler>();
 		if (ch) {
+			// 继续初始化 readline 第三方组件. 通过静态函数 访问静态 instance 类 从而调用类成员函数
+			ch->instance = ch.get();
+			rl_callback_handler_install("# ", (rl_vcpfunc_t*)&ch->ReadLineCallback);
+
 			AddItem(std::move(ch), STDIN_FILENO);
-
-			if (advanceMode) {
-				struct termios info;
-				tcgetattr(0, &info);
-				info.c_lflag &= ~(ICANON | ECHO);
-				info.c_cc[VMIN] = 1;
-				info.c_cc[VTIME] = 0;
-				tcsetattr(0, TCSANOW, &info);
-			}
-
 			return 0;
 		}
-		return -3;
+		else {
+			epoll_ctl(efd, EPOLL_CTL_DEL, STDIN_FILENO, nullptr);
+			return -3;
+		}
 	}
 
 

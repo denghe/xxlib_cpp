@@ -2,7 +2,7 @@
 ubuntu 18.04 LTS server，安装时勾安 OpenSSH server 默认安全选项
 
 安装编译器，依赖库：
-sudo apt install gcc-8 g++-8 gdb gdbserver libboost-context-dev libuv1-dev uuid-dev libsqlite3-dev libmariadb-dev
+sudo apt install gcc-8 g++-8 gdb gdbserver libboost-context-dev libuv1-dev uuid-dev libsqlite3-dev libmariadb-dev libreadline-dev
 
 设置 gcc g++ 命令指向 8.0:
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-8

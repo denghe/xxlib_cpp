@@ -1,117 +1,58 @@
 ﻿#include <stdio.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-#define cursorforward(x) printf("\033[%dC", (x))
-#define cursorbackward(x) printf("\033[%dD", (x))
+int quit = false;
 
-#define KEY_ESCAPE  0x001b
-#define KEY_ENTER   0x000a
-#define KEY_UP      0x0105
-#define KEY_DOWN    0x0106
-#define KEY_LEFT    0x0107
-#define KEY_RIGHT   0x0108
-
-static struct termios term, oterm;
-
-static int getch(void);
-static int kbhit(void);
-static int kbesc(void);
-static int kbget(void);
-
-static int getch(void)
+void rl_cb(char* line)
 {
-    int c = 0;
-
-    tcgetattr(0, &oterm);
-    memcpy(&term, &oterm, sizeof(term));
-    term.c_lflag &= ~(ICANON | ECHO);
-    term.c_cc[VMIN] = 1;
-    term.c_cc[VTIME] = 0;
-    tcsetattr(0, TCSANOW, &term);
-    c = getchar();
-    tcsetattr(0, TCSANOW, &oterm);
-    return c;
-}
-
-static int kbhit(void)
-{
-    int c = 0;
-
-    tcgetattr(0, &oterm);
-    memcpy(&term, &oterm, sizeof(term));
-    term.c_lflag &= ~(ICANON | ECHO);
-    term.c_cc[VMIN] = 0;
-    term.c_cc[VTIME] = 1;
-    tcsetattr(0, TCSANOW, &term);
-    c = getchar();
-    tcsetattr(0, TCSANOW, &oterm);
-    if (c != -1) ungetc(c, stdin);
-    return ((c != -1) ? 1 : 0);
-}
-
-static int kbesc(void)
-{
-    int c;
-
-    if (!kbhit()) return KEY_ESCAPE;
-    c = getch();
-    if (c == '[') {
-        switch (getch()) {
-        case 'A':
-            c = KEY_UP;
-            break;
-        case 'B':
-            c = KEY_DOWN;
-            break;
-        case 'C':
-            c = KEY_LEFT;
-            break;
-        case 'D':
-            c = KEY_RIGHT;
-            break;
-        default:
-            c = 0;
-            break;
-        }
+    if (NULL == line) {
+        quit = true;
+        return;
     }
-    else {
-        c = 0;
-    }
-    if (c == 0) while (kbhit()) getch();
-    return c;
+
+    if (strlen(line) > 0) add_history(line);
+
+    printf("You typed:\n%s\n", line);
+    free(line);
 }
 
-static int kbget(void)
+int main()
 {
-    int c;
+    struct timeval to;
+    const char* prompt = "# ";
 
-    c = getch();
-    return (c == KEY_ESCAPE) ? kbesc() : c;
-}
+    rl_callback_handler_install(prompt, (rl_vcpfunc_t*)&rl_cb);
 
-int main(void)
-{
-    int c;
+    to.tv_sec = 0;
+    to.tv_usec = 10000;
 
     while (1) {
-        c = kbget();
-        if (c == KEY_ENTER || c == KEY_ESCAPE || c == KEY_UP || c == KEY_DOWN) {
-            break;
-        }
-        else
-            if (c == KEY_RIGHT) {
-                cursorbackward(1);
-            }
-            else
-                if (c == KEY_LEFT) {
-                    cursorforward(1);
-                }
-                else {
-                    putchar(c);
-                }
-    }
-    printf("\n");
+        if (quit) break;
+        select(1, NULL, NULL, NULL, &to);
+        rl_callback_read_char();
+    };
+    rl_callback_handler_remove();
+
     return 0;
 }
+
+
+//#include <sys/ioctl.h>
+//#include <stdio.h>
+//#include <unistd.h>
+//
+//int main(int argc, char** argv)
+//{
+//    char buf[512];
+//    
+//    //while (true) {
+//    //    struct winsize w;
+//    //    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+//
+//    //    printf("%d %d\n", w.ws_row, w.ws_col);
+//    //}
+//    return 0;  // make sure your main returns int
+//}
