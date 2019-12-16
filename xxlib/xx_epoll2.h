@@ -556,8 +556,8 @@ namespace xx::Epoll {
 
 
 
-		// 指定 是否为主线程运行( 主线程的要负责处理键盘输入 )，以及时间轮长度( 要求为 2^n )
-		Context(bool isMainThread = true, size_t const& wheelLen = 1 << 12);
+		// 参数：是否启用键盘指令输入( 限主线程 )，时间轮长度( 要求为 2^n )
+		Context(bool enableCommandSupport = true, size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
 
@@ -591,7 +591,10 @@ namespace xx::Epoll {
 		// 下面是外部主要使用的函数
 
 		// 将秒转为帧数
-		inline int ToFrames(double const& secs) { return (int)(frameRate * secs); }
+		inline int SecToFrames(double const& sec) { return (int)(frameRate * sec); }
+
+		// 将毫秒转为帧数
+		inline int MsToFrames(int const& ms) { return (int)(frameRate * ms / 1000); }
 
 
 		// 帧逻辑可以覆盖这个函数. 返回非 0 将令 Run 退出. 

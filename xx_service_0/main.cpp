@@ -5,7 +5,7 @@
 using PeerType = xx::UvSimulatePeer;
 struct Service0 : xx::UvServiceBase<PeerType, true> {
 	Service0() {
-		InitGatewayListener("0.0.0.0", 12346);
+		InitGatewayListener("0.0.0.0", 10001);
 	}
 
 	virtual void AcceptSimulatePeer(std::shared_ptr<PeerType>& sp) override {

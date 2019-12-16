@@ -211,7 +211,6 @@ namespace xx::Epoll {
 	}
 
 	inline CommandHandler::~CommandHandler() {
-		xx::CoutN("~CommandHandler();");
 		rl_callback_handler_remove();
 		rl_clear_history();
 
@@ -867,7 +866,7 @@ namespace xx::Epoll {
 
 	inline void KcpConn::OnTimeout() {
 		(void)Send((char*)&serial, 4);
-		SetTimeout(ep->ToFrames(0.2));	// 按 0.2 秒间隔 repeat ( 可能受 cpu 占用影响而剧烈波动 )
+		SetTimeout(ep->SecToFrames(0.2));	// 按 0.2 秒间隔 repeat ( 可能受 cpu 占用影响而剧烈波动 )
 	}
 
 	inline void KcpConn::Init() {
@@ -1122,7 +1121,7 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	inline Context::Context(bool isMainThread, size_t const& wheelLen) {
+	inline Context::Context(bool enableCommandSupport, size_t const& wheelLen) {
 		// 创建 epoll fd
 		efd = epoll_create1(0);
 		if (-1 == efd) throw - 1;
@@ -1134,7 +1133,7 @@ namespace xx::Epoll {
 		fdMappings.fill(nullptr);
 
 		// 初始化终端指令处理相关
-		if (isMainThread) {
+		if (enableCommandSupport) {
 			// 试将 fd 纳入 epoll 管理
 			if (-1 == Ctl(STDIN_FILENO, EPOLLIN)) throw - 2;
 

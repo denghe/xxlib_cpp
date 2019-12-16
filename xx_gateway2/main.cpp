@@ -1,10 +1,11 @@
-//#include <xx__http.h>
+ï»¿//#include <xx__http.h>
 #include <xx_epoll2.hpp>
+#include <xx_epoll2_http.h>
 #include <unordered_set>
 namespace EP = xx::Epoll;
 
-#define PRINT_LOG_SERVICE_CONFIG			1
-#define PRINT_LOG_SERVICE0_NOT_READY		0
+#define PRINT_LOG_SERVICE_CONFIG			0
+#define PRINT_LOG_SERVICE0_NOT_READY		1
 #define PRINT_LOG_SERVICE_CONNECTD			1
 #define PRINT_LOG_SERVICE_DISCONNECTD		1
 #define PRINT_LOG_SERVICE_DIAL				0
@@ -22,7 +23,7 @@ namespace EP = xx::Epoll;
 
 
 /***********************************************************************************************************************/
-// ÅäÖÃÎÄ¼şÏà¹Ø
+// é…ç½®æ–‡ä»¶ç›¸å…³
 /***********************************************************************************************************************/
 
 #include"ajson.hpp"
@@ -35,50 +36,49 @@ struct ServiceInfo {
 AJSON(ServiceInfo, serviceId, ip, port);
 
 struct ServiceCfg {
-	int gatewayId = 0;						// µ±Ç°Íø¹ØÄÚ²¿±àºÅ
-	std::string listenIP;					// ¼àÌıµ½ÄÄ¸ö ip ÉÏ( Í¨³£Îª 0.0.0.0 )
-	int listenPort = 0;						// ¼àÌı¶Ë¿Ú
-	int listenTcpKcpOpt = 0;				// Ğ­ÒéÑ¡Ôñ: 0: tcp only;  1: kcp ony;   2: tcp + kcp
-	int clientTimeoutMS = 0;				// ¿Í»§¶ËµôÏß¼ì²âÊ±³¤ ms. ³¬³öÕâ¸öÊ±¼äÃ»ÓĞÊÕµ½¿Í»§¶ËµÄºÏ·¨Êı¾İÔò»á¶Ïµô¿Í»§¶Ë
-	std::string webListenIP;				// ¼àÊÓÆ÷¼àÌıµ½ÄÄ¸ö ip ÉÏ( Í¨³£Îª 0.0.0.0 )
-	int webListenPort = 0;					// ¼àÌı¶Ë¿Ú
-	std::vector<ServiceInfo> services;		// ÒªÁ¬½Óµ½ÄÄĞ©·şÎñ
+	int gatewayId = 0;						// å½“å‰ç½‘å…³å†…éƒ¨ç¼–å·
+	std::string listenIP;					// ç›‘å¬åˆ°å“ªä¸ª ip ä¸Š( é€šå¸¸ä¸º 0.0.0.0 )
+	int listenPort = 0;						// ç›‘å¬ç«¯å£
+	int listenTcpKcpOpt = 0;				// åè®®é€‰æ‹©: 0: tcp only;  1: kcp ony;   2: tcp + kcp
+	int clientTimeoutMS = 0;				// å®¢æˆ·ç«¯æ‰çº¿æ£€æµ‹æ—¶é•¿ ms. è¶…å‡ºè¿™ä¸ªæ—¶é—´æ²¡æœ‰æ”¶åˆ°å®¢æˆ·ç«¯çš„åˆæ³•æ•°æ®åˆ™ä¼šæ–­æ‰å®¢æˆ·ç«¯
+	std::string webListenIP;				// ç›‘è§†å™¨ç›‘å¬åˆ°å“ªä¸ª ip ä¸Š( é€šå¸¸ä¸º 0.0.0.0 )
+	int webListenPort = 0;					// ç›‘å¬ç«¯å£
+	std::vector<ServiceInfo> services;		// è¦è¿æ¥åˆ°å“ªäº›æœåŠ¡
 };
 AJSON(ServiceCfg, gatewayId, listenIP, listenPort, listenTcpKcpOpt, clientTimeoutMS, webListenIP, webListenPort, services);
 
-//struct WebHandler;
 
 
 
 /***********************************************************************************************************************/
-// Í¨ĞÅ peer Ïà¹Ø
+// é€šä¿¡ peer ç›¸å…³
 /***********************************************************************************************************************/
 
-// ¿É¼Ì³Ğ×Ô TcpPeer »ò KcpPeer. À©Õ¹¸ß½×¹¦ÄÜ
+// å¯ç»§æ‰¿è‡ª TcpPeer æˆ– KcpPeer. æ‰©å±•é«˜é˜¶åŠŸèƒ½
 template<typename Base>
 struct Peer : Base {
-	// ´¦ÀíÄÚ²¿Ö¸Áî°ü( 4 ×Ö½Ú³¤¶È + 0xFFFFFFFF + ÄÚÈİ( Í¨³£Îª cmd string + args... ) )
+	// å¤„ç†å†…éƒ¨æŒ‡ä»¤åŒ…( 4 å­—èŠ‚é•¿åº¦ + 0xFFFFFFFF + å†…å®¹( é€šå¸¸ä¸º cmd string + args... ) )
 	std::function<void(uint8_t* const& buf, std::size_t const& len)> onReceiveCommand;
 
-	// ´¦ÀíÒ»°ãÊı¾İ°ü( 4 ×Ö½Ú³¤¶È + 4×Ö½ÚµØÖ· + Êı¾İ )
+	// å¤„ç†ä¸€èˆ¬æ•°æ®åŒ…( 4 å­—èŠ‚é•¿åº¦ + 4å­—èŠ‚åœ°å€ + æ•°æ® )
 	std::function<void(uint8_t* const& buf, std::size_t const& len)> onReceivePackage;
 
-	// ´¦Àí¶ÏÏßÊÂ¼ş
+	// å¤„ç†æ–­çº¿äº‹ä»¶
 	std::function<void()> onDisconnect;
 
-	// ¿ªÊ¼Ïò bb Ğ´°ü. ¿Õ³ö ³¤¶È Í·²¿
+	// å¼€å§‹å‘ bb å†™åŒ…. ç©ºå‡º é•¿åº¦ å¤´éƒ¨
 	static void WritePackageBegin(xx::BBuffer& bb, size_t const& reserveLen, uint32_t const& addr) {
 		bb.Reserve(4 + reserveLen);
 		bb.len = 4;
 		bb.WriteFixed(addr);
 	}
 
-	// ½áÊø bb Ğ´°ü¡£¸ù¾İÊı¾İ³¤¶È ÌîĞ´ °üÍ·
+	// ç»“æŸ bb å†™åŒ…ã€‚æ ¹æ®æ•°æ®é•¿åº¦ å¡«å†™ åŒ…å¤´
 	static void WritePackageEnd(xx::BBuffer& bb) {
 		*(uint32_t*)bb.buf = (uint32_t)(bb.len - 4);
 	}
 
-	// ¹¹ÔìÄÚ²¿Ö¸Áî°ü. cmd string + args...
+	// æ„é€ å†…éƒ¨æŒ‡ä»¤åŒ…. cmd string + args...
 	template<typename...Args>
 	void SendCommand(Args const& ... cmdAndArgs) {
 		auto&& bb = this->ep->sendBB;
@@ -89,30 +89,30 @@ struct Peer : Base {
 	}
 
 	virtual void OnReceive() override {
-		// È¡³öÖ¸Õë±¸ÓÃ
+		// å–å‡ºæŒ‡é’ˆå¤‡ç”¨
 		auto buf = (uint8_t*)this->recv.buf;
 		auto end = (uint8_t*)this->recv.buf + this->recv.len;
 
-		// È·±£°üÍ·³¤¶È³ä×ã
+		// ç¡®ä¿åŒ…å¤´é•¿åº¦å……è¶³
 		while (buf + 4 <= end) {
 
-			// È¡³öÊı¾İÇø³¤¶È ²¢ ÅĞ¶ÏºÏ·¨ĞÔ
+			// å–å‡ºæ•°æ®åŒºé•¿åº¦ å¹¶ åˆ¤æ–­åˆæ³•æ€§
 			auto dataLen = *(uint32_t*)buf;
 			if (dataLen > this->ep->maxPackageLength) {
 				this->Dispose();
 				return;
 			}
 
-			// Êı¾İÇø²»ÍêÕû¾ÍÍË³ö
+			// æ•°æ®åŒºä¸å®Œæ•´å°±é€€å‡º
 			if (buf + dataLen > end) break;
 
-			// Ìøµ½Êı¾İÇø¿ªÊ¼µ÷ÓÃ´¦Àí»Øµ÷
+			// è·³åˆ°æ•°æ®åŒºå¼€å§‹è°ƒç”¨å¤„ç†å›è°ƒ
 			buf += 4;
 			{
-				// ËÀÍöÅĞ¶Ï±äÁ¿
+				// æ­»äº¡åˆ¤æ–­å˜é‡
 				EP::Ref<Base> alive(this);
 
-				// ÅĞ¶ÏÊÇ·ñÎªÄÚ²¿Ö¸Áî
+				// åˆ¤æ–­æ˜¯å¦ä¸ºå†…éƒ¨æŒ‡ä»¤
 				if (*(uint32_t*)buf == 0xFFFFFFFFu) {
 					onReceiveCommand(buf + 4, dataLen - 4);
 				}
@@ -120,14 +120,14 @@ struct Peer : Base {
 					onReceivePackage(buf + 4, dataLen - 4);
 				}
 
-				// Èç¹ûµ±Ç°ÀàÊµÀıÒÑ×ÔÉ±ÔòÍË³ö
+				// å¦‚æœå½“å‰ç±»å®ä¾‹å·²è‡ªæ€åˆ™é€€å‡º
 				if (!alive) return;
 			}
-			// Ìøµ½ÏÂÒ»¸ö°üµÄ¿ªÍ·
+			// è·³åˆ°ä¸‹ä¸€ä¸ªåŒ…çš„å¼€å¤´
 			buf += dataLen;
 		}
 
-		// ÒÆ³ıµôÒÑ´¦ÀíµÄÊı¾İ
+		// ç§»é™¤æ‰å·²å¤„ç†çš„æ•°æ®
 		this->recv.RemoveFront((char*)buf - this->recv.buf);
 	}
 
@@ -138,13 +138,13 @@ struct Peer : Base {
 	}
 };
 
-// ¿É¼Ì³Ğ×Ô TcpPeer »ò KcpPeer
+// å¯ç»§æ‰¿è‡ª TcpPeer æˆ– KcpPeer
 template<typename Base>
 struct FromClientPeer : Peer<Base> {
-	// ×ÔÔö±àºÅ, accept Ê±Ìî³ä
+	// è‡ªå¢ç¼–å·, accept æ—¶å¡«å……
 	uint32_t clientId = 0xFFFFFFFFu;
 
-	// ÔÊĞí·ÃÎÊµÄ service peers µÄ id µÄ°×Ãûµ¥
+	// å…è®¸è®¿é—®çš„ service peers çš„ id çš„ç™½åå•
 	std::unordered_set<uint32_t> serviceIds;
 
 	void SendCommand_Open(uint32_t const& serviceId) {
@@ -157,10 +157,10 @@ struct FromClientPeer : Peer<Base> {
 };
 
 struct ToServicePeer : Peer<EP::TcpPeer> {
-	// ÄÚ²¿·şÎñ±àºÅ, ´ÓÅäÖÃÌî³ä
+	// å†…éƒ¨æœåŠ¡ç¼–å·, ä»é…ç½®å¡«å……
 	uint32_t serviceId = 0xFFFFFFFFu;
 
-	// µÈ´ı ping »Ø°üµÄ×´Ì¬Öµ
+	// ç­‰å¾… ping å›åŒ…çš„çŠ¶æ€å€¼
 	bool waitPingBack = false;
 
 	void SendCommand_GatewayId(uint32_t const& gatewayId) {
@@ -182,11 +182,11 @@ struct ToServicePeer : Peer<EP::TcpPeer> {
 struct Gateway;
 
 struct ToServiceDialer : EP::Dialer {
-	// ¼ÇÂ¼µ±Á¬½Ó³É¹¦Ê± ÒªÓ³Éäµ½µÄ ·şÎñ id
+	// è®°å½•å½“è¿æ¥æˆåŠŸæ—¶ è¦æ˜ å°„åˆ°çš„ æœåŠ¡ id
 	uint32_t serviceId = 0;
 
-	virtual EP::Peer_u OnCreatePeer(bool const& isKcp) override {
-		assert(!isKcp);
+	virtual EP::Peer_u OnCreatePeer(EP::Protocol const& protocol) override {
+		assert(protocol == EP::Protocol::Tcp);
 		return xx::TryMakeU<ToServicePeer>();
 	}
 
@@ -196,10 +196,10 @@ struct ToServiceDialer : EP::Dialer {
 	}
 };
 
-// ¿É¼Ì³Ğ×Ô TcpListener »ò KcpListener
+// å¯ç»§æ‰¿è‡ª TcpListener æˆ– KcpListener
 template<typename BaseListener>
 struct FromClientListener : BaseListener {
-	// Ö¸Ïò·şÎñ×ÜÉÏÏÂÎÄ
+	// æŒ‡å‘æœåŠ¡æ€»ä¸Šä¸‹æ–‡
 	Gateway* gw = nullptr;
 
 	virtual std::unique_ptr<typename BaseListener::PeerType> OnCreatePeer() override {
@@ -213,13 +213,13 @@ struct FromClientListener : BaseListener {
 
 
 /***********************************************************************************************************************/
-// Íø¹ØÖ÷Ìå
+// ç½‘å…³ä¸»ä½“
 /***********************************************************************************************************************/
 
 struct Gateway {
 	EP::Context ep;
 
-	// ·şÎñÆô¶¯ÅäÖÃ. ´Ó json ¼ÓÔØ
+	// æœåŠ¡å¯åŠ¨é…ç½®. ä» json åŠ è½½
 	ServiceCfg cfg;
 
 	/***********************************************************************************************/
@@ -244,9 +244,12 @@ struct Gateway {
 			}
 			t->SetTimeout(5 * 100);
 			});
+
+
 		InitClientListener();
 		InitServiceDialers();
-		//InitWebListener();
+		InitWebListener();
+		InitCmds();
 	}
 
 
@@ -254,21 +257,24 @@ struct Gateway {
 	// client
 	/***********************************************************************************************/
 
-	// µÈ´ı client µÄ½ÓÈë
+	// ç­‰å¾… client çš„æ¥å…¥
 	EP::Ref<FromClientListener<EP::TcpListener>> clientTcpListener;
 	EP::Ref<FromClientListener<EP::KcpListener>> clientKcpListener;
 
 	// clientPeerAutoId += 2;  new cp.clientId = clientPeerAutoId + kcp ? 1 : 0
 	uint32_t clientPeerAutoId = 0;
 
-	// key: clientId. kcp client id Îªµ¥Êı
+	// key: clientId. kcp client id ä¸ºå•æ•°
 	std::unordered_map<uint32_t, EP::Ref<FromClientPeer<EP::TcpPeer>>> clientTcpPeers;
 	std::unordered_map<uint32_t, EP::Ref<FromClientPeer<EP::KcpPeer>>> clientKcpPeers;
 
 	void InitClientListener() {
-		// ´´½¨ listener
+		// åˆ›å»º listener
 		clientTcpListener = ep.CreateTcpListener<FromClientListener<EP::TcpListener>>(cfg.listenPort);
 		clientKcpListener = ep.CreateUdpPeer<FromClientListener<EP::KcpListener>>(cfg.listenPort);
+
+		if (!clientTcpListener) throw - 1;
+		if (!clientKcpListener) throw - 2;
 
 		clientTcpListener->gw = this;
 		clientKcpListener->gw = this;
@@ -280,7 +286,7 @@ struct Gateway {
 	// service
 	/***********************************************************************************************/
 
-	// ²¦ºÅÆ÷ºÍ peer ´æ´¢ÔÚÒ»Æğ£¬°ó¶¨¹ØÏµ
+	// æ‹¨å·å™¨å’Œ peer å­˜å‚¨åœ¨ä¸€èµ·ï¼Œç»‘å®šå…³ç³»
 	using DialerPeer = std::pair<EP::Ref<ToServiceDialer>, EP::Ref<ToServicePeer>>;
 
 	// key: serviceId
@@ -288,7 +294,7 @@ struct Gateway {
 
 
 	void InitServiceDialers() {
-		// ´´½¨²¦ºÅÓÃ timer
+		// åˆ›å»ºæ‹¨å·ç”¨ timer
 		ep.CreateTimer(50, [this](auto t) {
 			for (auto&& kv : serviceDialerPeers) {
 				//auto&& serviceId = kv.first;
@@ -305,7 +311,7 @@ struct Gateway {
 			t->SetTimeout(50);
 			});
 
-		// ´´½¨ dialers
+		// åˆ›å»º dialers
 		for (auto&& cfg : cfg.services) {
 			TryCreateServiceDialer(cfg.serviceId, cfg.ip, cfg.port);
 #if PRINT_LOG_SERVICE_CONFIG
@@ -324,25 +330,25 @@ struct Gateway {
 		dialer->serviceId = serviceId;
 		dialer->AddAddress(ip, port);
 
-		// ÉèÖÃÏàÓ¦ÊÂ¼ş´¦Àí´úÂë
+		// è®¾ç½®ç›¸åº”äº‹ä»¶å¤„ç†ä»£ç 
 		dialer->onConnect = [this, serviceId](auto peer) {
-			// Èç¹ûÃ»Á¬ÉÏ, ºöÂÔ
+			// å¦‚æœæ²¡è¿ä¸Š, å¿½ç•¥
 			auto&& sp = peer.Lock();
 			if (!sp) return;
 
-			// ÉèÖÃÆä serviceId
+			// è®¾ç½®å…¶ serviceId
 			sp->serviceId = serviceId;
 
-			// ·ÅÈëÈİÆ÷
+			// æ”¾å…¥å®¹å™¨
 			serviceDialerPeers[serviceId].second = sp;
 
-			// ×¢²áÊÂ¼ş£º¶Ï¿ªÊ±Çå³ıÏàÓ¦ peer ´æ´¢±äÁ¿
+			// æ³¨å†Œäº‹ä»¶ï¼šæ–­å¼€æ—¶æ¸…é™¤ç›¸åº” peer å­˜å‚¨å˜é‡
 			sp->onDisconnect = [this, sp] {
 
-				// ´Ó´æ´¢ÇøÒÆ³ı
+				// ä»å­˜å‚¨åŒºç§»é™¤
 				this->serviceDialerPeers[sp->serviceId].second.Reset();
 
-				// ´ÓËùÓĞ client peers ÀïµÄ°×Ãûµ¥ÖĞÒÆ³ı ²¢×Ô¶¯ÏÂ·¢ close.	// todo: Èç¹û  °×Ãûµ¥ ¿ÕÁË£¬Ö±½ÓÎïÀí¶Ï¿ª
+				// ä»æ‰€æœ‰ client peers é‡Œçš„ç™½åå•ä¸­ç§»é™¤ å¹¶è‡ªåŠ¨ä¸‹å‘ close.	// todo: å¦‚æœ  ç™½åå• ç©ºäº†ï¼Œç›´æ¥ç‰©ç†æ–­å¼€
 				for (auto&& kv : clientTcpPeers) {
 					if (auto&& c = kv.second.Lock()) {
 						c->SendCommand_Close(sp->serviceId);
@@ -359,9 +365,9 @@ struct Gateway {
 #endif
 			};
 
-			// ×¢²áÊÂ¼ş£ºÊÕµ½ÍÆËÍµÄ´¦Àí
+			// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°æ¨é€çš„å¤„ç†
 			sp->onReceivePackage = [this, sp](uint8_t* const& buf, std::size_t const& len) {
-				// ¶Á³ö clientId
+				// è¯»å‡º clientId
 				uint32_t clientId = 0;
 				if (len < sizeof(clientId)) {
 					sp->Dispose();
@@ -374,45 +380,45 @@ struct Gateway {
 #endif
 				// kcp
 				if (clientId & 1) {
-					// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+					// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 					auto&& iter = this->clientKcpPeers.find(clientId);
 					if (iter == this->clientKcpPeers.end()) return;
 					auto&& cp = iter->second.Lock();
 					if (!cp) return;
 
-					// ´Û¸Ä clientId Îª serviceId ×ª·¢( ´ø header )
+					// ç¯¡æ”¹ clientId ä¸º serviceId è½¬å‘( å¸¦ header )
 					*(uint32_t*)buf = sp->serviceId;
 					cp->Send((char*)buf - 4, len + 4);
 				}
 				else {
-					// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+					// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 					auto&& iter = this->clientTcpPeers.find(clientId);
 					if (iter == this->clientTcpPeers.end()) return;
 					auto&& cp = iter->second.Lock();
 					if (!cp) return;
 
-					// ´Û¸Ä clientId Îª serviceId ×ª·¢( ´ø header )
+					// ç¯¡æ”¹ clientId ä¸º serviceId è½¬å‘( å¸¦ header )
 					*(uint32_t*)buf = sp->serviceId;
 					cp->Send((char*)buf - 4, len + 4);
 				}
 			};
 
-			// ×¢²áÊÂ¼ş£ºÊÕµ½ÄÚ²¿Ö¸ÁîµÄ´¦Àí
+			// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°å†…éƒ¨æŒ‡ä»¤çš„å¤„ç†
 			sp->onReceiveCommand = [this, sp](uint8_t* const& buf, std::size_t const& len) {
-				// ¸ã¸ö bb ÈİÆ÷·½±ãµã
+				// æä¸ª bb å®¹å™¨æ–¹ä¾¿ç‚¹
 				auto&& bb = ep.recvBB;
 				bb.Reset(buf, len);
 
-				// ÊÔ¶ÁÈ¡ cmd ×Ö´®
+				// è¯•è¯»å– cmd å­—ä¸²
 				std::string cmd;
 				if (int r = bb.Read(cmd)) {
 					sp->Dispose();
 					return;
 				}
 
-				// ¿ª¶Ë¿Ú. ²ÎÊı: clientId
+				// å¼€ç«¯å£. å‚æ•°: clientId
 				if (cmd == "open") {
-					// ÊÔ¶Á³ö clientId
+					// è¯•è¯»å‡º clientId
 					uint32_t clientId = 0;
 					if (int r = bb.Read(clientId)) {
 						sp->Dispose();
@@ -421,29 +427,29 @@ struct Gateway {
 
 					// kcp
 					if (clientId & 1) {
-						// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+						// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 						auto&& iter = this->clientKcpPeers.find(clientId);
 						if (iter == this->clientKcpPeers.end()) return;
 						auto&& cp = iter->second.Lock();
 						if (!cp) return;
 
-						// ·ÅÈë°×Ãûµ¥
+						// æ”¾å…¥ç™½åå•
 						cp->serviceIds.emplace(sp->serviceId);
 
-						// ÏÂ·¢ open
+						// ä¸‹å‘ open
 						cp->SendCommand_Open(sp->serviceId);
 					}
 					else {
-						// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+						// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 						auto&& iter = this->clientTcpPeers.find(clientId);
 						if (iter == this->clientTcpPeers.end()) return;
 						auto&& cp = iter->second.Lock();
 						if (!cp) return;
 
-						// ·ÅÈë°×Ãûµ¥
+						// æ”¾å…¥ç™½åå•
 						cp->serviceIds.emplace(sp->serviceId);
 
-						// ÏÂ·¢ open
+						// ä¸‹å‘ open
 						cp->SendCommand_Open(sp->serviceId);
 					}
 
@@ -453,16 +459,16 @@ struct Gateway {
 				}
 
 
-				// ¹Ø¶Ë¿Ú. ²ÎÊı: clientId
+				// å…³ç«¯å£. å‚æ•°: clientId
 				else if (cmd == "close") {
-					// ÊÔ¶Á³ö clientId
+					// è¯•è¯»å‡º clientId
 					uint32_t clientId = 0;
 					if (int r = bb.Read(clientId)) {
 						sp->Dispose();
 						return;
 					}
 
-					// Ç°ÖÃ¼ì²é
+					// å‰ç½®æ£€æŸ¥
 					if (!clientId) {
 						sp->Dispose();
 						return;
@@ -470,29 +476,29 @@ struct Gateway {
 
 					// kcp
 					if (clientId & 1) {
-						// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+						// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 						auto&& iter = this->clientKcpPeers.find(clientId);
 						if (iter == this->clientKcpPeers.end()) return;
 						auto&& cp = iter->second.Lock();
 						if (!cp) return;
 
-						// ´Ó°×Ãûµ¥ÒÆ³ı
+						// ä»ç™½åå•ç§»é™¤
 						cp->serviceIds.erase(sp->serviceId);
 
-						// ÏÂ·¢ close
+						// ä¸‹å‘ close
 						cp->SendCommand_Close(sp->serviceId);
 					}
 					else {
-						// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+						// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 						auto&& iter = this->clientTcpPeers.find(clientId);
 						if (iter == this->clientTcpPeers.end()) return;
 						auto&& cp = iter->second.Lock();
 						if (!cp) return;
 
-						// ´Ó°×Ãûµ¥ÒÆ³ı
+						// ä»ç™½åå•ç§»é™¤
 						cp->serviceIds.erase(sp->serviceId);
 
-						// ÏÂ·¢ close
+						// ä¸‹å‘ close
 						cp->SendCommand_Close(sp->serviceId);
 					}
 
@@ -504,9 +510,9 @@ struct Gateway {
 					sp->waitPingBack = false;
 					return;
 				}
-				// ÌßÍæ¼ÒÏÂÏß. ²ÎÊı: clientId, delayMS
+				// è¸¢ç©å®¶ä¸‹çº¿. å‚æ•°: clientId, delayMS
 				else if (cmd == "kick") {
-					// ÊÔ¶Á³ö²ÎÊı
+					// è¯•è¯»å‡ºå‚æ•°
 					uint32_t clientId = 0;
 					int64_t delayMS = 0;
 					if (int r = bb.Read(clientId, delayMS)) {
@@ -514,7 +520,7 @@ struct Gateway {
 						return;
 					}
 
-					// Ç°ÖÃ¼ì²é
+					// å‰ç½®æ£€æŸ¥
 					if (!clientId) {
 						sp->Dispose();
 						return;
@@ -522,48 +528,48 @@ struct Gateway {
 
 					// kcp
 					if (clientId & 1) {
-						// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+						// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 						auto&& iter = this->clientKcpPeers.find(clientId);
 						if (iter == this->clientKcpPeers.end()) return;
 						auto&& cp = iter->second.Lock();
 						if (!cp) return;
 
 						if (delayMS) {
-							// ×·¼ÓÒ»¸ö close Ö¸ÁîÒÔ±ã client ÊÕµ½ºóÖ±½Ó×ÔÉ±
+							// è¿½åŠ ä¸€ä¸ª close æŒ‡ä»¤ä»¥ä¾¿ client æ”¶åˆ°åç›´æ¥è‡ªæ€
 							cp->SendCommand_Close(0);
 
-							// ÑÓ³Ù¶Ï¿ª£¬ÏÈ½â°óÊÂ¼ş´¦Àíº¯Êı£¬ÔÙÉèÖÃ³¬Ê±Ê±³¤£¬µ½Ê±»á Dispose()
-							auto cp1 = cp;							// onDisconnect »áµ¼ÖÂ cp ±äÁ¿Ê§Ğ§¹Ê¸´ÖÆ
-							cp1->onDisconnect();					// ½â³ıÓ³Éä²¢·¢ËÍ¶ÏÏßÍ¨Öª
-							cp1->onDisconnect = [cp1] {};			// Çå³ı¾Éº¯Êı²¢³ÖÓĞ
+							// å»¶è¿Ÿæ–­å¼€ï¼Œå…ˆè§£ç»‘äº‹ä»¶å¤„ç†å‡½æ•°ï¼Œå†è®¾ç½®è¶…æ—¶æ—¶é•¿ï¼Œåˆ°æ—¶ä¼š Dispose()
+							auto cp1 = cp;							// onDisconnect ä¼šå¯¼è‡´ cp å˜é‡å¤±æ•ˆæ•…å¤åˆ¶
+							cp1->onDisconnect();					// è§£é™¤æ˜ å°„å¹¶å‘é€æ–­çº¿é€šçŸ¥
+							cp1->onDisconnect = [cp1] {};			// æ¸…é™¤æ—§å‡½æ•°å¹¶æŒæœ‰
 							cp1->onReceivePackage = nullptr;
-							cp1->SetTimeout((int)delayMS / 10);
+							cp1->SetTimeout(ep.MsToFrames((int)delayMS));
 						}
 						else {
-							// Á¢¿Ì¶Ï¿ªÁ¬½Ó£¬´¥·¢ onDisconnect( ´Ó this->clientPeers ÒÆ³ı²¢Ïò°×Ãûµ¥ serviceIds ¶ÔÓ¦ peer ¹ã²¥¶Ï¿ªÍ¨Öª )
+							// ç«‹åˆ»æ–­å¼€è¿æ¥ï¼Œè§¦å‘ onDisconnect( ä» this->clientPeers ç§»é™¤å¹¶å‘ç™½åå• serviceIds å¯¹åº” peer å¹¿æ’­æ–­å¼€é€šçŸ¥ )
 							cp->Dispose();
 						}
 					}
 					else {
-						// Èç¹ûÃ»ÕÒµ½ »òÒÑ¶Ï¿ª Ôò·µ»Ø£¬ºöÂÔ´íÎó
+						// å¦‚æœæ²¡æ‰¾åˆ° æˆ–å·²æ–­å¼€ åˆ™è¿”å›ï¼Œå¿½ç•¥é”™è¯¯
 						auto&& iter = this->clientTcpPeers.find(clientId);
 						if (iter == this->clientTcpPeers.end()) return;
 						auto&& cp = iter->second.Lock();
 						if (!cp) return;
 
 						if (delayMS) {
-							// ×·¼ÓÒ»¸ö close Ö¸ÁîÒÔ±ã client ÊÕµ½ºóÖ±½Ó×ÔÉ±
+							// è¿½åŠ ä¸€ä¸ª close æŒ‡ä»¤ä»¥ä¾¿ client æ”¶åˆ°åç›´æ¥è‡ªæ€
 							cp->SendCommand_Close(0);
 
-							// ÑÓ³Ù¶Ï¿ª£¬ÏÈ½â°óÊÂ¼ş´¦Àíº¯Êı£¬ÔÙÉèÖÃ³¬Ê±Ê±³¤£¬µ½Ê±»á Dispose()
-							auto cp1 = cp;							// onDisconnect »áµ¼ÖÂ cp ±äÁ¿Ê§Ğ§¹Ê¸´ÖÆ
-							cp1->onDisconnect();					// ½â³ıÓ³Éä²¢·¢ËÍ¶ÏÏßÍ¨Öª
-							cp1->onDisconnect = [cp1] {};			// Çå³ı¾Éº¯Êı²¢³ÖÓĞ
+							// å»¶è¿Ÿæ–­å¼€ï¼Œå…ˆè§£ç»‘äº‹ä»¶å¤„ç†å‡½æ•°ï¼Œå†è®¾ç½®è¶…æ—¶æ—¶é•¿ï¼Œåˆ°æ—¶ä¼š Dispose()
+							auto cp1 = cp;							// onDisconnect ä¼šå¯¼è‡´ cp å˜é‡å¤±æ•ˆæ•…å¤åˆ¶
+							cp1->onDisconnect();					// è§£é™¤æ˜ å°„å¹¶å‘é€æ–­çº¿é€šçŸ¥
+							cp1->onDisconnect = [cp1] {};			// æ¸…é™¤æ—§å‡½æ•°å¹¶æŒæœ‰
 							cp1->onReceivePackage = nullptr;
-							cp1->SetTimeout((int)delayMS / 10);
+							cp1->SetTimeout(ep.MsToFrames((int)delayMS));
 						}
 						else {
-							// Á¢¿Ì¶Ï¿ªÁ¬½Ó£¬´¥·¢ onDisconnect( ´Ó this->clientPeers ÒÆ³ı²¢Ïò°×Ãûµ¥ serviceIds ¶ÔÓ¦ peer ¹ã²¥¶Ï¿ªÍ¨Öª )
+							// ç«‹åˆ»æ–­å¼€è¿æ¥ï¼Œè§¦å‘ onDisconnect( ä» this->clientPeers ç§»é™¤å¹¶å‘ç™½åå• serviceIds å¯¹åº” peer å¹¿æ’­æ–­å¼€é€šçŸ¥ )
 							cp->Dispose();
 						}
 					}
@@ -579,7 +585,7 @@ struct Gateway {
 				}
 			};
 
-			// Ïò service ·¢ËÍ×Ô¼ºµÄ gatewayId
+			// å‘ service å‘é€è‡ªå·±çš„ gatewayId
 			sp->SendCommand_GatewayId(cfg.gatewayId);
 
 #if PRINT_LOG_SERVICE_CONNECTD
@@ -611,161 +617,190 @@ struct Gateway {
 	}
 
 
-	///***********************************************************************************************/
-	//// web Ïà¹Ø
-	///***********************************************************************************************/
+	/***********************************************************************************************/
+	// web ç›¸å…³
+	/***********************************************************************************************/
 
-	//// µÈ´ı ä¯ÀÀÆ÷ µÄ½ÓÈë
-	//std::shared_ptr<xx::HttpListener> webListener;
+	// ç­‰å¾… æµè§ˆå™¨ çš„æ¥å…¥
+	EP::Ref<EP::HttpListener> webListener;
 
-	//// ÍøÖ· path : ´¦Àíº¯Êı Ó³ÉäÌî³äµ½´Ë
-	//std::unordered_map<std::string, std::function<int(xx::HttpContext & request, xx::HttpResponse & response)>> handlers;
+	void InitWebListener();
 
-	//void InitWebListener();
+
+
+	/***********************************************************************************************/
+	// å‘½ä»¤è¡Œ ç›¸å…³
+	/***********************************************************************************************/
+
+	void InitCmds();
+
+	void ReloadConfig();
 };
 
-//inline void Gateway::InitWebListener() {
-//	// ´´½¨ web listener( Ö»Ö§³Ö tcp )
-//	xx::MakeTo(webListener, , cfg.webListenIP, cfg.webListenPort);
-//
-//	webListener->onAccept = [this](xx::HttpPeer_s peer) {
-//		peer->onReceiveHttp = [this, peer](xx::HttpContext& request, xx::HttpResponse& response)->int {
-//			// Ìî³ä request.path µÈ
-//			request.ParseUrl();
-//
-//			// ÓÃ path ²éÕÒ´¦Àíº¯Êı
-//			auto&& iter = handlers.find(request.path);
-//
-//			// Èç¹ûÃ»ÕÒµ½£ºÊä³öÄ¬ÈÏ±¨´íÒ³Ãæ
-//			if (iter == handlers.end()) {
-//				response.Send404Body("the page not found!");
-//			}
-//			// ÕÒµ½ÔòÖ´ĞĞ
-//			else {
-//				// Èç¹ûÖ´ĞĞ³ö´í£¬Êä³öÄ¬ÈÏ±¨´íÒ³Ãæ
-//				if (iter->second(request, response)) {
-//					response.Send404Body("bad request!");
-//				}
-//			}
-//			return 0;
-//		};
-//	};
-//
-//	handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& r)->int {
-//		char const str[] = R"--(
-//<html><body>
-//<p><a href="/watch_service_cfg">²é¿´ cfg</a></p>
-//<p><a href="/watch_connect_info">²é¿´ Á¬½Ó×´Ì¬</a></p>
-//<p><a href="/reload_service_cfg">ÖØĞÂ¼ÓÔØÅäÖÃÎÄ¼ş</a></p>
-//</body></html>
-//)--";
-//		return r.onSend(r.prefixHtml, str, sizeof(str));
-//	};
-//
-//	handlers["watch_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
-//		{
-//			auto&& html_body = r.Scope("<html><body>", "</body></html>");
-//
-//			r.Tag("p", "gatewayId = ", cfg.gatewayId);
-//			r.Tag("p", "gatewayId = ", cfg.gatewayId);
-//			r.Tag("p", "listenIP = ", cfg.listenIP);
-//			r.Tag("p", "listenPort = ", cfg.listenPort);
-//			r.Tag("p", "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
-//			r.Tag("p", "clientTimeoutMS = ", cfg.clientTimeoutMS);
-//			r.Tag("p", "webListenIP = ", cfg.webListenIP);
-//			r.Tag("p", "webListenPort = ", cfg.webListenPort);
-//
-//			r.TableBegin("serviceId", "ip", "port");
-//			for (auto&& service : cfg.services) {
-//				r.TableRow(service.serviceId, service.ip, service.port);
-//			}
-//			r.TableEnd();
-//
-//			r.A("»Øµ½Ö÷²Ëµ¥", "/");
-//		}
-//		return r.Send();
-//	};
-//
-//	handlers["watch_connect_info"] = [this](xx::HttpContext& request, xx::HttpResponse& r)->int {
-//		{
-//			auto&& html = r.Scope("html");
-//			auto&& body = r.Scope("body");
-//
-//			r.A("Ë¢ĞÂ", "/watch_connected_services");
-//
-//			r.P("clientPeers.size() = ", clientPeers.size());
-//
-//			r.TableBegin("serviceId", "ip:port", "busy", "peer alive");
-//			for (auto&& kv : serviceDialerPeers) {
-//				auto&& dialer = kv.second.first;
-//				auto&& peer = kv.second.second;
-//				r.TableRow(
-//					dialer->serviceId
-//					, (dialer->ip + ":" + std::to_string(dialer->port))
-//					, (dialer->Busy() ? "<font color='red'>true</font>" : "false")
-//					, ((peer && !peer->Disposed()) ? "<font color='green'>true</font>" : "false"));
-//			}
-//			r.TableEnd();
-//
-//			r.A("»Øµ½Ö÷²Ëµ¥", "/");
-//		}
-//		return r.Send();
-//	};
-//
-//	handlers["reload_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& response)->int {
-//		ServiceCfg cfg2;
-//		ajson::load_from_file(cfg2, "service_cfg.json");
-//
-//		// gatewayId, listenIP£¬ listenPort£¬listenTcpKcpOpt, webListenIP, webListenPort ²»¿É±ä, Ò²²»¼ì²é
-//		cfg.clientTimeoutMS = cfg2.clientTimeoutMS;
-//
-//		// ¿ªÊ¼¶Ô±È. foreach old
-//		for (auto&& service : cfg.services) {
-//			// °´ serviceId ×÷ÎªÆ¥ÅäÌõ¼ş
-//			auto&& iter = std::find_if(cfg2.services.begin(), cfg2.services.end(), [&](ServiceInfo const& o) {
-//				return service.serviceId == o.serviceId;
-//				});
-//
-//			// Èç¹ûÃ»ÕÒµ½£ºÉ¾µôÏà¹Ø dialer & peer
-//			if (iter == cfg2.services.end()) {
-//				RemoveServiceDialerPeer(service.serviceId);
-//			}
-//			// Èç¹ûÕÒµ½µ«ÊÇ ip »ò¶Ë¿ÚÓĞ±ä»¯, Ôò remove + add
-//			else if (service.ip != iter->ip || service.port != iter->port) {
-//				RemoveServiceDialerPeer(iter->serviceId);
-//				TryCreateServiceDialer(iter->serviceId, iter->ip, iter->port);
-//			}
-//		}
-//
-//		// ÔÙ´Î¶Ô±È. foreach new
-//		for (auto&& service : cfg2.services) {
-//			// °´ serviceId ×÷ÎªÆ¥ÅäÌõ¼ş
-//			auto&& iter = std::find_if(cfg.services.begin(), cfg.services.end(), [&](ServiceInfo const& o) {
-//				return service.serviceId == o.serviceId;
-//				});
-//
-//			// Èç¹ûÃ»ÕÒµ½£ºadd
-//			if (iter == cfg.services.end()) {
-//				TryCreateServiceDialer(service.serviceId, service.ip, service.port);
-//			}
-//		}
-//
-//		// ¸üĞÂ cfg
-//		cfg.services = cfg2.services;
-//
-//		// ÏÔÊ¾ĞÂÅäÖÃ
-//		return handlers["watch_service_cfg"](request, response);
-//	};
-//}
+inline void Gateway::InitWebListener() {
+	// åˆ›å»º web listener( åªæ”¯æŒ tcp )
+	webListener = ep.CreateTcpListener<EP::HttpListener>(cfg.webListenPort);
+	if (!webListener) throw - 1;
+
+	webListener->handlers[""] = [](xx::HttpContext& request, xx::HttpResponse& r) {
+		char const str[] = R"--(
+<html><body>
+<p><a href="/show_service_cfg">æŸ¥çœ‹ cfg</a></p>
+<p><a href="/show_connect_info">æŸ¥çœ‹ è¿æ¥çŠ¶æ€</a></p>
+<p><a href="/reload_service_cfg">é‡æ–°åŠ è½½é…ç½®æ–‡ä»¶</a></p>
+</body></html>
+)--";
+		r.onSend(r.prefixHtml, str, sizeof(str));
+	};
+
+	webListener->handlers["show_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& r) {
+		{
+			auto&& html_body = r.Scope("<html><body>", "</body></html>");
+
+			r.Tag("p", "gatewayId = ", cfg.gatewayId);
+			r.Tag("p", "listenIP = ", cfg.listenIP);
+			r.Tag("p", "listenPort = ", cfg.listenPort);
+			r.Tag("p", "listenTcpKcpOpt = ", cfg.listenTcpKcpOpt);
+			r.Tag("p", "clientTimeoutMS = ", cfg.clientTimeoutMS);
+			r.Tag("p", "webListenIP = ", cfg.webListenIP);
+			r.Tag("p", "webListenPort = ", cfg.webListenPort);
+
+			r.TableBegin("serviceId", "ip", "port");
+			for (auto&& service : cfg.services) {
+				r.TableRow(service.serviceId, service.ip, service.port);
+			}
+			r.TableEnd();
+
+			r.A("å›åˆ°ä¸»èœå•", "/");
+		}
+		r.Send();
+	};
+
+	webListener->handlers["show_connect_info"] = [this](xx::HttpContext& request, xx::HttpResponse& r) {
+		{
+			auto&& html = r.Scope("html");
+			auto&& body = r.Scope("body");
+
+			r.A("åˆ·æ–°", "/show_connect_info");
+
+			r.P("clientTcpPeers.size() = ", clientTcpPeers.size());
+			r.P("clientKcpPeers.size() = ", clientKcpPeers.size());
+
+			r.TableBegin("serviceId", "ip:port", "busy", "peer alive");
+			for (auto&& kv : serviceDialerPeers) {
+				auto&& dialer = kv.second.first;
+				auto&& peer = kv.second.second;
+				r.TableRow(
+					dialer->serviceId
+					, dialer->addrs[0].first
+					, (dialer->Busy() ? "<font color='red'>true</font>" : "false")
+					, (peer ? "<font color='green'>true</font>" : "false"));
+			}
+			r.TableEnd();
+
+			r.A("å›åˆ°ä¸»èœå•", "/");
+		}
+		r.Send();
+	};
+
+	webListener->handlers["reload_service_cfg"] = [this](xx::HttpContext& request, xx::HttpResponse& response) {
+		this->ReloadConfig();
+
+		// æ˜¾ç¤ºæ–°é…ç½®
+		this->webListener->handlers["show_service_cfg"](request, response);
+	};
+}
+
+inline void Gateway::ReloadConfig() {
+	ServiceCfg cfg2;
+	ajson::load_from_file(cfg2, "service_cfg.json");
+
+	// gatewayId, listenIPï¼Œ listenPortï¼ŒlistenTcpKcpOpt, webListenIP, webListenPort ä¸å¯å˜, ä¹Ÿä¸æ£€æŸ¥
+	cfg.clientTimeoutMS = cfg2.clientTimeoutMS;
+
+	// å¼€å§‹å¯¹æ¯”. foreach old
+	for (auto&& service : cfg.services) {
+		// æŒ‰ serviceId ä½œä¸ºåŒ¹é…æ¡ä»¶
+		auto&& iter = std::find_if(cfg2.services.begin(), cfg2.services.end(), [&](ServiceInfo const& o) {
+			return service.serviceId == o.serviceId;
+			});
+
+		// å¦‚æœæ²¡æ‰¾åˆ°ï¼šåˆ æ‰ç›¸å…³ dialer & peer
+		if (iter == cfg2.services.end()) {
+			RemoveServiceDialerPeer(service.serviceId);
+		}
+		// å¦‚æœæ‰¾åˆ°ä½†æ˜¯ ip æˆ–ç«¯å£æœ‰å˜åŒ–, åˆ™ remove + add
+		else if (service.ip != iter->ip || service.port != iter->port) {
+			RemoveServiceDialerPeer(iter->serviceId);
+			TryCreateServiceDialer(iter->serviceId, iter->ip, iter->port);
+		}
+	}
+
+	// å†æ¬¡å¯¹æ¯”. foreach new
+	for (auto&& service : cfg2.services) {
+		// æŒ‰ serviceId ä½œä¸ºåŒ¹é…æ¡ä»¶
+		auto&& iter = std::find_if(cfg.services.begin(), cfg.services.end(), [&](ServiceInfo const& o) {
+			return service.serviceId == o.serviceId;
+			});
+
+		// å¦‚æœæ²¡æ‰¾åˆ°ï¼šadd
+		if (iter == cfg.services.end()) {
+			TryCreateServiceDialer(service.serviceId, service.ip, service.port);
+		}
+	}
+
+	// æ›´æ–° cfg
+	cfg.services = cfg2.services;
+}
+
+
+inline void Gateway::InitCmds() {
+	ep.cmds["exit"] = [this](auto args) {
+		ep.running = false;
+	};
+	ep.cmds["reload"] = [this](auto args) {
+		this->ReloadConfig();
+		xx::CoutN("reload success.");
+	};
+	ep.cmds["config"] = [this](auto args) {
+		xx::CoutN("gatewayId = ", cfg.gatewayId
+			, "\nlistenIP = ", cfg.listenIP
+			, "\nlistenPort = ", cfg.listenPort
+			, "\nlistenTcpKcpOpt = ", cfg.listenTcpKcpOpt
+			, "\nclientTimeoutMS = ", cfg.clientTimeoutMS
+			, "\nwebListenIP = ", cfg.webListenIP
+			, "\nwebListenPort = ", cfg.webListenPort);
+
+		xx::CoutN("services:");
+		for (auto&& service : cfg.services) {
+			xx::CoutN("   id = ", service.serviceId, ", ip = ", service.ip, ", port = ", service.port);
+		}
+	};
+	ep.cmds["info"] = [this](auto args) {
+		xx::CoutN("clientTcpPeers.size() = ", clientTcpPeers.size());
+		xx::CoutN("clientKcpPeers.size() = ", clientKcpPeers.size());
+
+		xx::CoutN("serviceId		ip:port		busy		peer alive");
+		for (auto&& kv : serviceDialerPeers) {
+			auto&& dialer = kv.second.first;
+			auto&& peer = kv.second.second;
+			xx::CoutN(
+				dialer->serviceId
+				, "\t\t", dialer->addrs[0].first
+				, "\t\t", (dialer->Busy() ? "true" : "false")
+				, "\t\t", (peer ? "true" : "false"));
+		}
+	};
+}
 
 
 template<typename BaseListener>
 void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::PeerType> const& peer) {
-	// ½ÓÊÜÁ¬½ÓÊ±·ÖÅä×ÔÔö id ·ÅÈë×Öµä ²¢ÉèÖÃÏàÓ¦ÊÂ¼ş´¦Àí´úÂë
+	// æ¥å—è¿æ¥æ—¶åˆ†é…è‡ªå¢ id æ”¾å…¥å­—å…¸ å¹¶è®¾ç½®ç›¸åº”äº‹ä»¶å¤„ç†ä»£ç 
 	auto&& cp = (FromClientPeer<typename BaseListener::PeerType>*)peer.Lock();
 	assert(cp);
 
-	// Èç¹ûÄ¬ÈÏ×ª·¢´¦Àí·şÎñÎ´¾ÍĞ÷£¬²»½ÓÊÜÁ¬½Ó
+	// å¦‚æœé»˜è®¤è½¬å‘å¤„ç†æœåŠ¡æœªå°±ç»ªï¼Œä¸æ¥å—è¿æ¥
 	auto&& sp_0 = gw->serviceDialerPeers[0].second;
 	if (!sp_0) {
 #if PRINT_LOG_SERVICE0_NOT_READY
@@ -774,7 +809,7 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 		return;
 	}
 
-	// ²úÉú×ÔÔö id, ·ÅÈëÓ³Éä×Öµä
+	// äº§ç”Ÿè‡ªå¢ id, æ”¾å…¥æ˜ å°„å­—å…¸
 	gw->clientPeerAutoId += 2;
 	if constexpr (std::is_base_of_v<EP::KcpListener, BaseListener>) {
 		cp->clientId = gw->clientPeerAutoId + 1;
@@ -785,7 +820,7 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 		gw->clientTcpPeers.emplace(cp->clientId, cp);
 	}
 
-	// ×¢²áÊÂ¼ş£º¶ÏÏßÊ±´Ó×ÖµäÒÆ³ı
+	// æ³¨å†Œäº‹ä»¶ï¼šæ–­çº¿æ—¶ä»å­—å…¸ç§»é™¤
 	cp->onDisconnect = [gw = this->gw, cp]{
 		assert(cp->clientId);
 		if constexpr (std::is_base_of_v<EP::KcpListener, BaseListener>) {
@@ -795,8 +830,8 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 			gw->clientTcpPeers.erase(cp->clientId);
 		}
 
-		// Èº·¢¶Ï¿ªÍ¨Öª
-		cp->serviceIds.emplace(0);	// È·±£Ïò 0 service Ò²¹ã²¥
+		// ç¾¤å‘æ–­å¼€é€šçŸ¥
+		cp->serviceIds.emplace(0);	// ç¡®ä¿å‘ 0 service ä¹Ÿå¹¿æ’­
 		for (auto&& serviceId : cp->serviceIds) {
 			if (auto&& sp = gw->serviceDialerPeers[serviceId].second.Lock()) {
 				sp->SendCommand_Disconnect(cp->clientId);
@@ -807,17 +842,17 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 #endif
 	};
 
-	// ×¢²áÊÂ¼ş£ºÊÕµ½¿Í»§¶Ë·¢À´µÄÖ¸Áî£¬Ö±½Ó echo ·µ»Ø
+	// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°å®¢æˆ·ç«¯å‘æ¥çš„æŒ‡ä»¤ï¼Œç›´æ¥ echo è¿”å›
 	cp->onReceiveCommand = [gw = this->gw, cp](uint8_t* const& buf, std::size_t const& len) {
-		// ĞøÃü
-		cp->SetTimeout(gw->cfg.clientTimeoutMS / 10);
-		// echo ·¢»Ø
+		// ç»­å‘½
+		cp->SetTimeout(gw->ep.MsToFrames(gw->cfg.clientTimeoutMS));
+		// echo å‘å›
 		cp->Send((char*)buf - 4, len + 4);
 	};
 
-	// ×¢²áÊÂ¼ş£ºÊÕµ½Êı¾İÖ®ºó½âÎö serviceId ²¿·Ö²¢¶¨Î»µ½ service peer ×ª·¢
+	// æ³¨å†Œäº‹ä»¶ï¼šæ”¶åˆ°æ•°æ®ä¹‹åè§£æ serviceId éƒ¨åˆ†å¹¶å®šä½åˆ° service peer è½¬å‘
 	cp->onReceivePackage = [gw = this->gw, cp](uint8_t* const& buf, std::size_t const& len) {
-		// È¡³ö serviceId
+		// å–å‡º serviceId
 		if (len < 4) {
 			cp->Dispose();
 			return;
@@ -828,33 +863,33 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 		xx::CoutN("cp -> sp. size = ", len, ", serviceId = ", serviceId);
 #endif
 
-		// ÅĞ¶Ï¸Ã·şÎñ±àºÅÊÇ·ñÔÚ°×Ãûµ¥ÖĞ. ÕÒ²»µ½Ôò¶Ï¿ª
+		// åˆ¤æ–­è¯¥æœåŠ¡ç¼–å·æ˜¯å¦åœ¨ç™½åå•ä¸­. æ‰¾ä¸åˆ°åˆ™æ–­å¼€
 		if (cp->serviceIds.find(serviceId) == cp->serviceIds.end()) {
 			cp->Dispose();
 			return;
 		}
 
-		// ²éÕÒ¶ÔÓ¦µÄ servicePeer
+		// æŸ¥æ‰¾å¯¹åº”çš„ servicePeer
 		auto&& sp = gw->serviceDialerPeers[serviceId].second.Lock();
 
-		// Èç¹ûÎ´Ó³Éä»òÒÑ¶Ï¿ª ¾Í·µ»Ø´íÎóÂë£¬Õâ½«µ¼ÖÂ client peer ¶Ï¿ª
+		// å¦‚æœæœªæ˜ å°„æˆ–å·²æ–­å¼€ å°±è¿”å›é”™è¯¯ç ï¼Œè¿™å°†å¯¼è‡´ client peer æ–­å¼€
 		if (!sp) {
 			cp->Dispose();
 			return;
 		}
 
-		// ĞøÃü. Ã¿´ÎÊÕµ½ºÏ·¨Êı¾İĞøÒ»ÏÂ
-		cp->SetTimeout(gw->cfg.clientTimeoutMS / 10);
+		// ç»­å‘½. æ¯æ¬¡æ”¶åˆ°åˆæ³•æ•°æ®ç»­ä¸€ä¸‹
+		cp->SetTimeout(gw->ep.MsToFrames(gw->cfg.clientTimeoutMS));
 
-		// ´Û¸Ä serviceId Îª clientId, ×ª·¢°üº¬ header µÄÕû°ü
+		// ç¯¡æ”¹ serviceId ä¸º clientId, è½¬å‘åŒ…å« header çš„æ•´åŒ…
 		*(uint32_t*)buf = cp->clientId;
 		sp->Send((char*)buf - 4, len + 4);
 	};
 
-	// ĞøÃü. Á¬½Óºó xx MS ÄÚÈç¹ûÃ»ÓĞÊÕµ½ÈÎºÎÊı¾İ£¬Á¬½Ó½«¶Ï¿ª
-	cp->SetTimeout(gw->cfg.clientTimeoutMS / 10);
+	// ç»­å‘½. è¿æ¥å xx MS å†…å¦‚æœæ²¡æœ‰æ”¶åˆ°ä»»ä½•æ•°æ®ï¼Œè¿æ¥å°†æ–­å¼€
+	cp->SetTimeout(gw->ep.MsToFrames(gw->cfg.clientTimeoutMS));
 
-	// ÏòÄ¬ÈÏ·şÎñ·¢ËÍ accept Í¨Öª
+	// å‘é»˜è®¤æœåŠ¡å‘é€ accept é€šçŸ¥
 	std::string ip;
 	xx::Append(ip, cp->addr);
 	sp_0->SendCommand_Accept(cp->clientId, ip);
@@ -862,11 +897,12 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 #if PRINT_LOG_CLIENT_PEER_ACCEPT
 	xx::CoutN("client peer accept: ", cp->addr, ", protocol = ", (std::is_base_of_v<EP::KcpListener, BaseListener> ? "kcp" : "tcp"));
 #endif
-	}
+}
 
 
 int main() {
 	xx::IgnoreSignal();
+	xx::CoutN("running... press TAB 2 times show commands.");
 	Gateway g;
 	g.ep.Run(100);
 	return 0;
