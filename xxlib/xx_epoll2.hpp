@@ -99,8 +99,15 @@ namespace xx::Epoll {
 	// CommandHandler
 	/***********************************************************************************************************/
 
+	inline CommandHandler::CommandHandler() {
+		// 初始化 readline 第三方组件. 通过静态函数 访问静态 self 类 从而调用类成员函数
+		self = this;
+		rl_attempted_completion_function = (rl_completion_func_t*)&CompleteCallback;
+		rl_callback_handler_install("# ", (rl_vcpfunc_t*)&ReadLineCallback);
+	}
+
 	inline void CommandHandler::Exec(char const* const& row, size_t const& len) {
-		// 读取 row 内容, call ep->cmdHandlers[ args[0] ]( args )
+		// 读取 row 内容, call ep->cmds[ args[0] ]( args )
 		auto&& args = ep->args;
 		args.clear();
 		std::string s;
@@ -128,8 +135,8 @@ namespace xx::Epoll {
 		}
 
 		if (args.size()) {
-			auto&& iter = ep->cmdHandlers.find(args[0]);
-			if (iter != ep->cmdHandlers.end()) {
+			auto&& iter = ep->cmds.find(args[0]);
+			if (iter != ep->cmds.end()) {
 				if (iter->second) {
 					iter->second(args);
 				}
@@ -141,12 +148,56 @@ namespace xx::Epoll {
 	}
 
 	inline void CommandHandler::ReadLineCallback(char* line) {
+		if (!line) return;
 		auto len = strlen(line);
 		if (len) {
 			add_history(line);
 		}
-		instance->Exec(line, len);
+		self->Exec(line, len);
 		free(line);
+	}
+
+	inline char* CommandHandler::CompleteGenerate(const char* text, int state) {
+		// This function is called with state=0 the first time; subsequent calls are
+		  // with a nonzero state. state=0 can be used to perform one-time
+		  // initialization for this completion session.
+		static std::vector<std::string> matches;
+		static size_t match_index = 0;
+
+		if (state == 0) {
+			// During initialization, compute the actual matches for 'text' and keep
+			// them in a static vector.
+			matches.clear();
+			match_index = 0;
+
+			// Collect a vector of matches: vocabulary words that begin with text.
+			std::string textstr = std::string(text);
+			for (auto&& kv : self->ep->cmds) {
+				auto&& word = kv.first;
+				if (word.size() >= textstr.size() &&
+					word.compare(0, textstr.size(), textstr) == 0) {
+					matches.push_back(word);
+				}
+			}
+		}
+
+		if (match_index >= matches.size()) {
+			// We return nullptr to notify the caller no more matches are available.
+			return nullptr;
+		}
+		else {
+			// Return a malloc'd char* for the match. The caller frees it.
+			return strdup(matches[match_index++].c_str());
+		}
+	}
+
+	inline char** CommandHandler::CompleteCallback(const char* text, int start, int end) {
+		// Don't do filename completion even if our generator finds no matches.
+		rl_attempted_completion_over = 1;
+
+		// Note: returning nullptr here will make readline use the default filename
+		// completer.
+		return rl_completion_matches(text, (rl_compentry_func_t*)&CompleteGenerate);
 	}
 
 	inline void CommandHandler::OnEpollEvent(uint32_t const& e) {
@@ -156,14 +207,15 @@ namespace xx::Epoll {
 			return;
 		}
 
-		// 已知问题: resize 事件通知不到位, 导致显示效果不是很完美
 		rl_callback_read_char();
 	}
 
 	inline CommandHandler::~CommandHandler() {
+		xx::CoutN("~CommandHandler();");
 		rl_callback_handler_remove();
+		rl_clear_history();
 
-		// 特殊 fd, 不 Close
+		epoll_ctl(ep->efd, EPOLL_CTL_DEL, fd, nullptr);
 		ep->fdMappings[fd] = nullptr;
 		fd = -1;
 	}
@@ -1070,7 +1122,7 @@ namespace xx::Epoll {
 	// Context
 	/***********************************************************************************************************/
 
-	inline Context::Context(size_t const& wheelLen) {
+	inline Context::Context(bool isMainThread, size_t const& wheelLen) {
 		// 创建 epoll fd
 		efd = epoll_create1(0);
 		if (-1 == efd) throw - 1;
@@ -1080,6 +1132,15 @@ namespace xx::Epoll {
 
 		// 初始化处理类映射表
 		fdMappings.fill(nullptr);
+
+		// 初始化终端指令处理相关
+		if (isMainThread) {
+			// 试将 fd 纳入 epoll 管理
+			if (-1 == Ctl(STDIN_FILENO, EPOLLIN)) throw - 2;
+
+			// 创建 stdin fd 的处理类并放入容器
+			AddItem(xx::MakeU<CommandHandler>(), STDIN_FILENO);
+		}
 	}
 
 	inline Context::~Context() {
@@ -1252,30 +1313,6 @@ namespace xx::Epoll {
 		}
 
 		return 0;
-	}
-
-
-	int Context::CreateCommandHandler(bool const& advanceMode) {
-		// 已创建过
-		if (fdMappings[STDIN_FILENO]) return -1;
-
-		// fd 纳入 epoll 管理
-		if (-1 == Ctl(STDIN_FILENO, EPOLLIN)) return -2;
-
-		// 创建 stdin fd 的处理类
-		auto ch = xx::TryMakeU<CommandHandler>();
-		if (ch) {
-			// 继续初始化 readline 第三方组件. 通过静态函数 访问静态 instance 类 从而调用类成员函数
-			ch->instance = ch.get();
-			rl_callback_handler_install("# ", (rl_vcpfunc_t*)&ch->ReadLineCallback);
-
-			AddItem(std::move(ch), STDIN_FILENO);
-			return 0;
-		}
-		else {
-			epoll_ctl(efd, EPOLL_CTL_DEL, STDIN_FILENO, nullptr);
-			return -3;
-		}
 	}
 
 

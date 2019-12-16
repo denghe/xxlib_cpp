@@ -3,6 +3,7 @@
 #include <readline/history.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 int quit = false;
 
@@ -26,12 +27,14 @@ int main()
 
     rl_callback_handler_install(prompt, (rl_vcpfunc_t*)&rl_cb);
 
-    to.tv_sec = 0;
+    to.tv_sec = 1;
     to.tv_usec = 10000;
 
+    rl_callback_read_char();
     while (1) {
         if (quit) break;
-        select(1, NULL, NULL, NULL, &to);
+        //select(1, NULL, NULL, NULL, &to);
+        usleep(1000000);
         rl_callback_read_char();
     };
     rl_callback_handler_remove();

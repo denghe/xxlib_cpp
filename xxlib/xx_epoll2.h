@@ -151,8 +151,12 @@ namespace xx::Epoll {
 
 	// 处理键盘输入指令的专用类. 直接映射到 STDIN_FILENO ( fd == 0 )
 	struct CommandHandler : Item {
-		inline static CommandHandler* instance = nullptr;
+		inline static CommandHandler* self = nullptr;
+
+		CommandHandler();
 		static void ReadLineCallback(char* line);
+		static char** CompleteCallback(const char* text, int start, int end);
+		static char* CompleteGenerate(const char* text, int state);
 		virtual void OnEpollEvent(uint32_t const& e) override;
 		virtual ~CommandHandler();
 
@@ -541,21 +545,24 @@ namespace xx::Epoll {
 		// 公用 buf( 已用于 STDIN 输入接收 )
 		std::array<char, 65536> buf;
 
-		// 公用 args( 已用于 cmdHandlers 传参 )
+		// 公用 args( 已用于 cmds 传参 )
 		std::vector<std::string> args;
 
 		// 映射通过 stdin 进来的指令的处理函数. 去空格 去 tab 后第一个单词作为 key. 剩余部分作为 args
-		std::unordered_map<std::string, std::function<void(std::vector<std::string> const& args)>> cmdHandlers;
+		std::unordered_map<std::string, std::function<void(std::vector<std::string> const& args)>> cmds;
 
 		//
 		/********************************************************/
 
 
 
-		// 指定时间轮长度( 要求为 2^n )
-		Context(size_t const& wheelLen = 1 << 12);
+		// 指定 是否为主线程运行( 主线程的要负责处理键盘输入 )，以及时间轮长度( 要求为 2^n )
+		Context(bool isMainThread = true, size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
+
+		Context(Context const&) = delete;
+		Context& operator=(Context const&) = delete;
 
 
 		// 创建非阻塞 socket fd 并返回. < 0: error
@@ -593,9 +600,6 @@ namespace xx::Epoll {
 
 		// 开始运行并尽量维持在指定帧率. 临时拖慢将补帧
 		int Run(double const& frameRate = 60.3);
-
-		// 创建指令处理器( 注意：因为是针对 STDIN fd == 0, 只能创建一份 )
-		int CreateCommandHandler(bool const& advanceMode = false);
 
 		// 创建 TCP 监听器
 		template<typename T = TcpListener, typename ...Args>
