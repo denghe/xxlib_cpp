@@ -557,10 +557,10 @@ namespace xx::Epoll {
 		d->Stop();
 		auto peer = d->OnCreatePeer(Protocol::Tcp);
 		if (peer) {
-			auto p = ep->AddItem(std::move(peer), fd);
+			auto p = ep->AddItem(std::move(peer), fd);	// peer is moved
 			// fill address
-			result_len = sizeof(peer->addr);
-			getpeername(fd, (sockaddr*)&peer->addr, &result_len);
+			result_len = sizeof(p->addr);
+			getpeername(fd, (sockaddr*)&p->addr, &result_len);
 			d->OnConnect(p);
 		}
 		else {

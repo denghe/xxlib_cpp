@@ -10,15 +10,15 @@ namespace EP = xx::Epoll;
 #define PRINT_LOG_SERVICE_DISCONNECTD		1
 #define PRINT_LOG_SERVICE_DIAL				0
 
-#define PRINT_LOG_CLIENT_PEER_ACCEPT		1
-#define PRINT_LOG_CLIENT_PEER_DISCONNECT	1
+#define PRINT_LOG_CLIENT_PEER_ACCEPT		0
+#define PRINT_LOG_CLIENT_PEER_DISCONNECT	0
 
 #define PRINT_LOG_CP_SENDTO_SP				0
 #define PRINT_LOG_SP_SENDTO_CP				0
 
-#define PRINT_LOG_RECV_OPEN					1
-#define PRINT_LOG_RECV_CLOSE				1
-#define PRINT_LOG_RECV_KICK					1
+#define PRINT_LOG_RECV_OPEN					0
+#define PRINT_LOG_RECV_CLOSE				0
+#define PRINT_LOG_RECV_KICK					0
 
 
 
@@ -93,6 +93,14 @@ struct Peer : Base {
 		auto buf = (uint8_t*)this->recv.buf;
 		auto end = (uint8_t*)this->recv.buf + this->recv.len;
 
+		// 如果是 kcp 则会收到一次触发 accept 行为的包. 忽略之
+		if constexpr (std::is_base_of_v<EP::KcpPeer, Base>) {
+			if (this->recv.len == 5 && *(uint32_t*)buf == 1) {
+				this->recv.Clear();
+				return;
+			}
+		}
+
 		// 确保包头长度充足
 		while (buf + 4 <= end) {
 
@@ -117,7 +125,7 @@ struct Peer : Base {
 					onReceiveCommand(buf + 4, dataLen - 4);
 				}
 				else {
-					onReceivePackage(buf + 4, dataLen - 4);
+					onReceivePackage(buf, dataLen);
 				}
 
 				// 如果当前类实例已自杀则退出

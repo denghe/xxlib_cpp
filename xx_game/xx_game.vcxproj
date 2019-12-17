@@ -56,6 +56,9 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
+    <RemotePostBuildEvent>
+      <Command>[ -e $(RemoteDeployDir)/bin ] || ln -dsf $(RemoteDeployDir)/$(TargetName)/bin $(RemoteDeployDir)/bin</Command>
+    </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
@@ -64,6 +67,9 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
+    <RemotePostBuildEvent>
+      <Command>[ -e $(RemoteDeployDir)/bin ] || ln -dsf $(RemoteDeployDir)/$(TargetName)/bin $(RemoteDeployDir)/bin</Command>
+    </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

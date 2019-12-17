@@ -24,14 +24,14 @@ struct Client {
 
 	Client() {
 
-		xx::MakeTo(timer, uv, 0, 1, [this] {
+		xx::MakeTo(timer, uv, 0, 100, [this] {
 			if (this->lineNumber >= 0) {
 				this->lineNumber = Update();
 			}
 			});
 		assert(timer);
 
-		xx::MakeTo(gatewayDialer, uv, 0);	// 0: tcp   1: kcp   2: auto
+		xx::MakeTo(gatewayDialer, uv, 1);	// 0: tcp   1: kcp   2: auto
 		assert(gatewayDialer);
 
 		gatewayDialer->onAcceptSimulatePeer = [this](std::shared_ptr<xx::UvFrameSimulatePeer>& p) {
@@ -65,7 +65,7 @@ struct Client {
 		Cleanup();
 
 		// 开始拨号
-		r = gatewayDialer->Dial("192.168.1.52", 20000, 500);		// 500 ms 超时
+		r = gatewayDialer->Dial("192.168.1.132", 9999, 2000);
 		xx::CoutN("client gatewayDialer dial........");
 
 		// 没开始拨号立刻失败（可能没网络堆栈）
@@ -83,8 +83,9 @@ struct Client {
 			COR_YIELD;
 		}
 
-		// 如果未连接失败就再次拨号
-		if (!gatewayDialer->PeerAlive()) goto LabDial;
+		// 如果连接失败就再次拨号
+		if (gatewayDialer->PeerAlive() < 0)
+			goto LabDial;
 
 		// 等待创建 simulate peer 
 		ticks = 50;
@@ -95,7 +96,7 @@ struct Client {
 		goto LabDial;
 
 	LabStep1:
-		//xx::CoutN("step1");
+		xx::CoutN("step1");
 
 		// 试着通过 service0Peer 发包 
 
@@ -103,7 +104,7 @@ struct Client {
 		bb->Clear();
 		bb->Write((uint8_t)123);
 		service0Peer->SendPush(bb);
-		//xx::CoutN("client send to addr = ", 0, ", bb = ", bb);
+		xx::CoutN("client send to addr = ", 0, ", bb = ", bb);
 
 		// 等回包			
 		// 如果超过 3 秒没收到回应 就断线重播
