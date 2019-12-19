@@ -2,6 +2,25 @@
 
 // 模拟了一个 game server. 连到 service0. 被 gateway 连
 
+template<typename CMD, typename ...Args>
+xx::BBuffer_s& WriteCmd(xx::BBuffer_s& bb, CMD const& cmd, Args const&...args) {
+	if (!bb) {
+		xx::MakeTo(bb);
+	}
+	else {
+		bb->Clear();
+	}
+	bb->Write(cmd, args...);
+	return bb;
+}
+
+template<typename ...Args>
+xx::BBuffer_s& WriteCmd_Error(xx::BBuffer_s& bb, Args const&...args) {
+	std::string s;
+	xx::Append(s, args...);
+	return WriteCmd(bb, "error", s);
+}
+
 using PeerType = xx::UvSimulatePeer;
 struct GameServer : xx::UvServiceBase<PeerType, true> {
 
@@ -17,8 +36,53 @@ struct GameServer : xx::UvServiceBase<PeerType, true> {
 			// 没连上
 			if (!peer) return;
 
-			// 存连接到上下文
+			// 存连接到上下文备用
 			this->service0peer = peer;
+
+			// 注册 peer 请求处理
+			peer->onReceiveRequest = [this, peer](int const& serial, xx::Object_s&& msg) {
+				// 当前就是直接用 bb 来收发数据. 如果不是这个就不认
+				auto&& bb = xx::As<xx::BBuffer>(msg);
+				if (!bb) {
+					xx::MakeTo(bb);
+					bb->Write("error", "service0peer.onReceiveRequest recv error: msg is not bb");
+					peer->SendResponse(serial, bb);
+					return 0;
+				}
+
+				// 当前就是以 cmd string + args 作为数据格式. 先读 cmd
+				std::string cmd;
+				if (auto r = bb->Read(cmd)) {
+					bb->Clear();
+					bb->Write("error", "game_service_peer.SendRequest callback error: msg read cmd error");
+					peer->SendResponse(serial, bb);
+					return 0;
+				}
+
+				// 处理进入指令. 继续读出 gatewayId, clientId 并通知相应的 gateway open
+				if (cmd == "enter") {
+					uint32_t gatewayId = 0, clientId = 0;
+					if (auto r = bb->Read(gatewayId, clientId)) return 0;
+
+					// 联系网关 open
+					auto iter = gatewayPeers.find(gatewayId);
+					if (iter == gatewayPeers.end()) {
+						// todo
+					}
+					// todo
+
+
+					xx::CoutN("enter success.");
+					return 0;
+				}
+				// todo
+				else {
+					xx::CoutN("recv unhandled command: ", cmd);
+					return -2;
+				}
+
+				return 0;
+			};
 
 			// 发送 register + serviceId
 			auto&& bb = xx::Make<xx::BBuffer>();
@@ -28,11 +92,21 @@ struct GameServer : xx::UvServiceBase<PeerType, true> {
 				auto&& bb = xx::As<xx::BBuffer>(msg);
 				if (!bb) return -1;
 				
+				// 当前就是以 cmd string + args 作为数据格式. 先读 cmd
+				std::string cmd;
+				if (auto r = bb->Read(cmd)) return r;
 
-
-				return 0;
+				if (cmd == "success") {
+					xx::CoutN("register success.");
+					return 0;
+				}
+				else {
+					xx::CoutN("recv unhandled command: ", cmd);
+					return -2;
+				}
 			}, 5000);
 		};
+
 		xx::MakeTo(timer, uv, 0, 500, [this] {
 			if (!dialer->Busy() && !service0peer || service0peer->Disposed()) {
 				dialer->Dial("192.168.1.132", 10011);

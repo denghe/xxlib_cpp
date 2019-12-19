@@ -2,6 +2,38 @@
 
 // 模拟了一个 0 号服务. 被 gateway & game server 连
 
+template<typename Cmd, typename ...Args>
+xx::BBuffer_s& WriteCmd(xx::BBuffer_s& bb, Cmd const& cmd, Args const&...args) {
+	if (!bb) {
+		xx::MakeTo(bb);
+	}
+	else {
+		bb->Clear();
+	}
+	bb->Write(cmd, args...);
+	return bb;
+}
+
+template<typename ...Args>
+xx::BBuffer_s& WriteCmd_Error(xx::BBuffer_s& bb, Args const&...args) {
+	std::string s;
+	xx::Append(s, args...);
+	return WriteCmd(bb, "error", s);
+}
+
+template<typename Peer, typename Cmd, typename ...Args>
+int SendResponse(Peer& peer, int const& serial, xx::BBuffer_s& bb, Cmd const& cmd, Args const&...args) {
+	if (!peer || peer->Disposed()) return -1;
+	return peer->SendResponse(serial, WriteCmd(bb, cmd, args...));
+}
+
+template<typename Peer, typename ...Args>
+int SendResponse_Error(Peer& peer, int const& serial, xx::BBuffer_s& bb, Args const&...args) {
+	if (!peer || peer->Disposed()) return -1;
+	return peer->SendResponse(serial, WriteCmd_Error(bb, args...));
+}
+
+
 using PeerType = xx::UvSimulatePeer;
 struct Service0 : xx::UvServiceBase<PeerType, true> {
 
@@ -18,131 +50,122 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 		serviceListener->onAccept = [this](xx::UvPeer_s peer) {
 			xx::CoutN("server accept: ", peer->ip);
 			peer->onReceiveRequest = [this, peer](int const& serial, xx::Object_s&& msg)->int {
-				// 当前就是直接用 bb 来收发数据. 如果不是这个就不认
+				// 当前就是直接用 bb 来收发数据. 如果不是这个就报错
 				auto&& bb = xx::As<xx::BBuffer>(msg);
-				if (!bb) return -1;
+				if (!bb) {
+					return SendResponse_Error(peer, serial, bb, "msg is not bb");
+				}
 
-				// 当前就是以 cmd string + args 作为数据格式. 先读 cmd
+				// 当前就是以 cmd string + args... 作为数据格式. 先读 cmd. 再根据具体 cmd 读具体参数
 				std::string cmd;
-				if (auto r = bb->Read(cmd)) return r;
+				if (auto r = bb->Read(cmd)) {
+					return SendResponse_Error(peer, serial, bb, "msg read cmd error");
+				}
 
 				// 如果是注册包. 继续读 serviceId
 				if (cmd == "register") {
 					uint32_t serviceId = 0;
-					if (auto r = bb->Read(serviceId)) return r;
-
-					// 如果已注册 且 连接健康 则报错退断
-					auto&& iter = servicePeers.find(serviceId);
-					if (iter != servicePeers.end()
-						&& iter->second 
-						&& !iter->second->Disposed()) {
-						xx::CoutN("duplicate serviceId: ", serviceId, ", ip = ", peer->ip);
-						return -3;
+					// 读错误则返回错误
+					if (auto r = bb->Read(serviceId)) {
+						return SendResponse_Error(peer, serial, bb, "cmd: register read serviceId error. r = ", r);
 					}
 
-					// 注册
+					// 如果已注册 且 连接健康 则返回错误
+					auto&& iter = servicePeers.find(serviceId);
+					if (iter != servicePeers.end() && iter->second && !iter->second->Disposed()) {
+						return SendResponse_Error(peer, serial, bb, "cmd: register error: duplicate serviceId: ", serviceId);
+					}
+
+					// 注册( insert or replace )
 					servicePeers[serviceId] = peer;
 
-					// 回复成功. 将就 bb 构造
-					bb->Clear();
-					cmd = "success";
-					bb->Write(cmd);
-					return peer->SendResponse(serial, bb);
+					// 返回成功
+					return SendResponse(peer, serial, bb, "success");
 				}
-				// todo: more cmd if
-
-				// 回复未处理的指令. 将就 bb 构造
-				bb->Clear();
-				cmd = "unhandled command: " + cmd;
-				bb->Write(cmd);
-				return peer->SendResponse(serial, bb);
+				else {
+					// 返回错误: 收到未处理的指令
+					return SendResponse_Error(peer, serial, bb, "recv unhandled cmd: ", cmd);
+				}
 			};
 		};
 	}
 
-	// 模拟登录流程, 收到 enter 包后, 通知相应的 game server, 令其向指定 gateway & clientId 发 open
-	virtual void AcceptSimulatePeer(std::shared_ptr<PeerType>& sp) override {
-		sp->onReceiveRequest = [this, sp](int const& serial, xx::Object_s && msg)->int {
-			// 当前就是直接用 bb 来收发数据. 如果不是这个就不认
+	// 当客户端通过 gateway 连上来后产生该事件
+	virtual void AcceptSimulatePeer(std::shared_ptr<PeerType>& peer) override {
+		peer->onReceiveRequest = [this, peer](int const& serial, xx::Object_s && msg)->int {
+			// 当前就是直接用 bb 来收发数据. 如果不是这个就报错
 			auto&& bb = xx::As<xx::BBuffer>(msg);
-			if (!bb) return -1;
+			if (!bb) {
+				return SendResponse_Error(peer, serial, bb, "msg is not bb");
+			}
 
-			// 当前就是以 cmd string + args 作为数据格式. 先读 cmd
+			// 当前就是以 cmd string + args... 作为数据格式. 先读 cmd. 再根据具体 cmd 读具体参数
 			std::string cmd;
-			if (auto r = bb->Read(cmd)) return r;
+			if (auto r = bb->Read(cmd)) {
+				return SendResponse_Error(peer, serial, bb, "msg read cmd error");
+			}
 
+			// 模拟登录流程, 收到 enter 包后, 通知相应的 game server, 令其向指定 gateway & clientId 发 open
 			// enter 包：继续读出 serviceId
 			if (cmd == "enter") {
 				uint32_t serviceId = 0;
-				if (auto r = bb->Read(serviceId)) return r;
+				if (auto r = bb->Read(serviceId)) {
+					return SendResponse_Error(peer, serial, bb, "cmd: enter read serviceId error. r = ", r);
+				}
 
 				// 如果找不到 空 或 已断开 则报错退断
 				auto&& iter = servicePeers.find(serviceId);
-				if (iter == servicePeers.end()
-					|| !iter->second
-					|| iter->second->Disposed()) {
-					xx::CoutN("can't find serviceId: ", serviceId);
-					return -3;
+				if (iter == servicePeers.end() || !iter->second || iter->second->Disposed()) {
+					return SendResponse_Error(peer, serial, bb, "cmd: enter can't find serviceId: ", serviceId);
 				}
 
 				// 定位到 gateway. 理论上讲应该必然有值( 这个函数就是从它发起调用 )
-				auto gp = xx::As<xx::UvFromGatewayPeer>(sp->gatewayPeer.lock());
+				auto gp = xx::As<xx::UvFromGatewayPeer>(peer->gatewayPeer.lock());
 				assert(gp);
 
-				// 向 service 发 enter. 捎带 gatewayId, clientId. 将就 bb 构造
+				// 向 service 发 enter. 捎带 gatewayId, clientId
 				bb->Clear();
-				cmd = "enter";
-				bb->Write(cmd, gp->gatewayId, sp->id);
-				auto r = iter->second->SendRequest(bb, [this, sp, serial](xx::Object_s&& msg) {
-					// 在这个回调中，如果 sp 还活着，遇到错误都发送给 sp, return 0
-					if (sp->Disposed()) return 0;
-
-					// 当前就是直接用 bb 来收发数据. 如果不是这个就不认
+				bb->Write("enter", gp->gatewayId, peer->id);
+				auto r = iter->second->SendRequest(bb, [this, peer, serial](xx::Object_s&& msg) {
+					// 当前就是直接用 bb 来收发数据. 如果不是这个就报错
 					auto&& bb = xx::As<xx::BBuffer>(msg);
 					if (!bb) {
-						xx::MakeTo(bb);
-						bb->Write(std::string("error"), -1);
-						sp->SendResponse(serial, bb);
+						SendResponse_Error(peer, serial, bb, "[enter] msg is not bb");
 						return 0;
 					}
 
-					// 当前就是以 cmd string + args 作为数据格式. 先读 cmd
+					// 当前就是以 cmd string + args... 作为数据格式. 先读 cmd. 再根据具体 cmd 读具体参数
 					std::string cmd;
 					if (auto r = bb->Read(cmd)) {
-						cmd = "error";
-						bb->Write(cmd, r);
-						sp->SendResponse(serial, bb);
+						SendResponse_Error(peer, serial, bb, "[enter] msg read cmd error");
 						return 0;
 					}
 
-					// 成功: 继续给 sp 回包
+					// 成功: 通过 sim peer 回复 success
 					if (cmd == "success") {
-						// 回复成功. 将就 bb 构造
-						bb->Clear();
-						cmd = "success";
-						bb->Write(cmd);
-						return sp->SendResponse(serial, bb);
+						SendResponse(peer, serial, bb, "success");
+					}
+					// 出错: 转发
+					else if (cmd == "error") {
+						peer->SendResponse(serial, msg);
+					}
+					// 收到意料之外的包: 回复错误
+					else {
+						SendResponse_Error(peer, serial, bb, "[enter] unhandled cmd: ", cmd);
 					}
 					return 0;
 				}, 5000);
 
-				// 向 game service 发送失败: 给 sp 回错误信息
+				// 向 game service 发送失败: 给 peer 回错误信息
 				if (r) {
-					bb->Clear();
-					cmd = "error";
-					bb->Write(cmd, -2);
-					return sp->SendResponse(serial, bb);
+					return SendResponse_Error(peer, serial, bb, "send enter to game peer error. r = ", r);
 				}
-
 				return 0;
 			}
-			// todo: more cmd if
-
-			// 回复未处理的指令. 将就 bb 构造
-			bb->Clear();
-			cmd = "unhandled command: " + cmd;
-			bb->Write(cmd);
-			return sp->SendResponse(serial, bb);
+			else {
+				// 回复未处理的指令
+				return SendResponse_Error(peer, serial, bb, "unhandled cmd: ", cmd);
+			}
 		};
 	}
 };
