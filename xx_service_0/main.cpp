@@ -48,7 +48,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 		// 初始化用于 game service 连接的 listener
 		xx::MakeTo(serviceListener, uv, "0.0.0.0", 10011, 0);
 		serviceListener->onAccept = [this](xx::UvPeer_s peer) {
-			xx::CoutN("server accept: ", peer->ip);
+			xx::CoutN("server accept: ", peer->GetIP());
 			peer->onReceiveRequest = [this, peer](int const& serial, xx::Object_s&& msg)->int {
 				// 当前就是直接用 bb 来收发数据. 如果不是这个就报错
 				auto&& bb = xx::As<xx::BBuffer>(msg);
@@ -58,6 +58,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 
 				// 当前就是以 cmd string + args... 作为数据格式. 先读 cmd. 再根据具体 cmd 读具体参数
 				std::string cmd;
+				// 读错误则返回错误
 				if (auto r = bb->Read(cmd)) {
 					return SendResponse_Error(peer, serial, bb, "msg read cmd error");
 				}
@@ -101,6 +102,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 
 			// 当前就是以 cmd string + args... 作为数据格式. 先读 cmd. 再根据具体 cmd 读具体参数
 			std::string cmd;
+			// 读错误则返回错误
 			if (auto r = bb->Read(cmd)) {
 				return SendResponse_Error(peer, serial, bb, "msg read cmd error");
 			}
@@ -109,6 +111,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 			// enter 包：继续读出 serviceId
 			if (cmd == "enter") {
 				uint32_t serviceId = 0;
+				// 读错误则返回错误
 				if (auto r = bb->Read(serviceId)) {
 					return SendResponse_Error(peer, serial, bb, "cmd: enter read serviceId error. r = ", r);
 				}
@@ -124,9 +127,8 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 				assert(gp);
 
 				// 向 service 发 enter. 捎带 gatewayId, clientId
-				bb->Clear();
-				bb->Write("enter", gp->gatewayId, peer->id);
-				auto r = iter->second->SendRequest(bb, [this, peer, serial](xx::Object_s&& msg) {
+				auto r = iter->second->SendRequest(WriteCmd(bb, "enter", gp->gatewayId, peer->id)
+					, [this, peer, serial](xx::Object_s&& msg) {
 					// 当前就是直接用 bb 来收发数据. 如果不是这个就报错
 					auto&& bb = xx::As<xx::BBuffer>(msg);
 					if (!bb) {
@@ -136,6 +138,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 
 					// 当前就是以 cmd string + args... 作为数据格式. 先读 cmd. 再根据具体 cmd 读具体参数
 					std::string cmd;
+					// 读错误则返回错误
 					if (auto r = bb->Read(cmd)) {
 						SendResponse_Error(peer, serial, bb, "[enter] msg read cmd error");
 						return 0;

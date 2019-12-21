@@ -90,7 +90,7 @@ namespace xx::Epoll {
 		// 从 ep->items 移除自己, 进而触发析构
 		void Dispose();
 
-		// 关闭 fd( 如果不为 -1, 且解除映射 )
+		// fd 如果不为 -1, 就解除映射并关闭 fd
 		virtual ~Item();
 	};
 	using Item_u = std::unique_ptr<Item>;
@@ -100,7 +100,7 @@ namespace xx::Epoll {
 	// Ref
 	/***********************************************************************************************************/
 
-	// 针对 Item 的 弱引用伪指针. 几个操作符每次都会检查是否失效. 失效可以被 try 到。
+	// 针对 Item 的 弱引用伪指针. 几个操作符每次都会检查是否失效. 失效会 throw. 可以 try catch。
 	template<typename T>
 	struct Ref {
 		ItemPool<Item_u>* items = nullptr;
