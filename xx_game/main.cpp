@@ -89,6 +89,10 @@ struct GameServer : xx::UvServiceBase<PeerType, true> {
 						(void)iter->second->SendCommand_Open(clientId);
 					}
 
+					// 创建虚拟 peer ( 如果已存在就会被顶下线 )
+					auto&& cp = iter->second->CreateSimulatePeer<PeerType>(clientId);
+					AcceptSimulatePeer(cp);
+
 					// 返回成功
 					return SendResponse(peer, serial, bb, "success");
 				}
@@ -149,6 +153,7 @@ struct GameServer : xx::UvServiceBase<PeerType, true> {
 	}
 
 	virtual void AcceptSimulatePeer(std::shared_ptr<PeerType>& sp) override {
+		xx::CoutN("AcceptSimulatePeer");
 		// 实现 echo 效果
 		sp->onReceiveRequest = [sp](int const& serial, xx::Object_s&& msg)->int {
 			xx::CoutN("recv request msg = ", msg);

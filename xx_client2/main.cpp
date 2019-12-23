@@ -172,11 +172,16 @@ struct Client {
 
 	LabGamePeerLogic:
 		xx::CoutN("game peer opened");
-
-		// todo: send pkg to service 1
+		gamePeer->SendPush(WriteCmd(bb, "test"));
 
 		// 保持连接 & 断线检查
 		while (gatewayDialer->PeerAlive() >= 0) {
+			if (gamePeer->recvs.size()) {
+				for (auto&& recv : gamePeer->recvs) {
+					xx::CoutN("recv push from game peer: ", recv.first, " ", recv.second);
+				}
+				gamePeer->recvs.clear();
+			}
 			COR_YIELD;
 			// todo
 		}
