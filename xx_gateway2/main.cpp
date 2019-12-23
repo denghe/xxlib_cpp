@@ -89,6 +89,10 @@ struct Peer : Base {
 	}
 
 	virtual void OnReceive() override {
+		//if constexpr (std::is_base_of_v<EP::KcpPeer, Base>) {
+		//	xx::CoutN("OnReceive kcp data: ", this->recv);
+		//}
+
 		// 取出指针备用
 		auto buf = (uint8_t*)this->recv.buf;
 		auto end = (uint8_t*)this->recv.buf + this->recv.len;
@@ -96,8 +100,7 @@ struct Peer : Base {
 		// 如果是 kcp 则会收到一次触发 accept 行为的包. 忽略之
 		if constexpr (std::is_base_of_v<EP::KcpPeer, Base>) {
 			if (this->recv.len == 5 && *(uint32_t*)buf == 1) {
-				this->recv.Clear();
-				return;
+				buf += 5;
 			}
 		}
 
@@ -854,8 +857,8 @@ void FromClientListener<BaseListener>::OnAccept(EP::Ref<typename BaseListener::P
 	cp->onReceiveCommand = [gw = this->gw, cp](uint8_t* const& buf, std::size_t const& len) {
 		// 续命
 		cp->SetTimeout(gw->ep.MsToFrames(gw->cfg.clientTimeoutMS));
-		// echo 发回
-		cp->Send((char*)buf - 4, len + 4);
+		// echo 发回( buf 指向了 header + 0xffffffff 之后的区域，故 -8 指向 header )
+		cp->Send((char*)buf - 8, len + 8);
 	};
 
 	// 注册事件：收到数据之后解析 serviceId 部分并定位到 service peer 转发

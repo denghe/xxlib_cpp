@@ -55,15 +55,13 @@ struct Client {
 		assert(gatewayDialer);
 
 		gatewayDialer->onAcceptSimulatePeer = [this](std::shared_ptr<xx::UvFrameSimulatePeer>& p) {
+			xx::CoutN("onAcceptSimulatePeer: p->id = ", p->id);
 			switch (p->id) {
 			case 0:
 				service0Peer = p;
 				break;
-			case 1:
-				gamePeer = p;
-				break;
 			default:
-				assert(false);
+				gamePeer = p;
 			}
 		};
 	}
@@ -73,6 +71,7 @@ struct Client {
 		gatewayDialer->peer.reset();
 		service0Peer.reset();
 		gamePeer.reset();
+		cmd.clear();
 	}
 
 	int Update() {
@@ -116,7 +115,7 @@ struct Client {
 
 		// 试着通过 service0Peer 发包 
 
-		// 发 enter 包. 
+		// 发 enter 包. serviceId 传 1
 		finished = false;
 		service0Peer->SendRequest(WriteCmd(bb, "enter", (uint32_t)1), [this](xx::Object_s&& msg) {
 			bb = xx::As<xx::BBuffer>(msg);
@@ -144,16 +143,17 @@ struct Client {
 
 		// 成功: 
 		if (cmd == "success") {
+			// todo: 如果返回值携带 serviceId 那就还要进一步比较 accept 的 gamePeer id 是否等于 serviceId
 			goto LabWaitGamePeer;
 		}
 		// 出错: 打印错误明细
 		else if (cmd == "error") {
 			std::string errText;
 			if (auto r = bb->Read(errText)) {
-				xx::CoutN("register read errText error. r = ", r);
+				xx::CoutN("enter read errText error. r = ", r);
 			}
 			else {
-				xx::CoutN("register recv error: ", errText);
+				xx::CoutN("enter recv error: ", errText);
 			}
 		}
 		else {
@@ -161,7 +161,28 @@ struct Client {
 		}
 		goto LabDial;
 
-	LabWaitGamePeer:;
+	LabWaitGamePeer:
+		// 等待 game service open。如果断线就重拨
+		while (gatewayDialer->PeerAlive() >= 0) {
+			if (gamePeer) goto LabGamePeerLogic;
+			COR_YIELD;
+			// todo: timeout check
+		}
+		goto LabDial;
+
+	LabGamePeerLogic:
+		xx::CoutN("game peer opened");
+
+		// todo: send pkg to service 1
+
+		// 保持连接 & 断线检查
+		while (gatewayDialer->PeerAlive() >= 0) {
+			COR_YIELD;
+			// todo
+		}
+
+	//xx::Cout(".");
+
 		// todo: 检查 game peer. 等到后用来发包
 
 

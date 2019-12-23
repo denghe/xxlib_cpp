@@ -94,6 +94,8 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 	// 当客户端通过 gateway 连上来后产生该事件
 	virtual void AcceptSimulatePeer(std::shared_ptr<PeerType>& peer) override {
 		peer->onReceiveRequest = [this, peer](int const& serial, xx::Object_s && msg)->int {
+			xx::CoutN("recv request: ", msg);
+
 			// 当前就是直接用 bb 来收发数据. 如果不是这个就报错
 			auto&& bb = xx::As<xx::BBuffer>(msg);
 			if (!bb) {
