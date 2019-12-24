@@ -89,17 +89,14 @@ struct Peer : Base {
 	}
 
 	virtual void OnReceive() override {
-		//if constexpr (std::is_base_of_v<EP::KcpPeer, Base>) {
-		//	xx::CoutN("OnReceive kcp data: ", this->recv);
-		//}
-
 		// 取出指针备用
 		auto buf = (uint8_t*)this->recv.buf;
 		auto end = (uint8_t*)this->recv.buf + this->recv.len;
 
-		// 如果是 kcp 则会收到一次触发 accept 行为的包. 忽略之
+		// 如果是 kcp 则会收到一次触发 accept 行为的包
 		if constexpr (std::is_base_of_v<EP::KcpPeer, Base>) {
-			if (this->recv.len == 5 && *(uint32_t*)buf == 1) {
+			// 如果内容符合 1 0 0 0 0 打头则跳过这部分
+			if (this->recv.len >= 5 && *(uint32_t*)buf == 1 && buf[4] == 0) {
 				buf += 5;
 			}
 		}
@@ -115,7 +112,7 @@ struct Peer : Base {
 			}
 
 			// 数据区不完整就退出
-			if (buf + dataLen > end) break;
+			if (buf + 4 + dataLen > end) break;
 
 			// 跳到数据区开始调用处理回调
 			buf += 4;

@@ -214,7 +214,7 @@ namespace xx::Epoll {
 		// 数据接收事件: 从 recv 拿数据. 默认实现为 echo
 		virtual void OnReceive();
 
-		// 断线事件
+		// 断线事件. 默认实现为 空
 		virtual void OnDisconnect(int const& reason);
 
 		// buf + len 塞队列并开始发送

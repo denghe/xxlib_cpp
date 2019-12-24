@@ -36,18 +36,18 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>../xxlib</IncludePath>
-	<MultiProcNumber>4</MultiProcNumber>
+    <MultiProcNumber>4</MultiProcNumber>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>../xxlib</IncludePath>
-	<MultiProcNumber>4</MultiProcNumber>
+    <MultiProcNumber>4</MultiProcNumber>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <LibraryDependencies>pthread;dl;uv;uuid;boost_context;sqlite3;mariadb;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>pthread;dl;uv;uuid;boost_context;sqlite3;mariadb;readline;%(LibraryDependencies)</LibraryDependencies>
     </Link>
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
@@ -55,7 +55,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <LibraryDependencies>pthread;dl;uv;uuid;boost_context;sqlite3;mariadb;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>pthread;dl;uv;uuid;boost_context;sqlite3;mariadb;readline;%(LibraryDependencies)</LibraryDependencies>
     </Link>
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>

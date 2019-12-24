@@ -60,7 +60,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 				std::string cmd;
 				// 读错误则返回错误
 				if (auto r = bb->Read(cmd)) {
-					return SendResponse_Error(peer, serial, bb, "msg read cmd error");
+					return SendResponse_Error(peer, serial, bb, "msg read cmd error, r = ", r);
 				}
 
 				// 如果是注册包. 继续读 serviceId
@@ -106,7 +106,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 			std::string cmd;
 			// 读错误则返回错误
 			if (auto r = bb->Read(cmd)) {
-				return SendResponse_Error(peer, serial, bb, "msg read cmd error");
+				return SendResponse_Error(peer, serial, bb, "msg read cmd error, r = ", r);
 			}
 
 			// 模拟登录流程, 收到 enter 包后, 通知相应的 game server, 令其向指定 gateway & clientId 发 open
@@ -142,7 +142,7 @@ struct Service0 : xx::UvServiceBase<PeerType, true> {
 					std::string cmd;
 					// 读错误则返回错误
 					if (auto r = bb->Read(cmd)) {
-						SendResponse_Error(peer, serial, bb, "[enter] msg read cmd error");
+						SendResponse_Error(peer, serial, bb, "[enter] msg read cmd error, r = ", r);
 						return 0;
 					}
 
