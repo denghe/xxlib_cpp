@@ -122,10 +122,14 @@ struct Peer : Base {
 
 				// 判断是否为内部指令
 				if (*(uint32_t*)buf == 0xFFFFFFFFu) {
-					onReceiveCommand(buf + 4, dataLen - 4);
+					if (onReceiveCommand) {
+						onReceiveCommand(buf + 4, dataLen - 4);
+					}
 				}
 				else {
-					onReceivePackage(buf, dataLen);
+					if (onReceivePackage) {
+						onReceivePackage(buf, dataLen);
+					}
 				}
 
 				// 如果当前类实例已自杀则退出
@@ -763,6 +767,21 @@ inline void Gateway::ReloadConfig() {
 
 
 inline void Gateway::InitCmds() {
+	// 启用配置文件变化监视
+	auto&& inh = ep.CreateINotifyHandler("./service_cfg.json", IN_CLOSE_WRITE);
+	if (inh) {
+		inh->onEvent = [this](auto fn, auto mask) {
+			this->ReloadConfig();
+			xx::CoutN("event: service_cfg.json changed. reload success.");
+		};
+	}
+	else {
+		xx::CoutN("warning: service_cfg.json changed monitor create failed.");
+	}
+
+	// 启用命令行支持
+	ep.EnableCommandLine();
+
 	ep.cmds["exit"] = [this](auto args) {
 		ep.running = false;
 	};
@@ -800,6 +819,7 @@ inline void Gateway::InitCmds() {
 		}
 	};
 }
+
 
 
 template<typename BaseListener>

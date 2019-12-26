@@ -12,6 +12,7 @@
 #include <sys/epoll.h>
 #include <sys/uio.h>
 #include <sys/signalfd.h>
+#include <sys/inotify.h>  
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -143,27 +144,6 @@ namespace xx::Epoll {
 	}
 
 	using Item_r = Ref<Item>;
-
-
-	/***********************************************************************************************************/
-	// CommandHandler
-	/***********************************************************************************************************/
-
-	// 处理键盘输入指令的专用类. 直接映射到 STDIN_FILENO ( fd == 0 )
-	struct CommandHandler : Item {
-		inline static CommandHandler* self = nullptr;
-
-		CommandHandler();
-		static void ReadLineCallback(char* line);
-		static char** CompleteCallback(const char* text, int start, int end);
-		static char* CompleteGenerate(const char* text, int state);
-		virtual void OnEpollEvent(uint32_t const& e) override;
-		virtual ~CommandHandler();
-
-	protected:
-		// 解析 row 内容并调用 cmd 绑定 handler
-		void Exec(char const* const& row, size_t const& len);
-	};
 
 
 	/***********************************************************************************************************/
@@ -472,6 +452,43 @@ namespace xx::Epoll {
 
 
 	/***********************************************************************************************************/
+	// CommandHandler
+	/***********************************************************************************************************/
+
+	// 处理键盘输入指令的专用类( 单例 ). 直接映射到 STDIN_FILENO ( fd == 0 )
+	struct CommandHandler : Item {
+		inline static CommandHandler* self = nullptr;
+
+		CommandHandler();
+		static void ReadLineCallback(char* line);
+		static char** CompleteCallback(const char* text, int start, int end);
+		static char* CompleteGenerate(const char* text, int state);
+		virtual void OnEpollEvent(uint32_t const& e) override;
+		virtual ~CommandHandler();
+
+	protected:
+		// 解析 row 内容并调用 cmd 绑定 handler
+		void Exec(char const* const& row, size_t const& len);
+	};
+
+
+	/***********************************************************************************************************/
+	// INotifyHandler
+	/***********************************************************************************************************/
+
+	// 处理文件/文件夹事件监视
+	struct INotifyHandler : Item {
+		char buf[BUFSIZ];
+		std::function<void(char const* const& fn, uint32_t const& mask)> onEvent;
+		virtual void OnEvent(char const* const& fn, uint32_t const& mask);
+		virtual void OnEpollEvent(uint32_t const& e) override;
+	};
+
+
+
+
+
+	/***********************************************************************************************************/
 	// Context
 	/***********************************************************************************************************/
 
@@ -557,7 +574,7 @@ namespace xx::Epoll {
 
 
 		// 参数：是否启用键盘指令输入( 限主线程 )，时间轮长度( 要求为 2^n )
-		Context(bool enableCommandSupport = true, size_t const& wheelLen = 1 << 12);
+		Context(size_t const& wheelLen = 1 << 12);
 
 		virtual ~Context();
 
@@ -624,6 +641,15 @@ namespace xx::Epoll {
 		// 创建 TCP 监听器, 传入复用 fd
 		template<typename T = TcpListener, typename ...Args>
 		Ref<T> CreateSharedTcpListener(int const& fd, Args&&... args);
+
+		// 启用命令行输入控制. 支持方向键, tab 补齐, 上下历史
+		CommandHandler* EnableCommandLine();
+
+		// 创建 文件[夹] 行为监控. 
+		// 典型的，针对某配置变化重读可传入 ("./xxxxxx_cfg.json", IN_CLOSE_WRITE) 来监视其被覆盖行为
+		template<typename T = INotifyHandler, typename ...Args>
+		Ref<T> CreateINotifyHandler(char const* const& path = "./", uint32_t const& eventMask = IN_ALL_EVENTS);
+
 	};
 
 

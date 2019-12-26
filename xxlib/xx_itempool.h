@@ -91,11 +91,11 @@ namespace xx {
 			assert(idx < len);
 			assert(buf[idx].next == -1);
 			assert(buf[idx].version);
-			buf[idx].version = 0;
-			buf[idx].next = freeHeader;					// 指向 自由节点链表头
 			if constexpr (!std::is_pod_v<Value>) {
 				buf[idx].value.~Value();
 			}
+			buf[idx].version = 0;
+			buf[idx].next = freeHeader;					// 指向 自由节点链表头
 			freeHeader = idx;
 			assert(freeHeader >= 0);
 			assert(buf[freeHeader].version == 0);

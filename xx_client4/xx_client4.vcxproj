@@ -36,11 +36,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>../xxlib</IncludePath>
-	<MultiProcNumber>4</MultiProcNumber>
+    <MultiProcNumber>4</MultiProcNumber>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>../xxlib</IncludePath>
-	<MultiProcNumber>4</MultiProcNumber>
+    <MultiProcNumber>4</MultiProcNumber>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -52,6 +52,9 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
+    <RemotePostBuildEvent>
+      <Command>[ -e $(RemoteDeployDir)/bin ] || ln -dsf $(RemoteDeployDir)/$(TargetName)/bin $(RemoteDeployDir)/bin</Command>
+    </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
@@ -60,6 +63,9 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
+    <RemotePostBuildEvent>
+      <Command>[ -e $(RemoteDeployDir)/bin ] || ln -dsf $(RemoteDeployDir)/$(TargetName)/bin $(RemoteDeployDir)/bin</Command>
+    </RemotePostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

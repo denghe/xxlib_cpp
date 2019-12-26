@@ -66,7 +66,7 @@ struct GameServer : xx::UvServiceBase<PeerType, true> {
 				std::string cmd;
 				// 读错误则返回错误
 				if (auto r = bb->Read(cmd)) {
-					return SendResponse_Error(peer, serial, bb, "msg read cmd error");
+					return SendResponse_Error(peer, serial, bb, "msg read cmd error. r = ", r);
 				}
 
 				// 处理进入指令. 继续读出 gatewayId, clientId 并通知相应的 gateway open
@@ -146,7 +146,7 @@ struct GameServer : xx::UvServiceBase<PeerType, true> {
 		};
 
 		xx::MakeTo(timer, uv, 0, 500, [this] {
-			if (!dialer->Busy() && !service0peer || service0peer->Disposed()) {
+			if (!dialer->Busy() && (!service0peer || service0peer->Disposed())) {
 				dialer->Dial("192.168.1.132", 10011);
 			}
 		});
