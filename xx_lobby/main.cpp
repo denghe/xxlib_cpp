@@ -4,57 +4,38 @@ namespace xx::Epoll {
 	// 虚拟 peer ( 通过网关链路 peer 产生 )
 	struct SimulatePeer;
 
-	// 基类增强类. 放置一些公用函数
+	// 增强版. 支持 4字节 长度 包头拆包. 支持发送 Object 对象
 	struct TcpPeerEx : TcpPeer {
 		// 断线事件
 		std::function<void()> onDisconnect;
 
-		// 调用用户绑定的事件处理
-		virtual void OnDisconnect(int const& reason) override {
-			if (onDisconnect) {
-				onDisconnect();
-			}
-		}
-
-		// 开始向 bb 写包. 空出 长度 头部
-		static void WritePackageBegin(xx::BBuffer& bb, size_t const& cap, uint32_t const& id) {
-			bb.Reserve(4 + cap);
-			bb.len = 4;
-			bb.WriteFixed(id);
-		}
-
-		// 结束 bb 写包。根据数据长度 填写 包头
-		static void WritePackageEnd(xx::BBuffer& bb) {
-			*(uint32_t*)bb.buf = (uint32_t)(bb.len - 4);
-		}
-	};
-
-	// 与 gateway 交互的链路 peer
-	struct FromToGatewayPeer : TcpPeerEx {
-		// 处理内部指令包( 4 字节长度 + 0xFFFFFFFF + 内容( 通常为 cmd string + args... ) )
-		std::function<void(uint8_t* const& buf, std::size_t const& len)> onReceiveCommand;
-
-		// 处理一般数据包( 4 字节长度 + 4字节地址 + 数据 )
-		std::function<void(uint32_t const& id, uint8_t* const& buf, std::size_t const& len)> onReceivePackage;
+		// 包处理逻辑覆盖编写
+		virtual void OnReceivePackage(uint8_t* const& buf, uint32_t const& len) = 0;
 
 		// 构造内部指令包. cmd string + args...
 		template<typename...Args>
 		void SendCommand(Args const& ... cmdAndArgs) {
 			auto&& bb = ep->sendBB;
-			WritePackageBegin(bb, 64, 0xFFFFFFFFu);
+			bb.Reserve(64);
+			bb.len = 4;	// 空出 长度 头部
+			bb.WriteFixed(0xFFFFFFFFu);
 			bb.Write(cmdAndArgs...);
-			WritePackageEnd(bb);
-			Send(bb);
+			*(uint32_t*)bb.buf = (uint32_t)(bb.len - 4);	// 填充数据长度到包头
+			this->TcpPeer::Send(bb);
 		}
 
-		// 构造正常包( 符合 header + id + data 的结构 )
-		inline void SendTo(uint32_t const& id, int32_t const& serial, Object_s const& msg) {
+		// 构造正常包( 符合 header + id + data 的结构. 如果 id 传 0 则不包含 id 部分. 常见于服务之间通信 )
+		inline void Send(int32_t const& serial, Object_s const& msg, uint32_t const& id = 0) {
 			auto&& bb = ep->sendBB;
-			WritePackageBegin(bb, 1024, id);
+			bb.Reserve(1024);
+			bb.len = 4;	// 空出 长度 头部
+			if (id) {
+				bb.WriteFixed(id);
+			}
 			bb.Write(serial);
 			bb.WriteRoot(msg);
-			WritePackageEnd(bb);
-			Send(bb);
+			*(uint32_t*)bb.buf = (uint32_t)(bb.len - 4);	// 填充数据长度到包头
+			this->TcpPeer::Send(bb);
 		}
 
 		// 数据接收事件: 从 recv 拿数据, 根据 id 定位到 SimulatePeer 进一步 call 其 OnReceive
@@ -85,13 +66,8 @@ namespace xx::Epoll {
 					// 死亡判断变量
 					Ref<Item> alive(this);
 
-					// 判断是否为内部指令
-					if (*(uint32_t*)buf == 0xFFFFFFFFu) {
-						onReceiveCommand(buf + 4, dataLen - 4);
-					}
-					else {
-						onReceivePackage(*(uint32_t*)buf, buf + 4, dataLen - 4);
-					}
+					// 分发
+					OnReceivePackage(buf, dataLen);
 
 					// 如果当前类实例已自杀则退出
 					if (!alive) return;
@@ -103,24 +79,41 @@ namespace xx::Epoll {
 			// 移除掉已处理的数据
 			this->recv.RemoveFront((char*)buf - this->recv.buf);
 		}
+
+		// 调用用户绑定的事件处理
+		virtual void OnDisconnect(int const& reason) override {
+			if (onDisconnect) {
+				onDisconnect();
+			}
+		}
 	};
 
-	// service 被 gateway 连上后产生
-	struct FromGatewayPeer : FromToGatewayPeer {
-		using FromToGatewayPeer::FromToGatewayPeer;
+	// 与 gateway 交互的链路 peer
+	struct FromToGatewayPeer : TcpPeerEx {
+		// 处理内部指令包( 4 字节长度 + 0xFFFFFFFF + 内容( 通常为 cmd string + args... ) )
+		std::function<void(uint8_t* const& buf, std::size_t const& len)> onReceiveCommand;
+
+		// 处理一般数据包( 4 字节长度 + 4字节地址 + 数据 )
+		std::function<void(uint32_t const& id, uint8_t* const& buf, std::size_t const& len)> onReceivePackage;
+
+		// 指向所在容器( 建立连接后沟通填充 )
+		std::unordered_map<uint32_t, FromToGatewayPeer*>* gatewayPeers = nullptr;
 
 		// 内部网关编号, 建立连接后沟通填充
 		uint32_t gatewayId = 0xFFFFFFFFu;
 
-		// 挂在当前 peer 下通信的虚拟 peers
-		std::unordered_map<uint32_t, Ref<SimulatePeer>> simulatePeers;
+		// 挂在当前 peer 下通信的虚拟 peers. key 为 id
+		// 由于 sp 析构时会从这里移除, 故指针一定有效
+		std::unordered_map<uint32_t, SimulatePeer*> simulatePeers;
 
 		// 用于级联调用 sim peers Update
 		Timer_r simulatePeersUpdater;
 
-		// 初始化 timer 啥的
-		FromGatewayPeer();
-		~FromGatewayPeer();
+		// 初始化 timer
+		FromToGatewayPeer();
+
+		// 清理 timer
+		~FromToGatewayPeer();
 
 		void SendCommand_Open(uint32_t const& clientId) {
 			SendCommand("open", clientId);
@@ -134,25 +127,37 @@ namespace xx::Epoll {
 		void SendCommand_Ping(int64_t const& ticks) {
 			SendCommand("ping", ticks);
 		}
+
+		// 包结构: header + id + data. 投递到此的部分为 id + data
+		virtual void OnReceivePackage(uint8_t* const& buf, uint32_t const& len) override {
+			// 判断是否为内部指令
+			if (*(uint32_t*)buf == 0xFFFFFFFFu) {
+				onReceiveCommand(buf + 4, len - 4);
+			}
+			else {
+				onReceivePackage(*(uint32_t*)buf, buf + 4, len - 4);
+			}
+		}
 	};
 
 	// service 监听 gateways 专用
 	struct FromGatewayListener : TcpListener {
 		inline virtual TcpPeer_u OnCreatePeer() noexcept override {
-			return xx::TryMakeU<FromGatewayPeer>();
+			return xx::TryMakeU<FromToGatewayPeer>();
 		}
 	};
 
 	// 虚拟 peer ( 通过网关链路 peer 产生 )
 	struct SimulatePeer : ItemTimeout {
-		// 指向总容器( 创建时赋值 )
-		Ref<FromToGatewayPeer> gatewayPeer;
+		// 指向总容器. 由于 gp 析构时会 Dispose 所有 SimulatePeer, 故该指针一定有效( 创建时赋值 )
+		FromToGatewayPeer* gatewayPeer = nullptr;
 
 		// 存放从 gateway 分配到的自增 id( 创建时赋值 )
 		uint32_t id = 0xFFFFFFFFu;
 
 		// 存放 SendRequest 的回调
-		Dict<int, std::pair<std::function<int(Object_s && msg)>, int64_t>> callbacks;
+		typedef std::function<int(Object_s && msg)> RequestCB;
+		std::unordered_map<int, std::pair<RequestCB, int64_t>> callbacks;
 
 		// 用于自增生成 SendRequest 的业务号
 		int serial = 0;
@@ -166,18 +171,22 @@ namespace xx::Epoll {
 		// 收到 request 包时触发
 		std::function<void(int const& serial, Object_s && msg)> onReceiveRequest;
 
+		~SimulatePeer() {
+			if (gatewayPeer && id != 0xFFFFFFFFu) {
+				gatewayPeer->simulatePeers.erase(id);
+			}
+		}
+
 		inline virtual void OnDisconnect() noexcept {
 			if (onDisconnect) {
 				onDisconnect();
 			}
 		}
-
 		inline virtual void OnReceivePush(Object_s&& msg) noexcept {
 			if (onReceivePush) {
 				onReceivePush(std::move(msg));
 			}
 		}
-
 		inline virtual void OnReceiveRequest(int const& serial, Object_s&& msg) noexcept {
 			if (onReceiveRequest) {
 				onReceiveRequest(serial, std::move(msg));
@@ -185,30 +194,20 @@ namespace xx::Epoll {
 		}
 
 		inline void SendPush(Object_s const& msg) noexcept {
-			SendResponse(0, msg);
+			gatewayPeer->Send(0, msg, id);
 		}
-
 		inline void SendResponse(int32_t const& serial, Object_s const& msg) noexcept {
-			if (auto&& gp = gatewayPeer.Lock()) {
-				gp->SendTo(id, serial, msg);
-			}
-			else {
-				assert(false);
-			}
+			gatewayPeer->Send(serial, msg, id);
 		}
-
-		inline void SendRequest(Object_s const& msg, std::function<int(Object_s && msg)>&& cb, uint64_t const& timeoutMS) noexcept {
-			std::pair<std::function<int(Object_s && msg)>, int64_t> v;
+		inline void SendRequest(Object_s const& msg, RequestCB&& cb, uint32_t const& timeoutMS) noexcept {
 			serial = (serial + 1) & 0x7FFFFFFF;
-			v.second = NowSteadyEpochMS() + (timeoutMS ? timeoutMS : ep->defaultRequestTimeoutMS);
-			SendResponse(-serial, msg);
-			v.first = std::move(cb);
-			callbacks[serial] = std::move(v);
+			callbacks[serial] = { std::move(cb), NowSteadyEpochMS() + (timeoutMS ? (int64_t)timeoutMS : ep->defaultRequestTimeoutMS) };
+			gatewayPeer->Send(-serial, msg, id);	// serial 取负值发出
 		}
 
-		inline virtual void HandlePack(uint8_t* const& recvBuf, uint32_t const& recvLen) noexcept {
+		inline void OnReceivePackage(uint8_t* const& buf, uint32_t const& len) noexcept {
 			auto& bb = ep->recvBB;
-			bb.Reset((uint8_t*)recvBuf, recvLen);
+			bb.Reset((uint8_t*)buf, len);
 
 			int serial = 0;
 			Object_s msg;
@@ -225,22 +224,24 @@ namespace xx::Epoll {
 				OnReceiveRequest(-serial, std::move(msg));
 			}
 			else {
-				auto&& idx = callbacks.Find(serial);
-				if (idx == -1) return;
-				auto a = std::move(callbacks.ValueAt(idx).first);
-				callbacks.RemoveAt(idx);
+				auto&& iter = callbacks.find(serial);
+				if (iter == callbacks.end()) return;
+				auto&& a = std::move(iter->second.first);
+				callbacks.erase(iter);
 				a(std::move(msg));
 			}
 		}
 
 		// 每帧检查回调是否超时
 		void Update() {
-			for (auto&& iter = callbacks.begin(); iter != callbacks.end(); ++iter) {
-				auto&& v = iter->value;
-				if (v.second < ep->nowMS) {
-					auto a = std::move(v.first);
-					iter.Remove();
+			for (auto&& iter = callbacks.begin(); iter != callbacks.end();) {
+				if (iter->second.second < ep->nowMS) {
+					auto&& a = std::move(iter->second.first);
+					iter = callbacks.erase(iter);
 					a(nullptr);
+				}
+				else {
+					++iter;
 				}
 			}
 		}
@@ -265,26 +266,29 @@ namespace xx::Epoll {
 		Ref<FromGatewayListener> gatewayListener;
 
 		// key: gatewayId
-		std::unordered_map<uint32_t, Ref<FromGatewayPeer>> gatewayPeers;
+		// todo: remove from gatewayPeers when FromToGatewayPeer Dispose
+		std::unordered_map<uint32_t, FromToGatewayPeer*> gatewayPeers;
 	};
 
-	inline FromGatewayPeer::FromGatewayPeer() {
+	inline FromToGatewayPeer::FromToGatewayPeer() {
 		simulatePeersUpdater = ep->CreateTimer(10, [this](auto t) {
 			for (auto&& iter = simulatePeers.begin(); iter != simulatePeers.end();) {
-				if (auto&& sp = iter->second.Lock()) {
-					sp->Update();
-					iter++;
-				}
-				else {
-					simulatePeers.erase(iter++);
-				}
+				// 可能因析构导致从 simulatePeers erase 进而导致 iter 失效. 故先算 next
+				auto&& next = std::next(iter);
+				iter->second->Update();
+				iter = next;
 			}
 			t->SetTimeout(10);
 		});
 	}
 
-	inline FromGatewayPeer::~FromGatewayPeer() {
-		simulatePeersUpdater->Dispose();
+	inline FromToGatewayPeer::~FromToGatewayPeer() {
+		if (simulatePeersUpdater) {
+			simulatePeersUpdater->Dispose();
+		}
+		if (gatewayPeers) {
+			gatewayPeers->erase(gatewayId);
+		}
 	}
 }
 

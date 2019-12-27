@@ -1,6 +1,9 @@
 #pragma once
 #include "xx_object.h"
 namespace xx {
+
+	// 类似数组，当对象不断插入删除时, 其下标并不会发生改变. 有别于基于数组的交换删除.
+	// 该特性通常用于实现弱引用指针. 通过 ItemPool*, version, index 来判断对象是否有效
 	template<typename Value, typename Size_t = int, typename Version_t = int64_t>
 	struct ItemPool {
 		struct Data {
@@ -41,6 +44,7 @@ namespace xx {
 			buf = nullptr;
 		}
 
+		// 遍历清除已存在的对象。可传入预处理函数。
 		void Clear(std::function<void(Size_t const& idx, Data & data)>&& cb = nullptr) noexcept {
 			if (!len) return;
 			for (Size_t i = 0; i < len; ++i) {
@@ -68,33 +72,15 @@ namespace xx {
 			return idx;
 		}
 
-		//template<typename ...Args>
-		//Size_t TryAdd(Args&&...args) {
-		//	auto idx = Alloc();
-		//	try {
-		//		new (&buf[idx].value) Value(std::forward<Args>(args)...);
-		//	}
-		//	catch (...) {
-		//		buf[idx].version = 0;
-		//		buf[idx].next = freeHeader;			     // 指向 自由节点链表头
-		//		freeHeader = idx;
-		//		++freeCount;
-		//		return -1;
-		//	}
-		//	buf[idx].version = ++version;
-		//	buf[idx].next = -1;
-		//	return idx;
-		//}
-
 		// 通过下标移除
 		inline void RemoveAt(Size_t const& idx) noexcept {
 			assert(idx < len);
 			assert(buf[idx].next == -1);
 			assert(buf[idx].version);
+			buf[idx].version = 0;
 			if constexpr (!std::is_pod_v<Value>) {
 				buf[idx].value.~Value();
 			}
-			buf[idx].version = 0;
 			buf[idx].next = freeHeader;					// 指向 自由节点链表头
 			freeHeader = idx;
 			assert(freeHeader >= 0);
@@ -102,19 +88,19 @@ namespace xx {
 			++freeCount;
 		}
 
-		// 定位到存储区( 方便写 assert? )
+		// 定位到存储区
 		Data& At(Size_t const& idx) noexcept {
 			assert(idx < len);
 			return buf[idx];
 		}
 
-		// 定位到存储区( 方便写 assert? )
+		// 定位到 value
 		Value& ValueAt(Size_t const& idx) noexcept {
 			assert(idx < len);
 			return buf[idx].value;
 		}
 
-		// 定位到存储区( 方便写 assert? )
+		// 定位到 version
 		Version_t& VersionAt(Size_t const& idx) noexcept {
 			assert(idx < len);
 			return buf[idx].version;

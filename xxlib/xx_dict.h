@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "xx_object.h"
-namespace xx
-{
+namespace xx {
+	// 多 key 字典
 	template<typename V, typename ...KS>
 	class DictEx;
 
@@ -11,9 +11,8 @@ namespace xx
 		int index;
 	};
 
-	// 翻抄自 .net 的 Dictionary 的代码
-	// 内存优化原则: 内存集中以 亲和 cpu cache( hashCode, next 与 key value prev 分离 )
-
+	// 功能类似 std::unordered_map。抄自 .net 的 Dictionary
+	// 主要特点：iter 是个固定数值下标。故可持有加速 Update & Remove 操作, 遍历时删除当前 iter 指向的数据安全。
 	template <typename TK, typename TV>
 	class Dict : Object {
 	public:
