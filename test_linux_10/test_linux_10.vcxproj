@@ -48,7 +48,12 @@
     <ClInclude Include="file.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="map2.txt" />
+    <Text Include="map1.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </Text>
+    <Text Include="map2.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </Text>
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

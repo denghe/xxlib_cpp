@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\test_linux_11\map2.txt" />
+    <Text Include="..\test_linux_11\map1.txt" />
   </ItemGroup>
 </Project>

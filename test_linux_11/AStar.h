@@ -77,35 +77,35 @@ struct AStar
 
         while( openSet.c )
         {
-            auto x = orderedOpenSet.Pop();
-            if( x == endNode )
+            auto a = orderedOpenSet.Pop();
+            if( a == endNode )
             {
                 ReconstructPath( cameFrom.At( endNode->x, endNode->y ) );
                 searchResults.push_back( endNode );
                 return true;
             }
 
-            openSet.Remove( x->x, x->y );
-            closedSet.Add( x->x, x->y );
+            openSet.Remove( a->x, a->y );
+            closedSet.Add( a->x, a->y );
 
-            FillNeighbors( x, neighbors );
+            FillNeighbors( a, neighbors );
 
-            for( auto y : neighbors )
+            for( auto b : neighbors )
             {
-                if( !x->userContext->IsWalkable( *y->userContext )
-                    || closedSet.Contains( y->x, y->y ) ) continue;
+                if( !a->userContext->IsWalkable( *b->userContext )
+                    || closedSet.Contains( b->x, b->y ) ) continue;
 
                 bool better, added = false;
 
-                auto score = pathNodeMap.At( x->x, x->y ).g + NeighborDistance( x, y );
+                auto score = pathNodeMap.At( a->x, a->y ).g + NeighborDistance( a, b );
 
-                if( !openSet.Contains( y->x, y->y ) )
+                if( !openSet.Contains( b->x, b->y ) )
                 {
-                    openSet.Add( y->x, y->y );
+                    openSet.Add( b->x, b->y );
                     better = true;
                     added = true;
                 }
-                else if( score < pathNodeMap.At( y->x, y->y ).g )
+                else if( score < pathNodeMap.At( b->x, b->y ).g )
                 {
                     better = true;
                 }
@@ -116,15 +116,15 @@ struct AStar
 
                 if( better )
                 {
-                    cameFrom.At( y->x, y->y ) = x;
+                    cameFrom.At( b->x, b->y ) = a;
 
-                    auto& n = pathNodeMap.At( y->x, y->y );
+                    auto& n = pathNodeMap.At( b->x, b->y );
                     n.g = score;
-                    n.h = Heuristic( y, endNode );
+                    n.h = Heuristic( b, endNode );
                     n.f = n.g + n.h;
 
-                    if( added ) orderedOpenSet.Push( y );
-                    else orderedOpenSet.Update( y );
+                    if( added ) orderedOpenSet.Push( b );
+                    else orderedOpenSet.Update( b );
                 }
             }
         }
@@ -165,24 +165,22 @@ protected:
     }
 
     const float sqrt_2 = sqrtf( 2 );
+
+#ifdef _WIN32
+    __forceinline
+#endif
     float Heuristic( PPNT a, PPNT b )
     {
-        return sqrtf( float(( a->x - b->x ) * ( a->x - b->x ) + ( a->y - b->y ) * ( a->y - b->y )) );
+        return 0;
+        //return sqrtf( float(( a->x - b->x ) * ( a->x - b->x ) + ( a->y - b->y ) * ( a->y - b->y )) );
     }
+
+#ifdef _WIN32
+    __forceinline
+#endif
     float NeighborDistance( PPNT a, PPNT b )
     {
-        int diffX = abs( a->x - b->x );
-        int diffY = abs( a->y - b->y );
-
-        switch( diffX + diffY )
-        {
-        case 1: return 1;
-        case 2: return sqrt_2;
-        case 0: return 0;
-        default:
-            assert( false );
-            return 0;
-        }
+        return (a->x == b->x || a->y == b->y) ? 1.0f : sqrt_2;
     }
 
 };

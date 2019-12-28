@@ -24,6 +24,9 @@
     <ClCompile Include="..\test_linux_11\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\test_linux_11\map1.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </Text>
     <Text Include="..\test_linux_11\map2.txt">
       <DeploymentContent>true</DeploymentContent>
     </Text>
