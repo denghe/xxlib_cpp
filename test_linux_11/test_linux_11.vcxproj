@@ -41,7 +41,22 @@
     <MultiProcNumber>8</MultiProcNumber>
   </PropertyGroup>
   <ItemGroup>
+    <ClCompile Include="List.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AStar.h" />
+    <ClInclude Include="List.h" />
+    <ClInclude Include="Map.h" />
+    <ClInclude Include="OpenCloseMap.h" />
+    <ClInclude Include="PathNode.h" />
+    <ClInclude Include="PriorityQueue.h" />
+    <ClInclude Include="Stopwatch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="map2.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </Text>
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
