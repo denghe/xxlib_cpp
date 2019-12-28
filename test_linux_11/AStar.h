@@ -9,6 +9,7 @@
 #include "Map.h"
 #include "PathNode.h"
 
+
 template<typename T>
 struct AStar
 {
@@ -133,6 +134,9 @@ struct AStar
 
 protected:
 
+#ifdef _WIN32
+    __forceinline
+#endif
     void FillNeighbors( PPNT o, std::vector<PPNT>& neighbors )
     {
         int x = o->x, y = o->y;

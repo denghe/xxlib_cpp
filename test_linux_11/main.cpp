@@ -33,6 +33,7 @@ Map<Item>* Fill(int& aX, int& aY, int& bX, int& bY)
     std::vector<std::string> ss;
     while (getline(f, tmp))
     {
+        //ss.push_back(std::string(tmp.data(), tmp.size()-1));
         ss.push_back(tmp);
     }
 

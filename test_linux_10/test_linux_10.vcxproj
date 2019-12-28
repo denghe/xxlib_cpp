@@ -43,6 +43,13 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="astar.hpp" />
+    <ClInclude Include="file.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="map2.txt" />
+  </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
