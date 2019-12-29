@@ -10,19 +10,24 @@
 #include <optional>
 #include <chrono>
 
+//#define ENABLE_HEURISTIC
+
 struct Cell {
 	int x = 0, y = 0;
 	int walkable = 0;
+
 	int isOpened = 0;
 	int isClosed = 0;
+#ifdef ENABLE_HEURISTIC
 	int heuristicCurNodeToEndLen_hasValue = 0;
 	float heuristicCurNodeToEndLen = 0.0f;
+#endif
 	float heuristicStartToEndLen = 0.0f;
 	float startToCurNodeLen = 0.0f;
 	Cell* parent = nullptr;
 
 	inline void Clear() {
-		memset(&isOpened, 0, 4 * 6 + sizeof(parent));
+		memset(&isOpened, 0, sizeof(Cell) - 4 * 3);
 	}
 
 	inline void Fill(std::vector<Cell*>& path) {
@@ -41,6 +46,10 @@ struct CellComparer {
 	}
 	static bool LessThan(Cell* const& a, Cell* const& b) {
 		return a->heuristicStartToEndLen < b->heuristicStartToEndLen;
+	}
+
+	bool operator() (const Cell* x, const Cell* y) const noexcept {
+		return x->heuristicStartToEndLen > y->heuristicStartToEndLen;
 	}
 };
 
@@ -200,6 +209,29 @@ struct IntervalHeap {
 	}
 };
 
+struct CellHeap {
+	CellComparer comparer;
+	std::vector<Cell*> data;
+	void Clear() {
+		data.clear();
+	}
+	size_t size() const {
+		return data.size();
+	}
+	void Add(Cell* const& c) {
+		//c->isOpened = 1;
+		data.emplace_back(c);
+		std::push_heap(data.begin(), data.end(), comparer);
+	}
+
+	Cell* DeleteMin() {
+		auto from = data.front();
+		std::pop_heap(data.begin(), data.end(), comparer);
+		data.pop_back();
+		from->isOpened = 0;	// 该不该清??
+		return from;
+	}
+};
 
 struct Grid {
 	int width = 0;
@@ -208,7 +240,6 @@ struct Grid {
 	Cell* endCell = nullptr;
 	std::vector<Cell> cells;
 	std::vector<Cell*> path;
-	IntervalHeap<> openList;
 	static constexpr std::array<std::pair<int, int>, 8> neighborIndexs = {
 		std::pair<int, int>{-1, -1}
 		, std::pair<int, int>{0, -1}
@@ -220,16 +251,19 @@ struct Grid {
 		, std::pair<int, int>{1, 1}
 	};
 	const float sqrt_2 = sqrtf(2);
+	//IntervalHeap<> openList;
+	CellHeap openList;
 
 	Cell& At(int const& x, int const& y) {
 		assert(x >= 0 && y >= 0 && x < width && y < height);
 		return cells[(size_t)y * width + x];
 	}
 
+#ifdef ENABLE_HEURISTIC
 	static float Heuristic(Cell* const& a, Cell* const& b) {
-		return 0;
-		//return sqrtf( float(( a->x - b->x ) * ( a->x - b->x ) + ( a->y - b->y ) * ( a->y - b->y )) );
+		return sqrtf(float((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y)));
 	}
+#endif
 
 	bool FindPath() {
 		if (!startCell || !endCell) return false;
@@ -238,7 +272,8 @@ struct Grid {
 		openList.Add(startCell);
 		startCell->isOpened = 1;
 
-		while (openList.size) {
+		while (openList.size()) {
+			//auto cell = openList.DeleteMin();
 			auto cell = openList.DeleteMin();
 			cell->isClosed = 1;
 
@@ -247,20 +282,27 @@ struct Grid {
 				return true;
 			}
 
+			auto cx = cell->x;
+			auto cy = cell->y;
+
 			for (auto&& ni : neighborIndexs) {
 				auto n = &At(ni.first + cell->x, ni.second + cell->y);
 				if (n->isClosed || !n->walkable) continue;
-				auto x = n->x;
-				auto y = n->y;
-				auto ng = cell->startToCurNodeLen + ((x == cell->x || y == cell->y) ? 1.0f : sqrt_2);
+				auto nx = n->x;
+				auto ny = n->y;
+				auto ng = cell->startToCurNodeLen + ((nx == cx || ny == cy) ? 1.0f : sqrt_2);
 
 				if (!n->isOpened || ng < n->startToCurNodeLen) {
 					n->startToCurNodeLen = ng;
+#ifdef ENABLE_HEURISTIC
 					if (!n->heuristicCurNodeToEndLen_hasValue) {
 						n->heuristicCurNodeToEndLen = Heuristic(cell, endCell);
 						n->heuristicCurNodeToEndLen_hasValue = 1;
 					}
 					n->heuristicStartToEndLen = n->startToCurNodeLen + n->heuristicCurNodeToEndLen;
+#else
+					n->heuristicStartToEndLen = n->startToCurNodeLen;
+#endif
 					n->parent = cell;
 					if (!n->isOpened) {
 						openList.Add(n);
@@ -309,6 +351,8 @@ struct Grid {
 				case ' ':
 					At(x, y).walkable = 1;
 					break;
+				default:
+					At(x, y).walkable = 0;
 				}
 			}
 		}

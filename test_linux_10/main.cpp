@@ -1,18 +1,16 @@
-﻿
-#include <iostream>
+﻿#include <iostream>
 #include <chrono>
-#include <type_traits>
 #include <algorithm>
 #include <memory>
-#include <cmath>
+#include <math.h>
 #include "file.hpp"
 #include "astar.hpp"
 
 using namespace moon;
 
-static int64_t ms()
+static int64_t microsecond()
 {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+	return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 struct user_context
@@ -24,8 +22,8 @@ struct user_context
 
 	float estimate(const user_context& goal)
 	{
-		//return 0;
-		return sqrtf(float((x - goal.x) * (x - goal.x) + (y - goal.y) * (y - goal.y)));
+		return 0;
+		//return sqrtf(float((x - goal.x) * (x - goal.x) + (y - goal.y) * (y - goal.y)));
 		//return (std::abs(x - goal.x) + std::abs(y - goal.y));
 	}
 
@@ -48,7 +46,7 @@ std::unique_ptr<graph_t> make_graph(int M, int N, const std::string& obs)
 			auto vtx = m->at(i, j);
 			vtx->context.x = i;
 			vtx->context.y = j;
-			vtx->context.t = obs[(N)*j + i] == '%' ? 0 : 1;
+			vtx->context.t = obs[(M)*j + i] == '%' ? 0 : 1;
 		}
 	}
 	return m;
@@ -87,9 +85,9 @@ void print_path(const astar_t& a, graph_t* g2)
 
 void _search(graph_t* g2, const user_context& from, const user_context& to)
 {
-	auto bt = ms();
+	auto bt = microsecond();
 
-	int count = 1;
+	int count = 10000;
 	int success = 0;
 
 	astar_t a;
@@ -107,7 +105,7 @@ void _search(graph_t* g2, const user_context& from, const user_context& to)
 			{
 				success++;
 
-				print_path(a, g2);
+				//print_path(a, g2);
 				break;
 			}
 			else
@@ -118,25 +116,37 @@ void _search(graph_t* g2, const user_context& from, const user_context& to)
 		} while (true);
 	}
 
-	printf("total cost %lld ms\n", ms() - bt);
+	printf("total cost %lld us\n", microsecond() - bt);
 	printf("success %d.\n", success);
+	int x;
+	std::cin >> x;
 }
 
 int main(int argc, char* argv[])
 {
-	std::string grids = moon::file::read_all("map1.txt", std::ios::binary | std::ios::in);
-	grids.erase(std::remove_if(grids.begin(), grids.end(), [](char c) {
+	//auto fn = "map1.txt";
+	//int w = 100, h = 46, startX = 17, startY = 21, endX = 80, endY = 20;
+	auto fn = "map2.txt";
+	int w = 100, h = 100, startX = 96, startY = 96, endX = 2, endY = 3;
+
+	std::string grids = moon::file::read_all(fn, std::ios::binary | std::ios::in);
+	std::remove_if(grids.begin(), grids.end(), [](char c) {
 		return c == '\n' || c == '\r';
-	}), grids.end());
-	assert(grids.size() == 100 * 46);
+		});
+
 	{
-		auto bt = ms();
-		auto g2 = make_graph(46, 100, grids);
-		printf("make graph cost %lld ms\n", ms() - bt);
-		_search(g2.get(), user_context{ 22,18 }, user_context{ 21,87 });
+		auto bt = microsecond();
+		auto g2 = make_graph(w, h, grids);
+		printf("make graph cost %lld us\n", microsecond() - bt);
+		_search(g2.get(), user_context{ startX,startY }, user_context{ endX,endY });
 	}
 	return 0;
 }
+
+
+
+
+
 
 
 //#include "xx_epoll2_http.h"
