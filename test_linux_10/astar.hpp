@@ -41,15 +41,15 @@ namespace moon
         using policy_type = PathFindPolicy;
         using user_context_type = UserContext;
 
-        static constexpr std::array<int,16> dirs = {
-            1,0,
-            1,1,
-            0,1,
-            -1,1,
-            -1,0,
-            -1,-1,
-            0,-1,
-            1,-1
+        static constexpr std::array<std::pair<int, int>, 8> neighbors = {
+            std::pair<int, int>{1,0}
+            , std::pair<int, int>{1,1}
+            , std::pair<int, int>{ 0,1}
+            , std::pair<int, int>{ -1,1}
+            , std::pair<int, int>{-1,0}
+            , std::pair<int, int>{-1,-1}
+            , std::pair<int, int>{0,-1}
+            , std::pair<int, int>{1,-1}
         };
 
         struct vertex :policy_type
@@ -88,6 +88,10 @@ namespace moon
 
         vertex* at(int x, int y) const
         {
+            if (x < 0 || x >= width_ || y< 0 || y >= height_)
+            {
+                return nullptr;
+            }
             auto vtx = &vertexs_[y*width_ + x];
             if (vtx->version != version_)
             {
@@ -95,36 +99,6 @@ namespace moon
                 vtx->version = version_;
             }
             return vtx;
-        }
-
-        const std::vector<std::pair<vertex*, float>>& neighbors(vertex* v)
-        {
-            neighbors_.clear();
-
-            auto x = v->context.x;
-            auto y = v->context.y;
-
-            for (int i = 0; i < dirs.size(); i+=2)
-            {
-                int _x = x + dirs[i];
-                int _y = y + dirs[i+1];
-                if (_x < width_ && _x >=0 && _y < height_ && _y >= 0)
-                {
-                    auto vtx = at(_x, _y);
-                    if (vtx->context.canpass())
-                    {
-                        if (_x == x || _y == y)
-                        {
-                            neighbors_.emplace_back(vtx, 1.0f);
-                        }
-                        else
-                        {
-                            neighbors_.emplace_back(vtx, 1.44f);
-                        }
-                    }
-                }
-            }
-            return neighbors_;
         }
 
         void reset()
@@ -137,7 +111,6 @@ namespace moon
         int32_t height_ = 0;
         uint32_t version_ = 1;
         vertex* vertexs_ = nullptr;
-        std::vector<std::pair<vertex*,float>> neighbors_;
     };
 
     template<typename Graph>
@@ -168,21 +141,17 @@ namespace moon
             }
         };
 
-        //using open_continer_type = std::set<vertex_type*,vertex_less_compare>;
-
-        void init(Graph* g, const user_context_type& start, const user_context_type& goal)
+        void init(Graph* g, int start_x, int start_y, int goal_x, int goal_y)
         {
             cancel_ = false;
-
             graph_ = g;
-
-            start_ = graph_->at(start.x, start.y);
-            goal_ = graph_->at(goal.x, goal.y);
-            assert(nullptr != start_ && nullptr != goal_);
-            state_ = searching;
-
             graph_->reset();
             openlist_.clear();
+
+            start_ = graph_->at(start_x, start_y);
+            goal_ = graph_->at(goal_x, goal_y);
+            assert(nullptr != start_ && nullptr != goal_);
+            state_ = searching;
 
             start_->g = 0;
             start_->h = start_->context.estimate(goal_->context);
@@ -211,6 +180,7 @@ namespace moon
                 {
                     auto v = goal_;
                     auto p = goal_->parent;
+
                     do
                     {
                         p->child = v;
@@ -223,10 +193,17 @@ namespace moon
             }
             else
             {
-                for (auto& e : graph_->neighbors(from))
+                int x = from->context.x;
+                int y = from->context.y;
+                for (const auto& ne : graph_->neighbors)
                 {
-                    vertex_type* to = e.first;
-                    auto newg = from->g + e.second;
+                    vertex_type* to = graph_->at(x + ne.first, y + ne.second);
+                    if (nullptr == to || !to->context.canpass())
+                    {
+                        continue;
+                    }
+
+                    auto newg = from->g + ((x == to->context.x || y == to->context.y) ? 1.0f : 1.414f);
                     if (to->vstate == astar_policy::closed&&to->g <= newg)
                     {
                         //The one on closed is cheaper than this one
@@ -246,6 +223,8 @@ namespace moon
 
                     //update its astar specific data 
                     to->parent = from;
+                    assert(from->parent != to);
+                    //printf("set parent %d %d -> %d %d \n", to->context.x, to->context.y, from->context.x, from->context.y);
                     to->g = newg;
                     to->h = to->context.estimate(goal_->context);
                     to->f = to->g + to->h;

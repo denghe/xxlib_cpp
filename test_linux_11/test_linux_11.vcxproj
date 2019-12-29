@@ -60,6 +60,9 @@
     <Text Include="map2.txt">
       <DeploymentContent>true</DeploymentContent>
     </Text>
+    <Text Include="map3.txt">
+      <DeploymentContent>true</DeploymentContent>
+    </Text>
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

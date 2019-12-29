@@ -10,7 +10,7 @@
 #include <optional>
 #include <chrono>
 
-//#define ENABLE_HEURISTIC
+#define ENABLE_HEURISTIC
 
 struct Cell {
 	int x = 0, y = 0;
@@ -261,7 +261,8 @@ struct Grid {
 
 #ifdef ENABLE_HEURISTIC
 	static float Heuristic(Cell* const& a, Cell* const& b) {
-		return sqrtf(float((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y)));
+		return (std::abs(a->x - b->x) + std::abs(a->y - b->y));
+		//return sqrtf(float((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y)));
 	}
 #endif
 
@@ -397,7 +398,7 @@ int64_t NowMS() {
 
 int main() {
 	Grid g;
-	g.LoadByFile("map2.txt");
+	g.LoadByFile("map3.txt");
 
 	auto ms = NowMS();
 	int count = 0;
