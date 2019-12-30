@@ -11,16 +11,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\test_linux_11\AStar.h" />
-    <ClInclude Include="..\test_linux_11\List.h" />
-    <ClInclude Include="..\test_linux_11\Map.h" />
-    <ClInclude Include="..\test_linux_11\OpenCloseMap.h" />
-    <ClInclude Include="..\test_linux_11\PathNode.h" />
-    <ClInclude Include="..\test_linux_11\PriorityQueue.h" />
-    <ClInclude Include="..\test_linux_11\Stopwatch.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\test_linux_11\List.cpp" />
     <ClCompile Include="..\test_linux_11\main.cpp" />
   </ItemGroup>
   <ItemGroup>
