@@ -11,8 +11,7 @@
 #include <chrono>
 
 #define ENABLE_HEURISTIC
-// 对于 map1 似乎结果输出不正确. 有空再修修看?
-//#define ENABLE_CELLHEAP2
+#define CALC_COUNT 10000
 
 struct Cell {
 	int x = 0, y = 0;
@@ -69,50 +68,10 @@ struct CellHeap {
 		auto from = data.front();
 		std::pop_heap(data.begin(), data.end(), comparer);
 		data.pop_back();
+#ifdef SHOW_HEAP_LOG
+		std::cout << data.size() << " " << from->heuristicStartToEndLen << std::endl;
+#endif
 		return from;
-	}
-};
-
-struct CellHeap2 {
-	std::vector<Cell*> data;
-
-	void Clear() {
-		data.clear();
-	}
-
-	bool Empty() const {
-		return data.empty();
-	}
-
-	void Add(Cell* const& c) {
-		int p = (int)data.size(), p2;
-		data.push_back(c);
-		do {
-			if (p == 0) break;
-			p2 = (p - 1) / 2;
-			if (data[p]->heuristicStartToEndLen < data[p2]->heuristicStartToEndLen) {
-				std::swap(data[p], data[p2]);
-				p = p2;
-			}
-			else break;
-		} while (true);
-	}
-
-	Cell* DeleteMin() {
-		auto result = data[0];
-		int p = 0, p1, pn;
-		data[0] = data[data.size() - 1];
-		data.pop_back();
-		do {
-			pn = p;
-			p1 = 2 * p + 1;
-			if ((int)data.size() > p1 && data[p]->heuristicStartToEndLen > data[p1]->heuristicStartToEndLen) {
-				p = p1;
-			}
-			if (p == pn) break;
-			std::swap(data[p], data[pn]);
-		} while (true);
-		return result;
 	}
 };
 
@@ -134,11 +93,7 @@ struct Grid {
 		, std::pair<int, int>{1, 1}
 	};
 	const float sqrt_2 = sqrtf(2);
-#ifdef ENABLE_CELLHEAP2
-	CellHeap2 openList;
-#else
 	CellHeap openList;
-#endif
 
 	Cell& At(int const& x, int const& y) {
 		assert(x >= 0 && y >= 0 && x < width && y < height);
@@ -288,7 +243,7 @@ int main() {
 
 	auto ms = NowMS();
 	int count = 0;
-	for (int i = 0; i < 10000; ++i) {
+	for (int i = 0; i < CALC_COUNT; ++i) {
 		if (g.FindPath()) {
 			++count;
 		}
