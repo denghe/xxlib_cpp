@@ -17,11 +17,11 @@ struct Cell {
 	Cell* parent = nullptr;
 
 	float heuristicStartToEndLen = 0.0f;
-	float startToCurNodeLen = 0.0f;
-	float heuristicCurNodeToEndLen = 0.0f;
-	char heuristicCurNodeToEndLen_hasValue = 0;
-	char isOpened = 0;
-	char isClosed = 0;
+	float startToCurLen = 0.0f;
+	float heuristicCurToEndLen = 0.0f;
+	char heuristicCurToEndLen_hasValue = 0;
+	char opened = 0;
+	char closed = 0;
 
 	inline void Clear() {
 		memset(&heuristicStartToEndLen, 0, 4 * 4);
@@ -74,7 +74,7 @@ struct Grid {
 	Cell* endCell = nullptr;
 	std::vector<Cell> cells;
 	std::vector<Cell*> path;
-	static constexpr std::array<std::pair<int, int>, 8> neighborIndexs = {
+	static constexpr std::array<std::pair<int, int>, 8> neighborOffsets = {
 		std::pair<int, int>{-1, -1}
 		, std::pair<int, int>{0, -1}
 		, std::pair<int, int>{1, -1}
@@ -101,12 +101,12 @@ struct Grid {
 		Reset();
 		openList.Clear();
 		openList.Add(startCell);
-		startCell->isOpened = 1;
+		startCell->opened = 1;
 
 		while (!openList.Empty()) {
 			auto cell = openList.DeleteMin();
-			cell->isOpened = 0;
-			cell->isClosed = 1;
+			cell->opened = 0;
+			cell->closed = 1;
 
 			if (cell == endCell) {
 				cell->Fill(path);
@@ -115,24 +115,21 @@ struct Grid {
 
 			auto cx = cell->x;
 			auto cy = cell->y;
-			for (auto&& ni : neighborIndexs) {
-				auto n = &At(ni.first + cx, ni.second + cy);
-				if (n->isClosed || !n->walkable) continue;
-				auto nx = n->x;
-				auto ny = n->y;
-				auto ng = cell->startToCurNodeLen + ((nx == cx || ny == cy) ? 1.0f : sqrt_2);
-
-				if (!n->isOpened || ng < n->startToCurNodeLen) {
-					n->startToCurNodeLen = ng;
-					if (!n->heuristicCurNodeToEndLen_hasValue) {
-						n->heuristicCurNodeToEndLen = Heuristic(nx, ny);
-						n->heuristicCurNodeToEndLen_hasValue = 1;
+			for (auto&& ni : neighborOffsets) {
+				auto&& n = At(ni.first + cx, ni.second + cy);
+				auto ng = cell->startToCurLen + ((n.x == cx || n.y == cy) ? 1.0f : sqrt_2);
+				if (!n.walkable || n.closed && n.startToCurLen <= ng) continue;
+				if (!n.opened || ng < n.startToCurLen) {
+					n.startToCurLen = ng;
+					if (!n.heuristicCurToEndLen_hasValue) {
+						n.heuristicCurToEndLen = Heuristic(n.x, n.y);
+						n.heuristicCurToEndLen_hasValue = 1;
 					}
-					n->heuristicStartToEndLen = n->startToCurNodeLen + n->heuristicCurNodeToEndLen;
-					n->parent = cell;
-					if (!n->isOpened) {
-						openList.Add(n);
-						n->isOpened = 1;
+					n.heuristicStartToEndLen = n.startToCurLen + n.heuristicCurToEndLen;
+					n.parent = cell;
+					if (!n.opened) {
+						openList.Add(&n);
+						n.opened = 1;
 					}
 				}
 			}
