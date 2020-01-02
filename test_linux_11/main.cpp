@@ -92,8 +92,8 @@ struct Grid {
 		return cells[(size_t)y * width + x];
 	}
 
-	float Heuristic(Cell* const& a) {
-		return sqrtf(float((a->x - endCell->x) * (a->x - endCell->x) + (a->y - endCell->y) * (a->y - endCell->y)));
+	float Heuristic(int const& x, int const& y) {
+		return sqrtf(float((x - endCell->x) * (x - endCell->x) + (y - endCell->y) * (y - endCell->y)));
 	}
 
 	bool FindPath() {
@@ -125,7 +125,7 @@ struct Grid {
 				if (!n->isOpened || ng < n->startToCurNodeLen) {
 					n->startToCurNodeLen = ng;
 					if (!n->heuristicCurNodeToEndLen_hasValue) {
-						n->heuristicCurNodeToEndLen = Heuristic(n);
+						n->heuristicCurNodeToEndLen = Heuristic(nx, ny);
 						n->heuristicCurNodeToEndLen_hasValue = 1;
 					}
 					n->heuristicStartToEndLen = n->startToCurNodeLen + n->heuristicCurNodeToEndLen;
