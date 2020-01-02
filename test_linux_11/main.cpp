@@ -117,8 +117,8 @@ struct Grid {
 			auto cy = cell->y;
 			for (auto&& ni : neighborOffsets) {
 				auto&& n = At(ni.first + cx, ni.second + cy);
+				if (!n.walkable || n.closed/* && n.startToCurLen <= ng*/) continue;
 				auto ng = cell->startToCurLen + ((n.x == cx || n.y == cy) ? 1.0f : sqrt_2);
-				if (!n.walkable || n.closed && n.startToCurLen <= ng) continue;
 				if (!n.opened || ng < n.startToCurLen) {
 					n.startToCurLen = ng;
 					if (!n.heuristicCurToEndLen_hasValue) {
