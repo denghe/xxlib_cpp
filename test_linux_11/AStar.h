@@ -1,189 +1,249 @@
-#ifndef __ASTAR_H__
-#define __ASTAR_H__
-
-#include <cmath>
-#include <cassert>
+#include <cstring>
+#include <string>
+#include <iostream>
+#include <fstream>
 #include <vector>
-#include "PriorityQueue.h"
-#include "OpenCloseMap.h"
-#include "Map.h"
-#include "PathNode.h"
+#include <cmath>
+#include <array>
+#include <cassert>
+#include <algorithm>
+#include <optional>
+#include <chrono>
 
+struct Cell {
+	int x = 0;
+	int y = 0;
+	int walkable = 0;
+	Cell* parent = nullptr;
 
-template<typename T>
-struct AStar
-{
-    typedef PathNode<T*>    PNT;
-    typedef PathNode<T*>*   PPNT;
+	float heuristicStartToEndLen = 0.0f;
+	float startToCurNodeLen = 0.0f;
+	float heuristicCurNodeToEndLen = 0.0f;
+	char heuristicCurNodeToEndLen_hasValue = 0;
+	char isOpened = 0;
+	char isClosed = 0;
 
-    std::vector<PPNT>       searchResults;              // Search 函数的执行结果
-    Map<PNT>                pathNodeMap;                // 通过原地图数据填充，扩展出计算字段
-    PriorityQueue<PPNT>     orderedOpenSet;
-    Map<PPNT>               cameFrom;
-    OpenCloseMap            closedSet;
-    OpenCloseMap            openSet;
+	inline void Clear() {
+		memset(&heuristicStartToEndLen, 0, 4 * 4);
+	}
 
-
-    AStar( Map<T>& m )
-        : pathNodeMap( m.w, m.h )
-        , cameFrom( m.w, m.h )
-        , closedSet( m.w, m.h )
-        , openSet( m.w, m.h )
-    {
-        for( int x = 0; x < m.w; x++ )
-        {
-            for( int y = 0; y < m.h; y++ )
-            {
-                pathNodeMap.At( x, y ).Assign( x, y, &m.At( x, y ) );
-            }
-        }
-    }
-
-    bool Search( int aX, int aY, int bX, int bY )
-    {
-        auto startNode = &pathNodeMap.At( aX, aY );
-        auto endNode = &pathNodeMap.At( bX, bY );
-
-        if( startNode == endNode )
-        {
-            searchResults.clear();
-            return true;
-        }
-
-        closedSet.Clear();
-        openSet.Clear();
-        orderedOpenSet.Clear();
-
-        if( searchResults.size() )
-        {
-            for( size_t i = 0; i < searchResults.size(); ++i )
-            {
-                auto n = searchResults[ i ];
-                cameFrom.At( n->x, n->y ) = nullptr;
-            }
-            searchResults.clear();
-        }
-        else cameFrom.Clear();
-
-        startNode->g = 0;
-        startNode->h = Heuristic( startNode, endNode );
-        startNode->f = startNode->h;
-
-        openSet.Add( startNode->x, startNode->y );
-        orderedOpenSet.Push( startNode );
-
-        std::vector<PPNT> neighbors;
-        neighbors.resize( 8 );
-
-        while( openSet.c )
-        {
-            auto a = orderedOpenSet.Pop();
-            if( a == endNode )
-            {
-                ReconstructPath( cameFrom.At( endNode->x, endNode->y ) );
-                searchResults.push_back( endNode );
-                return true;
-            }
-
-            openSet.Remove( a->x, a->y );
-            closedSet.Add( a->x, a->y );
-
-            FillNeighbors( a, neighbors );
-
-            for( auto b : neighbors )
-            {
-                if( !a->userContext->IsWalkable( *b->userContext )
-                    || closedSet.Contains( b->x, b->y ) ) continue;
-
-                bool better, added = false;
-
-                auto score = pathNodeMap.At( a->x, a->y ).g + NeighborDistance( a, b );
-
-                if( !openSet.Contains( b->x, b->y ) )
-                {
-                    openSet.Add( b->x, b->y );
-                    better = true;
-                    added = true;
-                }
-                else if( score < pathNodeMap.At( b->x, b->y ).g )
-                {
-                    better = true;
-                }
-                else
-                {
-                    better = false;
-                }
-
-                if( better )
-                {
-                    cameFrom.At( b->x, b->y ) = a;
-
-                    auto& n = pathNodeMap.At( b->x, b->y );
-                    n.g = score;
-                    n.h = Heuristic( b, endNode );
-                    n.f = n.g + n.h;
-
-                    if( added ) orderedOpenSet.Push( b );
-                    else orderedOpenSet.Update( b );
-                }
-            }
-        }
-
-        return false;
-    }
-
-protected:
-
-#ifdef _WIN32
-    __forceinline
-#endif
-    void FillNeighbors( PPNT o, std::vector<PPNT>& neighbors )
-    {
-        int x = o->x, y = o->y;
-        neighbors[ 0 ] = &pathNodeMap.At( x - 1, y - 1 );
-        neighbors[ 1 ] = &pathNodeMap.At( x, y - 1 );
-        neighbors[ 2 ] = &pathNodeMap.At( x + 1, y - 1 );
-        neighbors[ 3 ] = &pathNodeMap.At( x - 1, y );
-        neighbors[ 4 ] = &pathNodeMap.At( x + 1, y );
-        neighbors[ 5 ] = &pathNodeMap.At( x - 1, y + 1 );
-        neighbors[ 6 ] = &pathNodeMap.At( x, y + 1 );
-        neighbors[ 7 ] = &pathNodeMap.At( x + 1, y + 1 );
-
-        // todo: custom neighbors like teleport door ?
-    }
-
-
-    void ReconstructPath( PPNT n )
-    {
-        searchResults.clear();
-        auto p = cameFrom.At( n->x, n->y );
-        searchResults.push_back( p );
-        while( p = cameFrom.At( p->x, p->y ) )
-        {
-            searchResults.push_back( p );
-        }
-    }
-
-    const float sqrt_2 = sqrtf( 2 );
-
-#ifdef _WIN32
-    __forceinline
-#endif
-    float Heuristic( PPNT a, PPNT b )
-    {
-        return 0;
-        //return sqrtf( float(( a->x - b->x ) * ( a->x - b->x ) + ( a->y - b->y ) * ( a->y - b->y )) );
-    }
-
-#ifdef _WIN32
-    __forceinline
-#endif
-    float NeighborDistance( PPNT a, PPNT b )
-    {
-        return (a->x == b->x || a->y == b->y) ? 1.0f : sqrt_2;
-    }
-
+	inline void Fill(std::vector<Cell*>& path) {
+		path.clear();
+		auto c = this;
+		path.push_back(this);
+		while ((c = c->parent)) {
+			path.push_back(c);
+		}
+	}
 };
 
+struct CellHeap {
+	struct Comparer {
+		bool operator() (Cell const* x, Cell const* y) const noexcept {
+			return x->heuristicStartToEndLen > y->heuristicStartToEndLen;
+		}
+	} comparer;
 
+	std::vector<Cell*> data;
+
+	void Clear() {
+		data.clear();
+	}
+
+	bool Empty() const {
+		return data.empty();
+	}
+
+	void Add(Cell* const& c) {
+		data.emplace_back(c);
+		std::push_heap(data.begin(), data.end(), comparer);
+	}
+
+	Cell* DeleteMin() {
+		auto from = data.front();
+		std::pop_heap(data.begin(), data.end(), comparer);
+		data.pop_back();
+#ifdef SHOW_HEAP_LOG
+		std::cout << data.size() << " " << from->heuristicStartToEndLen << std::endl;
 #endif
+		return from;
+	}
+};
+
+struct Grid {
+	int width = 0;
+	int height = 0;
+	Cell* startCell = nullptr;
+	Cell* endCell = nullptr;
+	int ex = 0;
+	int ey = 0;
+	std::vector<Cell> cells;
+	std::vector<Cell*> path;
+	static constexpr std::array<std::pair<int, int>, 8> neighborIndexs = {
+		std::pair<int, int>{-1, -1}
+		, std::pair<int, int>{0, -1}
+		, std::pair<int, int>{1, -1}
+		, std::pair<int, int>{-1, 0}
+		, std::pair<int, int>{1, 0}
+		, std::pair<int, int>{-1, 1}
+		, std::pair<int, int>{0, 1}
+		, std::pair<int, int>{1, 1}
+	};
+	const float sqrt_2 = sqrtf(2);
+	CellHeap openList;
+
+	Cell& At(int const& x, int const& y) {
+		assert(x >= 0 && y >= 0 && x < width && y < height);
+		return cells[(size_t)y * width + x];
+	}
+
+	float Heuristic(int const& x, int const& y) {
+		return sqrtf(float((x - ex) * (x - ex) + (y - ey) * (y - ey)));
+		//return (std::abs(x - ex) + std::abs(y - ey));
+		//return 0;
+	}
+
+	bool FindPath() {
+		if (!startCell || !endCell) return false;
+		Reset();
+		openList.Clear();
+		openList.Add(startCell);
+		startCell->isOpened = 1;
+		ex = endCell->x;
+		ey = endCell->y;
+
+		while (!openList.Empty()) {
+			auto cell = openList.DeleteMin();
+			cell->isOpened = 0;
+			cell->isClosed = 1;
+
+			if (cell == endCell) {
+				cell->Fill(path);
+				return true;
+			}
+
+			auto cx = cell->x;
+			auto cy = cell->y;
+			for (auto&& ni : neighborIndexs) {
+				auto n = &At(ni.first + cx, ni.second + cy);
+				if (n->isClosed || !n->walkable) continue;
+				auto nx = n->x;
+				auto ny = n->y;
+				auto ng = cell->startToCurNodeLen + ((nx == cx || ny == cy) ? 1.0f : sqrt_2);
+
+				if (!n->isOpened || ng < n->startToCurNodeLen) {
+					n->startToCurNodeLen = ng;
+					if (!n->heuristicCurNodeToEndLen_hasValue) {
+						n->heuristicCurNodeToEndLen = Heuristic(nx, ny);
+						n->heuristicCurNodeToEndLen_hasValue = 1;
+					}
+					n->heuristicStartToEndLen = n->startToCurNodeLen + n->heuristicCurNodeToEndLen;
+					n->parent = cell;
+					if (!n->isOpened) {
+						openList.Add(n);
+						n->isOpened = 1;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	void Reset() {
+		for (auto&& c : cells) {
+			c.Clear();
+		}
+	}
+
+	void LoadByFile(char const* const& fileName) {
+		std::ifstream f(fileName);
+		std::string tmp;
+		std::vector<std::string> ss;
+		while (getline(f, tmp)) {
+			if (tmp[tmp.size() - 1] < 36) {
+				tmp.resize(tmp.size() - 1);
+			}
+			ss.push_back(tmp);
+		}
+
+		width = (int)ss[0].size();
+		height = (int)ss.size();
+		cells.resize((size_t)width * height);
+		path.clear();
+		startCell = endCell = nullptr;
+		ex = ey = 0;
+
+		for (int y = 0; y < height; ++y) {
+			auto& s = ss[y];
+			for (int x = 0; x < width; ++x) {
+				switch (s[x]) {
+				case '@':
+					startCell = &At(x, y);
+					At(x, y).walkable = 1;
+					break;
+				case '*':
+					endCell = &At(x, y);
+				case ' ':
+					At(x, y).walkable = 1;
+					break;
+				default:
+					At(x, y).walkable = 0;
+				}
+			}
+		}
+
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				At(x, y).x = x;
+				At(x, y).y = y;
+			}
+		}
+	}
+
+	void Dump() {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				auto o = &At(x, y);
+				if (o == startCell) {
+					std::cout << "o";
+				}
+				else if (o == endCell) {
+					std::cout << "*";
+				}
+				else if (path.size() && std::find(path.begin(), path.end(), o) != path.end()) {
+					std::cout << "+";
+				}
+				else if (o->walkable) {
+					std::cout << " ";
+				}
+				else {
+					std::cout << "#";
+				}
+			}
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+	}
+};
+
+int64_t NowMS() {
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+int main() {
+	Grid g;
+	g.LoadByFile("map3.txt");
+
+	auto ms = NowMS();
+	int count = 0;
+	for (int i = 0; i < 10000; ++i) {
+		if (g.FindPath()) {
+			++count;
+		}
+	}
+	std::cout << "elapsed ms = " << (NowMS() - ms) << std::endl;
+	std::cout << "count = " << count << std::endl;
+	std::cout << "map width = " << g.width << ", height = " << g.height << std::endl;
+	if (count) g.Dump();
+	return 0;
+}

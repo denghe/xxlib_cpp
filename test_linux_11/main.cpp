@@ -10,26 +10,21 @@
 #include <optional>
 #include <chrono>
 
-#define ENABLE_HEURISTIC
-#define CALC_COUNT 10000
-
 struct Cell {
-	int x = 0, y = 0;
+	int x = 0;
+	int y = 0;
 	int walkable = 0;
-	int unused = 0;
-
-	int isOpened = 0;
-	int isClosed = 0;
-	float heuristicStartToEndLen = 0.0f;
-	float startToCurNodeLen = 0.0f;
-#ifdef ENABLE_HEURISTIC
-	int heuristicCurNodeToEndLen_hasValue = 0;
-	float heuristicCurNodeToEndLen = 0.0f;
-#endif
 	Cell* parent = nullptr;
 
+	float heuristicStartToEndLen = 0.0f;
+	float startToCurNodeLen = 0.0f;
+	float heuristicCurNodeToEndLen = 0.0f;
+	char heuristicCurNodeToEndLen_hasValue = 0;
+	char isOpened = 0;
+	char isClosed = 0;
+
 	inline void Clear() {
-		memset(&isOpened, 0, sizeof(Cell) - 4 * 4);
+		memset(&heuristicStartToEndLen, 0, 4 * 4);
 	}
 
 	inline void Fill(std::vector<Cell*>& path) {
@@ -68,9 +63,6 @@ struct CellHeap {
 		auto from = data.front();
 		std::pop_heap(data.begin(), data.end(), comparer);
 		data.pop_back();
-#ifdef SHOW_HEAP_LOG
-		std::cout << data.size() << " " << from->heuristicStartToEndLen << std::endl;
-#endif
 		return from;
 	}
 };
@@ -100,12 +92,9 @@ struct Grid {
 		return cells[(size_t)y * width + x];
 	}
 
-#ifdef ENABLE_HEURISTIC
-	static float Heuristic(Cell* const& a, Cell* const& b) {
-		//return (std::abs(a->x - b->x) + std::abs(a->y - b->y));
-		return sqrtf(float((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y)));
+	float Heuristic(Cell* const& a) {
+		return sqrtf(float((a->x - endCell->x) * (a->x - endCell->x) + (a->y - endCell->y) * (a->y - endCell->y)));
 	}
-#endif
 
 	bool FindPath() {
 		if (!startCell || !endCell) return false;
@@ -126,9 +115,8 @@ struct Grid {
 
 			auto cx = cell->x;
 			auto cy = cell->y;
-
 			for (auto&& ni : neighborIndexs) {
-				auto n = &At(ni.first + cell->x, ni.second + cell->y);
+				auto n = &At(ni.first + cx, ni.second + cy);
 				if (n->isClosed || !n->walkable) continue;
 				auto nx = n->x;
 				auto ny = n->y;
@@ -136,15 +124,11 @@ struct Grid {
 
 				if (!n->isOpened || ng < n->startToCurNodeLen) {
 					n->startToCurNodeLen = ng;
-#ifdef ENABLE_HEURISTIC
 					if (!n->heuristicCurNodeToEndLen_hasValue) {
-						n->heuristicCurNodeToEndLen = Heuristic(cell, endCell);
+						n->heuristicCurNodeToEndLen = Heuristic(n);
 						n->heuristicCurNodeToEndLen_hasValue = 1;
 					}
 					n->heuristicStartToEndLen = n->startToCurNodeLen + n->heuristicCurNodeToEndLen;
-#else
-					n->heuristicStartToEndLen = n->startToCurNodeLen;
-#endif
 					n->parent = cell;
 					if (!n->isOpened) {
 						openList.Add(n);
@@ -243,7 +227,7 @@ int main() {
 
 	auto ms = NowMS();
 	int count = 0;
-	for (int i = 0; i < CALC_COUNT; ++i) {
+	for (int i = 0; i < 10000; ++i) {
 		if (g.FindPath()) {
 			++count;
 		}
