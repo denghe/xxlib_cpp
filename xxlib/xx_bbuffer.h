@@ -290,7 +290,6 @@ namespace xx {
 		if constexpr (sizeof(T) == 1 || std::is_same_v<float, T>) {
 			::memcpy(buf, bb.buf + bb.offset, len * sizeof(T));
 			bb.offset += len * sizeof(T);
-			this->len = len;
 		}
 		else {
 			for (size_t i = 0; i < len; ++i) {
@@ -423,7 +422,7 @@ namespace xx {
 		}
 	};
 
-	// 适配 std::string ( 写入 32b长度 + 内容 )
+	// 适配 std::string ( 写入 变长长度 + 内容 )
 	template<>
 	struct BFuncs<std::string, void> {
 		static inline void WriteTo(BBuffer& bb, std::string const& in) noexcept {
@@ -517,6 +516,47 @@ namespace xx {
 			return out.FromBBuffer(bb);
 		}
 	};
+
+	// 适配 std::vector<T>
+	template<typename T>
+	struct BFuncs<std::vector<T>, void> {
+		static inline void WriteTo(BBuffer& bb, std::vector<T> const& in) noexcept {
+			auto buf = in.data();
+			auto len = in.size();
+			bb.Reserve(bb.len + 5 + len * sizeof(T));
+			bb.Write(len);
+			if (!len) return;
+			if constexpr (sizeof(T) == 1 || std::is_same_v<float, T>) {
+				::memcpy(bb.buf + bb.len, buf, len * sizeof(T));
+				bb.len += len * sizeof(T);
+			}
+			else {
+				for (size_t i = 0; i < len; ++i) {
+					bb.Write(buf[i]);
+				}
+			}
+		}
+		static inline int ReadFrom(BBuffer& bb, std::vector<T>& out) noexcept {
+			size_t len = 0;
+			if (auto rtv = bb.Read(len)) return rtv;
+			if (bb.readLengthLimit != 0 && len > bb.readLengthLimit) return -1;
+			if (bb.offset + len > bb.len) return -2;
+			out.resize(len);
+			auto buf = out.data();
+			if (len == 0) return 0;
+			if constexpr (sizeof(T) == 1 || std::is_same_v<float, T>) {
+				::memcpy(buf, bb.buf + bb.offset, len * sizeof(T));
+				bb.offset += len * sizeof(T);
+			}
+			else {
+				for (size_t i = 0; i < len; ++i) {
+					if (int r = bb.Read(buf[i])) return r;
+				}
+			}
+			return 0;
+		}
+	};
+
 
 	// 适配 xx::BBuffer
 	template<>

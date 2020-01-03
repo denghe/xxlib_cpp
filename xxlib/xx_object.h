@@ -446,8 +446,17 @@ namespace xx {
 	template<typename T>
 	struct SFuncs<std::vector<T>, void> {
 		static inline void WriteTo(std::string& s, std::vector<T> const& in) noexcept {
+			s += "[ ";
 			for (auto&& o : in) {
 				SFuncs<T>::WriteTo(s, o);
+				s += ", ";
+			}
+			if (in.size()) {
+				s.resize(s.size() - 2);
+				s += " ]";
+			}
+			else {
+				s[s.size() - 1] = ']';
 			}
 		}
 	};
