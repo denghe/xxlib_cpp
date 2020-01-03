@@ -559,9 +559,6 @@ namespace xx::Epoll {
 		// 公用序列化 bb( 智能指针版 )
 		BBuffer_s sharedBB = xx::Make<BBuffer>();
 
-		// 公用 buf( 已用于 STDIN 输入接收 )
-		std::array<char, 65536> buf;
-
 		// 公用 args( 已用于 cmds 传参 )
 		std::vector<std::string> args;
 

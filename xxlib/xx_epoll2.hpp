@@ -412,11 +412,8 @@ namespace xx::Epoll {
 		int err;
 		socklen_t result_len = sizeof(err);
 		if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &result_len) == -1 || err) {
-			// error
-			if (e & EPOLLERR || e & EPOLLHUP) {
-				Dispose();
-				return;
-			}
+			Dispose();
+			return;
 		}
 
 		// 连接成功. 自杀前备份变量到栈

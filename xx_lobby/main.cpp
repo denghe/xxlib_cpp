@@ -44,15 +44,19 @@ namespace xx::Epoll {
 			auto buf = (uint8_t*)this->recv.buf;
 			auto end = (uint8_t*)this->recv.buf + this->recv.len;
 
+			// 死亡判断变量
+			Ref<Item> alive(this);
+
 			// 确保包头长度充足
 			while (buf + 4 <= end) {
-
 				// 取出数据区长度 并 判断合法性
 				auto dataLen = *(uint32_t*)buf;
 
-				// dataLen 至少应包含 4 字节 id 长
-				if (dataLen < 4 || dataLen > this->ep->maxPackageLength) {
+				// 长度保护判断
+				if (dataLen > this->ep->maxPackageLength) {
 					OnDisconnect(-5);
+					// 如果当前类实例已自杀则退出
+					if (!alive) return;
 					Dispose();
 					return;
 				}
@@ -63,9 +67,6 @@ namespace xx::Epoll {
 				// 跳到数据区开始调用处理回调
 				buf += 4;
 				{
-					// 死亡判断变量
-					Ref<Item> alive(this);
-
 					// 分发
 					OnReceivePackage(buf, dataLen);
 
@@ -130,6 +131,11 @@ namespace xx::Epoll {
 
 		// 包结构: header + id + data. 投递到此的部分为 id + data
 		virtual void OnReceivePackage(uint8_t* const& buf, uint32_t const& len) override {
+			// dataLen 至少应包含 4 字节 id 长
+			if (len < 4) {
+				Dispose();
+				return;
+			}
 			// 判断是否为内部指令
 			if (*(uint32_t*)buf == 0xFFFFFFFFu) {
 				onReceiveCommand(buf + 4, len - 4);
@@ -201,7 +207,7 @@ namespace xx::Epoll {
 		}
 		inline void SendRequest(Object_s const& msg, RequestCB&& cb, uint32_t const& timeoutMS) noexcept {
 			serial = (serial + 1) & 0x7FFFFFFF;
-			callbacks[serial] = { std::move(cb), NowSteadyEpochMS() + (timeoutMS ? (int64_t)timeoutMS : ep->defaultRequestTimeoutMS) };
+			callbacks[serial] = { std::move(cb), ep->nowMS + (timeoutMS ? (int64_t)timeoutMS : ep->defaultRequestTimeoutMS) };
 			gatewayPeer->Send(-serial, msg, id);	// serial 取负值发出
 		}
 
@@ -212,12 +218,13 @@ namespace xx::Epoll {
 			int serial = 0;
 			Object_s msg;
 			if (bb.Read(serial) || bb.ReadRoot(msg)) {
+				Ref<Item> alive(this);
 				OnDisconnect();
+				if (!alive) return;
 				Dispose();
 				return;
 			}
-
-			if (serial == 0) {
+			else if (serial == 0) {
 				OnReceivePush(std::move(msg));
 			}
 			else if (serial < 0) {
